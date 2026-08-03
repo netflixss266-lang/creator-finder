@@ -1,0 +1,444 @@
+<!doctype html>
+<html lang="th">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Creator Finder — KOL Sourcing</title>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Thai:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#0E0F13; --surface:#16181F; --surface2:#1C1F28; --line:#282C38;
+  --ink:#ECEEF3; --mute:#8A93A6; --dim:#565E70;
+  --accent:#E8FF63;           /* เหลืองมะนาว — ตัวเดียวที่ใช้เน้น */
+  --accent-ink:#141600;
+  --hi:#7CE7C4; --lo:#F0806B;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--bg);color:var(--ink);
+  font-family:'IBM Plex Sans Thai',system-ui,sans-serif;font-size:15px;line-height:1.5}
+a{color:inherit;text-decoration:none}
+button{font-family:inherit;cursor:pointer}
+
+header{display:flex;align-items:center;justify-content:space-between;gap:16px;
+  padding:16px 24px;border-bottom:1px solid var(--line);flex-wrap:wrap}
+.brand{display:flex;align-items:baseline;gap:12px}
+.brand h1{font-family:'Space Grotesk',sans-serif;font-size:1.25rem;font-weight:700;letter-spacing:-.02em}
+.brand .sub{font-size:.78rem;color:var(--dim);font-family:'IBM Plex Mono',monospace}
+.poolstat{font-family:'IBM Plex Mono',monospace;font-size:.8rem;color:var(--mute);
+  background:var(--surface);border:1px solid var(--line);border-radius:999px;padding:6px 14px}
+.poolstat b{color:var(--accent)}
+
+.wrap{display:grid;grid-template-columns:320px 1fr;gap:0;min-height:calc(100vh - 62px)}
+@media(max-width:860px){.wrap{grid-template-columns:1fr}}
+
+/* ── ตัวกรอง ── */
+aside{border-right:1px solid var(--line);padding:22px;overflow-y:auto;
+  position:sticky;top:0;align-self:start;max-height:calc(100vh - 62px)}
+.field{margin-bottom:22px}
+.field > label{display:block;font-size:.72rem;text-transform:uppercase;letter-spacing:.08em;
+  color:var(--mute);margin-bottom:9px;font-weight:600}
+.chips{display:flex;flex-wrap:wrap;gap:7px}
+.chip{border:1px solid var(--line);background:var(--surface);color:var(--mute);
+  border-radius:7px;padding:6px 11px;font-size:.82rem;transition:all .13s;user-select:none}
+.chip:hover{border-color:var(--dim)}
+.chip.on{background:var(--accent);color:var(--accent-ink);border-color:var(--accent);font-weight:600}
+
+input,textarea{width:100%;background:var(--surface);border:1px solid var(--line);
+  border-radius:8px;color:var(--ink);padding:10px 12px;font-family:inherit;font-size:.88rem}
+input:focus,textarea:focus{outline:none;border-color:var(--accent)}
+textarea{resize:vertical;min-height:74px;line-height:1.5}
+.hint{font-size:.72rem;color:var(--dim);margin-top:6px;line-height:1.45}
+
+.range-row{display:flex;align-items:center;gap:8px}
+.range-row input{text-align:center}
+.range-row span{color:var(--dim);font-size:.8rem}
+
+.count-input{display:flex;align-items:center;gap:10px}
+.count-input input{width:90px;font-family:'IBM Plex Mono',monospace;font-weight:600}
+
+.run{width:100%;background:var(--accent);color:var(--accent-ink);border:0;
+  border-radius:9px;padding:13px;font-weight:700;font-size:.95rem;letter-spacing:.01em;
+  font-family:'Space Grotesk',sans-serif}
+.run:hover{filter:brightness(1.06)}
+.run:disabled{opacity:.5;cursor:not-allowed}
+.setup{margin-top:16px;padding-top:16px;border-top:1px solid var(--line)}
+
+/* ── ผลลัพธ์ ── */
+main{padding:22px 24px;overflow-y:auto;max-height:calc(100vh - 62px)}
+.res-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;flex-wrap:wrap;gap:12px}
+.res-head h2{font-family:'Space Grotesk',sans-serif;font-size:1rem;font-weight:600}
+.res-head .n{color:var(--accent)}
+.export{background:var(--surface2);border:1px solid var(--line);color:var(--ink);
+  border-radius:8px;padding:9px 16px;font-size:.84rem;font-weight:600}
+.export:hover{border-color:var(--accent);color:var(--accent)}
+.export:disabled{opacity:.4;cursor:not-allowed}
+
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:12px}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:12px;
+  padding:15px;transition:border-color .13s;position:relative}
+.card:hover{border-color:var(--dim)}
+.card.picked{border-color:var(--accent)}
+.card-top{display:flex;align-items:flex-start;justify-content:space-between;gap:10px;margin-bottom:9px}
+.handle{font-weight:600;font-size:.98rem;word-break:break-all}
+.score{font-family:'IBM Plex Mono',monospace;font-weight:600;font-size:.9rem;
+  padding:2px 9px;border-radius:6px;white-space:nowrap;flex:none}
+.score.hi{background:rgba(124,231,196,.14);color:var(--hi)}
+.score.mid{background:rgba(232,255,99,.13);color:var(--accent)}
+.score.lo{background:rgba(240,128,107,.13);color:var(--lo)}
+.meta{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:9px}
+.tag{font-size:.72rem;background:var(--surface2);border:1px solid var(--line);
+  border-radius:5px;padding:2px 8px;color:var(--mute)}
+.tag.fol{font-family:'IBM Plex Mono',monospace}
+.reason{font-size:.8rem;color:var(--mute);line-height:1.5;margin-bottom:10px}
+.card-actions{display:flex;gap:8px;align-items:center}
+.pick{flex:1;background:var(--surface2);border:1px solid var(--line);color:var(--mute);
+  border-radius:7px;padding:7px;font-size:.8rem;font-weight:600}
+.pick:hover{border-color:var(--dim)}
+.pick.on{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
+.open{border:1px solid var(--line);background:var(--surface2);border-radius:7px;
+  padding:7px 11px;font-size:.8rem;color:var(--mute)}
+.open:hover{color:var(--ink)}
+
+.empty{padding:60px 20px;text-align:center;color:var(--dim);
+  border:1px dashed var(--line);border-radius:12px}
+.empty h3{font-weight:600;color:var(--mute);margin-bottom:6px}
+
+.loading{display:flex;align-items:center;gap:10px;color:var(--mute);font-size:.86rem;padding:16px}
+.spin{width:15px;height:15px;border:2px solid var(--line);border-top-color:var(--accent);
+  border-radius:50%;animation:sp .7s linear infinite}
+@keyframes sp{to{transform:rotate(360deg)}}
+
+.banner{background:var(--surface2);border:1px solid var(--line);border-radius:8px;
+  padding:11px 14px;font-size:.82rem;color:var(--mute);margin-bottom:16px;line-height:1.5}
+.banner b{color:var(--ink)}
+@media(prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="brand">
+    <h1>Creator Finder</h1>
+    <span class="sub">KOL sourcing</span>
+  </div>
+  <div class="poolstat">pool: <b id="poolN">0</b> คน</div>
+</header>
+
+<div class="wrap">
+  <!-- ═══ ตัวกรอง ═══ -->
+  <aside>
+    <div class="field">
+      <label>ประเภทครีเอเตอร์ (Category)</label>
+      <div class="chips" id="catChips"></div>
+    </div>
+
+    <div class="field">
+      <label>Reference — ลิงก์วิดีโอตัวอย่าง</label>
+      <textarea id="ref" placeholder="วางลิงก์วิดีโอ TikTok ที่อยากได้สไตล์นี้&#10;เช่น การนำเสนอ / แสงสี / ภาพชัด"></textarea>
+      <div class="hint">Claude จะวิเคราะห์การนำเสนอ แสงสี และความคมชัด แล้วจับคู่กับครีเอเตอร์ใน pool</div>
+    </div>
+
+    <div class="field">
+      <label>Followers</label>
+      <div class="range-row">
+        <input id="folMin" type="number" placeholder="ต่ำสุด" value="">
+        <span>—</span>
+        <input id="folMax" type="number" placeholder="สูงสุด" value="">
+      </div>
+    </div>
+
+    <div class="field">
+      <label>จำนวนที่ต้องการ</label>
+      <div class="count-input">
+        <input id="want" type="number" value="30" min="1">
+        <span style="color:var(--dim);font-size:.82rem">คนแรกที่ตรงสุด</span>
+      </div>
+    </div>
+
+    <button class="run" id="runBtn">ค้นหา</button>
+
+    <div class="setup">
+      <div class="field" style="margin-bottom:12px">
+        <label>Google Sheet CSV URL</label>
+        <input id="csvUrl" placeholder="ลิงก์ publish-to-web (.csv)">
+        <div class="hint">File → Share → Publish to web → เลือกแท็บ → CSV</div>
+      </div>
+      <div class="field" style="margin-bottom:0">
+        <label>Anthropic API Key (สำหรับ ref matching)</label>
+        <input id="apiKey" type="password" placeholder="sk-ant-...">
+        <div class="hint">ไม่ใส่ก็ค้นได้ แต่จะไม่มีการจับคู่ reference</div>
+      </div>
+    </div>
+  </aside>
+
+  <!-- ═══ ผลลัพธ์ ═══ -->
+  <main>
+    <div class="banner" id="banner">
+      <b>เริ่มยังไง:</b> วางลิงก์ Google Sheet CSV ด้านซ้าย (คอลัมน์ Category / ID / Link / Follower)
+      แล้วกดค้นหา — ถ้าใส่ reference + API key ด้วย ระบบจะจัดอันดับตามความใกล้เคียงให้
+    </div>
+
+    <div class="res-head">
+      <h2>ผลลัพธ์ <span class="n" id="resN"></span></h2>
+      <button class="export" id="exportBtn" disabled>Export ที่เลือก (CSV)</button>
+    </div>
+
+    <div id="results">
+      <div class="empty">
+        <h3>ยังไม่มีผลลัพธ์</h3>
+        <div>โหลด pool แล้วกดค้นหาเพื่อเริ่ม</div>
+      </div>
+    </div>
+  </main>
+</div>
+
+<script>
+const $ = s => document.querySelector(s);
+let POOL = [];          // ข้อมูลดิบจาก Sheet
+let RESULTS = [];       // หลังกรอง+จัดอันดับ
+let PICKED = new Set();
+let CATS = [];
+
+// ─── โหลด pool จาก Google Sheet CSV ───
+async function loadPool(url){
+  const res = await fetch(url);
+  const text = await res.text();
+  const rows = parseCSV(text);
+  const head = rows[0].map(h => h.trim().toLowerCase());
+
+  const iCat = head.findIndex(h => /cat/.test(h));
+  const iId  = head.findIndex(h => h==='id' || /handle|user|creator|ชื่อ/.test(h));
+  const iLink= head.findIndex(h => /link|url/.test(h));
+  const iFol = head.findIndex(h => /fol/.test(h));
+
+  POOL = rows.slice(1).filter(r => r[iId]).map(r => ({
+    cat:  (iCat>=0 ? r[iCat] : "").trim(),
+    id:   r[iId].trim(),
+    link: (iLink>=0 ? r[iLink] : "").trim(),
+    fol:  parseFollowers(iFol>=0 ? r[iFol] : "0"),
+  }));
+
+  CATS = [...new Set(POOL.map(p => p.cat).filter(Boolean))].sort();
+  renderCatChips();
+  $("#poolN").textContent = POOL.length;
+  return POOL.length;
+}
+
+function parseFollowers(s){
+  s = String(s).trim().toLowerCase().replace(/,/g,"");
+  let mult = 1;
+  if (s.endsWith("k")){ mult=1e3; s=s.slice(0,-1); }
+  else if (s.endsWith("m")){ mult=1e6; s=s.slice(0,-1); }
+  const n = parseFloat(s);
+  return isNaN(n) ? 0 : Math.round(n*mult);
+}
+
+function fmtFol(n){
+  if (n>=1e6) return (n/1e6).toFixed(1).replace(/\.0$/,"")+"M";
+  if (n>=1e3) return (n/1e3).toFixed(0)+"K";
+  return String(n);
+}
+
+// parser CSV รองรับ quote/comma ในเซลล์
+function parseCSV(text){
+  const rows=[]; let row=[], cell="", q=false;
+  for (let i=0;i<text.length;i++){
+    const c=text[i];
+    if (q){
+      if (c==='"'){ if(text[i+1]==='"'){cell+='"';i++;} else q=false; }
+      else cell+=c;
+    } else {
+      if (c==='"') q=true;
+      else if (c===","){ row.push(cell); cell=""; }
+      else if (c==='\n'){ row.push(cell); rows.push(row); row=[]; cell=""; }
+      else if (c==='\r'){}
+      else cell+=c;
+    }
+  }
+  if (cell||row.length){ row.push(cell); rows.push(row); }
+  return rows.filter(r => r.some(x => x.trim()));
+}
+
+function renderCatChips(){
+  $("#catChips").innerHTML = CATS.map(c =>
+    `<span class="chip" data-cat="${c}">${c}</span>`).join("") ||
+    '<span class="hint">โหลด pool ก่อน แล้วหมวดจะขึ้นที่นี่</span>';
+  document.querySelectorAll("#catChips .chip").forEach(ch =>
+    ch.onclick = () => ch.classList.toggle("on"));
+}
+
+// ─── ค้นหา ───
+async function run(){
+  const url = $("#csvUrl").value.trim();
+  if (!url){ alert("วางลิงก์ Google Sheet CSV ก่อน"); return; }
+
+  $("#runBtn").disabled = true;
+  $("#banner").style.display = "none";
+  $("#results").innerHTML = `<div class="loading"><span class="spin"></span>กำลังโหลด pool...</div>`;
+
+  try {
+    if (!POOL.length) await loadPool(url);
+  } catch(e){
+    $("#results").innerHTML = `<div class="empty"><h3>โหลด pool ไม่ได้</h3><div>${e.message} — เช็คว่า publish เป็น CSV แล้ว</div></div>`;
+    $("#runBtn").disabled = false; return;
+  }
+
+  // กรองพื้นฐาน
+  const onCats = [...document.querySelectorAll("#catChips .chip.on")].map(c => c.dataset.cat);
+  const fMin = parseFollowers($("#folMin").value || "0");
+  const fMax = parseFollowers($("#folMax").value || "0") || Infinity;
+  const want = parseInt($("#want").value) || 30;
+
+  let filtered = POOL.filter(p =>
+    (onCats.length===0 || onCats.includes(p.cat)) &&
+    p.fol >= fMin && p.fol <= fMax
+  );
+
+  // จับคู่ reference ด้วย Claude (ถ้ามี key + ref)
+  const ref = $("#ref").value.trim();
+  const key = $("#apiKey").value.trim();
+
+  if (ref && key){
+    $("#results").innerHTML = `<div class="loading"><span class="spin"></span>Claude กำลังวิเคราะห์ reference และจัดอันดับ ${filtered.length} คน...</div>`;
+    try {
+      filtered = await scoreWithClaude(filtered, ref, key);
+    } catch(e){
+      $("#results").innerHTML = `<div class="empty"><h3>จับคู่ reference ไม่ได้</h3><div>${e.message}</div></div>`;
+      $("#runBtn").disabled = false; return;
+    }
+  } else {
+    // ไม่มี ref → เรียงตาม followers มากไปน้อย
+    filtered.sort((a,b) => b.fol - a.fol);
+    filtered.forEach(p => { p.score = null; p.reason = ""; });
+  }
+
+  RESULTS = filtered.slice(0, want);
+  PICKED.clear();
+  render();
+  $("#runBtn").disabled = false;
+}
+
+// ─── เรียก Claude วิเคราะห์ ref + ให้คะแนน ───
+async function scoreWithClaude(list, ref, key){
+  // ส่งเป็น batch ทีละ 25 คน กัน token เกิน
+  const out = [];
+  for (let i=0;i<list.length;i+=25){
+    const batch = list.slice(i, i+25);
+    const prompt =
+`คุณเป็นผู้ช่วย KOL Specialist กำลังจับคู่ครีเอเตอร์กับ reference
+
+Reference (วิดีโอตัวอย่างที่ต้องการสไตล์นี้):
+${ref}
+
+พิจารณามิติ: การนำเสนอ, แสงสี, ความคมชัดของภาพ, โทน/พลังงาน, ความเหมาะกับสินค้า
+
+รายชื่อครีเอเตอร์ (category | id | followers):
+${batch.map((p,j)=>`${j}. ${p.cat} | ${p.id} | ${fmtFol(p.fol)}`).join("\n")}
+
+ให้คะแนนความใกล้เคียงกับ reference (0-10) แต่ละคน
+ตอบ JSON array อย่างเดียว ห้ามมีข้อความอื่น:
+[{"i":0,"score":8.5,"reason":"เหตุผลสั้นๆ 1 บรรทัด"}, ...]`;
+
+    const r = await fetch("https://api.anthropic.com/v1/messages", {
+      method:"POST",
+      headers:{
+        "Content-Type":"application/json",
+        "x-api-key":key,
+        "anthropic-version":"2023-06-01",
+        "anthropic-dangerous-direct-browser-access":"true"
+      },
+      body:JSON.stringify({
+        model:"claude-sonnet-4-6",
+        max_tokens:1500,
+        messages:[{role:"user",content:prompt}]
+      })
+    });
+    if (!r.ok){ throw new Error("API "+r.status+" — เช็ค key/เครดิต"); }
+    const data = await r.json();
+    let txt = data.content[0].text.trim().replace(/```json|```/g,"").trim();
+    const scores = JSON.parse(txt);
+    scores.forEach(s => {
+      const p = batch[s.i];
+      if (p){ p.score = s.score; p.reason = s.reason || ""; }
+    });
+    out.push(...batch);
+  }
+  out.sort((a,b) => (b.score||0) - (a.score||0));
+  return out;
+}
+
+// ─── แสดงผล ───
+function render(){
+  $("#resN").textContent = RESULTS.length ? `(${RESULTS.length})` : "";
+  if (!RESULTS.length){
+    $("#results").innerHTML = `<div class="empty"><h3>ไม่มีครีเอเตอร์ตรงเงื่อนไข</h3><div>ลองผ่อนตัวกรอง เช่น ขยายช่วง followers</div></div>`;
+    $("#exportBtn").disabled = true; return;
+  }
+  $("#results").innerHTML = `<div class="grid">${RESULTS.map(cardHTML).join("")}</div>`;
+  document.querySelectorAll(".pick").forEach(b =>
+    b.onclick = () => togglePick(b.dataset.id, b));
+  updateExport();
+}
+
+function scoreClass(s){ return s>=8 ? "hi" : s>=5 ? "mid" : "lo"; }
+
+function cardHTML(p){
+  const picked = PICKED.has(p.id);
+  const scoreHTML = p.score!=null
+    ? `<span class="score ${scoreClass(p.score)}">${p.score}</span>` : "";
+  return `<div class="card ${picked?'picked':''}">
+    <div class="card-top">
+      <span class="handle">${esc(p.id)}</span>
+      ${scoreHTML}
+    </div>
+    <div class="meta">
+      ${p.cat?`<span class="tag">${esc(p.cat)}</span>`:""}
+      <span class="tag fol">${fmtFol(p.fol)} followers</span>
+    </div>
+    ${p.reason?`<div class="reason">${esc(p.reason)}</div>`:""}
+    <div class="card-actions">
+      <button class="pick ${picked?'on':''}" data-id="${esc(p.id)}">${picked?'✓ เลือกแล้ว':'เลือก'}</button>
+      ${p.link?`<a class="open" href="${esc(p.link)}" target="_blank" rel="noopener">เปิด ↗</a>`:""}
+    </div>
+  </div>`;
+}
+
+function togglePick(id, btn){
+  if (PICKED.has(id)){ PICKED.delete(id); btn.classList.remove("on"); btn.textContent="เลือก"; btn.closest(".card").classList.remove("picked"); }
+  else { PICKED.add(id); btn.classList.add("on"); btn.textContent="✓ เลือกแล้ว"; btn.closest(".card").classList.add("picked"); }
+  updateExport();
+}
+
+function updateExport(){
+  const n = PICKED.size;
+  $("#exportBtn").disabled = n===0;
+  $("#exportBtn").textContent = n ? `Export ที่เลือก (${n})` : "Export ที่เลือก (CSV)";
+}
+
+// ─── Export ───
+function exportCSV(){
+  const rows = RESULTS.filter(p => PICKED.has(p.id));
+  if (!rows.length) return;
+  const head = ["Category","ID","Link","Follower","Fit Score","Reason","สถานะ"];
+  const body = rows.map(p => [p.cat, p.id, p.link, p.fol, p.score??"", p.reason??"", "รอติดต่อ"]);
+  const csv = [head, ...body].map(r =>
+    r.map(c => `"${String(c).replace(/"/g,'""')}"`).join(",")).join("\n");
+  const blob = new Blob(["\uFEFF"+csv], {type:"text/csv;charset=utf-8"});
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = `creators_selected_${new Date().toISOString().slice(0,10)}.csv`;
+  a.click();
+}
+
+function esc(s){ return String(s).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
+
+$("#runBtn").onclick = run;
+$("#exportBtn").onclick = exportCSV;
+$("#csvUrl").addEventListener("change", async () => {
+  const u = $("#csvUrl").value.trim();
+  if (u){ try { await loadPool(u); $("#banner").innerHTML = `โหลด pool แล้ว <b>${POOL.length} คน</b> · เลือกตัวกรองแล้วกดค้นหา`; } catch(e){} }
+});
+</script>
+</body>
+</html>
