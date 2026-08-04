@@ -4,6 +4,8 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Creator Finder — KOL Sourcing</title>
+<link rel="icon" href="favicon.svg" type="image/svg+xml">
+<meta name="theme-color" content="#0E0F13">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Thai:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
@@ -22,7 +24,8 @@ button{font-family:inherit;cursor:pointer}
 
 header{display:flex;align-items:center;justify-content:space-between;gap:16px;
   padding:16px 24px;border-bottom:1px solid var(--line);flex-wrap:wrap}
-.brand{display:flex;align-items:baseline;gap:12px}
+.brand{display:flex;align-items:center;gap:11px}
+.brand .mark{width:28px;height:28px;flex:none;border:1px solid var(--line);border-radius:7px}
 .brand h1{font-family:'Space Grotesk',sans-serif;font-size:1.25rem;font-weight:700;letter-spacing:-.02em}
 .brand .sub{font-size:.78rem;color:var(--dim);font-family:'IBM Plex Mono',monospace}
 .poolstat{font-family:'IBM Plex Mono',monospace;font-size:.8rem;color:var(--mute);
@@ -104,6 +107,14 @@ main{padding:22px 24px;overflow-y:auto;max-height:calc(100vh - 62px)}
 .tag.rate{font-family:'IBM Plex Mono',monospace;color:var(--accent);
   border-color:rgba(232,255,99,.28);background:rgba(232,255,99,.07);font-weight:600}
 .tag.norate{color:var(--dim);font-style:italic}
+/* ต้นทุนต่อ 1,000 followers — ยิ่งต่ำยิ่งคุ้ม */
+.tag.cpf{font-family:'IBM Plex Mono',monospace}
+.tag.cpf.good{color:var(--hi);border-color:rgba(124,231,196,.28);background:rgba(124,231,196,.07)}
+.tag.cpf.pricey{color:var(--lo);border-color:rgba(240,128,107,.28);background:rgba(240,128,107,.07)}
+
+.resnote{font-size:.78rem;color:var(--dim);margin:-8px 0 14px;line-height:1.5}
+.resnote b{color:var(--mute)}
+.resnote:empty{display:none}
 .reason{font-size:.8rem;color:var(--mute);line-height:1.5;margin-bottom:10px}
 .card-actions{display:flex;gap:8px;align-items:center}
 .pick{flex:1;background:var(--surface2);border:1px solid var(--line);color:var(--mute);
@@ -133,6 +144,12 @@ main{padding:22px 24px;overflow-y:auto;max-height:calc(100vh - 62px)}
 
 <header>
   <div class="brand">
+    <svg class="mark" viewBox="0 0 32 32" aria-hidden="true">
+      <rect width="32" height="32" rx="7" fill="#0E0F13"/>
+      <circle cx="14" cy="14" r="7.6" fill="none" stroke="#E8FF63" stroke-width="2.8"/>
+      <path d="M11.7 10.4 18.4 14 11.7 17.6Z" fill="#E8FF63"/>
+      <path d="M19.9 19.9 25.6 25.6" stroke="#E8FF63" stroke-width="3.3" stroke-linecap="round"/>
+    </svg>
     <h1>Creator Finder</h1>
     <span class="sub">KOL sourcing</span>
   </div>
@@ -160,6 +177,16 @@ main{padding:22px 24px;overflow-y:auto;max-height:calc(100vh - 62px)}
         <span>—</span>
         <input id="folMax" type="number" placeholder="สูงสุด" value="">
       </div>
+    </div>
+
+    <div class="field">
+      <label>งบต่อคน (Rate)</label>
+      <div class="range-row">
+        <input id="rateMin" type="text" inputmode="numeric" placeholder="ต่ำสุด">
+        <span>—</span>
+        <input id="rateMax" type="text" inputmode="numeric" placeholder="สูงสุด">
+      </div>
+      <div class="hint">ใส่ได้ทั้ง 5000 / 5,000 / 5k — ถ้ากรองงบ คนที่ยังไม่มีเรทจะถูกซ่อน</div>
     </div>
 
     <div class="field">
@@ -199,6 +226,7 @@ main{padding:22px 24px;overflow-y:auto;max-height:calc(100vh - 62px)}
       <h2>ผลลัพธ์ <span class="n" id="resN"></span></h2>
       <button class="export" id="exportBtn" disabled>Export ที่เลือก (CSV)</button>
     </div>
+    <div class="resnote" id="resNote"></div>
 
     <div id="results">
       <div class="empty">
@@ -216,6 +244,8 @@ let POOL_URL = "";      // URL ที่โหลด POOL ปัจจุบั�
 let RESULTS = [];       // หลังกรอง+จัดอันดับ
 let PICKED = new Set();
 let CATS = [];
+let CPF_MED = null;     // ค่ากลาง CPF ของผลลัพธ์ชุดปัจจุบัน
+let HIDDEN_NORATE = 0;  // ถูกซ่อนเพราะกรองงบแต่ไม่มีเรท
 
 // ─── โหลด pool จาก Google Sheet CSV ───
 async function loadPool(url){
@@ -284,6 +314,23 @@ function fmtRate(n){
   return "฿" + n.toLocaleString("en-US");
 }
 
+// ต้นทุนต่อ 1,000 followers (CPM) — ใช้เทียบความคุ้มข้ามครีเอเตอร์
+function cpf(p){
+  return (p.rate!=null && p.fol>0) ? p.rate/p.fol*1000 : null;
+}
+
+function fmtCpf(v){
+  return "฿" + (v>=100 ? Math.round(v).toLocaleString("en-US") : v.toFixed(1)) + "/1K";
+}
+
+// เทียบกับค่ากลางของผลลัพธ์ชุดนี้ — ต้องมีอย่างน้อย 3 คนถึงจะตัดสินได้
+function cpfClass(v){
+  if (CPF_MED==null) return "";
+  if (v <= CPF_MED*0.8) return " good";
+  if (v >= CPF_MED*1.25) return " pricey";
+  return "";
+}
+
 // ตัวย่อไว้โชว์ตอนไม่มีรูป
 function initials(id){
   const s = String(id).replace(/^@/,"").replace(/[^a-zA-Z0-9ก-๙]/g,"");
@@ -349,12 +396,26 @@ async function run(){
   const fMax = parseFollowers($("#folMax").value || "0") || Infinity;
   const want = parseInt($("#want").value) || 30;
 
+  // กรองงบ — ช่องว่างไว้ = ไม่จำกัด
+  const rMinRaw = $("#rateMin").value.trim();
+  const rMaxRaw = $("#rateMax").value.trim();
+  const rMin = rMinRaw ? (parseRate(rMinRaw) ?? 0) : 0;
+  const rMax = rMaxRaw ? (parseRate(rMaxRaw) ?? Infinity) : Infinity;
+  const rateFilterOn = rMin > 0 || rMax < Infinity;
+
   POOL.forEach(p => { p.score = null; p.reason = ""; });
 
-  let filtered = POOL.filter(p =>
-    (onCats.length===0 || onCats.includes(p.cat)) &&
-    p.fol >= fMin && p.fol <= fMax
-  );
+  HIDDEN_NORATE = 0;
+  let filtered = POOL.filter(p => {
+    if (onCats.length && !onCats.includes(p.cat)) return false;
+    if (p.fol < fMin || p.fol > fMax) return false;
+    if (rateFilterOn){
+      // ไม่รู้เรท = ตัดสินไม่ได้ว่าเข้างบไหม เลยซ่อนไว้แล้วค่อยบอกจำนวน
+      if (p.rate == null){ HIDDEN_NORATE++; return false; }
+      if (p.rate < rMin || p.rate > rMax) return false;
+    }
+    return true;
+  });
 
   // จับคู่ reference ด้วย Claude (ถ้ามี key + ref)
   const ref = $("#ref").value.trim();
@@ -437,8 +498,16 @@ ${batch.map((p,j)=>`${j}. ${p.cat} | ${p.id} | ${fmtFol(p.fol)}`).join("\n")}
 // ─── แสดงผล ───
 function render(){
   $("#resN").textContent = RESULTS.length ? `(${RESULTS.length})` : "";
+
+  const vals = RESULTS.map(cpf).filter(v => v!=null).sort((a,b) => a-b);
+  CPF_MED = vals.length >= 3 ? vals[Math.floor(vals.length/2)] : null;
+
+  $("#resNote").innerHTML = HIDDEN_NORATE
+    ? `ซ่อนไว้ <b>${HIDDEN_NORATE} คน</b> เพราะยังไม่มีเรทเลยเช็คไม่ได้ว่าเข้างบไหม — ล้างช่องงบเพื่อดูทั้งหมด`
+    : "";
+
   if (!RESULTS.length){
-    $("#results").innerHTML = `<div class="empty"><h3>ไม่มีครีเอเตอร์ตรงเงื่อนไข</h3><div>ลองผ่อนตัวกรอง เช่น ขยายช่วง followers</div></div>`;
+    $("#results").innerHTML = `<div class="empty"><h3>ไม่มีครีเอเตอร์ตรงเงื่อนไข</h3><div>ลองผ่อนตัวกรอง เช่น ขยายช่วง followers หรือช่วงงบ</div></div>`;
     $("#exportBtn").disabled = true; return;
   }
   $("#results").innerHTML = `<div class="grid">${RESULTS.map(cardHTML).join("")}</div>`;
@@ -459,6 +528,7 @@ function cardHTML(p){
   const scoreHTML = p.score!=null
     ? `<span class="score ${scoreClass(p.score)}">${p.score}</span>` : "";
   const rate = fmtRate(p.rate);
+  const v = cpf(p);
   return `<div class="card ${picked?'picked':''}">
     <div class="card-top">
       <div class="who">
@@ -473,6 +543,7 @@ function cardHTML(p){
       <span class="tag fol">${fmtFol(p.fol)} followers</span>
       ${rate ? `<span class="tag rate">${rate}</span>`
              : `<span class="tag norate">ยังไม่มีเรท</span>`}
+      ${v!=null ? `<span class="tag cpf${cpfClass(v)}" title="ต้นทุนต่อ 1,000 followers">${fmtCpf(v)}</span>` : ""}
     </div>
     ${p.reason?`<div class="reason">${esc(p.reason)}</div>`:""}
     <div class="card-actions">
@@ -498,9 +569,12 @@ function updateExport(){
 function exportCSV(){
   const rows = RESULTS.filter(p => PICKED.has(p.id));
   if (!rows.length) return;
-  const head = ["Category","ID","Link","Image","Follower","Rate","Fit Score","Reason","สถานะ"];
-  const body = rows.map(p => [p.cat, p.id, p.link, p.av??"", p.fol,
-                              p.rate??"", p.score??"", p.reason??"", "รอติดต่อ"]);
+  const head = ["Category","ID","Link","Image","Follower","Rate","฿/1K Followers","Fit Score","Reason","สถานะ"];
+  const body = rows.map(p => {
+    const v = cpf(p);
+    return [p.cat, p.id, p.link, p.av??"", p.fol, p.rate??"",
+            v!=null ? v.toFixed(2) : "", p.score??"", p.reason??"", "รอติดต่อ"];
+  });
   const csv = [head, ...body].map(r =>
     r.map(c => `"${String(c).replace(/"/g,'""')}"`).join(",")).join("\n");
   const blob = new Blob(["\uFEFF"+csv], {type:"text/csv;charset=utf-8"});
