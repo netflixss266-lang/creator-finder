@@ -79,8 +79,19 @@ main{padding:22px 24px;overflow-y:auto;max-height:calc(100vh - 62px)}
   padding:15px;transition:border-color .13s;position:relative}
 .card:hover{border-color:var(--dim)}
 .card.picked{border-color:var(--accent)}
-.card-top{display:flex;align-items:flex-start;justify-content:space-between;gap:10px;margin-bottom:9px}
+.card-top{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:9px}
+.who{display:flex;align-items:center;gap:10px;min-width:0}
 .handle{font-weight:600;font-size:.98rem;word-break:break-all}
+
+/* รูปโปรไฟล์ — ถ้าไม่มี/โหลดไม่ขึ้น จะเหลือตัวย่อที่อยู่ข้างหลัง */
+.av{width:40px;height:40px;flex:none;border-radius:50%;overflow:hidden;position:relative;
+  background:var(--surface2);border:1px solid var(--line);
+  display:flex;align-items:center;justify-content:center;
+  font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:.82rem;
+  color:var(--dim);letter-spacing:.02em;user-select:none}
+/* ไม่ใส่ background ตั้งใจ — รูปที่โหลดค้างหรือพังจะโปร่งใส เห็นตัวย่อข้างหลังแทน */
+.av img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
+.av img.dead{display:none}
 .score{font-family:'IBM Plex Mono',monospace;font-weight:600;font-size:.9rem;
   padding:2px 9px;border-radius:6px;white-space:nowrap;flex:none}
 .score.hi{background:rgba(124,231,196,.14);color:var(--hi)}
@@ -90,6 +101,9 @@ main{padding:22px 24px;overflow-y:auto;max-height:calc(100vh - 62px)}
 .tag{font-size:.72rem;background:var(--surface2);border:1px solid var(--line);
   border-radius:5px;padding:2px 8px;color:var(--mute)}
 .tag.fol{font-family:'IBM Plex Mono',monospace}
+.tag.rate{font-family:'IBM Plex Mono',monospace;color:var(--accent);
+  border-color:rgba(232,255,99,.28);background:rgba(232,255,99,.07);font-weight:600}
+.tag.norate{color:var(--dim);font-style:italic}
 .reason{font-size:.8rem;color:var(--mute);line-height:1.5;margin-bottom:10px}
 .card-actions{display:flex;gap:8px;align-items:center}
 .pick{flex:1;background:var(--surface2);border:1px solid var(--line);color:var(--mute);
@@ -162,7 +176,8 @@ main{padding:22px 24px;overflow-y:auto;max-height:calc(100vh - 62px)}
       <div class="field" style="margin-bottom:12px">
         <label>Google Sheet CSV URL</label>
         <input id="csvUrl" placeholder="ลิงก์ publish-to-web (.csv)">
-        <div class="hint">File → Share → Publish to web → เลือกแท็บ → CSV</div>
+        <div class="hint">File → Share → Publish to web → เลือกแท็บ → CSV<br>
+          คอลัมน์เสริม: <b>Image</b> (ลิงก์รูป) · <b>Rate</b> (ราคา)</div>
       </div>
       <div class="field" style="margin-bottom:0">
         <label>Anthropic API Key (สำหรับ ref matching)</label>
@@ -175,8 +190,9 @@ main{padding:22px 24px;overflow-y:auto;max-height:calc(100vh - 62px)}
   <!-- ═══ ผลลัพธ์ ═══ -->
   <main>
     <div class="banner" id="banner">
-      <b>เริ่มยังไง:</b> วางลิงก์ Google Sheet CSV ด้านซ้าย (คอลัมน์ Category / ID / Link / Follower)
-      แล้วกดค้นหา — ถ้าใส่ reference + API key ด้วย ระบบจะจัดอันดับตามความใกล้เคียงให้
+      <b>เริ่มยังไง:</b> วางลิงก์ Google Sheet CSV ด้านซ้าย (คอลัมน์ Category / ID / Link / Follower
+      — เพิ่ม <b>Image</b> กับ <b>Rate</b> ได้ถ้ามี) แล้วกดค้นหา
+      — ถ้าใส่ reference + API key ด้วย ระบบจะจัดอันดับตามความใกล้เคียงให้
     </div>
 
     <div class="res-head">
@@ -196,6 +212,7 @@ main{padding:22px 24px;overflow-y:auto;max-height:calc(100vh - 62px)}
 <script>
 const $ = s => document.querySelector(s);
 let POOL = [];          // ข้อมูลดิบจาก Sheet
+let POOL_URL = "";      // URL ที่โหลด POOL ปัจจุบันมา
 let RESULTS = [];       // หลังกรอง+จัดอันดับ
 let PICKED = new Set();
 let CATS = [];
@@ -203,24 +220,35 @@ let CATS = [];
 // ─── โหลด pool จาก Google Sheet CSV ───
 async function loadPool(url){
   const res = await fetch(url);
+  if (!res.ok) throw new Error(`โหลดไม่สำเร็จ (HTTP ${res.status})`);
   const text = await res.text();
   const rows = parseCSV(text);
+  if (!rows.length) throw new Error("ไฟล์ว่าง หรือไม่ใช่ CSV");
   const head = rows[0].map(h => h.trim().toLowerCase());
 
   const iCat = head.findIndex(h => /cat/.test(h));
   const iId  = head.findIndex(h => h==='id' || /handle|user|creator|ชื่อ/.test(h));
-  const iLink= head.findIndex(h => /link|url/.test(h));
+  // เช็ค image/avatar ก่อน link เพราะหัวตารางมักเขียนว่า "image url"
+  const iAv  = head.findIndex(h => /image|avatar|photo|pic|thumb|รูป|โปรไฟล์/.test(h));
+  const iLink= head.findIndex((h,ix) => ix!==iAv && /link|url/.test(h));
   const iFol = head.findIndex(h => /fol/.test(h));
+  const iRate= head.findIndex(h => /rate|price|cost|budget|ราคา|ค่าตัว|เรท/.test(h));
+  if (iId < 0) throw new Error(`ไม่เจอคอลัมน์ ID (หัวตารางที่อ่านได้: ${head.join(", ") || "ว่าง"})`);
+
+  const picked = [...document.querySelectorAll("#catChips .chip.on")].map(c => c.dataset.cat);
 
   POOL = rows.slice(1).filter(r => r[iId]).map(r => ({
     cat:  (iCat>=0 ? r[iCat] : "").trim(),
     id:   r[iId].trim(),
     link: (iLink>=0 ? r[iLink] : "").trim(),
     fol:  parseFollowers(iFol>=0 ? r[iFol] : "0"),
+    av:   safeImgUrl(iAv>=0 ? r[iAv] : ""),
+    rate: parseRate(iRate>=0 ? r[iRate] : ""),
   }));
+  POOL_URL = url;
 
   CATS = [...new Set(POOL.map(p => p.cat).filter(Boolean))].sort();
-  renderCatChips();
+  renderCatChips(picked);
   $("#poolN").textContent = POOL.length;
   return POOL.length;
 }
@@ -238,6 +266,37 @@ function fmtFol(n){
   if (n>=1e6) return (n/1e6).toFixed(1).replace(/\.0$/,"")+"M";
   if (n>=1e3) return (n/1e3).toFixed(0)+"K";
   return String(n);
+}
+
+// ราคา/เรท — รับได้ทั้ง "5000", "5,000", "฿5000", "5K", "3000-5000" (เอาตัวต่ำสุด)
+function parseRate(s){
+  s = String(s).trim().toLowerCase();
+  if (!s || /^[-–—.]+$/.test(s) || /ยังไม่|n\/?a|tbd|สอบถาม/.test(s)) return null;
+  const m = s.replace(/[,\s]/g,"").match(/(\d+(?:\.\d+)?)\s*([km])?/);
+  if (!m) return null;
+  const mult = m[2]==="k" ? 1e3 : m[2]==="m" ? 1e6 : 1;
+  const n = parseFloat(m[1]) * mult;
+  return isNaN(n) ? null : Math.round(n);
+}
+
+function fmtRate(n){
+  if (n==null) return null;
+  return "฿" + n.toLocaleString("en-US");
+}
+
+// ตัวย่อไว้โชว์ตอนไม่มีรูป
+function initials(id){
+  const s = String(id).replace(/^@/,"").replace(/[^a-zA-Z0-9ก-๙]/g,"");
+  return (s.slice(0,2) || "?").toUpperCase();
+}
+
+// กัน javascript:/data: แปลกๆ จาก Sheet + แปลงลิงก์แชร์ Google Drive ให้เป็นลิงก์รูปตรง
+function safeImgUrl(s){
+  s = String(s).trim();
+  if (!s) return "";
+  const drive = s.match(/drive\.google\.com\/(?:file\/d\/|open\?id=|uc\?(?:.*&)?id=)([\w-]{20,})/);
+  if (drive) return `https://drive.google.com/thumbnail?id=${drive[1]}&sz=w200`;
+  return /^https?:\/\//i.test(s) ? s : "";
 }
 
 // parser CSV รองรับ quote/comma ในเซลล์
@@ -260,9 +319,9 @@ function parseCSV(text){
   return rows.filter(r => r.some(x => x.trim()));
 }
 
-function renderCatChips(){
+function renderCatChips(keepOn = []){
   $("#catChips").innerHTML = CATS.map(c =>
-    `<span class="chip" data-cat="${c}">${c}</span>`).join("") ||
+    `<span class="chip${keepOn.includes(c)?' on':''}" data-cat="${esc(c)}">${esc(c)}</span>`).join("") ||
     '<span class="hint">โหลด pool ก่อน แล้วหมวดจะขึ้นที่นี่</span>';
   document.querySelectorAll("#catChips .chip").forEach(ch =>
     ch.onclick = () => ch.classList.toggle("on"));
@@ -278,9 +337,9 @@ async function run(){
   $("#results").innerHTML = `<div class="loading"><span class="spin"></span>กำลังโหลด pool...</div>`;
 
   try {
-    if (!POOL.length) await loadPool(url);
+    if (!POOL.length || POOL_URL !== url) await loadPool(url);
   } catch(e){
-    $("#results").innerHTML = `<div class="empty"><h3>โหลด pool ไม่ได้</h3><div>${e.message} — เช็คว่า publish เป็น CSV แล้ว</div></div>`;
+    $("#results").innerHTML = `<div class="empty"><h3>โหลด pool ไม่ได้</h3><div>${esc(e.message)} — เช็คว่า publish เป็น CSV แล้ว</div></div>`;
     $("#runBtn").disabled = false; return;
   }
 
@@ -289,6 +348,8 @@ async function run(){
   const fMin = parseFollowers($("#folMin").value || "0");
   const fMax = parseFollowers($("#folMax").value || "0") || Infinity;
   const want = parseInt($("#want").value) || 30;
+
+  POOL.forEach(p => { p.score = null; p.reason = ""; });
 
   let filtered = POOL.filter(p =>
     (onCats.length===0 || onCats.includes(p.cat)) &&
@@ -304,13 +365,12 @@ async function run(){
     try {
       filtered = await scoreWithClaude(filtered, ref, key);
     } catch(e){
-      $("#results").innerHTML = `<div class="empty"><h3>จับคู่ reference ไม่ได้</h3><div>${e.message}</div></div>`;
+      $("#results").innerHTML = `<div class="empty"><h3>จับคู่ reference ไม่ได้</h3><div>${esc(e.message)}</div></div>`;
       $("#runBtn").disabled = false; return;
     }
   } else {
     // ไม่มี ref → เรียงตาม followers มากไปน้อย
     filtered.sort((a,b) => b.fol - a.fol);
-    filtered.forEach(p => { p.score = null; p.reason = ""; });
   }
 
   RESULTS = filtered.slice(0, want);
@@ -321,10 +381,10 @@ async function run(){
 
 // ─── เรียก Claude วิเคราะห์ ref + ให้คะแนน ───
 async function scoreWithClaude(list, ref, key){
-  // ส่งเป็น batch ทีละ 25 คน กัน token เกิน
+  // ส่งเป็น batch ทีละ 15 คน กัน token เกิน
   const out = [];
-  for (let i=0;i<list.length;i+=25){
-    const batch = list.slice(i, i+25);
+  for (let i=0;i<list.length;i+=15){
+    const batch = list.slice(i, i+15);
     const prompt =
 `คุณเป็นผู้ช่วย KOL Specialist กำลังจับคู่ครีเอเตอร์กับ reference
 
@@ -350,14 +410,20 @@ ${batch.map((p,j)=>`${j}. ${p.cat} | ${p.id} | ${fmtFol(p.fol)}`).join("\n")}
       },
       body:JSON.stringify({
         model:"claude-sonnet-4-6",
-        max_tokens:1500,
+        max_tokens:4000,
         messages:[{role:"user",content:prompt}]
       })
     });
     if (!r.ok){ throw new Error("API "+r.status+" — เช็ค key/เครดิต"); }
     const data = await r.json();
-    let txt = data.content[0].text.trim().replace(/```json|```/g,"").trim();
-    const scores = JSON.parse(txt);
+    if (data.stop_reason === "max_tokens") throw new Error("คำตอบยาวเกิน max_tokens — ลดจำนวนครีเอเตอร์ที่ค้นหา");
+    const textBlock = (data.content||[]).find(b => b.type === "text");
+    if (!textBlock) throw new Error("Claude ไม่ได้ตอบเป็นข้อความ (stop_reason: "+data.stop_reason+")");
+    let txt = textBlock.text.trim().replace(/```json|```/g,"").trim();
+    let scores;
+    try { scores = JSON.parse(txt); }
+    catch { throw new Error("Claude ตอบไม่ใช่ JSON: "+txt.slice(0,120)); }
+    if (!Array.isArray(scores)) throw new Error("Claude ตอบไม่ใช่ array");
     scores.forEach(s => {
       const p = batch[s.i];
       if (p){ p.score = s.score; p.reason = s.reason || ""; }
@@ -378,6 +444,11 @@ function render(){
   $("#results").innerHTML = `<div class="grid">${RESULTS.map(cardHTML).join("")}</div>`;
   document.querySelectorAll(".pick").forEach(b =>
     b.onclick = () => togglePick(b.dataset.id, b));
+  // รูปเสีย/ลิงก์ตาย → ซ่อนรูป เหลือตัวย่อที่อยู่ข้างหลัง
+  document.querySelectorAll(".av img").forEach(img => {
+    img.onerror = () => img.classList.add("dead");
+    if (img.complete && img.naturalWidth === 0) img.classList.add("dead");
+  });
   updateExport();
 }
 
@@ -387,14 +458,21 @@ function cardHTML(p){
   const picked = PICKED.has(p.id);
   const scoreHTML = p.score!=null
     ? `<span class="score ${scoreClass(p.score)}">${p.score}</span>` : "";
+  const rate = fmtRate(p.rate);
   return `<div class="card ${picked?'picked':''}">
     <div class="card-top">
-      <span class="handle">${esc(p.id)}</span>
+      <div class="who">
+        <div class="av">${initials(p.id)}${
+          p.av?`<img src="${esc(p.av)}" alt="" loading="lazy" referrerpolicy="no-referrer">`:""}</div>
+        <span class="handle">${esc(p.id)}</span>
+      </div>
       ${scoreHTML}
     </div>
     <div class="meta">
       ${p.cat?`<span class="tag">${esc(p.cat)}</span>`:""}
       <span class="tag fol">${fmtFol(p.fol)} followers</span>
+      ${rate ? `<span class="tag rate">${rate}</span>`
+             : `<span class="tag norate">ยังไม่มีเรท</span>`}
     </div>
     ${p.reason?`<div class="reason">${esc(p.reason)}</div>`:""}
     <div class="card-actions">
@@ -420,8 +498,9 @@ function updateExport(){
 function exportCSV(){
   const rows = RESULTS.filter(p => PICKED.has(p.id));
   if (!rows.length) return;
-  const head = ["Category","ID","Link","Follower","Fit Score","Reason","สถานะ"];
-  const body = rows.map(p => [p.cat, p.id, p.link, p.fol, p.score??"", p.reason??"", "รอติดต่อ"]);
+  const head = ["Category","ID","Link","Image","Follower","Rate","Fit Score","Reason","สถานะ"];
+  const body = rows.map(p => [p.cat, p.id, p.link, p.av??"", p.fol,
+                              p.rate??"", p.score??"", p.reason??"", "รอติดต่อ"]);
   const csv = [head, ...body].map(r =>
     r.map(c => `"${String(c).replace(/"/g,'""')}"`).join(",")).join("\n");
   const blob = new Blob(["\uFEFF"+csv], {type:"text/csv;charset=utf-8"});
@@ -437,7 +516,15 @@ $("#runBtn").onclick = run;
 $("#exportBtn").onclick = exportCSV;
 $("#csvUrl").addEventListener("change", async () => {
   const u = $("#csvUrl").value.trim();
-  if (u){ try { await loadPool(u); $("#banner").innerHTML = `โหลด pool แล้ว <b>${POOL.length} คน</b> · เลือกตัวกรองแล้วกดค้นหา`; } catch(e){} }
+  if (!u) return;
+  $("#banner").style.display = "";
+  try {
+    await loadPool(u);
+    $("#banner").innerHTML = `โหลด pool แล้ว <b>${POOL.length} คน</b> · เลือกตัวกรองแล้วกดค้นหา`;
+  } catch(e){
+    POOL = []; POOL_URL = ""; $("#poolN").textContent = 0;
+    $("#banner").innerHTML = `<b>โหลด pool ไม่ได้:</b> ${esc(e.message)} — เช็คว่า publish เป็น CSV แล้ว`;
+  }
 });
 </script>
 </body>
