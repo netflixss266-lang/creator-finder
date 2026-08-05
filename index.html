@@ -28,9 +28,47 @@ header{display:flex;align-items:center;justify-content:space-between;gap:16px;
 .brand .mark{width:28px;height:28px;flex:none;border:1px solid var(--line);border-radius:7px}
 .brand h1{font-family:'Space Grotesk',sans-serif;font-size:1.25rem;font-weight:700;letter-spacing:-.02em}
 .brand .sub{font-size:.78rem;color:var(--dim);font-family:'IBM Plex Mono',monospace}
+.hgroup{display:flex;align-items:center;gap:10px}
 .poolstat{font-family:'IBM Plex Mono',monospace;font-size:.8rem;color:var(--mute);
   background:var(--surface);border:1px solid var(--line);border-radius:999px;padding:6px 14px}
 .poolstat b{color:var(--accent)}
+.gear{background:var(--surface);border:1px solid var(--line);color:var(--mute);
+  border-radius:999px;padding:6px 15px;font-size:.82rem;font-weight:600;transition:all .13s}
+.gear:hover{border-color:var(--accent);color:var(--accent)}
+
+/* ── ตั้งค่า ── */
+.overlay{position:fixed;inset:0;background:rgba(8,9,12,.72);z-index:50;
+  display:flex;align-items:flex-start;justify-content:center;padding:48px 20px;overflow-y:auto}
+.overlay[hidden]{display:none}
+.modal{background:var(--surface);border:1px solid var(--line);border-radius:14px;
+  width:100%;max-width:560px;padding:22px 24px 24px}
+.modal-head{display:flex;align-items:center;justify-content:space-between;
+  gap:12px;margin-bottom:4px}
+.modal-head h2{font-family:'Space Grotesk',sans-serif;font-size:1.05rem;font-weight:700}
+.x{background:none;border:0;color:var(--dim);font-size:1rem;padding:4px 8px;border-radius:6px}
+.x:hover{color:var(--ink);background:var(--surface2)}
+.sect{margin-top:20px;padding-top:18px;border-top:1px solid var(--line)}
+.sect h3{font-size:.72rem;text-transform:uppercase;letter-spacing:.08em;
+  color:var(--mute);font-weight:600;margin-bottom:5px}
+.sect-sub{font-size:.78rem;color:var(--dim);margin-bottom:13px;line-height:1.5}
+
+.srow{display:flex;align-items:center;gap:11px;padding:10px 12px;margin-bottom:7px;
+  background:var(--surface2);border:1px solid var(--line);border-radius:9px}
+.srow .info{flex:1;min-width:0}
+.srow .nm{font-size:.87rem;font-weight:600;margin-bottom:2px}
+.srow .u{font-size:.7rem;color:var(--dim);font-family:'IBM Plex Mono',monospace;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.srow .del{background:none;border:1px solid var(--line);color:var(--dim);
+  border-radius:7px;padding:5px 10px;font-size:.76rem;flex:none}
+.srow .del:hover{border-color:var(--lo);color:var(--lo)}
+.snone{font-size:.8rem;color:var(--dim);padding:16px;text-align:center;
+  border:1px dashed var(--line);border-radius:9px}
+
+.addmsg{margin-top:11px;font-size:.8rem;line-height:1.5;display:none}
+.addmsg.on{display:block}
+.addmsg.ok{color:var(--hi)}
+.addmsg.err{color:var(--lo)}
+.addmsg.busy{color:var(--mute)}
 
 .wrap{display:grid;grid-template-columns:320px 1fr;gap:0;min-height:calc(100vh - 62px)}
 @media(max-width:860px){.wrap{grid-template-columns:1fr}}
@@ -47,9 +85,12 @@ aside{border-right:1px solid var(--line);padding:22px;overflow-y:auto;
 .chip:hover{border-color:var(--dim)}
 .chip.on{background:var(--accent);color:var(--accent-ink);border-color:var(--accent);font-weight:600}
 
-input,textarea{width:100%;background:var(--surface);border:1px solid var(--line);
+input,textarea,select{width:100%;background:var(--surface);border:1px solid var(--line);
   border-radius:8px;color:var(--ink);padding:10px 12px;font-family:inherit;font-size:.88rem}
-input:focus,textarea:focus{outline:none;border-color:var(--accent)}
+input:focus,textarea:focus,select:focus{outline:none;border-color:var(--accent)}
+select{cursor:pointer}
+select:disabled{color:var(--dim);cursor:not-allowed}
+.modal input{background:var(--surface2)}
 textarea{resize:vertical;min-height:74px;line-height:1.5}
 .hint{font-size:.72rem;color:var(--dim);margin-top:6px;line-height:1.45}
 
@@ -153,12 +194,21 @@ main{padding:22px 24px;overflow-y:auto;max-height:calc(100vh - 62px)}
     <h1>Creator Finder</h1>
     <span class="sub">KOL sourcing</span>
   </div>
-  <div class="poolstat">pool: <b id="poolN">0</b> คน</div>
+  <div class="hgroup">
+    <div class="poolstat">pool: <b id="poolN">0</b> คน</div>
+    <button class="gear" id="gearBtn" aria-haspopup="dialog">⚙ ตั้งค่า</button>
+  </div>
 </header>
 
 <div class="wrap">
   <!-- ═══ ตัวกรอง ═══ -->
   <aside>
+    <div class="field">
+      <label>Google Sheet</label>
+      <select id="sheetSel"></select>
+      <div class="hint">เพิ่ม/ลบลิงก์ได้ที่ปุ่ม <b>ตั้งค่า</b> มุมขวาบนเท่านั้น</div>
+    </div>
+
     <div class="field">
       <label>ประเภทครีเอเตอร์ (Category)</label>
       <div class="chips" id="catChips"></div>
@@ -200,16 +250,11 @@ main{padding:22px 24px;overflow-y:auto;max-height:calc(100vh - 62px)}
     <button class="run" id="runBtn">ค้นหา</button>
 
     <div class="setup">
-      <div class="field" style="margin-bottom:12px">
-        <label>Google Sheet CSV URL</label>
-        <input id="csvUrl" placeholder="ลิงก์ publish-to-web (.csv)">
-        <div class="hint">File → Share → Publish to web → เลือกแท็บ → CSV<br>
-          คอลัมน์เสริม: <b>Image</b> (ลิงก์รูป) · <b>Rate</b> (ราคา)</div>
-      </div>
       <div class="field" style="margin-bottom:0">
         <label>Anthropic API Key (สำหรับ ref matching)</label>
         <input id="apiKey" type="password" placeholder="sk-ant-...">
-        <div class="hint">ไม่ใส่ก็ค้นได้ แต่จะไม่มีการจับคู่ reference</div>
+        <div class="hint">ไม่ใส่ก็ค้นได้ แต่จะไม่มีการจับคู่ reference<br>
+          ไม่ถูกบันทึกไว้ ปิดแท็บแล้วต้องใส่ใหม่</div>
       </div>
     </div>
   </aside>
@@ -217,7 +262,7 @@ main{padding:22px 24px;overflow-y:auto;max-height:calc(100vh - 62px)}
   <!-- ═══ ผลลัพธ์ ═══ -->
   <main>
     <div class="banner" id="banner">
-      <b>เริ่มยังไง:</b> วางลิงก์ Google Sheet CSV ด้านซ้าย (คอลัมน์ Category / ID / Link / Follower
+      <b>เริ่มยังไง:</b> เลือก Google Sheet ด้านซ้าย (คอลัมน์ Category / ID / Link / Follower
       — เพิ่ม <b>Image</b> กับ <b>Rate</b> ได้ถ้ามี) แล้วกดค้นหา
       — ถ้าใส่ reference + API key ด้วย ระบบจะจัดอันดับตามความใกล้เคียงให้
     </div>
@@ -237,6 +282,40 @@ main{padding:22px 24px;overflow-y:auto;max-height:calc(100vh - 62px)}
   </main>
 </div>
 
+<!-- ═══ ตั้งค่า ═══ -->
+<div class="overlay" id="settings" hidden>
+  <div class="modal" role="dialog" aria-modal="true" aria-labelledby="setTitle">
+    <div class="modal-head">
+      <h2 id="setTitle">ตั้งค่าเว็บ</h2>
+      <button class="x" id="closeSet" aria-label="ปิด">✕</button>
+    </div>
+
+    <section class="sect">
+      <h3>Google Sheet</h3>
+      <p class="sect-sub">ลิงก์ทั้งหมดที่เลือกได้ในหน้าหลัก — เพิ่มหรือลบได้ที่นี่ที่เดียว</p>
+      <div id="sheetList"></div>
+    </section>
+
+    <section class="sect">
+      <h3>เพิ่ม Google Sheet</h3>
+      <div class="field">
+        <label>ชื่อเรียก</label>
+        <input id="newName" placeholder="เช่น Creator Pool — Beauty">
+      </div>
+      <div class="field">
+        <label>ลิงก์ publish-to-web (.csv)</label>
+        <input id="newUrl" placeholder="https://docs.google.com/.../pub?output=csv">
+        <div class="hint">
+          ใน Google Sheet: <b>File → Share → Publish to web → เลือกแท็บ → CSV</b><br>
+          คอลัมน์ที่อ่านได้: Category · ID · Link · Follower · <b>Image</b> · <b>Rate</b>
+        </div>
+      </div>
+      <button class="run" id="addSheet">ตรวจลิงก์แล้วเพิ่ม</button>
+      <div class="addmsg" id="addMsg"></div>
+    </section>
+  </div>
+</div>
+
 <script>
 const $ = s => document.querySelector(s);
 let POOL = [];          // ข้อมูลดิบจาก Sheet
@@ -247,14 +326,57 @@ let CATS = [];
 let CPF_MED = null;     // ค่ากลาง CPF ของผลลัพธ์ชุดปัจจุบัน
 let HIDDEN_NORATE = 0;  // ถูกซ่อนเพราะกรองงบแต่ไม่มีเรท
 
-// ─── โหลด pool จาก Google Sheet CSV ───
-async function loadPool(url){
+// ─── รายการ Google Sheet (จัดการที่หน้าตั้งค่าเท่านั้น) ───
+const LS_KEY = "cf_sheets_v1";
+const DEFAULT_SHEETS = [{
+  name: "Creator Pool",
+  url: "https://docs.google.com/spreadsheets/d/e/2PACX-1vTGGwh3e85B56qXFj5MbNRC0p7KgR-dQPfq_0Rfc6ey0rakPqwjGpdeG7Z-eN0qlnhsCAX4b3wEGAM2/pub?output=csv"
+}];
+let SHEETS = [];
+
+function loadSheets(){
+  try {
+    const raw = localStorage.getItem(LS_KEY);
+    if (raw){
+      const arr = JSON.parse(raw);
+      if (Array.isArray(arr)) return arr.filter(s => s && typeof s.url === "string" && s.url);
+    }
+  } catch(e){}          // โหมดส่วนตัว/บล็อก storage → ใช้ค่าตั้งต้นไปก่อน
+  return DEFAULT_SHEETS.slice();
+}
+
+function saveSheets(){
+  try { localStorage.setItem(LS_KEY, JSON.stringify(SHEETS)); }
+  catch(e){ return false; }
+  return true;
+}
+
+// ดักลิงก์ที่ผิดประเภทตั้งแต่ตอนเพิ่ม — ลิงก์ /edit คือที่พลาดกันบ่อยสุด
+function checkSheetUrl(u){
+  if (!/^https:\/\//i.test(u)) return "ต้องเป็นลิงก์ https://";
+  if (/\/spreadsheets\/d\/[^/]+\/(edit|view)/.test(u) || /[?&]gid=\d+#/.test(u))
+    return "นี่คือลิงก์เปิด/แก้ไขชีต ใช้ไม่ได้ — ต้องไป File → Share → Publish to web → เลือกแท็บ → CSV แล้วเอาลิงก์นั้นมา";
+  if (/docs\.google\.com/.test(u) && !/output=csv/.test(u))
+    return "ลิงก์ Google Sheet ต้องลงท้ายด้วย output=csv (ตอน Publish to web ให้เลือกรูปแบบ CSV)";
+  return null;
+}
+
+function currentSheetUrl(){ return $("#sheetSel").value || ""; }
+
+// ─── ดึง+แปลง CSV เป็น array (ไม่แตะ state) — ใช้ตอนตรวจลิงก์ก่อนบันทึกได้ ───
+async function fetchPool(url){
   const res = await fetch(url);
   if (!res.ok) throw new Error(`โหลดไม่สำเร็จ (HTTP ${res.status})`);
   const text = await res.text();
+  // กันไฟล์ที่ไม่ใช่ CSV — หน้าเว็บ/XML/JSON อาจมีคำที่บังเอิญตรงกับชื่อคอลัมน์
+  if (/^\s*[<{]/.test(text))
+    throw new Error("ไฟล์นี้ไม่ใช่ CSV (ขึ้นต้นด้วย < หรือ { — น่าจะเป็นหน้าเว็บหรือ JSON)");
+
   const rows = parseCSV(text);
   if (!rows.length) throw new Error("ไฟล์ว่าง หรือไม่ใช่ CSV");
   const head = rows[0].map(h => h.trim().toLowerCase());
+  if (head.length < 2)
+    throw new Error("หัวตารางมีคอลัมน์เดียว — ไม่ใช่ CSV (ตอน Publish to web เลือกรูปแบบ CSV แล้วหรือยัง?)");
 
   const iCat = head.findIndex(h => /cat/.test(h));
   const iId  = head.findIndex(h => h==='id' || /handle|user|creator|ชื่อ/.test(h));
@@ -265,9 +387,7 @@ async function loadPool(url){
   const iRate= head.findIndex(h => /rate|price|cost|budget|ราคา|ค่าตัว|เรท/.test(h));
   if (iId < 0) throw new Error(`ไม่เจอคอลัมน์ ID (หัวตารางที่อ่านได้: ${head.join(", ") || "ว่าง"})`);
 
-  const picked = [...document.querySelectorAll("#catChips .chip.on")].map(c => c.dataset.cat);
-
-  POOL = rows.slice(1).filter(r => r[iId]).map(r => ({
+  return rows.slice(1).filter(r => r[iId]).map(r => ({
     cat:  (iCat>=0 ? r[iCat] : "").trim(),
     id:   r[iId].trim(),
     link: (iLink>=0 ? r[iLink] : "").trim(),
@@ -275,10 +395,15 @@ async function loadPool(url){
     av:   safeImgUrl(iAv>=0 ? r[iAv] : ""),
     rate: parseRate(iRate>=0 ? r[iRate] : ""),
   }));
-  POOL_URL = url;
+}
 
+// ─── โหลดเข้า state จริง ───
+async function loadPool(url){
+  const keepCats = [...document.querySelectorAll("#catChips .chip.on")].map(c => c.dataset.cat);
+  POOL = await fetchPool(url);
+  POOL_URL = url;
   CATS = [...new Set(POOL.map(p => p.cat).filter(Boolean))].sort();
-  renderCatChips(picked);
+  renderCatChips(keepCats);
   $("#poolN").textContent = POOL.length;
   return POOL.length;
 }
@@ -376,8 +501,12 @@ function renderCatChips(keepOn = []){
 
 // ─── ค้นหา ───
 async function run(){
-  const url = $("#csvUrl").value.trim();
-  if (!url){ alert("วางลิงก์ Google Sheet CSV ก่อน"); return; }
+  const url = currentSheetUrl();
+  if (!url){
+    $("#banner").style.display = "";
+    $("#banner").innerHTML = `ยังไม่มี Google Sheet — กด <b>⚙ ตั้งค่า</b> มุมขวาบนเพื่อเพิ่มลิงก์ก่อน`;
+    return;
+  }
 
   $("#runBtn").disabled = true;
   $("#banner").style.display = "none";
@@ -586,20 +715,115 @@ function exportCSV(){
 
 function esc(s){ return String(s).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
 
-$("#runBtn").onclick = run;
-$("#exportBtn").onclick = exportCSV;
-$("#csvUrl").addEventListener("change", async () => {
-  const u = $("#csvUrl").value.trim();
-  if (!u) return;
+// ─── dropdown เลือก Sheet ───
+function renderSheetSelect(){
+  const sel = $("#sheetSel"), prev = sel.value;
+  sel.innerHTML = SHEETS.length
+    ? SHEETS.map(s => `<option value="${esc(s.url)}">${esc(s.name || s.url)}</option>`).join("")
+    : `<option value="">— ยังไม่มี Sheet —</option>`;
+  sel.disabled = !SHEETS.length;
+  // คงตัวที่เลือกไว้ถ้ายังอยู่ในลิสต์
+  if (prev && SHEETS.some(s => s.url === prev)) sel.value = prev;
+}
+
+async function selectSheet(){
+  const url = currentSheetUrl();
   $("#banner").style.display = "";
+  if (!url){
+    POOL = []; POOL_URL = ""; CATS = []; renderCatChips();
+    $("#poolN").textContent = 0;
+    $("#banner").innerHTML = `ยังไม่มี Google Sheet — กด <b>⚙ ตั้งค่า</b> มุมขวาบนเพื่อเพิ่มลิงก์ก่อน`;
+    return;
+  }
   try {
-    await loadPool(u);
+    await loadPool(url);
     $("#banner").innerHTML = `โหลด pool แล้ว <b>${POOL.length} คน</b> · เลือกตัวกรองแล้วกดค้นหา`;
   } catch(e){
     POOL = []; POOL_URL = ""; $("#poolN").textContent = 0;
-    $("#banner").innerHTML = `<b>โหลด pool ไม่ได้:</b> ${esc(e.message)} — เช็คว่า publish เป็น CSV แล้ว`;
+    $("#banner").innerHTML = `<b>โหลด pool ไม่ได้:</b> ${esc(e.message)}`;
   }
+}
+
+// ─── ตั้งค่า ───
+function renderSheetList(){
+  $("#sheetList").innerHTML = SHEETS.length
+    ? SHEETS.map((s,i) => `<div class="srow">
+        <div class="info">
+          <div class="nm">${esc(s.name || "(ไม่มีชื่อ)")}</div>
+          <div class="u" title="${esc(s.url)}">${esc(s.url)}</div>
+        </div>
+        <button class="del" data-i="${i}">ลบ</button>
+      </div>`).join("")
+    : `<div class="snone">ยังไม่มีลิงก์ — เพิ่มด้านล่าง</div>`;
+
+  document.querySelectorAll("#sheetList .del").forEach(b => b.onclick = () => {
+    const s = SHEETS[+b.dataset.i];
+    if (!s || !confirm(`ลบ "${s.name || s.url}" ออกจากรายการ?`)) return;
+    const wasActive = currentSheetUrl() === s.url;
+    SHEETS.splice(+b.dataset.i, 1);
+    saveSheets(); renderSheetList(); renderSheetSelect();
+    if (wasActive) selectSheet();   // ตัวที่ใช้อยู่ถูกลบ → สลับไปตัวใหม่
+  });
+}
+
+function setMsg(text, kind){
+  const el = $("#addMsg");
+  el.className = "addmsg on " + kind;
+  el.innerHTML = text;
+}
+
+function openSettings(){
+  renderSheetList();
+  $("#addMsg").className = "addmsg";
+  $("#settings").hidden = false;
+  $("#newName").focus();
+}
+function closeSettings(){ $("#settings").hidden = true; }
+
+async function addSheet(){
+  const name = $("#newName").value.trim();
+  const url  = $("#newUrl").value.trim();
+  if (!url) return setMsg("ใส่ลิงก์ก่อน", "err");
+
+  const bad = checkSheetUrl(url);
+  if (bad) return setMsg(bad, "err");
+  if (SHEETS.some(s => s.url === url)) return setMsg("ลิงก์นี้มีอยู่แล้ว", "err");
+
+  $("#addSheet").disabled = true;
+  setMsg("กำลังตรวจลิงก์...", "busy");
+  try {
+    const rows = await fetchPool(url);          // เทสต์จริงก่อนบันทึก
+    if (!rows.length) throw new Error("อ่านได้แต่ไม่เจอครีเอเตอร์สักคน");
+    SHEETS.push({ name: name || `Sheet ${SHEETS.length + 1}`, url });
+    if (!saveSheets())
+      setMsg(`เพิ่มแล้ว (เจอ ${rows.length} คน) — แต่บันทึกถาวรไม่ได้ ปิดแท็บแล้วจะหาย`, "err");
+    else
+      setMsg(`✓ เพิ่มแล้ว — เจอครีเอเตอร์ ${rows.length} คน`, "ok");
+    $("#newName").value = ""; $("#newUrl").value = "";
+    renderSheetList(); renderSheetSelect();
+    if (SHEETS.length === 1) { $("#sheetSel").value = url; selectSheet(); }
+  } catch(e){
+    setMsg("ใช้ไม่ได้: " + esc(e.message), "err");
+  } finally {
+    $("#addSheet").disabled = false;
+  }
+}
+
+$("#gearBtn").onclick = openSettings;
+$("#closeSet").onclick = closeSettings;
+$("#addSheet").onclick = addSheet;
+$("#settings").onclick = e => { if (e.target.id === "settings") closeSettings(); };
+document.addEventListener("keydown", e => {
+  if (e.key === "Escape" && !$("#settings").hidden) closeSettings();
 });
+$("#sheetSel").onchange = selectSheet;
+
+$("#runBtn").onclick = run;
+$("#exportBtn").onclick = exportCSV;
+// ─── เริ่มต้น: โหลดรายการ Sheet แล้วดึงตัวแรกมาเลย ───
+SHEETS = loadSheets();
+renderSheetSelect();
+selectSheet();
 </script>
 </body>
 </html>
