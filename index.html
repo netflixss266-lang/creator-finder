@@ -35,6 +35,14 @@ header{display:flex;align-items:center;justify-content:space-between;gap:16px;
 .gear{background:var(--surface);border:1px solid var(--line);color:var(--mute);
   border-radius:999px;padding:6px 15px;font-size:.82rem;font-weight:600;transition:all .13s}
 .gear:hover{border-color:var(--accent);color:var(--accent)}
+.gear.accent{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
+.gear.accent:hover{filter:brightness(1.07);color:var(--accent-ink)}
+.row2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+@media(max-width:520px){.row2{grid-template-columns:1fr}}
+.quick{display:flex;gap:6px;margin-top:7px;flex-wrap:wrap}
+.quick button{background:var(--surface2);border:1px solid var(--line);color:var(--mute);
+  border-radius:6px;padding:5px 10px;font-size:.76rem}
+.quick button:hover{border-color:var(--accent);color:var(--accent)}
 
 /* ── ตั้งค่า ── */
 .overlay{position:fixed;inset:0;background:rgba(8,9,12,.72);z-index:50;
@@ -253,6 +261,7 @@ main{padding:22px 24px;overflow-y:auto;max-height:calc(100vh - 62px)}
     <button class="gear" id="foldBtn" aria-expanded="true"
             title="พับ/กางแถบตัวกรอง">◧ แถบตัวกรอง</button>
     <div class="poolstat">pool: <b id="poolN">0</b> คน</div>
+    <button class="gear accent" id="addBtn" aria-haspopup="dialog">+ เพิ่มครีเอเตอร์</button>
     <button class="gear" id="gearBtn" aria-haspopup="dialog">⚙ ตั้งค่า</button>
   </div>
 </header>
@@ -374,6 +383,58 @@ main{padding:22px 24px;overflow-y:auto;max-height:calc(100vh - 62px)}
   </main>
 </div>
 
+<!-- ═══ เพิ่มครีเอเตอร์เข้าชีต ═══ -->
+<div class="overlay" id="addPanel" hidden>
+  <div class="modal" role="dialog" aria-modal="true" aria-labelledby="addTitle">
+    <div class="modal-head">
+      <h2 id="addTitle">เพิ่มครีเอเตอร์เข้าชีต</h2>
+      <button class="x" id="closeAdd" aria-label="ปิด">✕</button>
+    </div>
+
+    <section class="sect">
+      <div class="field">
+        <label>ลงแท็บไหน</label>
+        <div class="tabs" id="addKind" role="tablist"></div>
+      </div>
+
+      <div class="row2">
+        <div class="field">
+          <label>ID ครีเอเตอร์ *</label>
+          <input id="acId" placeholder="เช่น homgroonn" autocomplete="off">
+        </div>
+        <div class="field">
+          <label>ประเภท (Cat)</label>
+          <input id="acCat" list="acCatList" placeholder="เช่น Beauty" autocomplete="off">
+          <datalist id="acCatList"></datalist>
+        </div>
+      </div>
+
+      <div class="field">
+        <label>Link</label>
+        <input id="acLink" placeholder="เว้นว่างได้ — จะสร้างจาก ID ให้เอง">
+      </div>
+
+      <div class="row2">
+        <div class="field">
+          <label>Follower</label>
+          <input id="acFol" placeholder="เช่น 12500 หรือ 12.5K" autocomplete="off">
+        </div>
+        <div class="field">
+          <label>Rate</label>
+          <input id="acRate" placeholder="เช่น 1500" autocomplete="off">
+          <div class="quick">
+            <button type="button" data-rate="Barter">Barter</button>
+            <button type="button" data-rate="Unknown Rate">Unknown Rate</button>
+          </div>
+        </div>
+      </div>
+
+      <button class="run" id="acSave">บันทึกลงชีต</button>
+      <div class="addmsg" id="acMsg"></div>
+    </section>
+  </div>
+</div>
+
 <!-- ═══ ตั้งค่า ═══ -->
 <div class="overlay" id="settings" hidden>
   <div class="modal" role="dialog" aria-modal="true" aria-labelledby="setTitle">
@@ -386,6 +447,9 @@ main{padding:22px 24px;overflow-y:auto;max-height:calc(100vh - 62px)}
       <h3>Google Sheet</h3>
       <p class="sect-sub">ลิงก์ทั้งหมดที่เลือกได้ในหน้าหลัก — เพิ่มหรือลบได้ที่นี่ที่เดียว</p>
       <div id="sheetList"></div>
+      <div class="dd-act" style="margin-top:9px">
+        <button type="button" id="resetSheets">คืนค่าตั้งต้น (KOL + KOC)</button>
+      </div>
     </section>
 
     <section class="sect">
@@ -411,6 +475,25 @@ main{padding:22px 24px;overflow-y:auto;max-height:calc(100vh - 62px)}
       </div>
       <button class="run" id="addSheet">ตรวจลิงก์แล้วเพิ่ม</button>
       <div class="addmsg" id="addMsg"></div>
+    </section>
+
+    <section class="sect">
+      <h3>เพิ่มครีเอเตอร์เข้าชีต</h3>
+      <p class="sect-sub">
+        การเขียนลงชีตต้องผ่าน Apps Script ที่ติดตั้งในชีตเอง เว็บนี้เป็นหน้าเว็บนิ่งๆ
+        เขียนตรงไม่ได้ — ทำตามขั้นตอนในไฟล์ <b>add-creator.gs</b> แล้วเอา URL กับ token มาใส่
+      </p>
+      <div class="field">
+        <label>Apps Script Web App URL</label>
+        <input id="hookUrl" placeholder="https://script.google.com/macros/s/.../exec">
+      </div>
+      <div class="field">
+        <label>Token</label>
+        <input id="hookToken" type="password" placeholder="รหัสที่ตั้งไว้ในสคริปต์">
+        <div class="hint">เก็บไว้ในเบราว์เซอร์เครื่องนี้เท่านั้น ไม่ได้ส่งไปที่อื่น</div>
+      </div>
+      <button class="run" id="hookTest">บันทึกแล้วทดสอบ</button>
+      <div class="addmsg" id="hookMsg"></div>
     </section>
   </div>
 </div>
@@ -503,8 +586,15 @@ function loadSheets(){
     if (!o.kind){ o.kind = KINDS[0]; moved = true; }
     return o;
   });
-  if (moved && !arr.some(s => s.kind === "KOC"))
-    arr.push(DEFAULT_SHEETS[1]);
+
+  // กลุ่มไหนไม่เหลือ sheet เลย ให้เติมตัวตั้งต้นกลับมา
+  // (เดิมเติมให้เฉพาะตอนย้ายของเก่า ถ้าพลาดจังหวะนั้นแล้ว KOC จะหายถาวร)
+  for (const d of DEFAULT_SHEETS){
+    if (!arr.some(s => (s.kind || KINDS[0]) === d.kind)){
+      arr.push(Object.assign({}, d));
+      moved = true;
+    }
+  }
   if (moved){ SHEETS = arr; saveSheets(); }
   return arr;
 }
@@ -1085,6 +1175,135 @@ async function addSheet(){
   }
 }
 
+// ─── เพิ่มครีเอเตอร์เข้าชีต (ผ่าน Apps Script ที่ติดตั้งในชีต) ───
+const LS_HOOK = "cf_hook_v1";
+let HOOK = { url: "", token: "" };
+let ADD_KIND = KINDS[0];
+
+function loadHook(){
+  try { Object.assign(HOOK, JSON.parse(localStorage.getItem(LS_HOOK) || "{}")); } catch(e){}
+  $("#hookUrl").value = HOOK.url || "";
+  $("#hookToken").value = HOOK.token || "";
+}
+function saveHook(){
+  HOOK = { url: $("#hookUrl").value.trim(), token: $("#hookToken").value.trim() };
+  try { localStorage.setItem(LS_HOOK, JSON.stringify(HOOK)); } catch(e){}
+}
+
+function setHookMsg(t, k){ const e = $("#hookMsg"); e.className = "addmsg on " + k; e.innerHTML = t; }
+function setAcMsg(t, k){ const e = $("#acMsg"); e.className = "addmsg on " + k; e.innerHTML = t; }
+
+$("#hookTest").onclick = async () => {
+  saveHook();
+  if (!HOOK.url) return setHookMsg("ใส่ URL ก่อน", "err");
+  if (!/^https:\/\/script\.google\.com\/macros\/s\/[\w-]+\/exec/.test(HOOK.url))
+    return setHookMsg("ต้องเป็น URL ของ Apps Script ที่ลงท้ายด้วย /exec", "err");
+  setHookMsg("กำลังทดสอบ...", "busy");
+  try {
+    const r = await fetch(`${HOOK.url}?token=${encodeURIComponent(HOOK.token)}`);
+    const d = await r.json();
+    setHookMsg(d.ok ? `✓ ต่อได้ — เขียนได้ที่แท็บ ${d.tabs.join(", ")}`
+                    : `สคริปต์ตอบกลับว่า: ${esc(d.error || "ไม่ผ่าน")}`, d.ok ? "ok" : "err");
+  } catch(e){
+    setHookMsg("ต่อไม่ได้ — เช็คว่า Deploy แบบ Web app และตั้ง Who has access เป็น Anyone แล้ว", "err");
+  }
+};
+
+function renderAddKind(){
+  $("#addKind").innerHTML = KINDS.map(k =>
+    `<button role="tab" data-k="${esc(k)}" aria-selected="${k===ADD_KIND}">${esc(k)}</button>`).join("");
+  document.querySelectorAll("#addKind button").forEach(b => b.onclick = () => {
+    ADD_KIND = b.dataset.k; renderAddKind();
+  });
+}
+
+function openAdd(){
+  loadHook();
+  ADD_KIND = KIND;
+  renderAddKind();
+  $("#acCatList").innerHTML = CATS.map(c => `<option value="${esc(c)}">`).join("");
+  ["acId","acCat","acLink","acFol","acRate"].forEach(id => $("#"+id).value = "");
+  $("#acMsg").className = "addmsg";
+  $("#addPanel").hidden = false;
+  $("#acId").focus();
+}
+
+document.querySelectorAll(".quick button").forEach(b =>
+  b.onclick = () => { $("#acRate").value = b.dataset.rate; });
+
+$("#acSave").onclick = async () => {
+  saveHook();
+  const id = $("#acId").value.trim().replace(/^@/, "");
+  if (!id) return setAcMsg("ต้องใส่ ID ครีเอเตอร์", "err");
+  if (!HOOK.url) return setAcMsg("ยังไม่ได้ตั้งค่า Apps Script — ไปที่ ⚙ ตั้งค่า ก่อน", "err");
+
+  // ถ้าอยู่ในกลุ่มที่โหลดมาแล้ว เช็คซ้ำได้ทันทีโดยไม่ต้องยิงไปที่ชีต
+  if (ADD_KIND === KIND && POOL.some(p => normId(p.id) === normId(id)))
+    return setAcMsg(`มี ${esc(id)} อยู่ใน ${esc(ADD_KIND)} อยู่แล้ว`, "err");
+
+  const body = {
+    token: HOOK.token, tab: ADD_KIND, id,
+    cat: $("#acCat").value.trim(),
+    link: $("#acLink").value.trim(),
+    follower: $("#acFol").value.trim(),
+    rate: $("#acRate").value.trim(),
+  };
+
+  $("#acSave").disabled = true;
+  setAcMsg("กำลังบันทึก...", "busy");
+  let said = null;
+  try {
+    // text/plain เพื่อไม่ให้เบราว์เซอร์ยิง preflight ซึ่ง Apps Script ไม่รองรับ
+    const r = await fetch(HOOK.url, {
+      method: "POST",
+      headers: { "Content-Type": "text/plain;charset=utf-8" },
+      body: JSON.stringify(body),
+    });
+    said = await r.json();
+  } catch(e){
+    said = null;   // อ่านคำตอบไม่ได้ ไม่ได้แปลว่าเขียนไม่สำเร็จ — ไปเช็คของจริงแทน
+  }
+
+  if (said && said.ok === false){
+    setAcMsg("ไม่สำเร็จ: " + esc(said.error || "ไม่ทราบสาเหตุ"), "err");
+    $("#acSave").disabled = false;
+    return;
+  }
+
+  // ยืนยันจากชีตจริง ไม่เชื่อคำตอบอย่างเดียว เพราะ CORS อาจทำให้อ่านคำตอบไม่ได้
+  setAcMsg("บันทึกแล้ว กำลังตรวจจากชีต...", "busy");
+  const sheet = sheetsOfKind(ADD_KIND)[0];
+  let found = false;
+  if (sheet){
+    try {
+      await new Promise(r => setTimeout(r, 1200));
+      const rows = await fetchPool(sheet.url + "&_=" + Date.now());
+      found = rows.some(p => normId(p.id) === normId(id));
+      if (found && ADD_KIND === KIND){
+        POOL = rows; POOL_URL = sheet.url;
+        CATS = [...new Set(POOL.flatMap(catsOf))].sort();
+        renderCatChips(pickedCats()); renderDealTabs(); refreshExclude();
+        $("#poolN").textContent = POOL.length;
+        if (RESULTS.length) run();
+      }
+    } catch(e){}
+  }
+
+  if (found){
+    setAcMsg(`✓ เพิ่ม <b>${esc(id)}</b> ลงแท็บ ${esc(ADD_KIND)} แล้ว`, "ok");
+    ["acId","acCat","acLink","acFol","acRate"].forEach(x => $("#"+x).value = "");
+    $("#acId").focus();
+  } else {
+    setAcMsg(`ส่งไปแล้วแต่ยังไม่เห็น <b>${esc(id)}</b> ในชีต — ` +
+             `Google อาจหน่วงข้อมูลสักครู่ ลองเปิดชีตดู ถ้าไม่มีจริงให้เช็ค token กับการ Deploy`, "err");
+  }
+  $("#acSave").disabled = false;
+};
+
+$("#addBtn").onclick = openAdd;
+$("#closeAdd").onclick = () => { $("#addPanel").hidden = true; };
+$("#addPanel").onclick = e => { if (e.target.id === "addPanel") $("#addPanel").hidden = true; };
+
 function updateSeenBar(){
   const n = RESULTS.filter(p => SEEN.has(normId(p.id))).length;
   const b = $("#seenBtn");
@@ -1166,12 +1385,20 @@ try {
   }
 } catch(e){}
 
+$("#resetSheets").onclick = () => {
+  if (!confirm("คืนรายการ Sheet เป็นค่าตั้งต้น (KOL + KOC)? ลิงก์ที่เพิ่มเองจะหายไป")) return;
+  SHEETS = DEFAULT_SHEETS.map(s => Object.assign({}, s));
+  saveSheets(); renderSheetList(); renderKindTabs(); renderSheetSelect(); selectSheet();
+};
+
 $("#gearBtn").onclick = openSettings;
 $("#closeSet").onclick = closeSettings;
 $("#addSheet").onclick = addSheet;
 $("#settings").onclick = e => { if (e.target.id === "settings") closeSettings(); };
 document.addEventListener("keydown", e => {
-  if (e.key === "Escape" && !$("#settings").hidden) closeSettings();
+  if (e.key !== "Escape") return;
+  if (!$("#addPanel").hidden) $("#addPanel").hidden = true;
+  else if (!$("#settings").hidden) closeSettings();
 });
 $("#sheetSel").onchange = selectSheet;
 
@@ -1181,6 +1408,7 @@ $("#exportBtn").onclick = exportCSV;
 EXCLUDE = lsLoadSet(LS_EX);
 SEEN = lsLoadSet(LS_SEEN);
 refreshExclude();
+loadHook();
 
 SHEETS = loadSheets();
 renderKindTabs();
