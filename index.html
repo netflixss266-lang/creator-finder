@@ -101,6 +101,22 @@ aside{border-right:1px solid var(--line);padding:22px;overflow-y:auto;
 .tabs button .n{opacity:.6;font-size:.9em;margin-left:3px}
 #sheetSel.solo{display:none}
 
+/* dropdown แบบกางลง — เลือกได้หลายอันพร้อมกัน ไม่กินที่แนวตั้งตอนพับ */
+.dd{border:1px solid var(--line);border-radius:9px;background:var(--surface)}
+.dd summary{list-style:none;cursor:pointer;padding:10px 12px;font-size:.88rem;
+  color:var(--ink);display:flex;align-items:center;justify-content:space-between;gap:8px}
+.dd summary::-webkit-details-marker{display:none}
+.dd summary::after{content:"▾";color:var(--dim);font-size:.85rem;flex:none}
+.dd[open] summary::after{content:"▴"}
+.dd[open] summary{border-bottom:1px solid var(--line)}
+.dd summary:hover{color:var(--accent)}
+.dd summary b{color:var(--accent);font-weight:600}
+.dd-body{padding:11px 12px;max-height:260px;overflow-y:auto}
+.dd-act{display:flex;justify-content:flex-end;margin-bottom:9px}
+.dd-act button{background:none;border:1px solid var(--line);color:var(--dim);
+  border-radius:6px;padding:4px 9px;font-size:.74rem}
+.dd-act button:hover{border-color:var(--lo);color:var(--lo)}
+
 .chips{display:flex;flex-wrap:wrap;gap:7px}
 .chip{border:1px solid var(--line);background:var(--surface);color:var(--mute);
   border-radius:7px;padding:6px 11px;font-size:.82rem;transition:all .13s;user-select:none}
@@ -138,6 +154,9 @@ main{padding:22px 24px;overflow-y:auto;max-height:calc(100vh - 62px)}
 .export{background:var(--surface2);border:1px solid var(--line);color:var(--ink);
   border-radius:8px;padding:9px 16px;font-size:.84rem;font-weight:600}
 .export:hover{border-color:var(--accent);color:var(--accent)}
+.headact{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.export.ghost{background:none;color:var(--dim);font-weight:500}
+.export.ghost:hover{border-color:var(--lo);color:var(--lo)}
 .export:disabled{opacity:.4;cursor:not-allowed}
 
 .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:12px}
@@ -145,6 +164,17 @@ main{padding:22px 24px;overflow-y:auto;max-height:calc(100vh - 62px)}
   padding:15px;transition:border-color .13s;position:relative}
 .card:hover{border-color:var(--dim)}
 .card.picked{border-color:var(--accent)}
+/* เปิดลิงก์ไปแล้ว — หรี่ลงให้เห็นชัดว่าไล่ถึงไหนแล้ว */
+.card.seen{border-style:dashed;border-color:var(--dim);background:var(--bg)}
+.card.seen .handle,.card.seen .reason{opacity:.55}
+.card.seen .av{opacity:.5}
+.card.seen:hover{border-color:var(--mute)}
+.seenflag{position:absolute;top:-8px;right:11px;z-index:1;
+  background:var(--dim);color:var(--bg);font-size:.66rem;font-weight:700;
+  letter-spacing:.03em;padding:2px 8px;border-radius:999px;
+  font-family:'Space Grotesk',sans-serif}
+.card.picked .seenflag{background:var(--accent);color:var(--accent-ink)}
+.open.was{color:var(--dim);border-style:dashed}
 .card-top{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:9px}
 .who{display:flex;align-items:center;gap:10px;min-width:0}
 .handle{font-weight:600;font-size:.98rem;word-break:break-all}
@@ -239,7 +269,15 @@ main{padding:22px 24px;overflow-y:auto;max-height:calc(100vh - 62px)}
 
     <div class="field">
       <label>ประเภทครีเอเตอร์ (Category)</label>
-      <div class="chips" id="catChips"></div>
+      <details class="dd" id="catDD">
+        <summary id="catSum">ทุกประเภท</summary>
+        <div class="dd-body">
+          <div class="dd-act">
+            <button type="button" id="catNone">ล้างที่เลือก</button>
+          </div>
+          <div class="chips" id="catChips"></div>
+        </div>
+      </details>
     </div>
 
     <div class="field">
@@ -255,6 +293,24 @@ main{padding:22px 24px;overflow-y:auto;max-height:calc(100vh - 62px)}
         <span>—</span>
         <input id="folMax" type="number" placeholder="สูงสุด" value="">
       </div>
+    </div>
+
+    <div class="field">
+      <label>ตัดรายชื่อที่เคยใช้แล้วออก</label>
+      <details class="dd" id="exDD">
+        <summary id="exSum">ไม่ได้ตัดใคร</summary>
+        <div class="dd-body">
+          <input type="file" id="exFile" accept=".csv,.tsv,.txt" multiple>
+          <div class="hint" style="margin:8px 0 4px">
+            หรือวางรายชื่อ/ลิงก์ตรงนี้ (บรรทัดละคน หรือคั่นด้วยจุลภาคก็ได้)
+          </div>
+          <textarea id="exText" placeholder="@creator1&#10;https://tiktok.com/@creator2"></textarea>
+          <div class="dd-act" style="margin-top:9px">
+            <button type="button" id="exClear">ล้างรายชื่อที่ตัด</button>
+          </div>
+          <div class="hint" id="exInfo"></div>
+        </div>
+      </details>
     </div>
 
     <div class="field">
@@ -302,7 +358,10 @@ main{padding:22px 24px;overflow-y:auto;max-height:calc(100vh - 62px)}
 
     <div class="res-head">
       <h2>ผลลัพธ์ <span class="n" id="resN"></span></h2>
-      <button class="export" id="exportBtn" disabled>Export ที่เลือก (CSV)</button>
+      <div class="headact">
+        <button class="export ghost" id="seenBtn" hidden></button>
+        <button class="export" id="exportBtn" disabled>Export ที่เลือก (CSV)</button>
+      </div>
     </div>
     <div class="resnote" id="resNote"></div>
 
@@ -372,8 +431,44 @@ const DEALS = [
 ];
 let DEAL = "all";
 
+// ─── รายชื่อที่ตัดออก (เคยติดต่อ/เคยใช้ไปแล้ว) ───
+const LS_EX = "cf_exclude_v1";
+let EXCLUDE = new Set();
+let EX_HIT = 0;         // ในนั้นตรงกับ pool ปัจจุบันกี่คน
+
+// ─── รายชื่อที่กดเปิดลิงก์ไปแล้ว ───
+const LS_SEEN = "cf_seen_v1";
+let SEEN = new Set();
+
+function normId(s){ return String(s ?? "").trim().toLowerCase().replace(/^@/, ""); }
+
+function lsLoadSet(key){
+  try {
+    const a = JSON.parse(localStorage.getItem(key) || "[]");
+    return new Set(Array.isArray(a) ? a.map(normId).filter(Boolean) : []);
+  } catch(e){ return new Set(); }
+}
+function lsSaveSet(key, set){
+  try { localStorage.setItem(key, JSON.stringify([...set])); } catch(e){}
+}
+
+// ดึงชื่อครีเอเตอร์ออกจากข้อความอะไรก็ได้ — CSV, ลิสต์, ลิงก์ที่ก๊อปมา
+// เก็บแบบหลวมๆ ไว้ก่อน แล้วค่อยไปตัดกับ pool จริงทีหลัง คำที่ไม่ตรงใครก็ไม่มีผล
+function extractHandles(text){
+  const out = new Set();
+  for (const m of String(text).matchAll(/tiktok\.com\/@([A-Za-z0-9._]{2,30})/gi)) out.add(normId(m[1]));
+  for (const m of String(text).matchAll(/@([A-Za-z0-9._]{2,30})/g)) out.add(normId(m[1]));
+  for (const tok of String(text).split(/[\s,;|"'\t\r\n]+/)){
+    const t = normId(tok);
+    if (/^[a-z0-9._]{3,30}$/.test(t) && /[a-z]/.test(t)) out.add(t);
+  }
+  out.delete("");
+  return out;
+}
+
 let CPF_MED = null;     // ค่ากลาง CPF ของผลลัพธ์ชุดปัจจุบัน
 let HIDDEN_NORATE = 0;  // ถูกซ่อนเพราะกรองงบแต่ไม่มีเรท
+let HIDDEN_EX = 0;      // ถูกตัดเพราะอยู่ในลิสต์ที่เคยใช้แล้ว
 
 // ─── รายการ Google Sheet (จัดการที่หน้าตั้งค่าเท่านั้น) ───
 const LS_KEY = "cf_sheets_v1";
@@ -476,12 +571,13 @@ async function fetchPool(url){
 
 // ─── โหลดเข้า state จริง ───
 async function loadPool(url){
-  const keepCats = [...document.querySelectorAll("#catChips .chip.on")].map(c => c.dataset.cat);
+  const keepCats = pickedCats();
   POOL = await fetchPool(url);
   POOL_URL = url;
   CATS = [...new Set(POOL.flatMap(catsOf))].sort();
   renderCatChips(keepCats);
   renderDealTabs();
+  refreshExclude();
   $("#poolN").textContent = POOL.length;
   return POOL.length;
 }
@@ -598,12 +694,24 @@ function parseCSV(text){
   return rows.filter(r => r.some(x => x.trim()));
 }
 
+function pickedCats(){
+  return [...document.querySelectorAll("#catChips .chip.on")].map(c => c.dataset.cat);
+}
+
+function updateCatSummary(){
+  const on = pickedCats();
+  $("#catSum").innerHTML = !on.length ? "ทุกประเภท"
+    : on.length <= 2 ? esc(on.join(", "))
+    : `<b>${on.length}</b> ประเภท · ${esc(on.slice(0,2).join(", "))} …`;
+}
+
 function renderCatChips(keepOn = []){
   $("#catChips").innerHTML = CATS.map(c =>
     `<span class="chip${keepOn.includes(c)?' on':''}" data-cat="${esc(c)}">${esc(c)}</span>`).join("") ||
     '<span class="hint">โหลด pool ก่อน แล้วหมวดจะขึ้นที่นี่</span>';
   document.querySelectorAll("#catChips .chip").forEach(ch =>
-    ch.onclick = () => ch.classList.toggle("on"));
+    ch.onclick = () => { ch.classList.toggle("on"); updateCatSummary(); });
+  updateCatSummary();
 }
 
 // ─── ค้นหา ───
@@ -627,7 +735,7 @@ async function run(){
   }
 
   // กรองพื้นฐาน
-  const onCats = [...document.querySelectorAll("#catChips .chip.on")].map(c => c.dataset.cat);
+  const onCats = pickedCats();
   const fMin = parseFollowers($("#folMin").value || "0");
   const fMax = parseFollowers($("#folMax").value || "0") || Infinity;
   const want = parseInt($("#want").value) || 30;
@@ -642,9 +750,11 @@ async function run(){
   POOL.forEach(p => { p.score = null; p.reason = ""; });
 
   HIDDEN_NORATE = 0;
+  HIDDEN_EX = 0;
   const dealTest = (DEALS.find(d => d.id === DEAL) || DEALS[0]).test;
 
   let filtered = POOL.filter(p => {
+    if (EXCLUDE.has(normId(p.id))){ HIDDEN_EX++; return false; }
     if (!dealTest(p)) return false;
     if (onCats.length && !catsOf(p).some(c => onCats.includes(c))) return false;
     if (p.fol < fMin || p.fol > fMax) return false;
@@ -741,34 +851,52 @@ function render(){
   const vals = RESULTS.map(cpf).filter(v => v!=null).sort((a,b) => a-b);
   CPF_MED = vals.length >= 3 ? vals[Math.floor(vals.length/2)] : null;
 
-  $("#resNote").innerHTML = HIDDEN_NORATE
-    ? `ซ่อนไว้ <b>${HIDDEN_NORATE} คน</b> เพราะยังไม่มีเรทเลยเช็คไม่ได้ว่าเข้างบไหม — ล้างช่องงบเพื่อดูทั้งหมด`
-    : "";
+  const notes = [];
+  if (HIDDEN_EX)
+    notes.push(`ตัดออก <b>${HIDDEN_EX} คน</b> ที่อยู่ในลิสต์เคยใช้แล้ว`);
+  if (HIDDEN_NORATE)
+    notes.push(`ซ่อนไว้ <b>${HIDDEN_NORATE} คน</b> เพราะยังไม่รู้เรทเลยเช็คไม่ได้ว่าเข้างบไหม — ล้างช่องงบเพื่อดูทั้งหมด`);
+  $("#resNote").innerHTML = notes.join(" · ");
 
   if (!RESULTS.length){
     $("#results").innerHTML = `<div class="empty"><h3>ไม่มีครีเอเตอร์ตรงเงื่อนไข</h3><div>ลองผ่อนตัวกรอง เช่น ขยายช่วง followers หรือช่วงงบ</div></div>`;
-    $("#exportBtn").disabled = true; return;
+    $("#exportBtn").disabled = true; updateSeenBar(); return;
   }
   $("#results").innerHTML = `<div class="grid">${RESULTS.map(cardHTML).join("")}</div>`;
   document.querySelectorAll(".pick").forEach(b =>
     b.onclick = () => togglePick(b.dataset.id, b));
+  // กดเปิดลิงก์ = ไล่ดูคนนี้แล้ว จำไว้ข้ามการค้นหาและข้ามวัน
+  document.querySelectorAll(".open").forEach(a => a.addEventListener("click", () => {
+    const id = a.dataset.id;
+    if (!id || SEEN.has(id)) return;
+    SEEN.add(id); lsSaveSet(LS_SEEN, SEEN);
+    const card = a.closest(".card");
+    card.classList.add("seen");
+    a.classList.add("was"); a.textContent = "เปิดอีก ↗";
+    if (!card.querySelector(".seenflag"))
+      card.insertAdjacentHTML("afterbegin", `<span class="seenflag">เปิดแล้ว</span>`);
+    updateSeenBar();
+  }));
   // รูปเสีย/ลิงก์ตาย → ซ่อนรูป เหลือตัวย่อที่อยู่ข้างหลัง
   document.querySelectorAll(".av img").forEach(img => {
     img.onerror = () => img.classList.add("dead");
     if (img.complete && img.naturalWidth === 0) img.classList.add("dead");
   });
   updateExport();
+  updateSeenBar();
 }
 
 function scoreClass(s){ return s>=8 ? "hi" : s>=5 ? "mid" : "lo"; }
 
 function cardHTML(p){
   const picked = PICKED.has(p.id);
+  const seen = SEEN.has(normId(p.id));
   const scoreHTML = p.score!=null
     ? `<span class="score ${scoreClass(p.score)}">${p.score}</span>` : "";
   const rate = fmtRate(p);
   const v = cpf(p);
-  return `<div class="card ${picked?'picked':''}">
+  return `<div class="card ${picked?'picked':''} ${seen?'seen':''}" data-id="${esc(normId(p.id))}">
+    ${seen?`<span class="seenflag">เปิดแล้ว</span>`:""}
     <div class="card-top">
       <div class="who">
         <div class="av">${initials(p.id)}${
@@ -787,7 +915,8 @@ function cardHTML(p){
     ${p.reason?`<div class="reason">${esc(p.reason)}</div>`:""}
     <div class="card-actions">
       <button class="pick ${picked?'on':''}" data-id="${esc(p.id)}">${picked?'✓ เลือกแล้ว':'เลือก'}</button>
-      ${p.link?`<a class="open" href="${esc(p.link)}" target="_blank" rel="noopener">เปิด ↗</a>`:""}
+      ${p.link?`<a class="open${seen?" was":""}" href="${esc(p.link)}"
+          target="_blank" rel="noopener" data-id="${esc(normId(p.id))}">${seen?"เปิดอีก ↗":"เปิด ↗"}</a>`:""}
     </div>
   </div>`;
 }
@@ -956,6 +1085,75 @@ async function addSheet(){
   }
 }
 
+function updateSeenBar(){
+  const n = RESULTS.filter(p => SEEN.has(normId(p.id))).length;
+  const b = $("#seenBtn");
+  b.hidden = !SEEN.size;
+  b.textContent = `เปิดแล้ว ${n}/${RESULTS.length} · ล้าง`;
+  b.title = `ทั้งหมดที่เคยเปิด ${SEEN.size} คน — กดเพื่อล้างเครื่องหมาย`;
+}
+
+$("#seenBtn").onclick = () => {
+  if (!confirm(`ล้างเครื่องหมาย "เปิดแล้ว" ทั้งหมด ${SEEN.size} คน?`)) return;
+  SEEN.clear(); lsSaveSet(LS_SEEN, SEEN); render();
+};
+
+// ─── ตัดรายชื่อที่เคยใช้ ───
+function refreshExclude(){
+  EX_HIT = POOL.filter(p => EXCLUDE.has(normId(p.id))).length;
+  $("#exSum").innerHTML = EXCLUDE.size
+    ? `ตัดออก <b>${EX_HIT}</b> คน <span style="color:var(--dim)">(ในลิสต์ ${EXCLUDE.size})</span>`
+    : "ไม่ได้ตัดใคร";
+  $("#exInfo").innerHTML = EXCLUDE.size
+    ? `ลิสต์มี ${EXCLUDE.size} ชื่อ · ตรงกับ pool นี้ ${EX_HIT} คน` +
+      (EXCLUDE.size > EX_HIT
+        ? ` · อีก ${EXCLUDE.size - EX_HIT} ชื่อไม่อยู่ใน pool เลยไม่มีผล`
+        : "")
+    : "";
+}
+
+function addExclusions(text, label){
+  const found = extractHandles(text);
+  const before = EXCLUDE.size;
+  found.forEach(h => EXCLUDE.add(h));
+  lsSaveSet(LS_EX, EXCLUDE);
+  refreshExclude();
+  const hit = POOL.filter(p => found.has(normId(p.id))).length;
+  $("#exInfo").innerHTML =
+    `${esc(label)}: อ่านได้ ${found.size} ชื่อ · ใหม่ ${EXCLUDE.size - before} · ตรงกับ pool นี้ ${hit} คน`;
+  if (RESULTS.length) run();
+}
+
+$("#exFile").onchange = async e => {
+  for (const f of e.target.files){
+    if (/\.(pdf|jpe?g|png|gif|webp)$/i.test(f.name)){
+      $("#exInfo").innerHTML =
+        `<span style="color:var(--lo)">${esc(f.name)} อ่านไม่ได้</span> — ` +
+        `PDF/รูปต้องแกะตัวอักษรด้วย OCR ซึ่งอ่านชื่อ handle ผิดบ่อย ` +
+        `ให้เปิดไฟล์แล้วก๊อปข้อความมาวางในช่องด้านล่างแทน`;
+      continue;
+    }
+    addExclusions(await f.text(), f.name);
+  }
+  e.target.value = "";
+};
+
+$("#exText").addEventListener("change", () => {
+  const t = $("#exText").value.trim();
+  if (t){ addExclusions(t, "ที่วางมา"); $("#exText").value = ""; }
+});
+
+$("#exClear").onclick = () => {
+  EXCLUDE.clear(); lsSaveSet(LS_EX, EXCLUDE); refreshExclude();
+  $("#exInfo").textContent = "ล้างแล้ว";
+  if (RESULTS.length) run();
+};
+
+$("#catNone").onclick = () => {
+  document.querySelectorAll("#catChips .chip.on").forEach(c => c.classList.remove("on"));
+  updateCatSummary();
+};
+
 $("#foldBtn").onclick = () => {
   const folded = document.querySelector(".wrap").classList.toggle("folded");
   $("#foldBtn").setAttribute("aria-expanded", String(!folded));
@@ -980,6 +1178,10 @@ $("#sheetSel").onchange = selectSheet;
 $("#runBtn").onclick = run;
 $("#exportBtn").onclick = exportCSV;
 // ─── เริ่มต้น: โหลดรายการ Sheet แล้วดึงตัวแรกมาเลย ───
+EXCLUDE = lsLoadSet(LS_EX);
+SEEN = lsLoadSet(LS_SEEN);
+refreshExclude();
+
 SHEETS = loadSheets();
 renderKindTabs();
 renderSheetSelect();
