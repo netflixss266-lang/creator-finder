@@ -163,6 +163,9 @@ main{padding:22px 24px;overflow-y:auto;max-height:calc(100vh - 62px)}
 .tag.rate{font-family:'IBM Plex Mono',monospace;color:var(--accent);
   border-color:rgba(232,255,99,.28);background:rgba(232,255,99,.07);font-weight:600}
 .tag.norate{color:var(--dim);font-style:italic}
+/* แลกของ — ไม่มีค่าตัวเป็นเงิน ใช้สีเขียวเหมือนในชีต */
+.tag.rate.barter{color:var(--hi);border-color:rgba(124,231,196,.3);
+  background:rgba(124,231,196,.08);font-family:'IBM Plex Sans Thai',sans-serif}
 /* ต้นทุนต่อ 1,000 followers — ยิ่งต่ำยิ่งคุ้ม */
 .tag.cpf{font-family:'IBM Plex Mono',monospace}
 .tag.cpf.good{color:var(--hi);border-color:rgba(124,231,196,.28);background:rgba(124,231,196,.07)}
@@ -444,7 +447,9 @@ async function fetchPool(url){
     link: (iLink>=0 ? r[iLink] : "").trim(),
     fol:  parseFollowers(iFol>=0 ? r[iFol] : "0"),
     av:   safeImgUrl(iAv>=0 ? r[iAv] : ""),
-    rate: parseRate(iRate>=0 ? r[iRate] : ""),
+    barter: isBarter(iRate>=0 ? r[iRate] : ""),
+    rate: isBarter(iRate>=0 ? r[iRate] : "") ? 0
+                                             : parseRate(iRate>=0 ? r[iRate] : ""),
   }));
 }
 
@@ -474,6 +479,10 @@ function fmtFol(n){
   return String(n);
 }
 
+// ดีลแลกของ — ไม่มีค่าตัวเป็นเงิน แต่ถือว่ารู้เรทแล้ว ไม่ใช่ข้อมูลขาด
+const BARTER = /^(barter|บาร์เตอร์|แลกของ|แลกสินค้า)$/i;
+function isBarter(s){ return BARTER.test(String(s ?? "").trim()); }
+
 // ราคา/เรท — รับได้ทั้ง "5000", "5,000", "฿5000", "5K", "3000-5000" (เอาตัวต่ำสุด)
 function parseRate(s){
   s = String(s).trim().toLowerCase();
@@ -485,9 +494,10 @@ function parseRate(s){
   return isNaN(n) ? null : Math.round(n);
 }
 
-function fmtRate(n){
-  if (n==null) return null;
-  return "฿" + n.toLocaleString("en-US");
+function fmtRate(p){
+  if (p.barter) return "Barter";
+  if (p.rate==null) return null;
+  return "฿" + p.rate.toLocaleString("en-US");
 }
 
 // ครีเอเตอร์หนึ่งคนอาจมีหลายหมวดในช่องเดียว เช่น "Workout, Lifestyle"
@@ -497,8 +507,9 @@ function catsOf(p){
 }
 
 // ต้นทุนต่อ 1,000 followers (CPM) — ใช้เทียบความคุ้มข้ามครีเอเตอร์
+// Barter ไม่มีต้นทุนเป็นเงิน เอามาเทียบกับดีลที่จ่ายเงินไม่ได้ เลยไม่คิด
 function cpf(p){
-  return (p.rate!=null && p.fol>0) ? p.rate/p.fol*1000 : null;
+  return (!p.barter && p.rate!=null && p.fol>0) ? p.rate/p.fol*1000 : null;
 }
 
 function fmtCpf(v){
@@ -713,7 +724,7 @@ function cardHTML(p){
   const picked = PICKED.has(p.id);
   const scoreHTML = p.score!=null
     ? `<span class="score ${scoreClass(p.score)}">${p.score}</span>` : "";
-  const rate = fmtRate(p.rate);
+  const rate = fmtRate(p);
   const v = cpf(p);
   return `<div class="card ${picked?'picked':''}">
     <div class="card-top">
@@ -727,7 +738,7 @@ function cardHTML(p){
     <div class="meta">
       ${catsOf(p).map(c => `<span class="tag">${esc(c)}</span>`).join("")}
       <span class="tag fol">${fmtFol(p.fol)} followers</span>
-      ${rate ? `<span class="tag rate">${rate}</span>`
+      ${rate ? `<span class="tag rate${p.barter?" barter":""}">${rate}</span>`
              : `<span class="tag norate">ยังไม่มีเรท</span>`}
       ${v!=null ? `<span class="tag cpf${cpfClass(v)}" title="ต้นทุนต่อ 1,000 followers">${fmtCpf(v)}</span>` : ""}
     </div>
@@ -758,7 +769,8 @@ function exportCSV(){
   const head = ["Category","ID","Link","Image","Follower","Rate","฿/1K Followers","Fit Score","Reason","สถานะ"];
   const body = rows.map(p => {
     const v = cpf(p);
-    return [p.cat, p.id, p.link, p.av??"", p.fol, p.rate??"",
+    return [p.cat, p.id, p.link, p.av??"", p.fol,
+            p.barter ? "Barter" : (p.rate??""),
             v!=null ? v.toFixed(2) : "", p.score??"", p.reason??"", "รอติดต่อ"];
   });
   const csv = [head, ...body].map(r =>
