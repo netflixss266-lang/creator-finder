@@ -246,6 +246,25 @@ main{padding:22px 24px;overflow-y:auto;max-height:calc(100vh - 62px)}
 .tag.near{color:var(--hi);border-color:rgba(124,231,196,.28);
   background:rgba(124,231,196,.07);font-family:'IBM Plex Mono',monospace}
 
+/* เกณฑ์คัดงาน — ค้างไว้เหนือผลลัพธ์ ตอนไล่เปิดคลิปจะได้ไม่ต้องจำ */
+.critbar{display:flex;flex-wrap:wrap;align-items:center;gap:7px;margin:-4px 0 13px}
+.critbar:empty{display:none}
+.critbar .lab{font-size:.72rem;text-transform:uppercase;letter-spacing:.08em;
+  color:var(--dim);font-weight:600;margin-right:2px}
+.critbar span.c{font-size:.76rem;color:var(--mute);background:var(--surface);
+  border:1px solid var(--line);border-radius:6px;padding:3px 9px}
+
+/* คำตัดสินของคน — เว็บดูคลิปไม่ได้ ตรงนี้คือที่เดียวที่ตัดสินจริง */
+.judge{display:flex;align-items:center;gap:6px;margin-top:8px;
+  padding-top:8px;border-top:1px solid var(--line)}
+.judge .jl{font-size:.7rem;text-transform:uppercase;letter-spacing:.06em;
+  color:var(--dim);font-weight:600;margin-right:auto}
+.jb{background:none;border:1px solid var(--line);color:var(--dim);
+  border-radius:6px;padding:4px 10px;font-size:.76rem;font-weight:600}
+.jb.pass:hover,.jb.pass.on{border-color:var(--hi);color:var(--hi);background:rgba(124,231,196,.1)}
+.jb.fail:hover,.jb.fail.on{border-color:var(--lo);color:var(--lo);background:rgba(240,128,107,.1)}
+.card.failed{opacity:.5}
+
 .resnote{font-size:.78rem;color:var(--dim);margin:-8px 0 14px;line-height:1.5}
 .resnote b{color:var(--mute)}
 .resnote:empty{display:none}
@@ -335,11 +354,28 @@ main{padding:22px 24px;overflow-y:auto;max-height:calc(100vh - 62px)}
       </div>
     </details>
 
+    <details class="fold" data-fold="crit">
+      <summary><span class="fl">เกณฑ์คัดงาน</span><span class="fv" id="critSum"></span></summary>
+      <div class="fbody">
+        <textarea id="critText" placeholder="บรรทัดละข้อ"></textarea>
+        <div class="hint">
+          ทุกข้อเป็นเรื่องภาพ — <b>ต้องเปิดคลิปดูเอง</b> เว็บวัดให้ไม่ได้<br>
+          ขึ้นไว้เหนือผลลัพธ์ตอนไล่ดู แล้วกด ผ่าน/ไม่ผ่าน ที่การ์ดเพื่อเก็บคำตัดสินไว้
+        </div>
+        <div class="dd-act" style="margin-top:9px">
+          <button type="button" id="critReset">คืนเกณฑ์ตั้งต้น</button>
+        </div>
+      </div>
+    </details>
+
     <details class="fold" data-fold="ref">
       <summary><span class="fl">Reference — ลิงก์วิดีโอตัวอย่าง</span><span class="fv" id="refSum">—</span></summary>
       <div class="fbody">
         <textarea id="ref" placeholder="วางลิงก์วิดีโอ TikTok ที่อยากได้สไตล์นี้&#10;เช่น การนำเสนอ / แสงสี / ภาพชัด"></textarea>
-        <div class="hint">Claude จะวิเคราะห์การนำเสนอ แสงสี และความคมชัด แล้วจับคู่กับครีเอเตอร์ใน pool</div>
+        <div class="hint">
+          <b style="color:var(--lo)">Claude เปิดคลิปดูไม่ได้</b> — เห็นแค่ข้อความในชีต (หมวด · ชื่อ · followers)
+          ตัดสินภาพชัด/ฟิลเตอร์/หน้าตาแทนไม่ได้ ใช้ได้แค่ตอนที่ reference เป็นคำอธิบายที่เทียบกับหมวดได้
+        </div>
       </div>
     </details>
 
@@ -425,6 +461,7 @@ main{padding:22px 24px;overflow-y:auto;max-height:calc(100vh - 62px)}
         <button class="export" id="exportBtn" disabled>Export ที่เลือก (CSV)</button>
       </div>
     </div>
+    <div class="critbar" id="critBar"></div>
     <div class="resnote" id="resNote"></div>
 
     <div id="results">
@@ -586,6 +623,38 @@ let LIKED_HIT = 0;       // ในลิสต์ตรงกับ pool ปั�
 let HIDE_LIKED = false;  // ซ่อนคนที่อยู่ในลิสต์แล้ว เพื่อหาคนใหม่แนวเดียวกัน
 let HIDDEN_LIKED = 0;
 let NEAR_N = 0;          // ในผลลัพธ์ ใกล้แนวกี่คน
+
+// ─── เกณฑ์คัดงาน ───
+// ทุกข้อเป็นเรื่องภาพ ต้องเปิดคลิปดูเอง — ทั้งเว็บและ Claude ตัดสินให้ไม่ได้
+// เก็บไว้ให้เห็นตอนไล่ดู แล้วบันทึกคำตัดสินของคนไว้แทน
+const LS_CRIT = "cf_criteria_v1";
+const DEFAULT_CRIT = ["ภาพชัด", "ภาพไม่ฟุ้ง", "ไม่ใส่ฟิลเตอร์เยอะ",
+                      "การนำเสนอดี", "ได้ Beauty Standard", "หน้าตาดี"];
+let CRIT = DEFAULT_CRIT.slice();
+
+// คำตัดสินรายคน — ผ่าน = เข้าลิสต์แนวที่ชอบ, ไม่ผ่าน = ไม่ต้องเจออีก
+const LS_VERDICT = "cf_verdict_v1";
+let VERDICT = {};
+let HIDDEN_FAIL = 0;
+
+function loadVerdict(){
+  try {
+    const o = JSON.parse(localStorage.getItem(LS_VERDICT) || "{}");
+    if (o && typeof o === "object") VERDICT = o;
+  } catch(e){}
+}
+function saveVerdict(){
+  try { localStorage.setItem(LS_VERDICT, JSON.stringify(VERDICT)); } catch(e){}
+}
+function loadCrit(){
+  try {
+    const a = JSON.parse(localStorage.getItem(LS_CRIT) || "null");
+    if (Array.isArray(a) && a.length) CRIT = a.map(String);
+  } catch(e){}
+}
+function saveCrit(){
+  try { localStorage.setItem(LS_CRIT, JSON.stringify(CRIT)); } catch(e){}
+}
 
 function normId(s){ return String(s ?? "").trim().toLowerCase().replace(/^@/, ""); }
 
@@ -1018,9 +1087,12 @@ async function run(){
   HIDDEN_NORATE = 0;
   HIDDEN_EX = 0;
   HIDDEN_LIKED = 0;
+  HIDDEN_FAIL = 0;
   const dealTest = (DEALS.find(d => d.id === DEAL) || DEALS[0]).test;
 
   let filtered = POOL.filter(p => {
+    // ตัดสินว่าไม่ผ่านเกณฑ์ไปแล้ว ไม่ต้องเสียเวลาดูซ้ำ
+    if (VERDICT[normId(p.id)] === "fail"){ HIDDEN_FAIL++; return false; }
     if (EXCLUDE.has(normId(p.id))){ HIDDEN_EX++; return false; }
     if (HIDE_LIKED && LIKED.has(normId(p.id))){ HIDDEN_LIKED++; return false; }
     if (!dealTest(p)) return false;
@@ -1072,15 +1144,20 @@ async function scoreWithClaude(list, ref, key){
     const prompt =
 `คุณเป็นผู้ช่วย KOL Specialist กำลังจับคู่ครีเอเตอร์กับ reference
 
-Reference (วิดีโอตัวอย่างที่ต้องการสไตล์นี้):
+Reference ที่ต้องการ:
 ${ref}
 
-พิจารณามิติ: การนำเสนอ, แสงสี, ความคมชัดของภาพ, โทน/พลังงาน, ความเหมาะกับสินค้า
+เกณฑ์ที่ทีมใช้คัดงาน:
+${CRIT.map(c => "- " + c).join("\n")}
 
-รายชื่อครีเอเตอร์ (category | id | followers):
+รายชื่อครีเอเตอร์ — ข้อมูลที่คุณมีมีเท่านี้จริงๆ (category | id | followers):
 ${batch.map((p,j)=>`${j}. ${p.cat} | ${p.id} | ${fmtFol(p.fol)}`).join("\n")}
 
-ให้คะแนนความใกล้เคียงกับ reference (0-10) แต่ละคน
+สำคัญ: คุณ **ไม่ได้เห็นวิดีโอหรือรูปของใครเลย** เกณฑ์เรื่องภาพ (ความคมชัด ฟิลเตอร์
+แสงสี หน้าตา การนำเสนอ) คุณตัดสินไม่ได้ ห้ามเดาแล้วเขียนเหมือนเคยดูมา
+ให้คะแนนจากสิ่งที่อนุมานได้จริงจาก category กับ followers เท่านั้น
+ถ้าข้อมูลไม่พอตัดสิน ให้ score 5 แล้วเขียน reason ว่า "ข้อมูลไม่พอ ต้องเปิดดูเอง"
+
 ตอบ JSON array อย่างเดียว ห้ามมีข้อความอื่น:
 [{"i":0,"score":8.5,"reason":"เหตุผลสั้นๆ 1 บรรทัด"}, ...]`;
 
@@ -1135,6 +1212,8 @@ function render(){
     notes.push(`ลิสต์แนวที่ชอบตรงกับ pool นี้แค่ <b>${LIKED_HIT} คน</b> — ยังเรียนแนวไม่ได้ (ต้องมี 3 คนขึ้นไป) เลยดันเฉพาะคนที่อยู่ในลิสต์ขึ้นก่อน`);
   if (HIDDEN_LIKED)
     notes.push(`ซ่อนไว้ <b>${HIDDEN_LIKED} คน</b> ที่อยู่ในลิสต์แนวที่ชอบแล้ว`);
+  if (HIDDEN_FAIL)
+    notes.push(`ตัดออก <b>${HIDDEN_FAIL} คน</b> ที่เคยกดว่าไม่ผ่านเกณฑ์ — <a href="#" id="undoFail" style="color:var(--mute);text-decoration:underline">เอากลับมาดูใหม่</a>`);
   if (HIDDEN_EX)
     notes.push(`ตัดออก <b>${HIDDEN_EX} คน</b> ที่อยู่ในลิสต์เคยใช้แล้ว`);
   if (HIDDEN_NORATE)
@@ -1142,10 +1221,16 @@ function render(){
   if (RATE_SKIPPED)
     notes.push(`ดีล <b>Barter</b> ไม่คิดเป็นเงิน — ช่วงงบที่ใส่ไว้ถูกข้าม`);
   $("#resNote").innerHTML = notes.join(" · ");
+  if ($("#undoFail")) $("#undoFail").onclick = e => {
+    e.preventDefault();
+    if (!confirm(`ล้างคำตัดสิน "ไม่ผ่าน" ทั้งหมด ${Object.values(VERDICT).filter(v => v==="fail").length} คน?`)) return;
+    for (const k in VERDICT) if (VERDICT[k] === "fail") delete VERDICT[k];
+    saveVerdict(); run();
+  };
 
   if (!RESULTS.length){
     $("#results").innerHTML = `<div class="empty"><h3>ไม่มีครีเอเตอร์ตรงเงื่อนไข</h3><div>ลองผ่อนตัวกรอง เช่น ขยายช่วง followers หรือช่วงงบ</div></div>`;
-    $("#exportBtn").disabled = true; updateSeenBar(); return;
+    $("#exportBtn").disabled = true; updateSeenBar(); updateJudgeBar(); return;
   }
   $("#results").innerHTML = `<div class="grid">${RESULTS.map(cardHTML).join("")}</div>`;
   document.querySelectorAll(".pick").forEach(b =>
@@ -1162,6 +1247,26 @@ function render(){
       card.insertAdjacentHTML("afterbegin", `<span class="seenflag">เปิดแล้ว</span>`);
     updateSeenBar();
   }));
+  // ตัดสินตามเกณฑ์ — ไม่จัดเรียงใหม่ทันที ไม่งั้นการ์ดกระโดดหนีตอนกำลังไล่ดู
+  document.querySelectorAll(".jb").forEach(b => b.onclick = () => {
+    const id = b.dataset.id, want = b.dataset.v;
+    const card = b.closest(".card");
+    const off = VERDICT[id] === want;
+    if (off) delete VERDICT[id]; else VERDICT[id] = want;
+    saveVerdict();
+
+    // ผ่าน = เข้าลิสต์แนวที่ชอบเลย รอบค้นหาถัดไปจะเรียนจากคนนี้ด้วย
+    if (want === "pass"){
+      if (off) LIKED.delete(id); else LIKED.add(id);
+      lsSaveSet(LS_LIKED, LIKED);
+      refreshLiked();
+      card.classList.toggle("fav", !off);
+    }
+    card.classList.toggle("failed", VERDICT[id] === "fail");
+    card.querySelectorAll(".jb").forEach(x =>
+      x.classList.toggle("on", VERDICT[id] === x.dataset.v));
+    updateJudgeBar();
+  });
   // รูปเสีย/ลิงก์ตาย → ซ่อนรูป เหลือตัวย่อที่อยู่ข้างหลัง
   document.querySelectorAll(".av img").forEach(img => {
     img.onerror = () => img.classList.add("dead");
@@ -1169,18 +1274,31 @@ function render(){
   });
   updateExport();
   updateSeenBar();
+  updateJudgeBar();
 }
 
 function scoreClass(s){ return s>=8 ? "hi" : s>=5 ? "mid" : "lo"; }
 
+// เกณฑ์ค้างไว้เหนือผลลัพธ์ + นับว่าไล่ตัดสินไปแล้วกี่คน
+function updateJudgeBar(){
+  const pass = RESULTS.filter(p => VERDICT[normId(p.id)] === "pass").length;
+  const fail = RESULTS.filter(p => VERDICT[normId(p.id)] === "fail").length;
+  $("#critBar").innerHTML = RESULTS.length
+    ? `<span class="lab">เกณฑ์</span>` + CRIT.map(c => `<span class="c">${esc(c)}</span>`).join("") +
+      (pass || fail ? `<span class="lab" style="margin-left:6px">ตัดสินแล้ว ${pass+fail}/${RESULTS.length}` +
+        ` · ผ่าน ${pass} · ไม่ผ่าน ${fail}</span>` : "")
+    : "";
+}
+
 function cardHTML(p){
   const picked = PICKED.has(p.id);
   const seen = SEEN.has(normId(p.id));
+  const vd = VERDICT[normId(p.id)];
   const scoreHTML = p.score!=null
     ? `<span class="score ${scoreClass(p.score)}">${p.score}</span>` : "";
   const rate = fmtRate(p);
   const v = cpf(p);
-  return `<div class="card ${p.fav?'fav':''} ${picked?'picked':''} ${seen?'seen':''}" data-id="${esc(normId(p.id))}">
+  return `<div class="card ${p.fav?'fav':''} ${picked?'picked':''} ${seen?'seen':''} ${vd==='fail'?'failed':''}" data-id="${esc(normId(p.id))}">
     ${seen?`<span class="seenflag">เปิดแล้ว</span>`:""}
     <div class="card-top">
       <div class="who">
@@ -1205,6 +1323,11 @@ function cardHTML(p){
       ${p.link?`<a class="open${seen?" was":""}" href="${esc(p.link)}"
           target="_blank" rel="noopener" data-id="${esc(normId(p.id))}">${seen?"เปิดอีก ↗":"เปิด ↗"}</a>`:""}
     </div>
+    <div class="judge">
+      <span class="jl">ตามเกณฑ์</span>
+      <button class="jb pass ${vd==='pass'?'on':''}" data-v="pass" data-id="${esc(normId(p.id))}">✓ ผ่าน</button>
+      <button class="jb fail ${vd==='fail'?'on':''}" data-v="fail" data-id="${esc(normId(p.id))}">✕ ไม่ผ่าน</button>
+    </div>
   </div>`;
 }
 
@@ -1225,13 +1348,14 @@ function exportCSV(){
   const rows = RESULTS.filter(p => PICKED.has(p.id));
   if (!rows.length) return;
   const head = ["Category","ID","Link","Image","Follower","Rate","฿/1K Followers",
-                "แนวที่ชอบ","ใกล้แนว %","Fit Score","Reason","สถานะ"];
+                "แนวที่ชอบ","ใกล้แนว %","ตามเกณฑ์","Fit Score","Reason","สถานะ"];
   const body = rows.map(p => {
     const v = cpf(p);
     return [p.cat, p.id, p.link, p.av??"", p.fol,
             p.barter ? "Barter" : (p.rate??""),
             v!=null ? v.toFixed(2) : "",
             p.fav ? "ใช่" : "", p.aff!=null ? Math.round(p.aff*100) : "",
+            { pass:"ผ่าน", fail:"ไม่ผ่าน" }[VERDICT[normId(p.id)]] ?? "ยังไม่ตัดสิน",
             p.score??"", p.reason??"", "รอติดต่อ"];
   });
   const csv = [head, ...body].map(r =>
@@ -1575,6 +1699,22 @@ $("#exClear").onclick = () => {
   if (RESULTS.length) run();
 };
 
+// ─── เกณฑ์คัดงาน ───
+function renderCrit(){
+  $("#critText").value = CRIT.join("\n");
+  $("#critSum").textContent = CRIT.length ? `${CRIT.length} ข้อ` : "ยังไม่ตั้ง";
+  updateJudgeBar();
+}
+
+$("#critText").addEventListener("change", () => {
+  CRIT = $("#critText").value.split("\n").map(s => s.trim()).filter(Boolean);
+  saveCrit(); renderCrit();
+});
+
+$("#critReset").onclick = () => {
+  CRIT = DEFAULT_CRIT.slice(); saveCrit(); renderCrit();
+};
+
 // ─── แนวที่ชอบ ───
 $("#likeFile").onchange = async e => {
   for (const f of e.target.files){
@@ -1650,6 +1790,9 @@ SEEN = lsLoadSet(LS_SEEN);
 LIKED = lsLoadSet(LS_LIKED);
 try { HIDE_LIKED = !!localStorage.getItem(LS_HIDELIKED); } catch(e){}
 $("#hideLiked").checked = HIDE_LIKED;
+loadCrit();
+loadVerdict();
+renderCrit();
 refreshExclude();
 refreshLiked();
 loadHook();
