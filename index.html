@@ -196,7 +196,7 @@ main{padding:22px 24px;overflow-y:auto;max-height:calc(100vh - 62px)}
   padding:15px;transition:border-color .13s;position:relative}
 .card:hover{border-color:var(--dim)}
 .card.fav{border-color:rgba(232,255,99,.34)}
-.card.picked{border-color:var(--accent)}
+.card.incart{border-color:var(--accent)}
 /* เปิดลิงก์ไปแล้ว — หรี่ลงให้เห็นชัดว่าไล่ถึงไหนแล้ว */
 .card.seen{border-style:dashed;border-color:var(--dim);background:var(--bg)}
 .card.seen .handle,.card.seen .reason{opacity:.55}
@@ -206,7 +206,7 @@ main{padding:22px 24px;overflow-y:auto;max-height:calc(100vh - 62px)}
   background:var(--dim);color:var(--bg);font-size:.66rem;font-weight:700;
   letter-spacing:.03em;padding:2px 8px;border-radius:999px;
   font-family:'Space Grotesk',sans-serif}
-.card.picked .seenflag{background:var(--accent);color:var(--accent-ink)}
+.card.incart .seenflag{background:var(--accent);color:var(--accent-ink)}
 .open.was{color:var(--dim);border-style:dashed}
 .card-top{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:9px}
 .who{display:flex;align-items:center;gap:10px;min-width:0}
@@ -254,16 +254,55 @@ main{padding:22px 24px;overflow-y:auto;max-height:calc(100vh - 62px)}
 .critbar span.c{font-size:.76rem;color:var(--mute);background:var(--surface);
   border:1px solid var(--line);border-radius:6px;padding:3px 9px}
 
-/* คำตัดสินของคน — เว็บดูคลิปไม่ได้ ตรงนี้คือที่เดียวที่ตัดสินจริง */
-.judge{display:flex;align-items:center;gap:6px;margin-top:8px;
-  padding-top:8px;border-top:1px solid var(--line)}
-.judge .jl{font-size:.7rem;text-transform:uppercase;letter-spacing:.06em;
-  color:var(--dim);font-weight:600;margin-right:auto}
-.jb{background:none;border:1px solid var(--line);color:var(--dim);
-  border-radius:6px;padding:4px 10px;font-size:.76rem;font-weight:600}
-.jb.pass:hover,.jb.pass.on{border-color:var(--hi);color:var(--hi);background:rgba(124,231,196,.1)}
-.jb.fail:hover,.jb.fail.on{border-color:var(--lo);color:var(--lo);background:rgba(240,128,107,.1)}
-.card.failed{opacity:.5}
+/* ── ตะกร้า ── */
+.cartbtn{position:relative}
+.cartbtn .n{display:inline-block;min-width:19px;margin-left:5px;padding:1px 5px;
+  border-radius:999px;background:var(--accent);color:var(--accent-ink);
+  font-family:'IBM Plex Mono',monospace;font-size:.72rem;font-weight:700}
+.cartbtn.empty .n{background:var(--line);color:var(--dim)}
+.cartbtn.bump{animation:bump .34s cubic-bezier(.3,1.6,.5,1)}
+@keyframes bump{40%{transform:scale(1.16)}100%{transform:scale(1)}}
+
+/* การ์ดเล็กๆ ที่วิ่งจากผลลัพธ์ไปลงตะกร้า — ให้เห็นว่าของเข้าไปแล้วจริง */
+.fly{position:fixed;z-index:80;pointer-events:none;display:flex;align-items:center;gap:7px;
+  background:var(--surface2);border:1px solid var(--accent);border-radius:9px;
+  padding:5px 10px 5px 6px;font-size:.78rem;font-weight:600;color:var(--ink);
+  box-shadow:0 8px 24px rgba(0,0,0,.5);max-width:190px;white-space:nowrap;overflow:hidden;
+  transition:transform .5s cubic-bezier(.5,-.35,.5,1),opacity .5s ease-in}
+.fly .av{width:24px;height:24px;font-size:.6rem}
+
+/* ── ลิ้นชักตะกร้า เลื่อนเข้ามาจากขวา ── */
+.drawer{position:fixed;inset:0;z-index:70;pointer-events:none}
+.drawer .scrim{position:absolute;inset:0;background:rgba(8,9,12,.66);
+  opacity:0;transition:opacity .24s}
+.drawer .panel{position:absolute;top:0;right:0;height:100%;width:min(410px,94vw);
+  background:var(--surface);border-left:1px solid var(--line);
+  display:flex;flex-direction:column;transform:translateX(100%);
+  transition:transform .28s cubic-bezier(.4,0,.2,1)}
+.drawer.on{pointer-events:auto}
+.drawer.on .scrim{opacity:1}
+.drawer.on .panel{transform:none}
+.drawer-head{display:flex;align-items:center;justify-content:space-between;gap:12px;
+  padding:17px 18px;border-bottom:1px solid var(--line);flex:none}
+.drawer-head h2{font-family:'Space Grotesk',sans-serif;font-size:1.02rem;font-weight:700}
+.drawer-head .n{color:var(--accent)}
+.drawer-body{flex:1;overflow-y:auto;padding:14px 18px}
+.drawer-foot{flex:none;padding:14px 18px;border-top:1px solid var(--line);
+  display:flex;flex-direction:column;gap:9px}
+.drawer-foot .row{display:flex;gap:8px}
+.drawer-foot .row button{flex:1}
+.crow{display:flex;align-items:center;gap:10px;padding:9px 0;border-bottom:1px solid var(--line)}
+.crow:last-child{border-bottom:0}
+.crow .info{flex:1;min-width:0}
+.crow .nm{font-size:.86rem;font-weight:600;word-break:break-all}
+.crow .sub{font-size:.72rem;color:var(--dim);font-family:'IBM Plex Mono',monospace;margin-top:2px}
+.crow .rm{background:none;border:1px solid var(--line);color:var(--dim);
+  border-radius:7px;padding:4px 9px;font-size:.75rem;flex:none}
+.crow .rm:hover{border-color:var(--lo);color:var(--lo)}
+.csum{display:flex;justify-content:space-between;align-items:baseline;
+  font-size:.82rem;color:var(--mute)}
+.csum b{font-family:'IBM Plex Mono',monospace;color:var(--accent);font-size:.95rem}
+.csum .note{font-size:.72rem;color:var(--dim);display:block;margin-top:3px}
 
 .resnote{font-size:.78rem;color:var(--dim);margin:-8px 0 14px;line-height:1.5}
 .resnote b{color:var(--mute)}
@@ -312,6 +351,8 @@ main{padding:22px 24px;overflow-y:auto;max-height:calc(100vh - 62px)}
     <div class="poolstat">pool: <b id="poolN">0</b> คน</div>
     <button class="gear accent" id="addBtn" aria-haspopup="dialog">+ เพิ่มครีเอเตอร์</button>
     <button class="gear" id="gearBtn" aria-haspopup="dialog">⚙ ตั้งค่า</button>
+    <button class="gear cartbtn empty" id="cartBtn" aria-haspopup="dialog"
+            title="ครีเอเตอร์ที่หยิบไว้">🛒 ตะกร้า <span class="n" id="cartN">0</span></button>
   </div>
 </header>
 
@@ -458,7 +499,6 @@ main{padding:22px 24px;overflow-y:auto;max-height:calc(100vh - 62px)}
       <h2>ผลลัพธ์ <span class="n" id="resN"></span></h2>
       <div class="headact">
         <button class="export ghost" id="seenBtn" hidden></button>
-        <button class="export" id="exportBtn" disabled>Export ที่เลือก (CSV)</button>
       </div>
     </div>
     <div class="critbar" id="critBar"></div>
@@ -471,6 +511,26 @@ main{padding:22px 24px;overflow-y:auto;max-height:calc(100vh - 62px)}
       </div>
     </div>
   </main>
+</div>
+
+<!-- ═══ ตะกร้า — ลิ้นชักเลื่อนเข้ามาจากขวา ═══ -->
+<div class="drawer" id="cart">
+  <div class="scrim" id="cartScrim"></div>
+  <aside class="panel" role="dialog" aria-modal="true" aria-labelledby="cartTitle">
+    <div class="drawer-head">
+      <h2 id="cartTitle">ตะกร้า <span class="n" id="cartHeadN"></span></h2>
+      <button class="x" id="closeCart" aria-label="ปิด">✕</button>
+    </div>
+    <div class="drawer-body" id="cartList"></div>
+    <div class="drawer-foot">
+      <div class="csum" id="cartSum"></div>
+      <button class="run" id="cartExport">Export CSV</button>
+      <div class="row">
+        <button class="export ghost" id="cartLike">เข้าลิสต์แนวที่ชอบ</button>
+        <button class="export ghost" id="cartClear">ล้างตะกร้า</button>
+      </div>
+    </div>
+  </aside>
 </div>
 
 <!-- ═══ เพิ่มครีเอเตอร์เข้าชีต ═══ -->
@@ -593,7 +653,10 @@ const $ = s => document.querySelector(s);
 let POOL = [];          // ข้อมูลดิบจาก Sheet
 let POOL_URL = "";      // URL ที่โหลด POOL ปัจจุบันมา
 let RESULTS = [];       // หลังกรอง+จัดอันดับ
-let PICKED = new Set();
+// ตะกร้า — เก็บตัวข้อมูลไว้เลย ไม่ใช่แค่ id
+// เพราะของที่หยิบไว้ต้องอยู่รอดข้ามการค้นหาใหม่และข้ามการปิดแท็บ
+const LS_CART = "cf_cart_v1";
+let CART = new Map();
 let CATS = [];
 // ประเภทดีล — กรองจากช่อง Rate
 const DEALS = [
@@ -626,26 +689,12 @@ let NEAR_N = 0;          // ในผลลัพธ์ ใกล้แนวก
 
 // ─── เกณฑ์คัดงาน ───
 // ทุกข้อเป็นเรื่องภาพ ต้องเปิดคลิปดูเอง — ทั้งเว็บและ Claude ตัดสินให้ไม่ได้
-// เก็บไว้ให้เห็นตอนไล่ดู แล้วบันทึกคำตัดสินของคนไว้แทน
+// ค้างไว้เหนือผลลัพธ์เฉยๆ ให้เห็นตอนไล่ดู
 const LS_CRIT = "cf_criteria_v1";
 const DEFAULT_CRIT = ["ภาพชัด", "ภาพไม่ฟุ้ง", "ไม่ใส่ฟิลเตอร์เยอะ",
                       "การนำเสนอดี", "ได้ Beauty Standard", "หน้าตาดี"];
 let CRIT = DEFAULT_CRIT.slice();
 
-// คำตัดสินรายคน — ผ่าน = เข้าลิสต์แนวที่ชอบ, ไม่ผ่าน = ไม่ต้องเจออีก
-const LS_VERDICT = "cf_verdict_v1";
-let VERDICT = {};
-let HIDDEN_FAIL = 0;
-
-function loadVerdict(){
-  try {
-    const o = JSON.parse(localStorage.getItem(LS_VERDICT) || "{}");
-    if (o && typeof o === "object") VERDICT = o;
-  } catch(e){}
-}
-function saveVerdict(){
-  try { localStorage.setItem(LS_VERDICT, JSON.stringify(VERDICT)); } catch(e){}
-}
 function loadCrit(){
   try {
     const a = JSON.parse(localStorage.getItem(LS_CRIT) || "null");
@@ -1087,12 +1136,9 @@ async function run(){
   HIDDEN_NORATE = 0;
   HIDDEN_EX = 0;
   HIDDEN_LIKED = 0;
-  HIDDEN_FAIL = 0;
   const dealTest = (DEALS.find(d => d.id === DEAL) || DEALS[0]).test;
 
   let filtered = POOL.filter(p => {
-    // ตัดสินว่าไม่ผ่านเกณฑ์ไปแล้ว ไม่ต้องเสียเวลาดูซ้ำ
-    if (VERDICT[normId(p.id)] === "fail"){ HIDDEN_FAIL++; return false; }
     if (EXCLUDE.has(normId(p.id))){ HIDDEN_EX++; return false; }
     if (HIDE_LIKED && LIKED.has(normId(p.id))){ HIDDEN_LIKED++; return false; }
     if (!dealTest(p)) return false;
@@ -1130,7 +1176,6 @@ async function run(){
   }
 
   RESULTS = filtered.slice(0, want);
-  PICKED.clear();
   render();
   $("#runBtn").disabled = false;
 }
@@ -1212,8 +1257,6 @@ function render(){
     notes.push(`ลิสต์แนวที่ชอบตรงกับ pool นี้แค่ <b>${LIKED_HIT} คน</b> — ยังเรียนแนวไม่ได้ (ต้องมี 3 คนขึ้นไป) เลยดันเฉพาะคนที่อยู่ในลิสต์ขึ้นก่อน`);
   if (HIDDEN_LIKED)
     notes.push(`ซ่อนไว้ <b>${HIDDEN_LIKED} คน</b> ที่อยู่ในลิสต์แนวที่ชอบแล้ว`);
-  if (HIDDEN_FAIL)
-    notes.push(`ตัดออก <b>${HIDDEN_FAIL} คน</b> ที่เคยกดว่าไม่ผ่านเกณฑ์ — <a href="#" id="undoFail" style="color:var(--mute);text-decoration:underline">เอากลับมาดูใหม่</a>`);
   if (HIDDEN_EX)
     notes.push(`ตัดออก <b>${HIDDEN_EX} คน</b> ที่อยู่ในลิสต์เคยใช้แล้ว`);
   if (HIDDEN_NORATE)
@@ -1221,20 +1264,14 @@ function render(){
   if (RATE_SKIPPED)
     notes.push(`ดีล <b>Barter</b> ไม่คิดเป็นเงิน — ช่วงงบที่ใส่ไว้ถูกข้าม`);
   $("#resNote").innerHTML = notes.join(" · ");
-  if ($("#undoFail")) $("#undoFail").onclick = e => {
-    e.preventDefault();
-    if (!confirm(`ล้างคำตัดสิน "ไม่ผ่าน" ทั้งหมด ${Object.values(VERDICT).filter(v => v==="fail").length} คน?`)) return;
-    for (const k in VERDICT) if (VERDICT[k] === "fail") delete VERDICT[k];
-    saveVerdict(); run();
-  };
 
   if (!RESULTS.length){
     $("#results").innerHTML = `<div class="empty"><h3>ไม่มีครีเอเตอร์ตรงเงื่อนไข</h3><div>ลองผ่อนตัวกรอง เช่น ขยายช่วง followers หรือช่วงงบ</div></div>`;
-    $("#exportBtn").disabled = true; updateSeenBar(); updateJudgeBar(); return;
+    updateSeenBar(); updateJudgeBar(); return;
   }
   $("#results").innerHTML = `<div class="grid">${RESULTS.map(cardHTML).join("")}</div>`;
   document.querySelectorAll(".pick").forEach(b =>
-    b.onclick = () => togglePick(b.dataset.id, b));
+    b.onclick = () => toggleCart(b.dataset.id, b));
   // กดเปิดลิงก์ = ไล่ดูคนนี้แล้ว จำไว้ข้ามการค้นหาและข้ามวัน
   document.querySelectorAll(".open").forEach(a => a.addEventListener("click", () => {
     const id = a.dataset.id;
@@ -1247,58 +1284,33 @@ function render(){
       card.insertAdjacentHTML("afterbegin", `<span class="seenflag">เปิดแล้ว</span>`);
     updateSeenBar();
   }));
-  // ตัดสินตามเกณฑ์ — ไม่จัดเรียงใหม่ทันที ไม่งั้นการ์ดกระโดดหนีตอนกำลังไล่ดู
-  document.querySelectorAll(".jb").forEach(b => b.onclick = () => {
-    const id = b.dataset.id, want = b.dataset.v;
-    const card = b.closest(".card");
-    const off = VERDICT[id] === want;
-    if (off) delete VERDICT[id]; else VERDICT[id] = want;
-    saveVerdict();
-
-    // ผ่าน = เข้าลิสต์แนวที่ชอบเลย รอบค้นหาถัดไปจะเรียนจากคนนี้ด้วย
-    if (want === "pass"){
-      if (off) LIKED.delete(id); else LIKED.add(id);
-      lsSaveSet(LS_LIKED, LIKED);
-      refreshLiked();
-      card.classList.toggle("fav", !off);
-    }
-    card.classList.toggle("failed", VERDICT[id] === "fail");
-    card.querySelectorAll(".jb").forEach(x =>
-      x.classList.toggle("on", VERDICT[id] === x.dataset.v));
-    updateJudgeBar();
-  });
   // รูปเสีย/ลิงก์ตาย → ซ่อนรูป เหลือตัวย่อที่อยู่ข้างหลัง
   document.querySelectorAll(".av img").forEach(img => {
     img.onerror = () => img.classList.add("dead");
     if (img.complete && img.naturalWidth === 0) img.classList.add("dead");
   });
-  updateExport();
+  updateCartBtn();
   updateSeenBar();
   updateJudgeBar();
 }
 
 function scoreClass(s){ return s>=8 ? "hi" : s>=5 ? "mid" : "lo"; }
 
-// เกณฑ์ค้างไว้เหนือผลลัพธ์ + นับว่าไล่ตัดสินไปแล้วกี่คน
+// เกณฑ์ค้างไว้เหนือผลลัพธ์ — เว็บวัดให้ไม่ได้ ต้องเปิดคลิปดูเอง
 function updateJudgeBar(){
-  const pass = RESULTS.filter(p => VERDICT[normId(p.id)] === "pass").length;
-  const fail = RESULTS.filter(p => VERDICT[normId(p.id)] === "fail").length;
   $("#critBar").innerHTML = RESULTS.length
-    ? `<span class="lab">เกณฑ์</span>` + CRIT.map(c => `<span class="c">${esc(c)}</span>`).join("") +
-      (pass || fail ? `<span class="lab" style="margin-left:6px">ตัดสินแล้ว ${pass+fail}/${RESULTS.length}` +
-        ` · ผ่าน ${pass} · ไม่ผ่าน ${fail}</span>` : "")
+    ? `<span class="lab">เกณฑ์</span>` + CRIT.map(c => `<span class="c">${esc(c)}</span>`).join("")
     : "";
 }
 
 function cardHTML(p){
-  const picked = PICKED.has(p.id);
+  const inCart = CART.has(normId(p.id));
   const seen = SEEN.has(normId(p.id));
-  const vd = VERDICT[normId(p.id)];
   const scoreHTML = p.score!=null
     ? `<span class="score ${scoreClass(p.score)}">${p.score}</span>` : "";
   const rate = fmtRate(p);
   const v = cpf(p);
-  return `<div class="card ${p.fav?'fav':''} ${picked?'picked':''} ${seen?'seen':''} ${vd==='fail'?'failed':''}" data-id="${esc(normId(p.id))}">
+  return `<div class="card ${p.fav?'fav':''} ${inCart?'incart':''} ${seen?'seen':''}" data-id="${esc(normId(p.id))}">
     ${seen?`<span class="seenflag">เปิดแล้ว</span>`:""}
     <div class="card-top">
       <div class="who">
@@ -1319,43 +1331,138 @@ function cardHTML(p){
     </div>
     ${p.reason?`<div class="reason">${esc(p.reason)}</div>`:""}
     <div class="card-actions">
-      <button class="pick ${picked?'on':''}" data-id="${esc(p.id)}">${picked?'✓ เลือกแล้ว':'เลือก'}</button>
+      <button class="pick ${inCart?'on':''}" data-id="${esc(normId(p.id))}">${
+        inCart?'✓ อยู่ในตะกร้า':'🛒 ใส่ตะกร้า'}</button>
       ${p.link?`<a class="open${seen?" was":""}" href="${esc(p.link)}"
           target="_blank" rel="noopener" data-id="${esc(normId(p.id))}">${seen?"เปิดอีก ↗":"เปิด ↗"}</a>`:""}
-    </div>
-    <div class="judge">
-      <span class="jl">ตามเกณฑ์</span>
-      <button class="jb pass ${vd==='pass'?'on':''}" data-v="pass" data-id="${esc(normId(p.id))}">✓ ผ่าน</button>
-      <button class="jb fail ${vd==='fail'?'on':''}" data-v="fail" data-id="${esc(normId(p.id))}">✕ ไม่ผ่าน</button>
     </div>
   </div>`;
 }
 
-function togglePick(id, btn){
-  if (PICKED.has(id)){ PICKED.delete(id); btn.classList.remove("on"); btn.textContent="เลือก"; btn.closest(".card").classList.remove("picked"); }
-  else { PICKED.add(id); btn.classList.add("on"); btn.textContent="✓ เลือกแล้ว"; btn.closest(".card").classList.add("picked"); }
-  updateExport();
+// ─── ตะกร้า ───
+function loadCart(){
+  try {
+    const a = JSON.parse(localStorage.getItem(LS_CART) || "[]");
+    if (Array.isArray(a)) a.forEach(p => { if (p && p.id) CART.set(normId(p.id), p); });
+  } catch(e){}
+}
+function saveCart(){
+  try { localStorage.setItem(LS_CART, JSON.stringify([...CART.values()])); } catch(e){}
 }
 
-function updateExport(){
-  const n = PICKED.size;
-  $("#exportBtn").disabled = n===0;
-  $("#exportBtn").textContent = n ? `Export ที่เลือก (${n})` : "Export ที่เลือก (CSV)";
+function toggleCart(id, btn){
+  const card = btn.closest(".card");
+  if (CART.has(id)){
+    CART.delete(id);
+    btn.classList.remove("on"); btn.textContent = "🛒 ใส่ตะกร้า";
+    card.classList.remove("incart");
+  } else {
+    const p = RESULTS.find(x => normId(x.id) === id);
+    if (!p) return;
+    CART.set(id, { cat:p.cat, id:p.id, link:p.link, av:p.av, fol:p.fol,
+                   rate:p.rate, barter:p.barter, unknown:p.unknown,
+                   fav:!!p.fav, aff:p.aff ?? null, score:p.score ?? null, reason:p.reason || "" });
+    btn.classList.add("on"); btn.textContent = "✓ อยู่ในตะกร้า";
+    card.classList.add("incart");
+    flyToCart(card, p);
+  }
+  saveCart(); updateCartBtn();
+  if ($("#cart").classList.contains("on")) renderCart();
 }
+
+// การ์ดเล็กๆ วิ่งจากผลลัพธ์ไปลงตะกร้า — ยืนยันด้วยตาว่าของเข้าไปแล้ว
+function flyToCart(card, p){
+  if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return bumpCart();
+  const from = card.getBoundingClientRect();
+  const to = $("#cartBtn").getBoundingClientRect();
+  const ghost = document.createElement("div");
+  ghost.className = "fly";
+  ghost.innerHTML = `<div class="av">${initials(p.id)}${
+    p.av ? `<img src="${esc(p.av)}" alt="" referrerpolicy="no-referrer">` : ""}</div>` +
+    `<span>${esc(p.id)}</span>`;
+  ghost.style.left = from.left + 14 + "px";
+  ghost.style.top  = from.top + 14 + "px";
+  document.body.appendChild(ghost);
+
+  const dx = to.left + to.width/2 - (from.left + 14) - ghost.offsetWidth/2;
+  const dy = to.top + to.height/2 - (from.top + 14) - ghost.offsetHeight/2;
+  requestAnimationFrame(() => {
+    ghost.style.transform = `translate(${dx}px, ${dy}px) scale(.22)`;
+    ghost.style.opacity = "0";
+  });
+  // transitionend อาจไม่ยิงถ้าแท็บถูกสลับไปพื้นหลัง — ตั้งเวลาเก็บกวาดไว้ด้วย
+  const done = () => { if (ghost.isConnected){ ghost.remove(); bumpCart(); } };
+  ghost.addEventListener("transitionend", done, { once:true });
+  setTimeout(done, 700);
+}
+
+function bumpCart(){
+  const b = $("#cartBtn");
+  b.classList.remove("bump"); void b.offsetWidth; b.classList.add("bump");
+}
+
+function updateCartBtn(){
+  $("#cartN").textContent = CART.size;
+  $("#cartBtn").classList.toggle("empty", !CART.size);
+  $("#cartHeadN").textContent = CART.size ? `(${CART.size})` : "";
+}
+
+function renderCart(){
+  const items = [...CART.values()];
+  $("#cartList").innerHTML = items.length
+    ? items.map(p => `<div class="crow" data-id="${esc(normId(p.id))}">
+        <div class="av">${initials(p.id)}${
+          p.av ? `<img src="${esc(p.av)}" alt="" loading="lazy" referrerpolicy="no-referrer">` : ""}</div>
+        <div class="info">
+          <div class="nm">${esc(p.id)}</div>
+          <div class="sub">${fmtFol(p.fol)} · ${esc(fmtRate(p) || "ยังไม่รู้เรท")}</div>
+        </div>
+        ${p.link ? `<a class="rm" href="${esc(p.link)}" target="_blank" rel="noopener">เปิด ↗</a>` : ""}
+        <button class="rm out" data-id="${esc(normId(p.id))}">เอาออก</button>
+      </div>`).join("")
+    : `<div class="snone">ตะกร้าว่าง — กด <b>🛒 ใส่ตะกร้า</b> ที่การ์ดเพื่อหยิบเก็บไว้</div>`;
+
+  document.querySelectorAll("#cartList .rm.out").forEach(b => b.onclick = () => {
+    CART.delete(b.dataset.id); saveCart(); updateCartBtn(); renderCart();
+    const card = document.querySelector(`.card[data-id="${CSS.escape(b.dataset.id)}"]`);
+    if (card){
+      card.classList.remove("incart");
+      const pk = card.querySelector(".pick");
+      pk.classList.remove("on"); pk.textContent = "🛒 ใส่ตะกร้า";
+    }
+  });
+
+  // รวมเฉพาะเรทที่เป็นเงินจริง — แลกของกับที่ยังไม่รู้เรทรวมไม่ได้ บอกจำนวนแทน
+  const paid = items.filter(p => p.rate > 0);
+  const barter = items.filter(p => p.barter && !(p.rate > 0)).length;
+  const unknown = items.filter(p => p.unknown).length;
+  const total = paid.reduce((s,p) => s + p.rate, 0);
+  const extra = [];
+  if (barter) extra.push(`Barter ${barter} คน`);
+  if (unknown) extra.push(`ยังไม่รู้เรท ${unknown} คน`);
+  $("#cartSum").innerHTML = items.length
+    ? `<span>รวมงบ ${paid.length} คน<span class="note">${
+        extra.length ? "ไม่ได้รวม: " + extra.join(" · ") : "ครบทุกคนในตะกร้า"}</span></span>` +
+      `<b>฿${total.toLocaleString("en-US")}</b>`
+    : "";
+  $("#cartExport").disabled = !items.length;
+}
+
+function openCart(){ renderCart(); $("#cart").classList.add("on"); }
+function closeCart(){ $("#cart").classList.remove("on"); }
 
 // ─── Export ───
 function exportCSV(){
-  const rows = RESULTS.filter(p => PICKED.has(p.id));
+  const rows = [...CART.values()];
   if (!rows.length) return;
   const head = ["Category","ID","Link","Image","Follower","Rate","฿/1K Followers",
-                "แนวที่ชอบ","ใกล้แนว %","ตามเกณฑ์","Fit Score","Reason","สถานะ"];
+                "แนวที่ชอบ","ใกล้แนว %","Fit Score","Reason","สถานะ"];
   const body = rows.map(p => {
     const v = cpf(p);
     return [p.cat, p.id, p.link, p.av??"", p.fol,
             p.barter ? "Barter" : (p.rate??""),
             v!=null ? v.toFixed(2) : "",
             p.fav ? "ใช่" : "", p.aff!=null ? Math.round(p.aff*100) : "",
-            { pass:"ผ่าน", fail:"ไม่ผ่าน" }[VERDICT[normId(p.id)]] ?? "ยังไม่ตัดสิน",
             p.score??"", p.reason??"", "รอติดต่อ"];
   });
   const csv = [head, ...body].map(r =>
@@ -1775,13 +1882,38 @@ $("#addSheet").onclick = addSheet;
 $("#settings").onclick = e => { if (e.target.id === "settings") closeSettings(); };
 document.addEventListener("keydown", e => {
   if (e.key !== "Escape") return;
-  if (!$("#addPanel").hidden) $("#addPanel").hidden = true;
+  if ($("#cart").classList.contains("on")) closeCart();
+  else if (!$("#addPanel").hidden) $("#addPanel").hidden = true;
   else if (!$("#settings").hidden) closeSettings();
 });
 $("#sheetSel").onchange = selectSheet;
 
 $("#runBtn").onclick = run;
-$("#exportBtn").onclick = exportCSV;
+$("#cartExport").onclick = exportCSV;
+$("#cartBtn").onclick = openCart;
+$("#closeCart").onclick = closeCart;
+$("#cartScrim").onclick = closeCart;
+
+$("#cartClear").onclick = () => {
+  if (!CART.size || !confirm(`ล้างตะกร้าทั้งหมด ${CART.size} คน?`)) return;
+  CART.clear(); saveCart(); updateCartBtn(); renderCart();
+  document.querySelectorAll(".card.incart").forEach(c => {
+    c.classList.remove("incart");
+    const pk = c.querySelector(".pick");
+    pk.classList.remove("on"); pk.textContent = "🛒 ใส่ตะกร้า";
+  });
+};
+
+// ของในตะกร้าคือคนที่เลือกมาแล้ว เอาไปสอนระบบต่อได้ แต่ต้องกดเอง ไม่แอบทำให้
+$("#cartLike").onclick = () => {
+  if (!CART.size) return;
+  const before = LIKED.size;
+  [...CART.keys()].forEach(id => LIKED.add(id));
+  lsSaveSet(LS_LIKED, LIKED);
+  refreshLiked();
+  alert(`เพิ่มเข้าลิสต์แนวที่ชอบแล้ว ${LIKED.size - before} ชื่อใหม่ (ในลิสต์รวม ${LIKED.size})\n` +
+        `กดค้นหาอีกครั้งเพื่อให้จัดอันดับใหม่ตามลิสต์ที่อัปเดตแล้ว`);
+};
 // พิมพ์อะไรในแถบตัวกรอง หัวข้อที่พับอยู่ต้องอัปเดตตาม
 document.querySelector("aside").addEventListener("input", foldSummaries);
 // ─── เริ่มต้น: โหลดรายการ Sheet แล้วดึงตัวแรกมาเลย ───
@@ -1791,7 +1923,8 @@ LIKED = lsLoadSet(LS_LIKED);
 try { HIDE_LIKED = !!localStorage.getItem(LS_HIDELIKED); } catch(e){}
 $("#hideLiked").checked = HIDE_LIKED;
 loadCrit();
-loadVerdict();
+loadCart();
+updateCartBtn();
 renderCrit();
 refreshExclude();
 refreshLiked();
