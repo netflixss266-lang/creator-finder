@@ -144,6 +144,11 @@ aside{border-right:1px solid var(--line);padding:22px;overflow-y:auto;
   border-radius:6px;padding:4px 9px;font-size:.74rem}
 .dd-act button:hover{border-color:var(--lo);color:var(--lo)}
 
+.chk{display:flex;align-items:center;gap:9px;margin-top:11px;cursor:pointer;
+  font-size:.8rem;color:var(--mute);line-height:1.4}
+.chk input{width:auto;flex:none;accent-color:var(--accent);cursor:pointer}
+.chk:hover{color:var(--ink)}
+
 .chips{display:flex;flex-wrap:wrap;gap:7px}
 .chip{border:1px solid var(--line);background:var(--surface);color:var(--mute);
   border-radius:7px;padding:6px 11px;font-size:.82rem;transition:all .13s;user-select:none}
@@ -190,6 +195,7 @@ main{padding:22px 24px;overflow-y:auto;max-height:calc(100vh - 62px)}
 .card{background:var(--surface);border:1px solid var(--line);border-radius:12px;
   padding:15px;transition:border-color .13s;position:relative}
 .card:hover{border-color:var(--dim)}
+.card.fav{border-color:rgba(232,255,99,.34)}
 .card.picked{border-color:var(--accent)}
 /* เปิดลิงก์ไปแล้ว — หรี่ลงให้เห็นชัดว่าไล่ถึงไหนแล้ว */
 .card.seen{border-style:dashed;border-color:var(--dim);background:var(--bg)}
@@ -234,6 +240,11 @@ main{padding:22px 24px;overflow-y:auto;max-height:calc(100vh - 62px)}
 .tag.cpf{font-family:'IBM Plex Mono',monospace}
 .tag.cpf.good{color:var(--hi);border-color:rgba(124,231,196,.28);background:rgba(124,231,196,.07)}
 .tag.cpf.pricey{color:var(--lo);border-color:rgba(240,128,107,.28);background:rgba(240,128,107,.07)}
+/* อยู่ในลิสต์แนวที่ชอบ / ใกล้เคียงกับแนวนั้น */
+.tag.fav{color:var(--accent);border-color:rgba(232,255,99,.35);
+  background:rgba(232,255,99,.1);font-weight:600}
+.tag.near{color:var(--hi);border-color:rgba(124,231,196,.28);
+  background:rgba(124,231,196,.07);font-family:'IBM Plex Mono',monospace}
 
 .resnote{font-size:.78rem;color:var(--dim);margin:-8px 0 14px;line-height:1.5}
 .resnote b{color:var(--mute)}
@@ -304,6 +315,23 @@ main{padding:22px 24px;overflow-y:auto;max-height:calc(100vh - 62px)}
           <button type="button" id="catNone">ล้างที่เลือก</button>
         </div>
         <div class="chips fbody-scroll" id="catChips"></div>
+      </div>
+    </details>
+
+    <details class="fold" data-fold="like">
+      <summary><span class="fl">แนวที่ชอบ (ครีเอเตอร์ตัวอย่าง)</span><span class="fv" id="likeSum">ยังไม่มีลิสต์</span></summary>
+      <div class="fbody">
+        <input type="file" id="likeFile" accept=".csv,.tsv,.txt" multiple>
+        <div class="hint" style="margin:8px 0 4px">
+          หรือวางลิงก์/ชื่อครีเอเตอร์ที่งานออกมาดี (บรรทัดละคน) — คนแนวเดียวกันจะถูกดันขึ้นก่อน
+        </div>
+        <textarea id="likeText" placeholder="https://tiktok.com/@creator1&#10;@creator2"></textarea>
+        <label class="chk"><input type="checkbox" id="hideLiked">
+          ซ่อนคนที่อยู่ในลิสต์แล้ว — หาคนใหม่แนวเดียวกัน</label>
+        <div class="dd-act" style="margin-top:9px">
+          <button type="button" id="likeClear">ล้างลิสต์แนวที่ชอบ</button>
+        </div>
+        <div class="hint" id="likeInfo"></div>
       </div>
     </details>
 
@@ -387,7 +415,7 @@ main{padding:22px 24px;overflow-y:auto;max-height:calc(100vh - 62px)}
     <div class="banner" id="banner">
       <b>เริ่มยังไง:</b> เลือก Google Sheet ด้านซ้าย (คอลัมน์ Category / ID / Link / Follower
       — เพิ่ม <b>Image</b> กับ <b>Rate</b> ได้ถ้ามี) แล้วกดค้นหา
-      — ถ้าใส่ reference + API key ด้วย ระบบจะจัดอันดับตามความใกล้เคียงให้
+      — ใส่ลิสต์ <b>แนวที่ชอบ</b> ไว้ ระบบจะดันคนแนวเดียวกันขึ้นก่อนให้เอง
     </div>
 
     <div class="res-head">
@@ -548,6 +576,17 @@ let EX_HIT = 0;         // ในนั้นตรงกับ pool ปัจ�
 const LS_SEEN = "cf_seen_v1";
 let SEEN = new Set();
 
+// ─── แนวที่ชอบ — ลิสต์ครีเอเตอร์ตัวอย่างที่งานออกมาดี ───
+// เอาไว้ดันคนแนวเดียวกันขึ้นก่อน ไม่ใช่แค่เรียงตาม followers
+const LS_LIKED = "cf_liked_v1";
+const LS_HIDELIKED = "cf_hideliked_v1";
+let LIKED = new Set();
+let LIKE_PROF = null;    // โปรไฟล์ที่เรียนได้จากลิสต์ (หมวด + ช่วง followers)
+let LIKED_HIT = 0;       // ในลิสต์ตรงกับ pool ปัจจุบันกี่คน
+let HIDE_LIKED = false;  // ซ่อนคนที่อยู่ในลิสต์แล้ว เพื่อหาคนใหม่แนวเดียวกัน
+let HIDDEN_LIKED = 0;
+let NEAR_N = 0;          // ในผลลัพธ์ ใกล้แนวกี่คน
+
 function normId(s){ return String(s ?? "").trim().toLowerCase().replace(/^@/, ""); }
 
 function lsLoadSet(key){
@@ -653,7 +692,8 @@ function currentSheetUrl(){ return $("#sheetSel").value || ""; }
 
 // ─── ดึง+แปลง CSV เป็น array (ไม่แตะ state) — ใช้ตอนตรวจลิงก์ก่อนบันทึกได้ ───
 async function fetchPool(url){
-  const res = await fetch(url);
+  // no-store: เคยเจอเบราว์เซอร์เสิร์ฟ CSV เก่าจากแคช แล้ว pool หายไปเป็นร้อยคนแบบเงียบๆ
+  const res = await fetch(url, { cache: "no-store" });
   if (!res.ok) throw new Error(`โหลดไม่สำเร็จ (HTTP ${res.status})`);
   const text = await res.text();
   // กันไฟล์ที่ไม่ใช่ CSV — หน้าเว็บ/XML/JSON อาจมีคำที่บังเอิญตรงกับชื่อคอลัมน์
@@ -694,6 +734,7 @@ async function loadPool(url){
   renderCatChips(keepCats);
   renderDealTabs();
   refreshExclude();
+  refreshLiked();
   $("#poolN").textContent = POOL.length;
   return POOL.length;
 }
@@ -830,6 +871,74 @@ function renderCatChips(keepOn = []){
   updateCatSummary();
 }
 
+// ─── เรียน "แนว" จากลิสต์ที่ชอบ ───
+// เว็บนี้ดูวิดีโอไม่ได้ ที่เรียนได้จริงคือโปรไฟล์ในชีต: หมวด + ช่วง followers
+// ต้องเจอในลิสต์อย่างน้อย 3 คนถึงจะเชื่อค่าที่ได้
+function learnProfile(){
+  const seed = POOL.filter(p => LIKED.has(normId(p.id)));
+  LIKED_HIT = seed.length;
+  if (seed.length < 3){ LIKE_PROF = null; return; }
+
+  const catN = {};
+  seed.forEach(p => catsOf(p).forEach(c => catN[c] = (catN[c] || 0) + 1));
+  const top = Math.max(1, ...Object.values(catN));
+  const catW = {};
+  for (const c in catN) catW[c] = catN[c] / top;
+
+  const f = seed.map(p => p.fol).filter(Boolean).sort((a,b) => a-b);
+  const q = t => f[Math.min(f.length-1, Math.floor(f.length*t))];
+  LIKE_PROF = f.length
+    ? { catW, cats: Object.keys(catN).sort((a,b) => catN[b]-catN[a]),
+        lo: q(.25), mid: q(.5), hi: q(.75), n: seed.length }
+    : null;
+}
+
+// ใกล้แนวแค่ไหน 0–1 — หมวดตรงกับที่ชอบไหม + followers อยู่ในช่วงเดียวกันไหม
+function affinity(p){
+  if (!LIKE_PROF) return null;
+  const cs = catsOf(p);
+  const cScore = cs.length ? Math.max(0, ...cs.map(c => LIKE_PROF.catW[c] || 0)) : 0;
+  let fScore = 0;
+  if (p.fol){
+    const { lo, hi } = LIKE_PROF;
+    if (p.fol >= lo && p.fol <= hi) fScore = 1;
+    else {
+      // followers กระจายแบบทวีคูณ เลยวัดระยะเป็น log — ห่างจากขอบช่วง ~6 เท่าถึงจะเหลือ 0
+      const edge = p.fol < lo ? lo : hi;
+      fScore = Math.max(0, 1 - Math.abs(Math.log10(p.fol / edge)) / 0.8);
+    }
+  }
+  return 0.65 * cScore + 0.35 * fScore;
+}
+
+function refreshLiked(){
+  learnProfile();
+  $("#likeSum").innerHTML = LIKED.size
+    ? `ตรงใน pool <b>${LIKED_HIT}</b> คน`
+    : "ยังไม่มีลิสต์";
+  if (!LIKED.size){ $("#likeInfo").innerHTML = ""; return; }
+  const out = [`ลิสต์มี ${LIKED.size} ชื่อ · อยู่ใน pool นี้ ${LIKED_HIT} คน` +
+    (LIKED.size > LIKED_HIT
+      ? ` · อีก ${LIKED.size - LIKED_HIT} ชื่อไม่อยู่ใน pool นี้ (อาจอยู่อีกแท็บ หรือยังไม่มีในชีต)` : "")];
+  out.push(LIKE_PROF
+    ? `<b style="color:var(--mute)">แนวที่เรียนได้:</b> ${esc(LIKE_PROF.cats.slice(0,3).join(", ")) || "ไม่มีหมวดกำกับ"}` +
+      ` · followers ${fmtFol(LIKE_PROF.lo)}–${fmtFol(LIKE_PROF.hi)} (กลาง ${fmtFol(LIKE_PROF.mid)})`
+    : `<span style="color:var(--lo)">ยังเรียนแนวไม่ได้</span> — ต้องมีคนในลิสต์อยู่ใน pool นี้อย่างน้อย 3 คน`);
+  $("#likeInfo").innerHTML = out.join("<br>");
+}
+
+function addLikes(text, label){
+  const found = extractHandles(text);
+  const before = LIKED.size;
+  found.forEach(h => LIKED.add(h));
+  lsSaveSet(LS_LIKED, LIKED);
+  refreshLiked();
+  const hit = POOL.filter(p => found.has(normId(p.id))).length;
+  $("#likeInfo").insertAdjacentHTML("afterbegin",
+    `${esc(label)}: อ่านได้ ${found.size} ชื่อ · ใหม่ ${LIKED.size - before} · ตรงกับ pool นี้ ${hit} คน<br>`);
+  if (RESULTS.length) run();
+}
+
 // ─── หัวข้อพับได้ในแถบตัวกรอง ───
 // ตอนพับ หัวข้อต้องบอกได้ว่าตั้งค่าอะไรไว้ ไม่งั้นต้องกางออกมาดูทุกครั้ง
 function rangeText(a, b, fmt, none){
@@ -908,10 +1017,12 @@ async function run(){
 
   HIDDEN_NORATE = 0;
   HIDDEN_EX = 0;
+  HIDDEN_LIKED = 0;
   const dealTest = (DEALS.find(d => d.id === DEAL) || DEALS[0]).test;
 
   let filtered = POOL.filter(p => {
     if (EXCLUDE.has(normId(p.id))){ HIDDEN_EX++; return false; }
+    if (HIDE_LIKED && LIKED.has(normId(p.id))){ HIDDEN_LIKED++; return false; }
     if (!dealTest(p)) return false;
     if (onCats.length && !catsOf(p).some(c => onCats.includes(c))) return false;
     if (p.fol < fMin || p.fol > fMax) return false;
@@ -922,6 +1033,9 @@ async function run(){
     }
     return true;
   });
+
+  // ติดป้ายแนวที่ชอบไว้ทุกโหมด จะได้เห็นดาวแม้ตอนให้ Claude เป็นคนจัดอันดับ
+  filtered.forEach(p => { p.fav = LIKED.has(normId(p.id)); p.aff = affinity(p); });
 
   // จับคู่ reference ด้วย Claude (ถ้ามี key + ref)
   const ref = $("#ref").value.trim();
@@ -935,6 +1049,9 @@ async function run(){
       $("#results").innerHTML = `<div class="empty"><h3>จับคู่ reference ไม่ได้</h3><div>${esc(e.message)}</div></div>`;
       $("#runBtn").disabled = false; return;
     }
+  } else if (LIKED.size){
+    // มีลิสต์แนวที่ชอบ → คนในลิสต์ขึ้นก่อน ตามด้วยคนที่โปรไฟล์ใกล้แนวนั้น
+    filtered.sort((a,b) => (b.fav - a.fav) || ((b.aff ?? 0) - (a.aff ?? 0)) || (b.fol - a.fol));
   } else {
     // ไม่มี ref → เรียงตาม followers มากไปน้อย
     filtered.sort((a,b) => b.fol - a.fol);
@@ -1008,7 +1125,16 @@ function render(){
   const vals = RESULTS.map(cpf).filter(v => v!=null).sort((a,b) => a-b);
   CPF_MED = vals.length >= 3 ? vals[Math.floor(vals.length/2)] : null;
 
+  NEAR_N = RESULTS.filter(p => !p.fav && p.aff >= .6).length;
+
   const notes = [];
+  if (LIKED.size && LIKE_PROF)
+    notes.push(`จัดแนวที่ชอบขึ้นก่อน — ตรงตัว <b>${RESULTS.filter(p => p.fav).length} คน</b>` +
+               ` · ใกล้แนว <b>${NEAR_N} คน</b>`);
+  if (LIKED.size && !LIKE_PROF)
+    notes.push(`ลิสต์แนวที่ชอบตรงกับ pool นี้แค่ <b>${LIKED_HIT} คน</b> — ยังเรียนแนวไม่ได้ (ต้องมี 3 คนขึ้นไป) เลยดันเฉพาะคนที่อยู่ในลิสต์ขึ้นก่อน`);
+  if (HIDDEN_LIKED)
+    notes.push(`ซ่อนไว้ <b>${HIDDEN_LIKED} คน</b> ที่อยู่ในลิสต์แนวที่ชอบแล้ว`);
   if (HIDDEN_EX)
     notes.push(`ตัดออก <b>${HIDDEN_EX} คน</b> ที่อยู่ในลิสต์เคยใช้แล้ว`);
   if (HIDDEN_NORATE)
@@ -1054,7 +1180,7 @@ function cardHTML(p){
     ? `<span class="score ${scoreClass(p.score)}">${p.score}</span>` : "";
   const rate = fmtRate(p);
   const v = cpf(p);
-  return `<div class="card ${picked?'picked':''} ${seen?'seen':''}" data-id="${esc(normId(p.id))}">
+  return `<div class="card ${p.fav?'fav':''} ${picked?'picked':''} ${seen?'seen':''}" data-id="${esc(normId(p.id))}">
     ${seen?`<span class="seenflag">เปิดแล้ว</span>`:""}
     <div class="card-top">
       <div class="who">
@@ -1065,6 +1191,8 @@ function cardHTML(p){
       ${scoreHTML}
     </div>
     <div class="meta">
+      ${p.fav ? `<span class="tag fav">★ แนวที่ชอบ</span>`
+        : p.aff >= .6 ? `<span class="tag near" title="โปรไฟล์ใกล้กับลิสต์แนวที่ชอบ">ใกล้แนว ${Math.round(p.aff*100)}%</span>` : ""}
       ${catsOf(p).map(c => `<span class="tag">${esc(c)}</span>`).join("")}
       <span class="tag fol">${fmtFol(p.fol)} followers</span>
       ${rate ? `<span class="tag rate${p.barter?" barter":""}">${rate}</span>`
@@ -1096,12 +1224,15 @@ function updateExport(){
 function exportCSV(){
   const rows = RESULTS.filter(p => PICKED.has(p.id));
   if (!rows.length) return;
-  const head = ["Category","ID","Link","Image","Follower","Rate","฿/1K Followers","Fit Score","Reason","สถานะ"];
+  const head = ["Category","ID","Link","Image","Follower","Rate","฿/1K Followers",
+                "แนวที่ชอบ","ใกล้แนว %","Fit Score","Reason","สถานะ"];
   const body = rows.map(p => {
     const v = cpf(p);
     return [p.cat, p.id, p.link, p.av??"", p.fol,
             p.barter ? "Barter" : (p.rate??""),
-            v!=null ? v.toFixed(2) : "", p.score??"", p.reason??"", "รอติดต่อ"];
+            v!=null ? v.toFixed(2) : "",
+            p.fav ? "ใช่" : "", p.aff!=null ? Math.round(p.aff*100) : "",
+            p.score??"", p.reason??"", "รอติดต่อ"];
   });
   const csv = [head, ...body].map(r =>
     r.map(c => `"${String(c).replace(/"/g,'""')}"`).join(",")).join("\n");
@@ -1358,7 +1489,7 @@ $("#acSave").onclick = async () => {
       if (found && ADD_KIND === KIND){
         POOL = rows; POOL_URL = sheet.url;
         CATS = [...new Set(POOL.flatMap(catsOf))].sort();
-        renderCatChips(pickedCats()); renderDealTabs(); refreshExclude();
+        renderCatChips(pickedCats()); renderDealTabs(); refreshExclude(); refreshLiked();
         $("#poolN").textContent = POOL.length;
         if (RESULTS.length) run();
       }
@@ -1444,6 +1575,37 @@ $("#exClear").onclick = () => {
   if (RESULTS.length) run();
 };
 
+// ─── แนวที่ชอบ ───
+$("#likeFile").onchange = async e => {
+  for (const f of e.target.files){
+    if (/\.(pdf|jpe?g|png|gif|webp)$/i.test(f.name)){
+      $("#likeInfo").innerHTML =
+        `<span style="color:var(--lo)">${esc(f.name)} อ่านไม่ได้</span> — เปิดไฟล์แล้วก๊อปข้อความมาวางแทน`;
+      continue;
+    }
+    addLikes(await f.text(), f.name);
+  }
+  e.target.value = "";
+};
+
+$("#likeText").addEventListener("change", () => {
+  const t = $("#likeText").value.trim();
+  if (t){ addLikes(t, "ที่วางมา"); $("#likeText").value = ""; }
+});
+
+$("#likeClear").onclick = () => {
+  if (LIKED.size && !confirm(`ล้างลิสต์แนวที่ชอบทั้งหมด ${LIKED.size} ชื่อ?`)) return;
+  LIKED.clear(); lsSaveSet(LS_LIKED, LIKED); refreshLiked();
+  $("#likeInfo").textContent = "ล้างแล้ว";
+  if (RESULTS.length) run();
+};
+
+$("#hideLiked").onchange = e => {
+  HIDE_LIKED = e.target.checked;
+  try { localStorage.setItem(LS_HIDELIKED, HIDE_LIKED ? "1" : ""); } catch(err){}
+  if (RESULTS.length) run();
+};
+
 $("#catNone").onclick = () => {
   document.querySelectorAll("#catChips .chip.on").forEach(c => c.classList.remove("on"));
   updateCatSummary();
@@ -1485,7 +1647,11 @@ document.querySelector("aside").addEventListener("input", foldSummaries);
 // ─── เริ่มต้น: โหลดรายการ Sheet แล้วดึงตัวแรกมาเลย ───
 EXCLUDE = lsLoadSet(LS_EX);
 SEEN = lsLoadSet(LS_SEEN);
+LIKED = lsLoadSet(LS_LIKED);
+try { HIDE_LIKED = !!localStorage.getItem(LS_HIDELIKED); } catch(e){}
+$("#hideLiked").checked = HIDE_LIKED;
 refreshExclude();
+refreshLiked();
 loadHook();
 initFolds();
 
