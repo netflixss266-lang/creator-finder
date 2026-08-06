@@ -59,6 +59,16 @@ header{display:flex;align-items:center;justify-content:space-between;gap:16px;
 .sect h3{font-size:.72rem;text-transform:uppercase;letter-spacing:.08em;
   color:var(--mute);font-weight:600;margin-bottom:5px}
 .sect-sub{font-size:.78rem;color:var(--dim);margin-bottom:13px;line-height:1.5}
+/* หัวข้อในหน้าตั้งค่าที่พับเก็บได้ — ตั้งครั้งเดียวแล้วแทบไม่แตะอีก */
+details.sect > summary{list-style:none;cursor:pointer;display:flex;align-items:center;gap:9px}
+details.sect > summary::-webkit-details-marker{display:none}
+details.sect > summary h3{flex:1;min-width:0;margin-bottom:0}
+details.sect > summary::after{content:"▾";flex:none;color:var(--dim);font-size:.9rem;
+  transition:transform .13s}
+details.sect:not([open]) > summary::after{transform:rotate(-90deg)}
+details.sect > summary:hover h3,details.sect > summary:hover::after{color:var(--ink)}
+details.sect .sect-sub{margin-top:11px}
+details.sect .field:first-of-type{margin-top:13px}
 
 .srow{display:flex;align-items:center;gap:11px;padding:10px 12px;margin-bottom:7px;
   background:var(--surface2);border:1px solid var(--line);border-radius:9px}
@@ -109,17 +119,26 @@ aside{border-right:1px solid var(--line);padding:22px;overflow-y:auto;
 .tabs button .n{opacity:.6;font-size:.9em;margin-left:3px}
 #sheetSel.solo{display:none}
 
-/* dropdown แบบกางลง — เลือกได้หลายอันพร้อมกัน ไม่กินที่แนวตั้งตอนพับ */
-.dd{border:1px solid var(--line);border-radius:9px;background:var(--surface)}
-.dd summary{list-style:none;cursor:pointer;padding:10px 12px;font-size:.88rem;
-  color:var(--ink);display:flex;align-items:center;justify-content:space-between;gap:8px}
-.dd summary::-webkit-details-marker{display:none}
-.dd summary::after{content:"▾";color:var(--dim);font-size:.85rem;flex:none}
-.dd[open] summary::after{content:"▴"}
-.dd[open] summary{border-bottom:1px solid var(--line)}
-.dd summary:hover{color:var(--accent)}
-.dd summary b{color:var(--accent);font-weight:600}
-.dd-body{padding:11px 12px;max-height:260px;overflow-y:auto}
+/* ทุกหัวข้อในแถบตัวกรองพับได้ — แถบมันยาว เก็บอันที่ไม่ได้ใช้ไว้ก่อน
+   ตอนพับจะโชว์ค่าที่ตั้งไว้ตรงหัวข้อ จะได้ไม่ต้องกางออกมาดู */
+.fold{border-bottom:1px solid var(--line)}
+.fold[hidden]{display:none}
+.fold > summary{list-style:none;cursor:pointer;display:flex;align-items:center;gap:9px;
+  padding:12px 2px;font-size:.72rem;text-transform:uppercase;letter-spacing:.08em;
+  color:var(--mute);font-weight:600;transition:color .13s}
+.fold > summary::-webkit-details-marker{display:none}
+.fold > summary:hover{color:var(--ink)}
+.fold > summary::after{content:"▾";flex:none;color:var(--dim);font-size:.9rem;
+  text-transform:none;letter-spacing:0;transition:transform .13s}
+.fold:not([open]) > summary::after{transform:rotate(-90deg)}
+.fl{flex:1;min-width:0}
+.fv{flex:none;max-width:56%;margin-left:auto;text-transform:none;letter-spacing:0;
+  font-weight:500;font-size:.78rem;color:var(--dim);text-align:right;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.fv b{color:var(--accent);font-weight:600}
+.fold[open] .fv{display:none}
+.fbody{padding:2px 2px 17px}
+.fbody-scroll{max-height:250px;overflow-y:auto}
 .dd-act{display:flex;justify-content:flex-end;margin-bottom:9px}
 .dd-act button{background:none;border:1px solid var(--line);color:var(--dim);
   border-radius:6px;padding:4px 9px;font-size:.74rem}
@@ -152,7 +171,7 @@ textarea{resize:vertical;min-height:74px;line-height:1.5}
   font-family:'Space Grotesk',sans-serif}
 .run:hover{filter:brightness(1.06)}
 .run:disabled{opacity:.5;cursor:not-allowed}
-.setup{margin-top:16px;padding-top:16px;border-top:1px solid var(--line)}
+aside .run{margin-top:18px}
 
 /* ── ผลลัพธ์ ── */
 main{padding:22px 24px;overflow-y:auto;max-height:calc(100vh - 62px)}
@@ -269,92 +288,98 @@ main{padding:22px 24px;overflow-y:auto;max-height:calc(100vh - 62px)}
 <div class="wrap">
   <!-- ═══ ตัวกรอง ═══ -->
   <aside>
-    <div class="field">
-      <label>กลุ่มครีเอเตอร์</label>
-      <div class="tabs" id="kindTabs" role="tablist"></div>
-      <select id="sheetSel"></select>
-      <div class="hint">เพิ่ม/ลบลิงก์ได้ที่ปุ่ม <b>ตั้งค่า</b> มุมขวาบนเท่านั้น</div>
-    </div>
+    <details class="fold" data-fold="kind" open>
+      <summary><span class="fl">กลุ่มครีเอเตอร์</span><span class="fv" id="kindSum"></span></summary>
+      <div class="fbody">
+        <div class="tabs" id="kindTabs" role="tablist"></div>
+        <select id="sheetSel"></select>
+        <div class="hint">เพิ่ม/ลบลิงก์ได้ที่ปุ่ม <b>ตั้งค่า</b> มุมขวาบนเท่านั้น</div>
+      </div>
+    </details>
 
-    <div class="field">
-      <label>ประเภทครีเอเตอร์ (Category)</label>
-      <details class="dd" id="catDD">
-        <summary id="catSum">ทุกประเภท</summary>
-        <div class="dd-body">
-          <div class="dd-act">
-            <button type="button" id="catNone">ล้างที่เลือก</button>
-          </div>
-          <div class="chips" id="catChips"></div>
+    <details class="fold" data-fold="cat" open>
+      <summary><span class="fl">ประเภทครีเอเตอร์ (Category)</span><span class="fv" id="catSum">ทุกประเภท</span></summary>
+      <div class="fbody">
+        <div class="dd-act">
+          <button type="button" id="catNone">ล้างที่เลือก</button>
         </div>
-      </details>
-    </div>
-
-    <div class="field">
-      <label>Reference — ลิงก์วิดีโอตัวอย่าง</label>
-      <textarea id="ref" placeholder="วางลิงก์วิดีโอ TikTok ที่อยากได้สไตล์นี้&#10;เช่น การนำเสนอ / แสงสี / ภาพชัด"></textarea>
-      <div class="hint">Claude จะวิเคราะห์การนำเสนอ แสงสี และความคมชัด แล้วจับคู่กับครีเอเตอร์ใน pool</div>
-    </div>
-
-    <div class="field">
-      <label>Followers</label>
-      <div class="range-row">
-        <input id="folMin" type="number" placeholder="ต่ำสุด" value="">
-        <span>—</span>
-        <input id="folMax" type="number" placeholder="สูงสุด" value="">
+        <div class="chips fbody-scroll" id="catChips"></div>
       </div>
-    </div>
+    </details>
 
-    <div class="field">
-      <label>ตัดรายชื่อที่เคยใช้แล้วออก</label>
-      <details class="dd" id="exDD">
-        <summary id="exSum">ไม่ได้ตัดใคร</summary>
-        <div class="dd-body">
-          <input type="file" id="exFile" accept=".csv,.tsv,.txt" multiple>
-          <div class="hint" style="margin:8px 0 4px">
-            หรือวางรายชื่อ/ลิงก์ตรงนี้ (บรรทัดละคน หรือคั่นด้วยจุลภาคก็ได้)
-          </div>
-          <textarea id="exText" placeholder="@creator1&#10;https://tiktok.com/@creator2"></textarea>
-          <div class="dd-act" style="margin-top:9px">
-            <button type="button" id="exClear">ล้างรายชื่อที่ตัด</button>
-          </div>
-          <div class="hint" id="exInfo"></div>
+    <details class="fold" data-fold="ref">
+      <summary><span class="fl">Reference — ลิงก์วิดีโอตัวอย่าง</span><span class="fv" id="refSum">—</span></summary>
+      <div class="fbody">
+        <textarea id="ref" placeholder="วางลิงก์วิดีโอ TikTok ที่อยากได้สไตล์นี้&#10;เช่น การนำเสนอ / แสงสี / ภาพชัด"></textarea>
+        <div class="hint">Claude จะวิเคราะห์การนำเสนอ แสงสี และความคมชัด แล้วจับคู่กับครีเอเตอร์ใน pool</div>
+      </div>
+    </details>
+
+    <details class="fold" data-fold="fol" open>
+      <summary><span class="fl">Followers</span><span class="fv" id="folSum">ทั้งหมด</span></summary>
+      <div class="fbody">
+        <div class="range-row">
+          <input id="folMin" type="number" placeholder="ต่ำสุด" value="">
+          <span>—</span>
+          <input id="folMax" type="number" placeholder="สูงสุด" value="">
         </div>
-      </details>
-    </div>
-
-    <div class="field">
-      <label>ประเภทดีล</label>
-      <div class="tabs sub" id="dealTabs" role="tablist"></div>
-    </div>
-
-    <div class="field">
-      <label>งบต่อคน (Rate)</label>
-      <div class="range-row">
-        <input id="rateMin" type="text" inputmode="numeric" placeholder="ต่ำสุด">
-        <span>—</span>
-        <input id="rateMax" type="text" inputmode="numeric" placeholder="สูงสุด">
       </div>
-      <div class="hint">ใส่ได้ทั้ง 5000 / 5,000 / 5k — ถ้ากรองงบ คนที่ยังไม่มีเรทจะถูกซ่อน</div>
-    </div>
+    </details>
 
-    <div class="field">
-      <label>จำนวนที่ต้องการ</label>
-      <div class="count-input">
-        <input id="want" type="number" value="30" min="1">
-        <span style="color:var(--dim);font-size:.82rem">คนแรกที่ตรงสุด</span>
+    <details class="fold" data-fold="ex">
+      <summary><span class="fl">ตัดรายชื่อที่เคยใช้แล้วออก</span><span class="fv" id="exSum">ไม่ได้ตัดใคร</span></summary>
+      <div class="fbody">
+        <input type="file" id="exFile" accept=".csv,.tsv,.txt" multiple>
+        <div class="hint" style="margin:8px 0 4px">
+          หรือวางรายชื่อ/ลิงก์ตรงนี้ (บรรทัดละคน หรือคั่นด้วยจุลภาคก็ได้)
+        </div>
+        <textarea id="exText" placeholder="@creator1&#10;https://tiktok.com/@creator2"></textarea>
+        <div class="dd-act" style="margin-top:9px">
+          <button type="button" id="exClear">ล้างรายชื่อที่ตัด</button>
+        </div>
+        <div class="hint" id="exInfo"></div>
       </div>
-    </div>
+    </details>
 
-    <button class="run" id="runBtn">ค้นหา</button>
+    <details class="fold" data-fold="deal" open>
+      <summary><span class="fl">ประเภทดีล</span><span class="fv" id="dealSum">ทั้งหมด</span></summary>
+      <div class="fbody">
+        <div class="tabs sub" id="dealTabs" role="tablist"></div>
+      </div>
+    </details>
 
-    <div class="setup">
-      <div class="field" style="margin-bottom:0">
-        <label>Anthropic API Key (สำหรับ ref matching)</label>
+    <details class="fold" data-fold="rate" id="rateFold" open>
+      <summary><span class="fl">งบต่อคน (Rate)</span><span class="fv" id="rateSum">ไม่จำกัด</span></summary>
+      <div class="fbody">
+        <div class="range-row">
+          <input id="rateMin" type="text" inputmode="numeric" placeholder="ต่ำสุด">
+          <span>—</span>
+          <input id="rateMax" type="text" inputmode="numeric" placeholder="สูงสุด">
+        </div>
+        <div class="hint">ใส่ได้ทั้ง 5000 / 5,000 / 5k — ถ้ากรองงบ คนที่ยังไม่มีเรทจะถูกซ่อน</div>
+      </div>
+    </details>
+
+    <details class="fold" data-fold="want" open>
+      <summary><span class="fl">จำนวนที่ต้องการ</span><span class="fv" id="wantSum"></span></summary>
+      <div class="fbody">
+        <div class="count-input">
+          <input id="want" type="number" value="30" min="1">
+          <span style="color:var(--dim);font-size:.82rem">คนแรกที่ตรงสุด</span>
+        </div>
+      </div>
+    </details>
+
+    <details class="fold" data-fold="key">
+      <summary><span class="fl">Anthropic API Key</span><span class="fv" id="keySum">—</span></summary>
+      <div class="fbody">
         <input id="apiKey" type="password" placeholder="sk-ant-...">
-        <div class="hint">ไม่ใส่ก็ค้นได้ แต่จะไม่มีการจับคู่ reference<br>
+        <div class="hint">สำหรับจับคู่ reference — ไม่ใส่ก็ค้นได้ แต่จะไม่มีการจัดอันดับตาม ref<br>
           ไม่ถูกบันทึกไว้ ปิดแท็บแล้วต้องใส่ใหม่</div>
       </div>
-    </div>
+    </details>
+
+    <button class="run" id="runBtn">ค้นหา</button>
   </aside>
 
   <!-- ═══ ผลลัพธ์ ═══ -->
@@ -452,8 +477,8 @@ main{padding:22px 24px;overflow-y:auto;max-height:calc(100vh - 62px)}
       </div>
     </section>
 
-    <section class="sect">
-      <h3>เพิ่ม Google Sheet</h3>
+    <details class="sect">
+      <summary><h3>เพิ่ม Google Sheet</h3></summary>
       <div class="field">
         <label>กลุ่ม</label>
         <select id="newKind">
@@ -475,10 +500,10 @@ main{padding:22px 24px;overflow-y:auto;max-height:calc(100vh - 62px)}
       </div>
       <button class="run" id="addSheet">ตรวจลิงก์แล้วเพิ่ม</button>
       <div class="addmsg" id="addMsg"></div>
-    </section>
+    </details>
 
-    <section class="sect">
-      <h3>เพิ่มครีเอเตอร์เข้าชีต</h3>
+    <details class="sect">
+      <summary><h3>เพิ่มครีเอเตอร์เข้าชีต</h3></summary>
       <p class="sect-sub">
         การเขียนลงชีตต้องผ่าน Apps Script ที่ติดตั้งในชีตเอง เว็บนี้เป็นหน้าเว็บนิ่งๆ
         เขียนตรงไม่ได้ — ทำตามขั้นตอนในไฟล์ <b>add-creator.gs</b> แล้วเอา URL กับ token มาใส่
@@ -494,7 +519,7 @@ main{padding:22px 24px;overflow-y:auto;max-height:calc(100vh - 62px)}
       </div>
       <button class="run" id="hookTest">บันทึกแล้วทดสอบ</button>
       <div class="addmsg" id="hookMsg"></div>
-    </section>
+    </details>
   </div>
 </div>
 
@@ -552,6 +577,7 @@ function extractHandles(text){
 let CPF_MED = null;     // ค่ากลาง CPF ของผลลัพธ์ชุดปัจจุบัน
 let HIDDEN_NORATE = 0;  // ถูกซ่อนเพราะกรองงบแต่ไม่มีเรท
 let HIDDEN_EX = 0;      // ถูกตัดเพราะอยู่ในลิสต์ที่เคยใช้แล้ว
+let RATE_SKIPPED = false; // มีค่าในช่องงบค้างไว้ แต่ดีล Barter ไม่ใช้
 
 // ─── รายการ Google Sheet (จัดการที่หน้าตั้งค่าเท่านั้น) ───
 const LS_KEY = "cf_sheets_v1";
@@ -804,6 +830,45 @@ function renderCatChips(keepOn = []){
   updateCatSummary();
 }
 
+// ─── หัวข้อพับได้ในแถบตัวกรอง ───
+// ตอนพับ หัวข้อต้องบอกได้ว่าตั้งค่าอะไรไว้ ไม่งั้นต้องกางออกมาดูทุกครั้ง
+function rangeText(a, b, fmt, none){
+  a = String(a).trim(); b = String(b).trim();
+  if (!a && !b) return none;
+  if (a && b) return `${fmt(a)} — ${fmt(b)}`;
+  return a ? `≥ ${fmt(a)}` : `≤ ${fmt(b)}`;
+}
+
+function foldSummaries(){
+  const opt = $("#sheetSel").selectedOptions[0];
+  $("#kindSum").textContent = sheetsOfKind(KIND).length > 1 && opt
+    ? `${KIND} · ${opt.textContent}` : KIND;
+  $("#refSum").textContent = $("#ref").value.trim() ? "ใส่แล้ว" : "—";
+  $("#folSum").textContent = rangeText($("#folMin").value, $("#folMax").value,
+    v => fmtFol(parseFollowers(v)), "ทั้งหมด");
+  $("#dealSum").textContent = (DEALS.find(d => d.id === DEAL) || DEALS[0]).label;
+  $("#rateSum").textContent = rangeText($("#rateMin").value, $("#rateMax").value,
+    v => "฿" + (parseRate(v) ?? 0).toLocaleString("en-US"), "ไม่จำกัด");
+  $("#wantSum").textContent = ($("#want").value || "30") + " คน";
+  $("#keySum").textContent = $("#apiKey").value.trim() ? "ใส่แล้ว" : "—";
+}
+
+// จำว่าพับอันไหนไว้ — ไม่งั้นต้องมาพับใหม่ทุกครั้งที่เปิดเว็บ
+const LS_FOLDS = "cf_folds_v1";
+function initFolds(){
+  let st = {};
+  try { st = JSON.parse(localStorage.getItem(LS_FOLDS) || "{}") || {}; } catch(e){}
+  document.querySelectorAll("aside .fold").forEach(d => {
+    if (d.dataset.fold in st) d.open = !!st[d.dataset.fold];
+    d.addEventListener("toggle", saveFolds);
+  });
+}
+function saveFolds(){
+  const st = {};
+  document.querySelectorAll("aside .fold").forEach(d => st[d.dataset.fold] = d.open);
+  try { localStorage.setItem(LS_FOLDS, JSON.stringify(st)); } catch(e){}
+}
+
 // ─── ค้นหา ───
 async function run(){
   const url = currentSheetUrl();
@@ -835,7 +900,9 @@ async function run(){
   const rMaxRaw = $("#rateMax").value.trim();
   const rMin = rMinRaw ? (parseRate(rMinRaw) ?? 0) : 0;
   const rMax = rMaxRaw ? (parseRate(rMaxRaw) ?? Infinity) : Infinity;
-  const rateFilterOn = rMin > 0 || rMax < Infinity;
+  // ดีลแลกของไม่มีค่าตัวเป็นเงิน ช่องงบเลยถูกซ่อนไว้ — ค่าที่ค้างอยู่ก็ไม่เอามากรอง
+  const rateFilterOn = DEAL !== "barter" && (rMin > 0 || rMax < Infinity);
+  RATE_SKIPPED = DEAL === "barter" && !!(rMinRaw || rMaxRaw);
 
   POOL.forEach(p => { p.score = null; p.reason = ""; });
 
@@ -946,6 +1013,8 @@ function render(){
     notes.push(`ตัดออก <b>${HIDDEN_EX} คน</b> ที่อยู่ในลิสต์เคยใช้แล้ว`);
   if (HIDDEN_NORATE)
     notes.push(`ซ่อนไว้ <b>${HIDDEN_NORATE} คน</b> เพราะยังไม่รู้เรทเลยเช็คไม่ได้ว่าเข้างบไหม — ล้างช่องงบเพื่อดูทั้งหมด`);
+  if (RATE_SKIPPED)
+    notes.push(`ดีล <b>Barter</b> ไม่คิดเป็นเงิน — ช่วงงบที่ใส่ไว้ถูกข้าม`);
   $("#resNote").innerHTML = notes.join(" · ");
 
   if (!RESULTS.length){
@@ -1075,6 +1144,13 @@ function renderDealTabs(){
     renderDealTabs();
     run();
   });
+  syncRateField();
+}
+
+// Barter = แลกของ ไม่มีค่าตัวเป็นเงิน ช่องงบเลยไม่มีความหมาย — ซ่อนไปเลย
+function syncRateField(){
+  $("#rateFold").hidden = DEAL === "barter";
+  foldSummaries();
 }
 
 function renderSheetSelect(){
@@ -1087,6 +1163,7 @@ function renderSheetSelect(){
   // มีอันเดียวก็ไม่ต้องโชว์ dropdown ให้รก แท็บบอกอยู่แล้วว่าเป็นกลุ่มไหน
   sel.classList.toggle("solo", list.length === 1);
   if (prev && list.some(s => s.url === prev)) sel.value = prev;
+  foldSummaries();
 }
 
 async function selectSheet(){
@@ -1140,7 +1217,6 @@ function openSettings(){
   renderSheetList();
   $("#addMsg").className = "addmsg";
   $("#settings").hidden = false;
-  $("#newName").focus();
 }
 function closeSettings(){ $("#settings").hidden = true; }
 
@@ -1404,15 +1480,19 @@ $("#sheetSel").onchange = selectSheet;
 
 $("#runBtn").onclick = run;
 $("#exportBtn").onclick = exportCSV;
+// พิมพ์อะไรในแถบตัวกรอง หัวข้อที่พับอยู่ต้องอัปเดตตาม
+document.querySelector("aside").addEventListener("input", foldSummaries);
 // ─── เริ่มต้น: โหลดรายการ Sheet แล้วดึงตัวแรกมาเลย ───
 EXCLUDE = lsLoadSet(LS_EX);
 SEEN = lsLoadSet(LS_SEEN);
 refreshExclude();
 loadHook();
+initFolds();
 
 SHEETS = loadSheets();
 renderKindTabs();
 renderSheetSelect();
+foldSummaries();
 selectSheet();
 </script>
 </body>
