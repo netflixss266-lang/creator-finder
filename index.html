@@ -76,6 +76,11 @@ header{display:flex;align-items:center;justify-content:space-between;gap:16px;
 
 .wrap{display:grid;grid-template-columns:320px 1fr;gap:0;min-height:calc(100vh - 62px)}
 @media(max-width:860px){.wrap{grid-template-columns:1fr}}
+/* พับแถบตัวกรองเก็บ เพื่อให้การ์ดครีเอเตอร์ได้พื้นที่เต็มจอ */
+.wrap.folded{grid-template-columns:1fr}
+.wrap.folded aside{display:none}
+.gear[aria-expanded="false"]{background:var(--accent);color:var(--accent-ink);
+  border-color:var(--accent)}
 
 /* ── ตัวกรอง ── */
 aside{border-right:1px solid var(--line);padding:22px;overflow-y:auto;
@@ -92,6 +97,8 @@ aside{border-right:1px solid var(--line);padding:22px;overflow-y:auto;
   letter-spacing:.01em;transition:all .13s}
 .tabs button:hover{color:var(--ink)}
 .tabs button[aria-selected="true"]{background:var(--accent);color:var(--accent-ink)}
+.tabs.sub button{font-size:.78rem;padding:7px 4px}
+.tabs button .n{opacity:.6;font-size:.9em;margin-left:3px}
 #sheetSel.solo{display:none}
 
 .chips{display:flex;flex-wrap:wrap;gap:7px}
@@ -213,6 +220,8 @@ main{padding:22px 24px;overflow-y:auto;max-height:calc(100vh - 62px)}
     <span class="sub">KOL sourcing</span>
   </div>
   <div class="hgroup">
+    <button class="gear" id="foldBtn" aria-expanded="true"
+            title="พับ/กางแถบตัวกรอง">◧ แถบตัวกรอง</button>
     <div class="poolstat">pool: <b id="poolN">0</b> คน</div>
     <button class="gear" id="gearBtn" aria-haspopup="dialog">⚙ ตั้งค่า</button>
   </div>
@@ -246,6 +255,11 @@ main{padding:22px 24px;overflow-y:auto;max-height:calc(100vh - 62px)}
         <span>—</span>
         <input id="folMax" type="number" placeholder="สูงสุด" value="">
       </div>
+    </div>
+
+    <div class="field">
+      <label>ประเภทดีล</label>
+      <div class="tabs sub" id="dealTabs" role="tablist"></div>
     </div>
 
     <div class="field">
@@ -349,6 +363,15 @@ let POOL_URL = "";      // URL ที่โหลด POOL ปัจจุบั�
 let RESULTS = [];       // หลังกรอง+จัดอันดับ
 let PICKED = new Set();
 let CATS = [];
+// ประเภทดีล — กรองจากช่อง Rate
+const DEALS = [
+  { id: "all",     label: "ทั้งหมด", test: () => true },
+  { id: "paid",    label: "มีงบ",    test: p => p.rate > 0 },
+  { id: "barter",  label: "Barter",  test: p => p.barter },
+  { id: "unknown", label: "ยังไม่รู้", test: p => p.unknown },
+];
+let DEAL = "all";
+
 let CPF_MED = null;     // ค่ากลาง CPF ของผลลัพธ์ชุดปัจจุบัน
 let HIDDEN_NORATE = 0;  // ถูกซ่อนเพราะกรองงบแต่ไม่มีเรท
 
@@ -447,9 +470,7 @@ async function fetchPool(url){
     link: (iLink>=0 ? r[iLink] : "").trim(),
     fol:  parseFollowers(iFol>=0 ? r[iFol] : "0"),
     av:   safeImgUrl(iAv>=0 ? r[iAv] : ""),
-    barter: isBarter(iRate>=0 ? r[iRate] : ""),
-    rate: isBarter(iRate>=0 ? r[iRate] : "") ? 0
-                                             : parseRate(iRate>=0 ? r[iRate] : ""),
+    ...rateInfo(iRate>=0 ? r[iRate] : ""),
   }));
 }
 
@@ -460,6 +481,7 @@ async function loadPool(url){
   POOL_URL = url;
   CATS = [...new Set(POOL.flatMap(catsOf))].sort();
   renderCatChips(keepCats);
+  renderDealTabs();
   $("#poolN").textContent = POOL.length;
   return POOL.length;
 }
@@ -480,8 +502,13 @@ function fmtFol(n){
 }
 
 // ดีลแลกของ — ไม่มีค่าตัวเป็นเงิน แต่ถือว่ารู้เรทแล้ว ไม่ใช่ข้อมูลขาด
-const BARTER = /^(barter|บาร์เตอร์|แลกของ|แลกสินค้า)$/i;
-function isBarter(s){ return BARTER.test(String(s ?? "").trim()); }
+// ครอบทั้ง "Barter" และแบบผสม "500/Barter" ที่มีทั้งเงินและของแลก
+const BARTER = /barter|บาร์เตอร์|แลกของ|แลกสินค้า/i;
+function isBarter(s){ return BARTER.test(String(s ?? "")); }
+
+// เรทที่ยังไม่รู้ — ต่างจาก "ไม่มีข้อมูล" ตรงที่ตั้งใจทำเครื่องหมายไว้แล้ว
+const UNKNOWN_RATE = /^(unknown\s*rate|unknow\s*rate|ไม่ทราบเรท)$/i;
+function isUnknownRate(s){ return UNKNOWN_RATE.test(String(s ?? "").trim()); }
 
 // ราคา/เรท — รับได้ทั้ง "5000", "5,000", "฿5000", "5K", "3000-5000" (เอาตัวต่ำสุด)
 function parseRate(s){
@@ -494,10 +521,20 @@ function parseRate(s){
   return isNaN(n) ? null : Math.round(n);
 }
 
+// แยกช่อง Rate ออกเป็น 3 แบบ: จ่ายเงิน / แลกของ / ยังไม่รู้
+// "500/Barter" นับเป็นทั้งจ่ายเงินและแลกของ เลยเก็บตัวเลขไว้ด้วย
+function rateInfo(raw){
+  const s = String(raw ?? "").trim();
+  const barter = isBarter(s);
+  const unknown = !barter && (isUnknownRate(s) || !s);
+  const n = barter ? parseRate(s.replace(BARTER, "")) : parseRate(s);
+  return { barter, unknown, rate: unknown ? null : (n ?? 0) };
+}
+
 function fmtRate(p){
-  if (p.barter) return "Barter";
-  if (p.rate==null) return null;
-  return "฿" + p.rate.toLocaleString("en-US");
+  if (p.unknown) return null;
+  if (p.barter) return p.rate ? `฿${p.rate.toLocaleString("en-US")} + Barter` : "Barter";
+  return p.rate==null ? null : "฿" + p.rate.toLocaleString("en-US");
 }
 
 // ครีเอเตอร์หนึ่งคนอาจมีหลายหมวดในช่องเดียว เช่น "Workout, Lifestyle"
@@ -507,9 +544,11 @@ function catsOf(p){
 }
 
 // ต้นทุนต่อ 1,000 followers (CPM) — ใช้เทียบความคุ้มข้ามครีเอเตอร์
-// Barter ไม่มีต้นทุนเป็นเงิน เอามาเทียบกับดีลที่จ่ายเงินไม่ได้ เลยไม่คิด
+// แลกของล้วนไม่มีต้นทุนเป็นเงิน เทียบกับดีลที่จ่ายเงินไม่ได้ เลยไม่คิด
+// แต่แบบผสม "500/Barter" มีเงินจริง 500 เลยคิดจากส่วนที่จ่าย
 function cpf(p){
-  return (!p.barter && p.rate!=null && p.fol>0) ? p.rate/p.fol*1000 : null;
+  if (!p.rate || !p.fol) return null;      // rate 0 = แลกของล้วน, ไม่มีเงินให้เทียบ
+  return p.rate / p.fol * 1000;
 }
 
 function fmtCpf(v){
@@ -603,7 +642,10 @@ async function run(){
   POOL.forEach(p => { p.score = null; p.reason = ""; });
 
   HIDDEN_NORATE = 0;
+  const dealTest = (DEALS.find(d => d.id === DEAL) || DEALS[0]).test;
+
   let filtered = POOL.filter(p => {
+    if (!dealTest(p)) return false;
     if (onCats.length && !catsOf(p).some(c => onCats.includes(c))) return false;
     if (p.fol < fMin || p.fol > fMax) return false;
     if (rateFilterOn){
@@ -739,7 +781,7 @@ function cardHTML(p){
       ${catsOf(p).map(c => `<span class="tag">${esc(c)}</span>`).join("")}
       <span class="tag fol">${fmtFol(p.fol)} followers</span>
       ${rate ? `<span class="tag rate${p.barter?" barter":""}">${rate}</span>`
-             : `<span class="tag norate">ยังไม่มีเรท</span>`}
+             : `<span class="tag norate">ยังไม่รู้เรท</span>`}
       ${v!=null ? `<span class="tag cpf${cpfClass(v)}" title="ต้นทุนต่อ 1,000 followers">${fmtCpf(v)}</span>` : ""}
     </div>
     ${p.reason?`<div class="reason">${esc(p.reason)}</div>`:""}
@@ -796,6 +838,23 @@ function renderKindTabs(){
     if (b.dataset.kind === KIND) return;
     KIND = b.dataset.kind;
     renderKindTabs(); renderSheetSelect(); selectSheet();
+  });
+}
+
+// แสดงเฉพาะประเภทที่มีคนอยู่จริงใน pool นี้ พร้อมจำนวน
+function renderDealTabs(){
+  const avail = DEALS.filter(d => d.id === "all" || POOL.some(d.test));
+  if (!avail.some(d => d.id === DEAL)) DEAL = "all";
+  $("#dealTabs").innerHTML = avail.length > 1
+    ? avail.map(d => `<button role="tab" data-deal="${d.id}"
+        aria-selected="${d.id === DEAL}">${esc(d.label)}<span class="n">${
+          d.id === "all" ? POOL.length : POOL.filter(d.test).length}</span></button>`).join("")
+    : "";
+  document.querySelectorAll("#dealTabs button").forEach(b => b.onclick = () => {
+    if (b.dataset.deal === DEAL) return;
+    DEAL = b.dataset.deal;
+    renderDealTabs();
+    run();
   });
 }
 
@@ -896,6 +955,18 @@ async function addSheet(){
     $("#addSheet").disabled = false;
   }
 }
+
+$("#foldBtn").onclick = () => {
+  const folded = document.querySelector(".wrap").classList.toggle("folded");
+  $("#foldBtn").setAttribute("aria-expanded", String(!folded));
+  try { localStorage.setItem("cf_folded", folded ? "1" : ""); } catch(e){}
+};
+try {
+  if (localStorage.getItem("cf_folded")){
+    document.querySelector(".wrap").classList.add("folded");
+    $("#foldBtn").setAttribute("aria-expanded", "false");
+  }
+} catch(e){}
 
 $("#gearBtn").onclick = openSettings;
 $("#closeSet").onclick = closeSettings;
