@@ -1272,17 +1272,15 @@ function render(){
   $("#results").innerHTML = `<div class="grid">${RESULTS.map(cardHTML).join("")}</div>`;
   document.querySelectorAll(".pick").forEach(b =>
     b.onclick = () => toggleCart(b.dataset.id, b));
-  // กดเปิดลิงก์ = ไล่ดูคนนี้แล้ว จำไว้ข้ามการค้นหาและข้ามวัน
-  document.querySelectorAll(".open").forEach(a => a.addEventListener("click", () => {
-    const id = a.dataset.id;
-    if (!id || SEEN.has(id)) return;
-    SEEN.add(id); lsSaveSet(LS_SEEN, SEEN);
-    const card = a.closest(".card");
-    card.classList.add("seen");
-    a.classList.add("was"); a.textContent = "เปิดอีก ↗";
-    if (!card.querySelector(".seenflag"))
-      card.insertAdjacentHTML("afterbegin", `<span class="seenflag">เปิดแล้ว</span>`);
-    updateSeenBar();
+  // กดเปิดลิงก์ = แท็บใหม่เปิดอยู่ข้างหลัง ไม่สลับจอไป จะได้ไล่ดูรวดเดียวจบ
+  // แล้วจำว่าเปิดคนนี้แล้ว ข้ามการค้นหาและข้ามวัน
+  document.querySelectorAll(".open").forEach(a => a.addEventListener("click", e => {
+    markSeen(a);
+    // กดเองแบบ ctrl/cmd/shift หรือคลิกกลาง = เขารู้อยู่แล้วว่าจะให้เปิดยังไง ปล่อยผ่าน
+    // และคลิกที่เราปลอมขึ้นมาเองก็จะเข้าทางนี้ ไม่วนซ้ำ
+    if (e.ctrlKey || e.metaKey || e.shiftKey || e.button !== 0) return;
+    e.preventDefault();
+    openBehind(a);
   }));
   // รูปเสีย/ลิงก์ตาย → ซ่อนรูป เหลือตัวย่อที่อยู่ข้างหลัง
   document.querySelectorAll(".av img").forEach(img => {
@@ -1292,6 +1290,33 @@ function render(){
   updateCartBtn();
   updateSeenBar();
   updateJudgeBar();
+}
+
+function markSeen(a){
+  const id = a.dataset.id;
+  if (!id || SEEN.has(id)) return;
+  SEEN.add(id); lsSaveSet(LS_SEEN, SEEN);
+  const card = a.closest(".card");
+  card.classList.add("seen");
+  a.classList.add("was"); a.textContent = "เปิดอีก ↗";
+  if (!card.querySelector(".seenflag"))
+    card.insertAdjacentHTML("afterbegin", `<span class="seenflag">เปิดแล้ว</span>`);
+  updateSeenBar();
+}
+
+// เปิดลิงก์ไว้ในแท็บหลัง โดยที่จอยังอยู่หน้านี้
+// เว็บสั่งเบราว์เซอร์ตรงๆ ไม่ได้ (ไม่มี API ให้) ต้องปลอมเป็น ctrl+click ซึ่งเป็นวิธี
+// ที่ผู้ใช้ทำเองแล้วได้แท็บหลัง — Chromium ยอมทำตาม modifier ในคลิกที่สร้างจากโค้ด
+// ตราบใดที่มันเกิดในจังหวะที่ผู้ใช้กดจริง  ctrl = Windows/Linux, meta = Mac
+function openBehind(a){
+  try {
+    a.dispatchEvent(new MouseEvent("click", {
+      bubbles: false, cancelable: true, view: window,
+      ctrlKey: true, metaKey: true,
+    }));
+  } catch(e){
+    window.open(a.href, "_blank", "noopener");   // ถอยไปเปิดแบบปกติ ดีกว่าปุ่มด้าน
+  }
 }
 
 function scoreClass(s){ return s>=8 ? "hi" : s>=5 ? "mid" : "lo"; }
@@ -1334,7 +1359,8 @@ function cardHTML(p){
       <button class="pick ${inCart?'on':''}" data-id="${esc(normId(p.id))}">${
         inCart?'✓ อยู่ในตะกร้า':'🛒 ใส่ตะกร้า'}</button>
       ${p.link?`<a class="open${seen?" was":""}" href="${esc(p.link)}"
-          target="_blank" rel="noopener" data-id="${esc(normId(p.id))}">${seen?"เปิดอีก ↗":"เปิด ↗"}</a>`:""}
+          target="_blank" rel="noopener" data-id="${esc(normId(p.id))}"
+          title="เปิดในแท็บใหม่ข้างหลัง — จอยังอยู่หน้านี้">${seen?"เปิดอีก ↗":"เปิด ↗"}</a>`:""}
     </div>
   </div>`;
 }
