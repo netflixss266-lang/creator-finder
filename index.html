@@ -3,6 +3,23 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
+<!-- ด่านสุดท้าย: ต่อให้มีสคริปต์แปลกปลอมหลุดเข้ามาได้ มันก็ส่งข้อมูลออกไปที่อื่นไม่ได้
+     connect-src ปล่อยเฉพาะ Google Sheet / Apps Script / Anthropic เท่านั้น
+     (จะเพิ่มชีตจากโดเมนอื่นต้องมาเติมรายชื่อตรงนี้ก่อน)
+     ต้องมี *.googleusercontent.com ด้วย เพราะ docs.google.com/export redirect ไปที่นั่น
+     ตัดออกเมื่อไหร่ pool กลายเป็น 0 ทันทีโดยไม่มีอะไรบอกบนหน้าจอ
+     frame-ancestors ใส่ใน meta ไม่มีผล ต้องตั้งเป็น HTTP header ซึ่ง GitHub Pages ทำไม่ได้ -->
+<meta http-equiv="Content-Security-Policy" content="
+  default-src 'none';
+  script-src 'unsafe-inline';
+  style-src 'unsafe-inline' https://fonts.googleapis.com;
+  font-src https://fonts.gstatic.com;
+  img-src 'self' https: data:;
+  connect-src 'self' https://docs.google.com https://api.anthropic.com
+              https://script.google.com https://*.googleusercontent.com;
+  form-action 'none';
+  base-uri 'none';
+  object-src 'none'">
 <title>Creator Finder — KOL Sourcing</title>
 <link rel="icon" href="favicon.svg" type="image/svg+xml">
 <meta name="theme-color" content="#0E0F13">
@@ -478,7 +495,8 @@ main{padding:22px 24px;overflow-y:auto;max-height:calc(100vh - 62px)}
     <details class="fold" data-fold="key">
       <summary><span class="fl">Anthropic API Key</span><span class="fv" id="keySum">—</span></summary>
       <div class="fbody">
-        <input id="apiKey" type="password" placeholder="sk-ant-...">
+        <input id="apiKey" type="password" placeholder="sk-ant-..."
+               autocomplete="off" spellcheck="false">
         <div class="hint">สำหรับจับคู่ reference — ไม่ใส่ก็ค้นได้ แต่จะไม่มีการจัดอันดับตาม ref<br>
           ไม่ถูกบันทึกไว้ ปิดแท็บแล้วต้องใส่ใหม่</div>
       </div>
@@ -639,11 +657,28 @@ main{padding:22px 24px;overflow-y:auto;max-height:calc(100vh - 62px)}
       </div>
       <div class="field">
         <label>Token</label>
-        <input id="hookToken" type="password" placeholder="รหัสที่ตั้งไว้ในสคริปต์">
-        <div class="hint">เก็บไว้ในเบราว์เซอร์เครื่องนี้เท่านั้น ไม่ได้ส่งไปที่อื่น</div>
+        <input id="hookToken" type="password" placeholder="รหัสที่ตั้งไว้ในสคริปต์"
+               autocomplete="off" spellcheck="false">
+        <div class="hint">
+          <b style="color:var(--lo)">token นี้เขียนลงชีตได้</b> — ใครได้ไปก็แก้ชีตทีมได้
+          เก็บไว้ในเบราว์เซอร์เครื่องนี้เท่านั้น ไม่ได้ส่งไปที่อื่น
+        </div>
+        <label class="chk"><input type="checkbox" id="hookKeep" checked>
+          จำ token ไว้ในเครื่องนี้ — <b>เอาออกถ้าใช้เครื่องร่วมกับคนอื่น</b></label>
       </div>
       <button class="run" id="hookTest">บันทึกแล้วทดสอบ</button>
       <div class="addmsg" id="hookMsg"></div>
+    </details>
+
+    <details class="sect">
+      <summary><h3>ความเป็นส่วนตัว</h3></summary>
+      <p class="sect-sub">
+        เว็บนี้เก็บของไว้ในเบราว์เซอร์เครื่องนี้เท่านั้น ไม่มีเซิร์ฟเวอร์ของเรา:
+        รายการชีต · ลิสต์แนวที่ชอบ · ลิสต์ที่เคยใช้ · คนที่เปิดดูแล้ว · ตะกร้า · เกณฑ์ · token
+        <br>ทั้งหมดนี้มีชื่อและลิงก์ของคนจริง ถ้าจะส่งเครื่องต่อให้คนอื่นควรล้างก่อน
+      </p>
+      <button class="run" id="wipeAll">ล้างข้อมูลทั้งหมดในเครื่องนี้</button>
+      <div class="addmsg" id="wipeMsg"></div>
     </details>
   </div>
 </div>
@@ -1232,7 +1267,7 @@ ${batch.map((p,j)=>`${j}. ${p.cat} | ${p.id} | ${fmtFol(p.fol)}`).join("\n")}
     if (!Array.isArray(scores)) throw new Error("Claude ตอบไม่ใช่ array");
     scores.forEach(s => {
       const p = batch[s.i];
-      if (p){ p.score = s.score; p.reason = s.reason || ""; }
+      if (p){ p.score = safeScore(s.score); p.reason = String(s.reason || "").slice(0, 300); }
     });
     out.push(...batch);
   }
@@ -1331,16 +1366,19 @@ function updateJudgeBar(){
 function cardHTML(p){
   const inCart = CART.has(normId(p.id));
   const seen = SEEN.has(normId(p.id));
-  const scoreHTML = p.score!=null
-    ? `<span class="score ${scoreClass(p.score)}">${p.score}</span>` : "";
+  const sc = safeScore(p.score);
+  const scoreHTML = sc!=null
+    ? `<span class="score ${scoreClass(sc)}">${sc}</span>` : "";
   const rate = fmtRate(p);
   const v = cpf(p);
+  const link = safeLinkUrl(p.link);
   return `<div class="card ${p.fav?'fav':''} ${inCart?'incart':''} ${seen?'seen':''}" data-id="${esc(normId(p.id))}">
     ${seen?`<span class="seenflag">เปิดแล้ว</span>`:""}
     <div class="card-top">
       <div class="who">
         <div class="av">${initials(p.id)}${
-          p.av?`<img src="${esc(p.av)}" alt="" loading="lazy" referrerpolicy="no-referrer">`:""}</div>
+          safeImgUrl(p.av)?`<img src="${esc(safeImgUrl(p.av))}" alt="" loading="lazy"
+            referrerpolicy="no-referrer">`:""}</div>
         <span class="handle">${esc(p.id)}</span>
       </div>
       ${scoreHTML}
@@ -1358,9 +1396,10 @@ function cardHTML(p){
     <div class="card-actions">
       <button class="pick ${inCart?'on':''}" data-id="${esc(normId(p.id))}">${
         inCart?'✓ อยู่ในตะกร้า':'🛒 ใส่ตะกร้า'}</button>
-      ${p.link?`<a class="open${seen?" was":""}" href="${esc(p.link)}"
-          target="_blank" rel="noopener" data-id="${esc(normId(p.id))}"
-          title="เปิดในแท็บใหม่ข้างหลัง — จอยังอยู่หน้านี้">${seen?"เปิดอีก ↗":"เปิด ↗"}</a>`:""}
+      ${link?`<a class="open${seen?" was":""}" href="${esc(link)}"
+          target="_blank" rel="noopener noreferrer" data-id="${esc(normId(p.id))}"
+          title="เปิดในแท็บใหม่ข้างหลัง — จอยังอยู่หน้านี้">${seen?"เปิดอีก ↗":"เปิด ↗"}</a>`
+        :(p.link?`<span class="tag norate" title="ลิงก์ในชีตไม่ใช่ http/https จึงไม่เปิดให้">ลิงก์ใช้ไม่ได้</span>`:"")}
     </div>
   </div>`;
 }
@@ -1404,7 +1443,8 @@ function flyToCart(card, p){
   const ghost = document.createElement("div");
   ghost.className = "fly";
   ghost.innerHTML = `<div class="av">${initials(p.id)}${
-    p.av ? `<img src="${esc(p.av)}" alt="" referrerpolicy="no-referrer">` : ""}</div>` +
+    safeImgUrl(p.av) ? `<img src="${esc(safeImgUrl(p.av))}" alt=""
+      referrerpolicy="no-referrer">` : ""}</div>` +
     `<span>${esc(p.id)}</span>`;
   ghost.style.left = from.left + 14 + "px";
   ghost.style.top  = from.top + 14 + "px";
@@ -1438,12 +1478,14 @@ function renderCart(){
   $("#cartList").innerHTML = items.length
     ? items.map(p => `<div class="crow" data-id="${esc(normId(p.id))}">
         <div class="av">${initials(p.id)}${
-          p.av ? `<img src="${esc(p.av)}" alt="" loading="lazy" referrerpolicy="no-referrer">` : ""}</div>
+          safeImgUrl(p.av) ? `<img src="${esc(safeImgUrl(p.av))}" alt="" loading="lazy"
+            referrerpolicy="no-referrer">` : ""}</div>
         <div class="info">
           <div class="nm">${esc(p.id)}</div>
           <div class="sub">${fmtFol(p.fol)} · ${esc(fmtRate(p) || "ยังไม่รู้เรท")}</div>
         </div>
-        ${p.link ? `<a class="rm" href="${esc(p.link)}" target="_blank" rel="noopener">เปิด ↗</a>` : ""}
+        ${safeLinkUrl(p.link) ? `<a class="rm" href="${esc(safeLinkUrl(p.link))}"
+             target="_blank" rel="noopener noreferrer">เปิด ↗</a>` : ""}
         <button class="rm out" data-id="${esc(normId(p.id))}">เอาออก</button>
       </div>`).join("")
     : `<div class="snone">ตะกร้าว่าง — กด <b>🛒 ใส่ตะกร้า</b> ที่การ์ดเพื่อหยิบเก็บไว้</div>`;
@@ -1500,7 +1542,27 @@ function exportCSV(){
   a.click();
 }
 
-function esc(s){ return String(s).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
+function esc(s){
+  return String(s).replace(/[&<>"'`]/g, c =>
+    ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;','`':'&#96;'}[c]));
+}
+
+// ชีตเป็นของที่คนอื่นแก้ได้ ค่าในนั้นเลยถือเป็นข้อมูลจากภายนอก ไม่ใช่ของที่เชื่อได้
+// esc() กัน HTML ได้ แต่ไม่กัน javascript: ใน href — ต้องเช็ค protocol แยก
+function safeLinkUrl(s){
+  s = String(s ?? "").trim();
+  if (!s) return "";
+  try {
+    const u = new URL(s, location.href);
+    return (u.protocol === "http:" || u.protocol === "https:") ? u.href : "";
+  } catch(e){ return ""; }
+}
+
+// คะแนนมาจากคำตอบ Claude ซึ่งเป็น JSON ที่เราไม่ได้คุมเนื้อใน — บังคับให้เป็นตัวเลข
+function safeScore(v){
+  const n = Number(v);
+  return Number.isFinite(n) ? Math.round(n * 10) / 10 : null;
+}
 
 // ─── แท็บกลุ่ม + dropdown เลือก Sheet ───
 function renderKindTabs(){
@@ -1644,15 +1706,46 @@ const LS_HOOK = "cf_hook_v1";
 let HOOK = { url: "", token: "" };
 let ADD_KIND = KINDS[0];
 
+// URL ไม่ลับ เก็บถาวรได้ แต่ token เขียนชีตได้ เลยแยกออกมาให้เลือกว่าจะจำไหม
+// ไม่จำ = อยู่แค่ใน sessionStorage ปิดแท็บแล้วหาย เครื่องที่ใช้ร่วมกันควรใช้แบบนี้
+const SS_TOKEN = "cf_hook_token";
 function loadHook(){
-  try { Object.assign(HOOK, JSON.parse(localStorage.getItem(LS_HOOK) || "{}")); } catch(e){}
-  $("#hookUrl").value = HOOK.url || "";
-  $("#hookToken").value = HOOK.token || "";
+  let saved = {};
+  try { saved = JSON.parse(localStorage.getItem(LS_HOOK) || "{}") || {}; } catch(e){}
+  let sessTok = "";
+  try { sessTok = sessionStorage.getItem(SS_TOKEN) || ""; } catch(e){}
+  HOOK.url = saved.url || "";
+  HOOK.token = saved.token || sessTok || "";
+  $("#hookUrl").value = HOOK.url;
+  $("#hookToken").value = HOOK.token;
+  $("#hookKeep").checked = !!saved.token || !sessTok;
 }
 function saveHook(){
   HOOK = { url: $("#hookUrl").value.trim(), token: $("#hookToken").value.trim() };
-  try { localStorage.setItem(LS_HOOK, JSON.stringify(HOOK)); } catch(e){}
+  const keep = $("#hookKeep").checked;
+  try {
+    localStorage.setItem(LS_HOOK, JSON.stringify(
+      keep ? HOOK : { url: HOOK.url }));
+    if (keep) sessionStorage.removeItem(SS_TOKEN);
+    else sessionStorage.setItem(SS_TOKEN, HOOK.token);
+  } catch(e){}
 }
+
+// ล้างทุกอย่างที่เว็บนี้เก็บไว้ — ชื่อคนจริงทั้งนั้น ไม่ควรค้างในเครื่องที่ไม่ใช่ของตัวเอง
+$("#wipeAll").onclick = () => {
+  if (!confirm("ล้างทุกอย่างที่เก็บไว้ในเบราว์เซอร์นี้?\n" +
+               "รายการชีต · แนวที่ชอบ · ลิสต์ที่เคยใช้ · คนที่เปิดแล้ว · ตะกร้า · เกณฑ์ · token\n" +
+               "เอากลับไม่ได้")) return;
+  try {
+    Object.keys(localStorage).filter(k => k.startsWith("cf_"))
+      .forEach(k => localStorage.removeItem(k));
+    sessionStorage.removeItem(SS_TOKEN);
+  } catch(e){}
+  const el = $("#wipeMsg");
+  el.className = "addmsg on ok";
+  el.textContent = "ล้างแล้ว — กำลังโหลดหน้าใหม่";
+  setTimeout(() => location.reload(), 700);
+};
 
 function setHookMsg(t, k){ const e = $("#hookMsg"); e.className = "addmsg on " + k; e.innerHTML = t; }
 function setAcMsg(t, k){ const e = $("#acMsg"); e.className = "addmsg on " + k; e.innerHTML = t; }
