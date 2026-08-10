@@ -54,15 +54,36 @@ header{display:flex;align-items:center;justify-content:space-between;gap:16px;
 .gear:hover{border-color:var(--accent);color:var(--accent)}
 .gear.accent{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
 .gear.accent:hover{filter:brightness(1.07);color:var(--accent-ink)}
-/* สลับโหมด — ปุ่มใหญ่ ให้รู้ว่าอยู่โหมดไหนตั้งแต่แรกเห็น */
-.modes{display:flex;gap:5px;background:var(--surface2);border:1px solid var(--line);
-  border-radius:11px;padding:4px}
-.modes button{background:none;border:0;color:var(--mute);border-radius:8px;
-  padding:9px 18px;font-size:.9rem;font-weight:600;
-  font-family:'Space Grotesk','IBM Plex Sans Thai',sans-serif;transition:all .13s}
-.modes button:hover{color:var(--ink)}
-.modes button[aria-selected="true"]{background:var(--accent);color:var(--accent-ink)}
-@media(max-width:720px){.modes{order:3;width:100%}.modes button{flex:1;padding:9px 6px}}
+/* ── หน้าแรก — สองช่องใหญ่ เลือกก่อนว่าจะทำอะไร ── */
+#homeView{min-height:calc(100vh - 62px);display:flex;align-items:center;justify-content:center;
+  padding:40px 24px}
+.hcard{cursor:pointer}
+.home{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:20px;
+  width:100%;max-width:880px}
+@media(max-width:720px){.home{grid-template-columns:1fr}}
+.hcard{display:flex;flex-direction:column;align-items:flex-start;gap:9px;text-align:left;
+  background:var(--surface);border:1px solid var(--line);border-radius:18px;
+  padding:34px 30px 30px;color:var(--ink);font-family:inherit;
+  transition:border-color .15s,transform .15s,background .15s}
+.hcard:hover{border-color:var(--accent);transform:translateY(-3px);background:var(--surface2)}
+.hcard .ic{font-size:2rem;line-height:1}
+.hcard .ht{font-family:'Space Grotesk','IBM Plex Sans Thai',sans-serif;
+  font-size:1.5rem;font-weight:700;letter-spacing:-.01em}
+.hcard:hover .ht{color:var(--accent)}
+.hcard .hs{font-size:.85rem;color:var(--mute);line-height:1.6}
+.hcard .hn{margin-top:6px;font-family:'IBM Plex Mono',monospace;font-size:.76rem;
+  color:var(--dim);border-top:1px solid var(--line);padding-top:11px;width:100%}
+.hcard .hn b{color:var(--accent)}
+.gear.back{font-weight:600}
+
+/* หน้าไหนโชว์อะไร — แยกกันคนละหน้า ไม่ปนกัน */
+body[data-view="home"] #homeView{display:flex}
+body:not([data-view="home"]) #homeView{display:none}
+body:not([data-view="find"]) .wrap{display:none}
+body:not([data-view="coord"]) #coordView{display:none}
+body[data-view="home"] .hgroup > :not(#gearBtn){display:none}
+body[data-view="coord"] #foldBtn,
+body[data-view="coord"] .poolstat{display:none}
 
 /* ── Coordinate ── */
 #coordView{padding:20px 24px}
@@ -405,11 +426,7 @@ main{padding:22px 24px;overflow-y:auto;max-height:calc(100vh - 62px)}
     <h1>Creator Finder</h1>
     <span class="sub">KOL sourcing</span>
   </div>
-  <!-- สลับโหมด — หาคนใหม่ กับ คุมงานที่รับไปแล้ว เป็นคนละงานกัน -->
-  <div class="modes" role="tablist">
-    <button role="tab" data-mode="find" aria-selected="true">🔍 ค้นหาครีเอเตอร์</button>
-    <button role="tab" data-mode="coord" aria-selected="false">📋 Coordinate</button>
-  </div>
+  <button class="gear back" id="backBtn" hidden>← หน้าแรก</button>
   <div class="hgroup">
     <button class="gear" id="foldBtn" aria-expanded="true"
             title="พับ/กางแถบตัวกรอง">◧ แถบตัวกรอง</button>
@@ -420,6 +437,26 @@ main{padding:22px 24px;overflow-y:auto;max-height:calc(100vh - 62px)}
             title="ครีเอเตอร์ที่หยิบไว้">🛒 ตะกร้า <span class="n" id="cartN">0</span></button>
   </div>
 </header>
+
+<!-- ═══ หน้าแรก — เลือกว่าจะทำงานอะไร ═══ -->
+<section id="homeView">
+  <div class="home">
+    <button class="hcard" data-go="find">
+      <span class="ic">🔍</span>
+      <span class="ht">ค้นหาครีเอเตอร์</span>
+      <span class="hs">ดึง pool จากชีต กรองตามหมวด/ยอดผู้ติดตาม/งบ<br>
+        ดันคนแนวที่ชอบขึ้นก่อน แล้วหยิบใส่ตะกร้า</span>
+      <span class="hn" id="homeFindN"></span>
+    </button>
+    <button class="hcard" data-go="coord">
+      <span class="ic">📋</span>
+      <span class="ht">Coordinator</span>
+      <span class="hs">คุมงานที่รับไปแล้ว แยกตามโปรเจกต์<br>
+        สถานะ · เรท · วันโพสต์ · บรีฟ</span>
+      <span class="hn" id="homeCoordN"></span>
+    </button>
+  </div>
+</section>
 
 <div class="wrap">
   <!-- ═══ ตัวกรอง ═══ -->
@@ -580,14 +617,15 @@ main{padding:22px 24px;overflow-y:auto;max-height:calc(100vh - 62px)}
 </div>
 
 <!-- ═══ Coordinate — คุมงานที่รับไปแล้ว แยกตามโปรเจกต์ ═══ -->
-<section id="coordView" hidden>
+<section id="coordView">
   <div class="coord-head">
     <div class="tabs sub" id="projTabs" role="tablist"></div>
     <div class="headact">
-      <label class="export" for="coordFile" style="cursor:pointer">นำเข้าไฟล์ .json</label>
-      <input type="file" id="coordFile" accept=".json" hidden>
+      <a class="export" id="coordSheet" target="_blank" rel="noopener noreferrer"
+         href="https://docs.google.com/spreadsheets/d/1v5CrMct_EQEnHYndMAujZZI_DUBhGY5j5msfJ-2uBOM/edit#gid=33859969">เปิดชีต ↗</a>
+      <button class="export" id="coordReload">โหลดจากชีตใหม่</button>
       <button class="export" id="coordExport">Export CSV</button>
-      <button class="export ghost" id="coordClear">ล้างโปรเจกต์นี้</button>
+      <button class="export ghost" id="coordResetEdits">คืนค่าที่แก้ในเครื่อง</button>
     </div>
   </div>
   <div class="coord-sum" id="coordSum"></div>
@@ -980,6 +1018,7 @@ async function loadPool(url){
   refreshExclude();
   refreshLiked();
   $("#poolN").textContent = POOL.length;
+  if (document.body.dataset.view === "home") homeCounts();
   return POOL.length;
 }
 
@@ -1448,24 +1487,78 @@ function openBehind(a){
 // ═══ Coordinate — คุมงานที่รับไปแล้ว ═══
 // ข้อมูลอยู่ในเบราว์เซอร์เครื่องนี้เท่านั้น ไม่ได้ฝังในโค้ด เพราะ repo นี้ public
 // และในนี้มีเรทกับเงื่อนไขการจ่ายซึ่งเป็นเรื่องภายใน
-const LS_COORD = "cf_coord_v1";
+// ── ข้อมูลงานที่ฝังมากับหน้าเว็บ (สร้างจาก RedC_Brief.md) ──
+// แก้ที่แท็บ Coordinate ในชีต ไม่ต้องมาแก้ตรงนี้ ชุดนี้เป็นแค่ตัวสำรองตอนอ่านชีตไม่ได้
+const SEED_COORD = [{"handle":"valen.time","project":"Red Chamber Phase 1","kind":"KOL","code":"D3C","status":"confirmed","rate":2000.0,"net3":1940.0,"sku":"C309 HAELYN","postdate":"9 Jun","deadline":"28 พฤษภาคม","brief":"https://canva.link/tv65gz9g9ihxfjp"},{"handle":"tangkwaqs","project":"Red Chamber Phase 1","kind":"KOL","code":"D1C","status":"confirmed","rate":2500.0,"postdate":"10 Jun","deadline":"28 พฤษภาคม","brief":"https://canva.link/drj4yavymi8erf4"},{"handle":"neeniyadiary","project":"Red Chamber Phase 1","kind":"KOL","code":"D2C","status":"confirmed","rate":2500.0,"net3":2425.0,"postdate":"8 Jun","deadline":"28 พฤษภาคม","brief":"https://canva.link/w4gjx3o1qarlxu2"},{"handle":"symgif","project":"Red Chamber Phase 1","kind":"KOL","code":"D2C","status":"confirmed","rate":5000.0,"postdate":"7 Jun","deadline":"28 พฤษภาคม","brief":"https://canva.link/tv65gz9g9ihxfjp"},{"handle":"emmy_ummara","project":"Red Chamber Phase 1","kind":"KOL","code":"D1C","status":"confirmed","rate":1500.0,"net3":1455.0,"postdate":"10 Jun","deadline":"17 มิถุนายน","brief":"https://canva.link/drj4yavymi8erf4","rate_all":[1500,3000]},{"handle":"pumpkinlism","project":"Red Chamber Phase 1","kind":"KOL","code":"D2C","status":"confirmed","rate":5500.0,"net3":5335.0,"postdate":"12 Jun","deadline":"15 มิถุนายน","brief":"https://canva.link/w4gjx3o1qarlxu2"},{"handle":"babimaofad","project":"Red Chamber Phase 1","kind":"KOL","code":"D3C","status":"confirmed","rate":5000.0,"postdate":"18 Jun","deadline":"28 พฤษภาคม","brief":"https://canva.link/tv65gz9g9ihxfjp"},{"handle":"tidfon_","project":"Red Chamber Phase 1","kind":"KOL","code":"D6E","status":"confirmed","rate":6500.0,"net3":6305.0,"postdate":"10 Jun","deadline":"28 พฤษภาคม","brief":"https://canva.link/lhi6ts2bnu1sy4w","rate_all":[4500,6500]},{"handle":"ninjajyyyy","project":"Red Chamber Phase 1","kind":"KOL","code":"D1/6EC","status":"confirmed","rate":7500.0,"net3":7275.0,"postdate":"10 Jun","brief":"https://canva.link/lhi6ts2bnu1sy4w","rate_all":[7000,7500]},{"handle":"mossarellaaa","project":"Red Chamber Phase 1","kind":"KOL","code":"D1/6EC","status":"confirmed","rate":7000.0,"postdate":"11 Jun","deadline":"28 พฤษภาคม","brief":"https://canva.link/lhi6ts2bnu1sy4w"},{"handle":"mekimrumi","project":"Red Chamber Phase 1","kind":"KOL","code":"D1C","status":"confirmed","rate":3000.0,"postdate":"11 Jun","deadline":"17 มิถุนายน","brief":"https://canva.link/drj4yavymi8erf4"},{"handle":"njmod06","project":"Red Chamber Phase 1","kind":"KOC","code":"D1C","status":"briefed","postdate":"10 Jun","deadline":"10 มิถุนายน","brief":"https://canva.link/drj4yavymi8erf4"},{"handle":"icecream.revieww","project":"Red Chamber Phase 1","kind":"KOC","code":"D3C","status":"briefed","postdate":"5 Jun","deadline":"28 พฤษภาคม","brief":"https://canva.link/tv65gz9g9ihxfjp"},{"handle":"ns.juice","project":"Red Chamber Phase 1","kind":"KOC","code":"D1C","status":"briefed","postdate":"10 Jun","deadline":"10 มิถุนายน","brief":"https://canva.link/drj4yavymi8erf4"},{"handle":"firstssc","project":"Red Chamber Phase 1","kind":"KOC","code":"D5E","status":"briefed","postdate":"5 Jun","deadline":"28 พฤษภาคม","brief":"https://canva.link/bg2ue8b6zpjeqvv"},{"handle":"swntshop","project":"Red Chamber Phase 1","kind":"KOC","code":"D1C","status":"briefed","postdate":"5 Jun","deadline":"28 พฤษภาคม","brief":"https://canva.link/drj4yavymi8erf4"},{"handle":"ppoppyy12","project":"Red Chamber Phase 1","kind":"KOC","code":"D1C","status":"briefed","postdate":"10 Jun","deadline":"10 มิถุนายน","brief":"https://canva.link/drj4yavymi8erf4"},{"handle":"bowie_772","project":"Red Chamber Phase 1","kind":"KOC","code":"D1C","status":"shipped","deadline":"15 มิถุนายน","brief":"https://canva.link/drj4yavymi8erf4"},{"handle":"pongpang25422","project":"Red Chamber Phase 1","kind":"KOC","code":"D1C","status":"briefed","postdate":"12 Jun","deadline":"15 มิถุนายน","brief":"https://canva.link/drj4yavymi8erf4"},{"handle":"yrzc8","project":"Red Chamber Phase 1","kind":"KOC","code":"D1C","status":"briefed","postdate":"19 Jun","deadline":"19 มิถุนายน","brief":"https://canva.link/drj4yavymi8erf4"},{"handle":"pjiratchaz","project":"Red Chamber Phase 1","kind":"KOC","code":"D1C","status":"briefed","rate":1000.0,"postdate":"19 Jun","deadline":"19 มิถุนายน","brief":"https://canva.link/drj4yavymi8erf4"},{"handle":"052.be","project":"Red Chamber Phase 1","kind":"KOC","code":"D2C","status":"briefed","rate":1200.0,"net3":1164.0,"postdate":"19 Jun","deadline":"19 มิถุนายน","brief":"https://canva.link/w4gjx3o1qarlxu2"},{"handle":"mimi231146","project":"Red Chamber Phase 1","kind":"KOC","code":"D1C","status":"briefed","rate":500.0,"postdate":"19 Jun","deadline":"19 มิถุนายน","brief":"https://canva.link/drj4yavymi8erf4"},{"handle":"dreamsasiv","project":"Red Chamber Phase 1","kind":"KOC","code":"D1C","status":"briefed","rate":1500.0,"net3":1455.0,"postdate":"25 Jun","brief":"https://canva.link/drj4yavymi8erf4"},{"handle":"cenakims","project":"Red Chamber Phase 2","kind":"KOL","code":"B","status":"briefed","rate":10000.0,"net3":9700.0,"sku":"C309 HAELYN","postdate":"9 Jun","brief":"https://canva.link/vv7nay0pqroe2eg"},{"handle":"remind555","project":"Red Chamber Phase 2","kind":"KOL","code":"B","status":"filming","rate":1500.0,"net3":1455.0,"sku":"C309 HAELYN","postdate":"9 Jun","brief":"https://canva.link/xx88hxk9cdkltsd"},{"handle":"itsniriin","project":"Red Chamber Phase 2","kind":"KOL","code":"B+E","status":"briefed","rate":10000.0,"net3":9700.0,"sku":"C309 HAELYN","postdate":"9 Jun","brief":"https://canva.link/vv7nay0pqroe2eg","rate_all":[5000,10000]},{"handle":"lalouys","project":"Red Chamber Phase 2","kind":"KOL","code":"B","status":"filming","rate":5300.0,"sku":"C309 HAELYN","postdate":"9 Jun","brief":"https://canva.link/xx88hxk9cdkltsd"},{"handle":"tangkwaqs","project":"Red Chamber Phase 2","kind":"KOL","code":"L+B","status":"filming","rate":1000.0,"net3":970.0,"sku":"C309 HAELYN","postdate":"9 Jun","brief":"https://canva.link/58tjyi9c3aiyai9","rate_all":[1000,5500]},{"handle":"browniearoiteesud","project":"Red Chamber Phase 2","kind":"KOL","code":"B","status":"filming","rate":2000.0,"net3":1940.0,"sku":"C309 HAELYN","brief":"https://canva.link/vv7nay0pqroe2eg"},{"handle":"nnoey_npsss","project":"Red Chamber Phase 2","kind":"KOL","code":"B","status":"filming","rate":6000.0,"sku":"C309 HAELYN","postdate":"9 Jun","brief":"https://canva.link/xx88hxk9cdkltsd"},{"handle":"babimaofad","project":"Red Chamber Phase 2","kind":"KOL","code":"B","status":"filming","rate":11000.0,"net3":10670.0,"sku":"C309 HAELYN","brief":"https://canva.link/xx88hxk9cdkltsd"},{"handle":"aomapss","project":"Red Chamber Phase 2","kind":"KOL","code":"L","status":"filming","rate":5500.0,"net3":5335.0,"sku":"C309 HAELYN","postdate":"9 Jun","brief":"https://canva.link/58tjyi9c3aiyai9"},{"handle":"nonsarut","project":"Red Chamber Phase 2","kind":"KOL","code":"L","status":"filming","rate":8000.0,"net3":7760.0,"sku":"C309 HAELYN","postdate":"9 Jun","brief":"https://canva.link/58tjyi9c3aiyai9"},{"handle":"whoisntknice","project":"Red Chamber Phase 2","kind":"KOL","code":"F","status":"shipped","rate":3000.0,"net3":2910.0,"sku":"C309 HAELYN","postdate":"9 Jun","brief":"https://canva.link/50gmx9mgqeo65mc"},{"handle":"mintpaweee","project":"Red Chamber Phase 2","kind":"KOL","code":"L+B","status":"filming","rate":1000.0,"net3":970.0,"sku":"C309 HAELYN","postdate":"9 Jun","brief":"https://canva.link/58tjyi9c3aiyai9","rate_all":[1000,5500]},{"handle":"pitchajohansen","project":"Red Chamber Phase 2","kind":"KOL","code":"L+B","status":"filming","rate":1000.0,"net3":970.0,"sku":"C309 HAELYN","postdate":"9 Jun","brief":"https://canva.link/58tjyi9c3aiyai9","rate_all":[1000,5500]},{"handle":"monie_rosette","project":"Red Chamber Phase 2","kind":"KOL","code":"F","status":"filming","rate":3000.0,"net3":2910.0,"sku":"C309 HAELYN","postdate":"9 Jun","brief":"https://canva.link/50gmx9mgqeo65mc"},{"handle":"thisiswanis","project":"Red Chamber Phase 2","kind":"KOL","code":"E","status":"filming","rate":10000.0,"net3":9700.0,"sku":"C309 HAELYN","postdate":"9 Jun","brief":"https://canva.link/50gmx9mgqeo65mc","rate_all":[5000,10000]},{"handle":"lemoned.girl","project":"Red Chamber Phase 2","kind":"KOL","code":"L","status":"filming","rate":8000.0,"net3":7760.0,"sku":"C309 HAELYN","postdate":"9 Jun","brief":"https://canva.link/58tjyi9c3aiyai9"},{"handle":"mintnanthat","project":"Red Chamber Phase 2","kind":"KOL","code":"L+B","status":"filming","rate":1000.0,"net3":970.0,"sku":"C309 HAELYN","postdate":"9 Jun","brief":"https://canva.link/58tjyi9c3aiyai9","rate_all":[1000,5500]},{"handle":"_soixzy","project":"Red Chamber Phase 2","kind":"KOL","code":"F","status":"shipped","rate":3000.0,"net3":2910.0,"sku":"C309 HAELYN","postdate":"9 Jun","brief":"https://canva.link/50gmx9mgqeo65mc"},{"handle":"712jpeg","project":"Red Chamber Phase 2","kind":"KOL","code":"F","status":"shipped","rate":3000.0,"net3":2910.0,"sku":"C309 HAELYN","postdate":"9 Jun","brief":"https://canva.link/50gmx9mgqeo65mc"},{"handle":"pjiratchaz","project":"Red Chamber Phase 2","kind":"KOC","code":"B+L","status":"briefed","rate":1000.0,"postdate":"19 Jun","brief":"https://canva.link/58tjyi9c3aiyai9","rate_all":[500,1000]},{"handle":"susudarattz","project":"Red Chamber Phase 2","kind":"KOC","code":"B+L","status":"filming","rate":1000.0,"postdate":"19 Jun","brief":"https://canva.link/58tjyi9c3aiyai9"},{"handle":"margrace33","project":"Red Chamber Phase 2","kind":"KOC","code":"E+L","status":"filming","rate":1000.0,"postdate":"19 Jun","brief":"https://canva.link/58tjyi9c3aiyai9"},{"handle":"taewanya","project":"Red Chamber Phase 2","kind":"KOC","code":"L","status":"filming","rate":1000.0,"postdate":"19 Jun","brief":"https://canva.link/58tjyi9c3aiyai9"},{"handle":"mellow.nsyy","project":"Red Chamber Phase 2","kind":"KOC","code":"E","status":"shipped","rate":1000.0,"postdate":"19 Jun","brief":"https://canva.link/50gmx9mgqeo65mc"},{"handle":"callme.nalina","project":"Red Chamber Phase 2","kind":"KOC","code":"F","status":"shipped","rate":3000.0,"net3":2910.0,"sku":"C309 HAELYN","postdate":"9 Jun","brief":"https://canva.link/50gmx9mgqeo65mc"},{"handle":"chenwenwenbb","project":"Red Chamber Phase 2","kind":"KOC","code":"E","rate":1000.0,"postdate":"19 Jun","brief":"https://canva.link/50gmx9mgqeo65mc"},{"handle":"arismind.c","project":"Red Chamber Phase 2","kind":"KOC","code":"B","rate":1000.0,"postdate":"19 Jun","brief":"https://canva.link/xx88hxk9cdkltsd"},{"handle":"wndstk","project":"Red Chamber Phase 2","kind":"KOC","code":"B","rate":1000.0,"postdate":"19 Jun","brief":"https://canva.link/xx88hxk9cdkltsd"}];
+/*__SEED_COORD_END__*/
+// แท็บ Coordinate ในชีตเดียวกับ pool — ถ้าอ่านได้ ยึดของในชีตเป็นหลัก
+// อ่านไม่ได้ (เน็ตหลุด/ชีตถูกปิด) ค่อยถอยไปใช้ชุดที่ฝังมากับหน้าเว็บ
+const COORD_URL = BOOK + "33859969";
+const LS_COORD = "cf_coord_v1";       // เก็บเฉพาะที่แก้เอง ทับข้อมูลจากชีต
 const PROJECTS = ["Red Chamber Phase 1", "Red Chamber Phase 2",
                   "OBSBOT-KOL", "OBSBOT-KOC", "TikTok Live"];
 const STATUSES = ["", "briefed", "confirmed", "shipped", "filming", "posted", "paid"];
 const ST_TH = { "":"—", briefed:"ส่งบรีฟแล้ว", confirmed:"คอนเฟิร์มแล้ว",
                 shipped:"ส่งของแล้ว", filming:"ถ่ายอยู่", posted:"โพสต์แล้ว", paid:"จ่ายแล้ว" };
 let COORD = {};
+let EDITS = {};          // ที่แก้เอง — ทับข้อมูลจากชีตเสมอ
+let COORD_SRC = "";      // มาจากไหน โชว์ให้เห็นบนหน้าจอ
 let PROJ = PROJECTS[0];
 
-function loadCoord(){
+const ekey = r => `${r.project}|${normId(r.handle)}|${r.code || ""}`;
+
+function loadEdits(){
   try {
     const o = JSON.parse(localStorage.getItem(LS_COORD) || "{}");
-    if (o && typeof o === "object") COORD = o;
+    if (o && typeof o === "object") EDITS = o;
   } catch(e){}
-  PROJECTS.forEach(p => { if (!Array.isArray(COORD[p])) COORD[p] = []; });
 }
-function saveCoord(){
-  try { localStorage.setItem(LS_COORD, JSON.stringify(COORD)); } catch(e){}
+function saveEdits(){
+  try { localStorage.setItem(LS_COORD, JSON.stringify(EDITS)); } catch(e){}
+}
+
+function shapeCoord(list){
+  COORD = {};
+  PROJECTS.forEach(p => COORD[p] = []);
+  list.forEach(r => {
+    if (!r || !r.handle) return;
+    const p = PROJECTS.includes(r.project) ? r.project : PROJECTS[0];
+    COORD[p].push(Object.assign({}, r, { project: p }, EDITS[ekey({...r, project:p})] || {}));
+  });
+}
+
+// แปลง CSV ของแท็บ Coordinate เป็นแถวแบบเดียวกับที่ฝังมา
+function coordFromCSV(text){
+  const rows = parseCSV(text);
+  if (!rows.length) throw new Error("แท็บ Coordinate ว่าง");
+  const head = rows[0].map(h => h.trim().toLowerCase());
+  const at = n => head.indexOf(n);
+  const need = ["project", "handle"];
+  if (need.some(n => at(n) < 0)) throw new Error("หัวตารางไม่ครบ (ต้องมี Project, Handle)");
+  const num = v => { const n = Number(String(v).replace(/[฿,\s]/g, "")); return v && isFinite(n) ? n : null; };
+  const get = (r, n) => (at(n) >= 0 ? (r[at(n)] || "").trim() : "");
+  return rows.slice(1).filter(r => get(r, "handle")).map(r => ({
+    handle: normId(get(r, "handle")), project: get(r, "project"),
+    kind: get(r, "kind"), code: get(r, "code"), status: get(r, "status"),
+    rate: num(get(r, "rate")), net3: num(get(r, "net3")), sku: get(r, "sku"),
+    postdate: get(r, "postdate"), deadline: get(r, "deadline"),
+    brief: get(r, "brief"), note: get(r, "note"),
+    rate_all: get(r, "ratecandidates")
+      ? get(r, "ratecandidates").split("/").map(s => Number(s.trim())).filter(isFinite) : [],
+  }));
+}
+
+async function loadCoordData(force){
+  if (COORD_SRC && !force) return;
+  loadEdits();
+  shapeCoord(SEED_COORD);
+  COORD_SRC = "ชุดที่ฝังมากับหน้าเว็บ";
+  try {
+    const list = coordFromCSV(await (await fetch(COORD_URL, { cache: "no-store" })).text());
+    if (list.length){ shapeCoord(list); COORD_SRC = `แท็บ Coordinate ในชีต (${list.length} แถว)`; }
+  } catch(e){
+    COORD_SRC += ` — อ่านชีตไม่ได้: ${e.message}`;
+  }
 }
 
 function renderProjTabs(){
@@ -1480,10 +1573,10 @@ function renderProjTabs(){
 function renderCoord(){
   const rows = COORD[PROJ] || [];
   if (!rows.length){
-    $("#coordSum").innerHTML = "";
+    $("#coordSum").innerHTML = `<span>ข้อมูลจาก: ${esc(COORD_SRC)}</span>`;
     $("#coordBody").innerHTML = `<div class="empty"><h3>${esc(PROJ)} ยังไม่มีข้อมูล</h3>
-      <div>กด <b>นำเข้าไฟล์ .json</b> มุมขวาบน — ไฟล์ Red Chamber อยู่ที่<br>
-      <code>D:\\DJ\\Projects\\kol-tools\\redc-coordinate.json</code></div></div>`;
+      <div>เพิ่มแถวในแท็บ <b>Coordinate</b> ของชีต แล้วกดโหลดใหม่<br>
+      (คอลัมน์ Project ต้องเขียนว่า <b>${esc(PROJ)}</b> เป๊ะ)</div></div>`;
     return;
   }
 
@@ -1492,6 +1585,7 @@ function renderCoord(){
   const money = rows.reduce((s, r) => s + (Number(r.rate) || 0), 0);
   const flagged = rows.filter(r => r.rate == null || (r.rate_all || []).length > 1).length;
   $("#coordSum").innerHTML =
+    `<span title="ที่มาของข้อมูล">ข้อมูลจาก: ${esc(COORD_SRC)}</span>` +
     `<span>ทั้งหมด <b>${rows.length}</b> คน</span>` +
     `<span>KOL <b>${rows.filter(r => r.kind === "KOL").length}</b></span>` +
     `<span>KOC <b>${rows.filter(r => r.kind === "KOC").length}</b></span>` +
@@ -1514,7 +1608,10 @@ function renderCoord(){
         ? (el.value.trim() === "" ? null : Number(el.value.replace(/,/g, "")))
         : el.value;
       if (f === "rate") r.rate_all = [];        // ยืนยันด้วยมือแล้ว ธงลง
-      saveCoord(); renderProjTabs(); renderCoord();
+      const k = ekey(r);
+      EDITS[k] = Object.assign({}, EDITS[k], { [f]: r[f] },
+                               f === "rate" ? { rate_all: [] } : {});
+      saveEdits(); renderProjTabs(); renderCoord();
     };
   });
 }
@@ -1546,15 +1643,26 @@ function coordRow(r, i){
   </tr>`;
 }
 
-function setMode(m){
-  const find = m !== "coord";
-  document.querySelector(".wrap").hidden = !find;
-  $("#coordView").hidden = find;
-  $("#foldBtn").hidden = !find;
-  document.querySelectorAll(".modes button").forEach(b =>
-    b.setAttribute("aria-selected", String(b.dataset.mode === m)));
-  try { localStorage.setItem("cf_mode", m); } catch(e){}
-  if (!find){ renderProjTabs(); renderCoord(); }
+async function setView(v){
+  document.body.dataset.view = v;
+  $("#backBtn").hidden = (v === "home");
+  window.scrollTo(0, 0);
+  if (v === "coord"){
+    $("#coordBody").innerHTML = `<div class="loading"><span class="spin"></span>กำลังโหลดจากชีต...</div>`;
+    await loadCoordData();
+    renderProjTabs(); renderCoord();
+  }
+  if (v === "home") homeCounts();
+}
+
+function homeCounts(){
+  $("#homeFindN").innerHTML = POOL.length
+    ? `pool <b>${POOL.length}</b> คน · ตะกร้า <b>${CART.size}</b>`
+    : `กำลังโหลด pool...`;
+  const n = PROJECTS.reduce((s, p) => s + (COORD[p] || []).length, 0);
+  $("#homeCoordN").innerHTML = n
+    ? `<b>${n}</b> คนใน ${PROJECTS.length} โปรเจกต์`
+    : `${PROJECTS.length} โปรเจกต์`;
 }
 
 function scoreClass(s){ return s>=8 ? "hi" : s>=5 ? "mid" : "lo"; }
@@ -2342,32 +2450,17 @@ document.addEventListener("keydown", e => {
 $("#sheetSel").onchange = selectSheet;
 
 $("#runBtn").onclick = run;
-// ─── Coordinate: นำเข้า / ส่งออก / ล้าง ───
-$("#coordFile").onchange = async e => {
-  const f = e.target.files[0];
-  e.target.value = "";
-  if (!f) return;
-  let data;
-  try { data = JSON.parse(await f.text()); }
-  catch(err){ return alert("อ่านไฟล์ไม่ได้ — ต้องเป็น JSON\n" + err.message); }
-  if (!Array.isArray(data)) return alert("ไฟล์ต้องเป็น array ของครีเอเตอร์");
+// ─── Coordinate: โหลดใหม่ / ส่งออก / คืนค่าที่แก้ ───
+$("#coordReload").onclick = async () => {
+  $("#coordBody").innerHTML = `<div class="loading"><span class="spin"></span>กำลังโหลดจากชีต...</div>`;
+  await loadCoordData(true);
+  renderProjTabs(); renderCoord();
+};
 
-  // แถวไหนไม่บอกโปรเจกต์ ให้ลงโปรเจกต์ที่เปิดอยู่
-  const added = {};
-  data.forEach(r => {
-    if (!r || !r.handle) return;
-    const p = PROJECTS.includes(r.project) ? r.project : PROJ;
-    const list = COORD[p] || (COORD[p] = []);
-    const at = list.findIndex(x => normId(x.handle) === normId(r.handle) &&
-                                   (x.code || "") === (r.code || ""));
-    // มีอยู่แล้ว = อัปเดตของใหม่ทับ แต่เก็บ status กับ note ที่คนแก้ไว้
-    if (at >= 0) list[at] = Object.assign({}, r, {
-      status: list[at].status || r.status, note: list[at].note || r.note || "" });
-    else list.push(r);
-    added[p] = (added[p] || 0) + 1;
-  });
-  saveCoord(); renderProjTabs(); renderCoord();
-  alert("นำเข้าแล้ว:\n" + Object.entries(added).map(([p, n]) => `  ${p}: ${n} คน`).join("\n"));
+$("#coordResetEdits").onclick = () => {
+  const n = Object.keys(EDITS).length;
+  if (!n || !confirm(`ทิ้งค่าที่แก้ในเครื่องนี้ ${n} รายการ แล้วกลับไปใช้ของในชีต?`)) return;
+  EDITS = {}; saveEdits(); loadCoordData(true).then(() => { renderProjTabs(); renderCoord(); });
 };
 
 $("#coordExport").onclick = () => {
@@ -2387,14 +2480,8 @@ $("#coordExport").onclick = () => {
   a.click();
 };
 
-$("#coordClear").onclick = () => {
-  const n = (COORD[PROJ] || []).length;
-  if (!n || !confirm(`ล้าง ${PROJ} ทั้งหมด ${n} คน?`)) return;
-  COORD[PROJ] = []; saveCoord(); renderProjTabs(); renderCoord();
-};
-
-document.querySelectorAll(".modes button").forEach(b =>
-  b.onclick = () => setMode(b.dataset.mode));
+document.querySelectorAll(".hcard").forEach(b => b.onclick = () => setView(b.dataset.go));
+$("#backBtn").onclick = () => setView("home");
 
 $("#cartExport").onclick = exportCSV;
 $("#cartBtn").onclick = openCart;
@@ -2431,10 +2518,11 @@ try { HIDE_LIKED = !!localStorage.getItem(LS_HIDELIKED); } catch(e){}
 $("#hideLiked").checked = HIDE_LIKED;
 loadCrit();
 loadCart();
-loadCoord();
+loadEdits();
+shapeCoord(SEED_COORD);
 updateCartBtn();
 renderCrit();
-try { setMode(localStorage.getItem("cf_mode") || "find"); } catch(e){ setMode("find"); }
+setView("home");   // เข้ามาเจอสองช่องก่อนเสมอ ไม่จำหน้าล่าสุด
 refreshExclude();
 refreshLiked();
 loadHook();
