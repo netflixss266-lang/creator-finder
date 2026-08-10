@@ -779,6 +779,11 @@ main{padding:22px 24px;overflow-y:auto;max-height:calc(100vh - 62px)}
         </div>
         <label class="chk"><input type="checkbox" id="hookKeep" checked>
           จำ token ไว้ในเครื่องนี้ — <b>เอาออกถ้าใช้เครื่องร่วมกับคนอื่น</b></label>
+        <label class="chk"><input type="checkbox" id="privateMode">
+          <span><b style="color:var(--hi)">โหมดชีตปิด</b> — อ่านชีตผ่าน Apps Script อย่างเดียว
+          ไม่แตะลิงก์สาธารณะ<br>
+          <span style="color:var(--dim)">เปิดแล้วทดสอบว่าใช้ได้ ค่อยไปเอา
+          “ใครก็ได้ที่มีลิงก์” ออกจาก Share ของชีต</span></span></label>
       </div>
       <button class="run" id="hookTest">บันทึกแล้วทดสอบ</button>
       <div class="addmsg" id="hookMsg"></div>
@@ -973,7 +978,21 @@ async function hiddenByFilter(sheetUrl, id){
 }
 
 // ─── ดึง+แปลง CSV เป็น array (ไม่แตะ state) — ใช้ตอนตรวจลิงก์ก่อนบันทึกได้ ───
+// โหมดชีตปิด: ไม่แตะลิงก์สาธารณะเลย อ่านผ่าน Apps Script ที่รันในนามเจ้าของชีต
+// พอเปิดโหมดนี้แล้ว เอา "ใครก็ได้ที่มีลิงก์" ออกจาก Share ได้ ชีตจะปิดสนิท
+function privateOn(){ return !!(PRIVATE && HOOK.url && HOOK.token); }
+
+function tabOfUrl(url){
+  const gid = (String(url).match(/[?&]gid=(\d+)/) || [])[1];
+  return { "0":"KOL", "2067804304":"KOC", "33859969":"Coordinate" }[gid] || "";
+}
+
 async function fetchPool(url){
+  if (privateOn()){
+    const tab = tabOfUrl(url);
+    if (!tab) throw new Error("โหมดชีตปิด: ไม่รู้ว่าลิงก์นี้คือแท็บไหน");
+    url = `${HOOK.url}?token=${encodeURIComponent(HOOK.token)}&action=csv&tab=${tab}`;
+  }
   // no-store: เคยเจอเบราว์เซอร์เสิร์ฟ CSV เก่าจากแคช แล้ว pool หายไปเป็นร้อยคนแบบเงียบๆ
   const res = await fetch(url, { cache: "no-store" });
   if (!res.ok) throw new Error(`โหลดไม่สำเร็จ (HTTP ${res.status})`);
@@ -1487,10 +1506,7 @@ function openBehind(a){
 // ═══ Coordinate — คุมงานที่รับไปแล้ว ═══
 // ข้อมูลอยู่ในเบราว์เซอร์เครื่องนี้เท่านั้น ไม่ได้ฝังในโค้ด เพราะ repo นี้ public
 // และในนี้มีเรทกับเงื่อนไขการจ่ายซึ่งเป็นเรื่องภายใน
-// ── ข้อมูลงานที่ฝังมากับหน้าเว็บ (สร้างจาก RedC_Brief.md) ──
-// แก้ที่แท็บ Coordinate ในชีต ไม่ต้องมาแก้ตรงนี้ ชุดนี้เป็นแค่ตัวสำรองตอนอ่านชีตไม่ได้
-const SEED_COORD = [{"handle":"valen.time","project":"Red Chamber Phase 1","kind":"KOL","code":"D3C","status":"confirmed","rate":2000.0,"net3":1940.0,"sku":"C309 HAELYN","postdate":"9 Jun","deadline":"28 พฤษภาคม","brief":"https://canva.link/tv65gz9g9ihxfjp"},{"handle":"tangkwaqs","project":"Red Chamber Phase 1","kind":"KOL","code":"D1C","status":"confirmed","rate":2500.0,"postdate":"10 Jun","deadline":"28 พฤษภาคม","brief":"https://canva.link/drj4yavymi8erf4"},{"handle":"neeniyadiary","project":"Red Chamber Phase 1","kind":"KOL","code":"D2C","status":"confirmed","rate":2500.0,"net3":2425.0,"postdate":"8 Jun","deadline":"28 พฤษภาคม","brief":"https://canva.link/w4gjx3o1qarlxu2"},{"handle":"symgif","project":"Red Chamber Phase 1","kind":"KOL","code":"D2C","status":"confirmed","rate":5000.0,"postdate":"7 Jun","deadline":"28 พฤษภาคม","brief":"https://canva.link/tv65gz9g9ihxfjp"},{"handle":"emmy_ummara","project":"Red Chamber Phase 1","kind":"KOL","code":"D1C","status":"confirmed","rate":1500.0,"net3":1455.0,"postdate":"10 Jun","deadline":"17 มิถุนายน","brief":"https://canva.link/drj4yavymi8erf4","rate_all":[1500,3000]},{"handle":"pumpkinlism","project":"Red Chamber Phase 1","kind":"KOL","code":"D2C","status":"confirmed","rate":5500.0,"net3":5335.0,"postdate":"12 Jun","deadline":"15 มิถุนายน","brief":"https://canva.link/w4gjx3o1qarlxu2"},{"handle":"babimaofad","project":"Red Chamber Phase 1","kind":"KOL","code":"D3C","status":"confirmed","rate":5000.0,"postdate":"18 Jun","deadline":"28 พฤษภาคม","brief":"https://canva.link/tv65gz9g9ihxfjp"},{"handle":"tidfon_","project":"Red Chamber Phase 1","kind":"KOL","code":"D6E","status":"confirmed","rate":6500.0,"net3":6305.0,"postdate":"10 Jun","deadline":"28 พฤษภาคม","brief":"https://canva.link/lhi6ts2bnu1sy4w","rate_all":[4500,6500]},{"handle":"ninjajyyyy","project":"Red Chamber Phase 1","kind":"KOL","code":"D1/6EC","status":"confirmed","rate":7500.0,"net3":7275.0,"postdate":"10 Jun","brief":"https://canva.link/lhi6ts2bnu1sy4w","rate_all":[7000,7500]},{"handle":"mossarellaaa","project":"Red Chamber Phase 1","kind":"KOL","code":"D1/6EC","status":"confirmed","rate":7000.0,"postdate":"11 Jun","deadline":"28 พฤษภาคม","brief":"https://canva.link/lhi6ts2bnu1sy4w"},{"handle":"mekimrumi","project":"Red Chamber Phase 1","kind":"KOL","code":"D1C","status":"confirmed","rate":3000.0,"postdate":"11 Jun","deadline":"17 มิถุนายน","brief":"https://canva.link/drj4yavymi8erf4"},{"handle":"njmod06","project":"Red Chamber Phase 1","kind":"KOC","code":"D1C","status":"briefed","postdate":"10 Jun","deadline":"10 มิถุนายน","brief":"https://canva.link/drj4yavymi8erf4"},{"handle":"icecream.revieww","project":"Red Chamber Phase 1","kind":"KOC","code":"D3C","status":"briefed","postdate":"5 Jun","deadline":"28 พฤษภาคม","brief":"https://canva.link/tv65gz9g9ihxfjp"},{"handle":"ns.juice","project":"Red Chamber Phase 1","kind":"KOC","code":"D1C","status":"briefed","postdate":"10 Jun","deadline":"10 มิถุนายน","brief":"https://canva.link/drj4yavymi8erf4"},{"handle":"firstssc","project":"Red Chamber Phase 1","kind":"KOC","code":"D5E","status":"briefed","postdate":"5 Jun","deadline":"28 พฤษภาคม","brief":"https://canva.link/bg2ue8b6zpjeqvv"},{"handle":"swntshop","project":"Red Chamber Phase 1","kind":"KOC","code":"D1C","status":"briefed","postdate":"5 Jun","deadline":"28 พฤษภาคม","brief":"https://canva.link/drj4yavymi8erf4"},{"handle":"ppoppyy12","project":"Red Chamber Phase 1","kind":"KOC","code":"D1C","status":"briefed","postdate":"10 Jun","deadline":"10 มิถุนายน","brief":"https://canva.link/drj4yavymi8erf4"},{"handle":"bowie_772","project":"Red Chamber Phase 1","kind":"KOC","code":"D1C","status":"shipped","deadline":"15 มิถุนายน","brief":"https://canva.link/drj4yavymi8erf4"},{"handle":"pongpang25422","project":"Red Chamber Phase 1","kind":"KOC","code":"D1C","status":"briefed","postdate":"12 Jun","deadline":"15 มิถุนายน","brief":"https://canva.link/drj4yavymi8erf4"},{"handle":"yrzc8","project":"Red Chamber Phase 1","kind":"KOC","code":"D1C","status":"briefed","postdate":"19 Jun","deadline":"19 มิถุนายน","brief":"https://canva.link/drj4yavymi8erf4"},{"handle":"pjiratchaz","project":"Red Chamber Phase 1","kind":"KOC","code":"D1C","status":"briefed","rate":1000.0,"postdate":"19 Jun","deadline":"19 มิถุนายน","brief":"https://canva.link/drj4yavymi8erf4"},{"handle":"052.be","project":"Red Chamber Phase 1","kind":"KOC","code":"D2C","status":"briefed","rate":1200.0,"net3":1164.0,"postdate":"19 Jun","deadline":"19 มิถุนายน","brief":"https://canva.link/w4gjx3o1qarlxu2"},{"handle":"mimi231146","project":"Red Chamber Phase 1","kind":"KOC","code":"D1C","status":"briefed","rate":500.0,"postdate":"19 Jun","deadline":"19 มิถุนายน","brief":"https://canva.link/drj4yavymi8erf4"},{"handle":"dreamsasiv","project":"Red Chamber Phase 1","kind":"KOC","code":"D1C","status":"briefed","rate":1500.0,"net3":1455.0,"postdate":"25 Jun","brief":"https://canva.link/drj4yavymi8erf4"},{"handle":"cenakims","project":"Red Chamber Phase 2","kind":"KOL","code":"B","status":"briefed","rate":10000.0,"net3":9700.0,"sku":"C309 HAELYN","postdate":"9 Jun","brief":"https://canva.link/vv7nay0pqroe2eg"},{"handle":"remind555","project":"Red Chamber Phase 2","kind":"KOL","code":"B","status":"filming","rate":1500.0,"net3":1455.0,"sku":"C309 HAELYN","postdate":"9 Jun","brief":"https://canva.link/xx88hxk9cdkltsd"},{"handle":"itsniriin","project":"Red Chamber Phase 2","kind":"KOL","code":"B+E","status":"briefed","rate":10000.0,"net3":9700.0,"sku":"C309 HAELYN","postdate":"9 Jun","brief":"https://canva.link/vv7nay0pqroe2eg","rate_all":[5000,10000]},{"handle":"lalouys","project":"Red Chamber Phase 2","kind":"KOL","code":"B","status":"filming","rate":5300.0,"sku":"C309 HAELYN","postdate":"9 Jun","brief":"https://canva.link/xx88hxk9cdkltsd"},{"handle":"tangkwaqs","project":"Red Chamber Phase 2","kind":"KOL","code":"L+B","status":"filming","rate":1000.0,"net3":970.0,"sku":"C309 HAELYN","postdate":"9 Jun","brief":"https://canva.link/58tjyi9c3aiyai9","rate_all":[1000,5500]},{"handle":"browniearoiteesud","project":"Red Chamber Phase 2","kind":"KOL","code":"B","status":"filming","rate":2000.0,"net3":1940.0,"sku":"C309 HAELYN","brief":"https://canva.link/vv7nay0pqroe2eg"},{"handle":"nnoey_npsss","project":"Red Chamber Phase 2","kind":"KOL","code":"B","status":"filming","rate":6000.0,"sku":"C309 HAELYN","postdate":"9 Jun","brief":"https://canva.link/xx88hxk9cdkltsd"},{"handle":"babimaofad","project":"Red Chamber Phase 2","kind":"KOL","code":"B","status":"filming","rate":11000.0,"net3":10670.0,"sku":"C309 HAELYN","brief":"https://canva.link/xx88hxk9cdkltsd"},{"handle":"aomapss","project":"Red Chamber Phase 2","kind":"KOL","code":"L","status":"filming","rate":5500.0,"net3":5335.0,"sku":"C309 HAELYN","postdate":"9 Jun","brief":"https://canva.link/58tjyi9c3aiyai9"},{"handle":"nonsarut","project":"Red Chamber Phase 2","kind":"KOL","code":"L","status":"filming","rate":8000.0,"net3":7760.0,"sku":"C309 HAELYN","postdate":"9 Jun","brief":"https://canva.link/58tjyi9c3aiyai9"},{"handle":"whoisntknice","project":"Red Chamber Phase 2","kind":"KOL","code":"F","status":"shipped","rate":3000.0,"net3":2910.0,"sku":"C309 HAELYN","postdate":"9 Jun","brief":"https://canva.link/50gmx9mgqeo65mc"},{"handle":"mintpaweee","project":"Red Chamber Phase 2","kind":"KOL","code":"L+B","status":"filming","rate":1000.0,"net3":970.0,"sku":"C309 HAELYN","postdate":"9 Jun","brief":"https://canva.link/58tjyi9c3aiyai9","rate_all":[1000,5500]},{"handle":"pitchajohansen","project":"Red Chamber Phase 2","kind":"KOL","code":"L+B","status":"filming","rate":1000.0,"net3":970.0,"sku":"C309 HAELYN","postdate":"9 Jun","brief":"https://canva.link/58tjyi9c3aiyai9","rate_all":[1000,5500]},{"handle":"monie_rosette","project":"Red Chamber Phase 2","kind":"KOL","code":"F","status":"filming","rate":3000.0,"net3":2910.0,"sku":"C309 HAELYN","postdate":"9 Jun","brief":"https://canva.link/50gmx9mgqeo65mc"},{"handle":"thisiswanis","project":"Red Chamber Phase 2","kind":"KOL","code":"E","status":"filming","rate":10000.0,"net3":9700.0,"sku":"C309 HAELYN","postdate":"9 Jun","brief":"https://canva.link/50gmx9mgqeo65mc","rate_all":[5000,10000]},{"handle":"lemoned.girl","project":"Red Chamber Phase 2","kind":"KOL","code":"L","status":"filming","rate":8000.0,"net3":7760.0,"sku":"C309 HAELYN","postdate":"9 Jun","brief":"https://canva.link/58tjyi9c3aiyai9"},{"handle":"mintnanthat","project":"Red Chamber Phase 2","kind":"KOL","code":"L+B","status":"filming","rate":1000.0,"net3":970.0,"sku":"C309 HAELYN","postdate":"9 Jun","brief":"https://canva.link/58tjyi9c3aiyai9","rate_all":[1000,5500]},{"handle":"_soixzy","project":"Red Chamber Phase 2","kind":"KOL","code":"F","status":"shipped","rate":3000.0,"net3":2910.0,"sku":"C309 HAELYN","postdate":"9 Jun","brief":"https://canva.link/50gmx9mgqeo65mc"},{"handle":"712jpeg","project":"Red Chamber Phase 2","kind":"KOL","code":"F","status":"shipped","rate":3000.0,"net3":2910.0,"sku":"C309 HAELYN","postdate":"9 Jun","brief":"https://canva.link/50gmx9mgqeo65mc"},{"handle":"pjiratchaz","project":"Red Chamber Phase 2","kind":"KOC","code":"B+L","status":"briefed","rate":1000.0,"postdate":"19 Jun","brief":"https://canva.link/58tjyi9c3aiyai9","rate_all":[500,1000]},{"handle":"susudarattz","project":"Red Chamber Phase 2","kind":"KOC","code":"B+L","status":"filming","rate":1000.0,"postdate":"19 Jun","brief":"https://canva.link/58tjyi9c3aiyai9"},{"handle":"margrace33","project":"Red Chamber Phase 2","kind":"KOC","code":"E+L","status":"filming","rate":1000.0,"postdate":"19 Jun","brief":"https://canva.link/58tjyi9c3aiyai9"},{"handle":"taewanya","project":"Red Chamber Phase 2","kind":"KOC","code":"L","status":"filming","rate":1000.0,"postdate":"19 Jun","brief":"https://canva.link/58tjyi9c3aiyai9"},{"handle":"mellow.nsyy","project":"Red Chamber Phase 2","kind":"KOC","code":"E","status":"shipped","rate":1000.0,"postdate":"19 Jun","brief":"https://canva.link/50gmx9mgqeo65mc"},{"handle":"callme.nalina","project":"Red Chamber Phase 2","kind":"KOC","code":"F","status":"shipped","rate":3000.0,"net3":2910.0,"sku":"C309 HAELYN","postdate":"9 Jun","brief":"https://canva.link/50gmx9mgqeo65mc"},{"handle":"chenwenwenbb","project":"Red Chamber Phase 2","kind":"KOC","code":"E","rate":1000.0,"postdate":"19 Jun","brief":"https://canva.link/50gmx9mgqeo65mc"},{"handle":"arismind.c","project":"Red Chamber Phase 2","kind":"KOC","code":"B","rate":1000.0,"postdate":"19 Jun","brief":"https://canva.link/xx88hxk9cdkltsd"},{"handle":"wndstk","project":"Red Chamber Phase 2","kind":"KOC","code":"B","rate":1000.0,"postdate":"19 Jun","brief":"https://canva.link/xx88hxk9cdkltsd"}];
-/*__SEED_COORD_END__*/
+const SEED_COORD = [];   // ไม่ฝังข้อมูลงานลงหน้าเว็บสาธารณะ อ่านจากแท็บ Coordinate ในชีตแทน
 // แท็บ Coordinate ในชีตเดียวกับ pool — ถ้าอ่านได้ ยึดของในชีตเป็นหลัก
 // อ่านไม่ได้ (เน็ตหลุด/ชีตถูกปิด) ค่อยถอยไปใช้ชุดที่ฝังมากับหน้าเว็บ
 const COORD_URL = BOOK + "33859969";
@@ -1554,8 +1570,15 @@ async function loadCoordData(force){
   shapeCoord(SEED_COORD);
   COORD_SRC = "ชุดที่ฝังมากับหน้าเว็บ";
   try {
-    const list = coordFromCSV(await (await fetch(COORD_URL, { cache: "no-store" })).text());
-    if (list.length){ shapeCoord(list); COORD_SRC = `แท็บ Coordinate ในชีต (${list.length} แถว)`; }
+    const u = privateOn()
+      ? `${HOOK.url}?token=${encodeURIComponent(HOOK.token)}&action=csv&tab=Coordinate`
+      : COORD_URL;
+    const list = coordFromCSV(await (await fetch(u, { cache: "no-store" })).text());
+    if (list.length){
+      shapeCoord(list);
+      COORD_SRC = `แท็บ Coordinate ในชีต (${list.length} แถว)` +
+                  (privateOn() ? " · ผ่าน Apps Script" : "");
+    }
   } catch(e){
     COORD_SRC += ` — อ่านชีตไม่ได้: ${e.message}`;
   }
@@ -2020,6 +2043,9 @@ let ADD_KIND = KINDS[0];
 // URL ไม่ลับ เก็บถาวรได้ แต่ token เขียนชีตได้ เลยแยกออกมาให้เลือกว่าจะจำไหม
 // ไม่จำ = อยู่แค่ใน sessionStorage ปิดแท็บแล้วหาย เครื่องที่ใช้ร่วมกันควรใช้แบบนี้
 const SS_TOKEN = "cf_hook_token";
+const LS_PRIVATE = "cf_private_v1";
+let PRIVATE = false;
+try { PRIVATE = !!localStorage.getItem(LS_PRIVATE); } catch(e){}
 function loadHook(){
   let saved = {};
   try { saved = JSON.parse(localStorage.getItem(LS_HOOK) || "{}") || {}; } catch(e){}
@@ -2030,7 +2056,21 @@ function loadHook(){
   $("#hookUrl").value = HOOK.url;
   $("#hookToken").value = HOOK.token;
   $("#hookKeep").checked = !!saved.token || !sessTok;
+  $("#privateMode").checked = PRIVATE;
 }
+
+$("#privateMode").onchange = e => {
+  PRIVATE = e.target.checked;
+  try { localStorage.setItem(LS_PRIVATE, PRIVATE ? "1" : ""); } catch(err){}
+  saveHook();
+  if (PRIVATE && !(HOOK.url && HOOK.token))
+    return setHookMsg("เปิดโหมดชีตปิดแล้ว แต่ยังไม่มี URL/token — ใส่ให้ครบก่อน ไม่งั้นจะโหลดชีตไม่ได้", "err");
+  setHookMsg(PRIVATE
+    ? "เปิดโหมดชีตปิดแล้ว — กดค้นหาสักครั้งเพื่อเช็คว่าอ่านผ่าน Apps Script ได้จริง ถ้าได้ค่อยปิด Share ของชีต"
+    : "กลับไปอ่านชีตผ่านลิงก์สาธารณะแล้ว", PRIVATE ? "ok" : "busy");
+  POOL_URL = "";      // บังคับให้โหลดใหม่ผ่านทางใหม่
+  COORD_SRC = "";
+};
 function saveHook(){
   HOOK = { url: $("#hookUrl").value.trim(), token: $("#hookToken").value.trim() };
   const keep = $("#hookKeep").checked;
