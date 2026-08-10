@@ -49,6 +49,14 @@ header{display:flex;align-items:center;justify-content:space-between;gap:16px;
 .poolstat{font-family:'IBM Plex Mono',monospace;font-size:.8rem;color:var(--mute);
   background:var(--surface);border:1px solid var(--line);border-radius:999px;padding:6px 14px}
 .poolstat b{color:var(--accent)}
+/* บอกตลอดว่าตอนนี้อ่านชีตทางไหน — ตัวชี้ขาดก่อนจะไปปิด Share ของชีต */
+.srcchip{font-size:.78rem;font-weight:600;border-radius:999px;padding:6px 13px;
+  border:1px solid var(--line);white-space:nowrap}
+.srcchip.open{color:#f0c46b;border-color:rgba(240,196,107,.35);background:rgba(240,196,107,.1)}
+.srcchip.locked{color:var(--hi);border-color:rgba(124,231,196,.4);background:rgba(124,231,196,.12)}
+.srcchip.bad{color:var(--lo);border-color:rgba(240,128,107,.4);background:rgba(240,128,107,.12)}
+body[data-view="home"] .srcchip{display:none}
+
 .gear{background:var(--surface);border:1px solid var(--line);color:var(--mute);
   border-radius:999px;padding:6px 15px;font-size:.82rem;font-weight:600;transition:all .13s}
 .gear:hover{border-color:var(--accent);color:var(--accent)}
@@ -93,6 +101,11 @@ body[data-view="coord"] .poolstat{display:none}
 .coord-sum{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:14px}
 .coord-sum span{font-size:.78rem;color:var(--mute);background:var(--surface);
   border:1px solid var(--line);border-radius:7px;padding:5px 11px}
+.coord-sum span.src{font-weight:600;order:-1;flex-basis:100%}
+.coord-sum span.src.open{color:#f0c46b;border-color:rgba(240,196,107,.35);
+  background:rgba(240,196,107,.09)}
+.coord-sum span.src.locked{color:var(--hi);border-color:rgba(124,231,196,.4);
+  background:rgba(124,231,196,.1)}
 .coord-sum b{color:var(--accent);font-family:'IBM Plex Mono',monospace}
 .ctable{width:100%;border-collapse:collapse;font-size:.82rem}
 .ctable th{text-align:left;font-size:.68rem;text-transform:uppercase;letter-spacing:.07em;
@@ -431,6 +444,7 @@ main{padding:22px 24px;overflow-y:auto;max-height:calc(100vh - 62px)}
     <button class="gear" id="foldBtn" aria-expanded="true"
             title="พับ/กางแถบตัวกรอง">◧ แถบตัวกรอง</button>
     <div class="poolstat">pool: <b id="poolN">0</b> คน</div>
+    <div class="srcchip" id="srcChip" title="ตอนนี้เว็บอ่านชีตด้วยวิธีไหน"></div>
     <button class="gear accent" id="addBtn" aria-haspopup="dialog">+ เพิ่มครีเอเตอร์</button>
     <button class="gear" id="gearBtn" aria-haspopup="dialog">⚙ ตั้งค่า</button>
     <button class="gear cartbtn empty" id="cartBtn" aria-haspopup="dialog"
@@ -981,6 +995,25 @@ async function hiddenByFilter(sheetUrl, id){
 // โหมดชีตปิด: ไม่แตะลิงก์สาธารณะเลย อ่านผ่าน Apps Script ที่รันในนามเจ้าของชีต
 // พอเปิดโหมดนี้แล้ว เอา "ใครก็ได้ที่มีลิงก์" ออกจาก Share ได้ ชีตจะปิดสนิท
 function privateOn(){ return !!(PRIVATE && HOOK.url && HOOK.token); }
+
+// ป้ายบนหัวเว็บ — ต้องอ่านออกในแวบเดียวว่าชีตยังเปิดสาธารณะอยู่ไหม
+function updateSrcChip(){
+  const el = $("#srcChip");
+  if (!el) return;
+  if (privateOn()){
+    el.className = "srcchip locked";
+    el.textContent = "🔒 อ่านผ่าน Apps Script";
+    el.title = "ไม่ได้แตะลิงก์สาธารณะแล้ว — ปิด Share ของชีตเป็น Restricted ได้";
+  } else if (PRIVATE){
+    el.className = "srcchip bad";
+    el.textContent = "⚠ โหมดชีตปิด แต่ยังไม่มี URL/token";
+    el.title = "ติ๊กโหมดชีตปิดไว้แต่ยังใส่ URL หรือ token ไม่ครบ — โหลดชีตไม่ได้";
+  } else {
+    el.className = "srcchip open";
+    el.textContent = "🌐 อ่านผ่านลิงก์สาธารณะ";
+    el.title = "ชีตยังต้องเปิด \"ใครก็ได้ที่มีลิงก์\" อยู่ — ยังปิด Share ไม่ได้";
+  }
+}
 
 function tabOfUrl(url){
   const gid = (String(url).match(/[?&]gid=(\d+)/) || [])[1];
@@ -1608,7 +1641,8 @@ function renderCoord(){
   const money = rows.reduce((s, r) => s + (Number(r.rate) || 0), 0);
   const flagged = rows.filter(r => r.rate == null || (r.rate_all || []).length > 1).length;
   $("#coordSum").innerHTML =
-    `<span title="ที่มาของข้อมูล">ข้อมูลจาก: ${esc(COORD_SRC)}</span>` +
+    `<span class="src ${privateOn() ? "locked" : "open"}">${privateOn() ? "🔒" : "🌐"}
+      ข้อมูลจาก: ${esc(COORD_SRC)}</span>` +
     `<span>ทั้งหมด <b>${rows.length}</b> คน</span>` +
     `<span>KOL <b>${rows.filter(r => r.kind === "KOL").length}</b></span>` +
     `<span>KOC <b>${rows.filter(r => r.kind === "KOC").length}</b></span>` +
@@ -1669,6 +1703,7 @@ function coordRow(r, i){
 async function setView(v){
   document.body.dataset.view = v;
   $("#backBtn").hidden = (v === "home");
+  updateSrcChip();
   window.scrollTo(0, 0);
   if (v === "coord"){
     $("#coordBody").innerHTML = `<div class="loading"><span class="spin"></span>กำลังโหลดจากชีต...</div>`;
@@ -2070,6 +2105,7 @@ $("#privateMode").onchange = e => {
     : "กลับไปอ่านชีตผ่านลิงก์สาธารณะแล้ว", PRIVATE ? "ok" : "busy");
   POOL_URL = "";      // บังคับให้โหลดใหม่ผ่านทางใหม่
   COORD_SRC = "";
+  updateSrcChip();
 };
 function saveHook(){
   HOOK = { url: $("#hookUrl").value.trim(), token: $("#hookToken").value.trim() };
