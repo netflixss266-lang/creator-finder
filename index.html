@@ -843,6 +843,21 @@ function checkSheetUrl(u){
 
 function currentSheetUrl(){ return $("#sheetSel").value || ""; }
 
+// ชีตอาจมีตัวกรองเปิดค้างอยู่แล้วซ่อนแถวที่เพิ่งเพิ่มไป
+// export ไม่สนใจตัวกรอง แต่ gviz เคารพ — เทียบสองทางถึงจะรู้ว่า
+// "เขียนสำเร็จแต่มองไม่เห็น" ซึ่งหน้าตาเหมือนเพิ่มไม่ติดเลย
+function gvizUrl(exportUrl){
+  return exportUrl.replace("/export?format=csv&gid=", "/gviz/tq?tqx=out:csv&gid=");
+}
+async function hiddenByFilter(sheetUrl, id){
+  const g = gvizUrl(sheetUrl);
+  if (g === sheetUrl) return false;          // ลิงก์คนละรูปแบบ เช็คไม่ได้ ไม่ต้องเดา
+  try {
+    const rows = await fetchPool(g + "&_=" + Date.now());
+    return !rows.some(p => normId(p.id) === normId(id));
+  } catch(e){ return false; }
+}
+
 // ─── ดึง+แปลง CSV เป็น array (ไม่แตะ state) — ใช้ตอนตรวจลิงก์ก่อนบันทึกได้ ───
 async function fetchPool(url){
   // no-store: เคยเจอเบราว์เซอร์เสิร์ฟ CSV เก่าจากแคช แล้ว pool หายไปเป็นร้อยคนแบบเงียบๆ
@@ -1847,7 +1862,11 @@ $("#acSave").onclick = async () => {
   }
 
   if (found){
-    setAcMsg(`✓ เพิ่ม <b>${esc(id)}</b> ลงแท็บ ${esc(ADD_KIND)} แล้ว`, "ok");
+    const hid = sheet ? await hiddenByFilter(sheet.url, id) : false;
+    setAcMsg(`✓ เพิ่ม <b>${esc(id)}</b> ลงแท็บ ${esc(ADD_KIND)} แล้ว` + (hid
+      ? ` — <span style="color:var(--lo)">แต่ชีตมีตัวกรองเปิดค้างอยู่ แถวนี้เลยถูกซ่อน</span><br>` +
+        `เปิดชีตแล้วกดไอคอนกรองที่คอลัมน์ <b>Cat</b> → Select all (หรือ Data → Remove filter) ถึงจะเห็น`
+      : ""), "ok");
     ["acId","acCat","acLink","acFol","acRate"].forEach(x => $("#"+x).value = "");
     $("#acId").focus();
   } else {
