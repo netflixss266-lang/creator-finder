@@ -54,6 +54,49 @@ header{display:flex;align-items:center;justify-content:space-between;gap:16px;
 .gear:hover{border-color:var(--accent);color:var(--accent)}
 .gear.accent{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
 .gear.accent:hover{filter:brightness(1.07);color:var(--accent-ink)}
+/* สลับโหมด — ปุ่มใหญ่ ให้รู้ว่าอยู่โหมดไหนตั้งแต่แรกเห็น */
+.modes{display:flex;gap:5px;background:var(--surface2);border:1px solid var(--line);
+  border-radius:11px;padding:4px}
+.modes button{background:none;border:0;color:var(--mute);border-radius:8px;
+  padding:9px 18px;font-size:.9rem;font-weight:600;
+  font-family:'Space Grotesk','IBM Plex Sans Thai',sans-serif;transition:all .13s}
+.modes button:hover{color:var(--ink)}
+.modes button[aria-selected="true"]{background:var(--accent);color:var(--accent-ink)}
+@media(max-width:720px){.modes{order:3;width:100%}.modes button{flex:1;padding:9px 6px}}
+
+/* ── Coordinate ── */
+#coordView{padding:20px 24px}
+.coord-head{display:flex;align-items:center;justify-content:space-between;
+  gap:14px;flex-wrap:wrap;margin-bottom:14px}
+.coord-head .tabs{margin-bottom:0;flex:1;min-width:280px}
+.coord-sum{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:14px}
+.coord-sum span{font-size:.78rem;color:var(--mute);background:var(--surface);
+  border:1px solid var(--line);border-radius:7px;padding:5px 11px}
+.coord-sum b{color:var(--accent);font-family:'IBM Plex Mono',monospace}
+.ctable{width:100%;border-collapse:collapse;font-size:.82rem}
+.ctable th{text-align:left;font-size:.68rem;text-transform:uppercase;letter-spacing:.07em;
+  color:var(--dim);font-weight:600;padding:8px 9px;border-bottom:1px solid var(--line);
+  white-space:nowrap;position:sticky;top:0;background:var(--bg);z-index:1}
+.ctable td{padding:7px 9px;border-bottom:1px solid var(--line);vertical-align:middle}
+.ctable tr:hover td{background:var(--surface)}
+.ctable .who{font-weight:600;white-space:nowrap}
+.ctable .mono{font-family:'IBM Plex Mono',monospace;text-align:right;white-space:nowrap}
+.ctable select,.ctable input{padding:4px 7px;font-size:.79rem;border-radius:6px}
+.ctable input.mono{text-align:right}
+.ctable .w-note input{min-width:150px}
+.ctable td.warn{color:var(--lo)}
+.cwrap{overflow-x:auto;border:1px solid var(--line);border-radius:11px;
+  background:var(--surface);padding:0 4px}
+.st{font-size:.72rem;border-radius:999px;padding:2px 9px;white-space:nowrap;
+  border:1px solid var(--line);color:var(--mute)}
+.st.briefed{color:var(--mute)}
+.st.confirmed{color:var(--accent);border-color:rgba(232,255,99,.3);background:rgba(232,255,99,.08)}
+.st.shipped{color:#8fb8ff;border-color:rgba(143,184,255,.3);background:rgba(143,184,255,.08)}
+.st.filming{color:var(--hi);border-color:rgba(124,231,196,.3);background:rgba(124,231,196,.08)}
+.st.posted{color:var(--hi);border-color:rgba(124,231,196,.45);background:rgba(124,231,196,.16)}
+.st.paid{color:var(--accent-ink);background:var(--accent);border-color:var(--accent);font-weight:700}
+.flag{color:var(--lo);cursor:help;font-weight:700}
+
 .row2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
 @media(max-width:520px){.row2{grid-template-columns:1fr}}
 .quick{display:flex;gap:6px;margin-top:7px;flex-wrap:wrap}
@@ -362,6 +405,11 @@ main{padding:22px 24px;overflow-y:auto;max-height:calc(100vh - 62px)}
     <h1>Creator Finder</h1>
     <span class="sub">KOL sourcing</span>
   </div>
+  <!-- สลับโหมด — หาคนใหม่ กับ คุมงานที่รับไปแล้ว เป็นคนละงานกัน -->
+  <div class="modes" role="tablist">
+    <button role="tab" data-mode="find" aria-selected="true">🔍 ค้นหาครีเอเตอร์</button>
+    <button role="tab" data-mode="coord" aria-selected="false">📋 Coordinate</button>
+  </div>
   <div class="hgroup">
     <button class="gear" id="foldBtn" aria-expanded="true"
             title="พับ/กางแถบตัวกรอง">◧ แถบตัวกรอง</button>
@@ -531,6 +579,21 @@ main{padding:22px 24px;overflow-y:auto;max-height:calc(100vh - 62px)}
   </main>
 </div>
 
+<!-- ═══ Coordinate — คุมงานที่รับไปแล้ว แยกตามโปรเจกต์ ═══ -->
+<section id="coordView" hidden>
+  <div class="coord-head">
+    <div class="tabs sub" id="projTabs" role="tablist"></div>
+    <div class="headact">
+      <label class="export" for="coordFile" style="cursor:pointer">นำเข้าไฟล์ .json</label>
+      <input type="file" id="coordFile" accept=".json" hidden>
+      <button class="export" id="coordExport">Export CSV</button>
+      <button class="export ghost" id="coordClear">ล้างโปรเจกต์นี้</button>
+    </div>
+  </div>
+  <div class="coord-sum" id="coordSum"></div>
+  <div id="coordBody"></div>
+</section>
+
 <!-- ═══ ตะกร้า — ลิ้นชักเลื่อนเข้ามาจากขวา ═══ -->
 <div class="drawer" id="cart">
   <div class="scrim" id="cartScrim"></div>
@@ -600,6 +663,19 @@ main{padding:22px 24px;overflow-y:auto;max-height:calc(100vh - 62px)}
       <button class="run" id="acSave">บันทึกลงชีต</button>
       <div class="addmsg" id="acMsg"></div>
     </section>
+
+    <details class="sect" id="bulkSect">
+      <summary><h3>วางทีละหลายคน</h3></summary>
+      <p class="sect-sub">
+        ก๊อปจากชีต/ตาราง/แชทมาวางได้เลย บรรทัดละคน คั่นด้วย Tab หรือเว้นวรรคหลายเคาะ<br>
+        <code style="font-size:.72rem;color:var(--mute)">_khongprodpam&#9;https://www.tiktok.com/@_khongprodpam&#9;1166&#9;2K - 19K</code>
+      </p>
+      <textarea id="bulkText" style="min-height:110px"
+        placeholder="วางที่นี่ แล้วกดตรวจ"></textarea>
+      <button class="run" id="bulkParse" style="margin-top:10px">ตรวจแล้วดูตัวอย่าง</button>
+      <div id="bulkPreview"></div>
+      <div class="addmsg" id="bulkMsg"></div>
+    </details>
   </div>
 </div>
 
@@ -1369,6 +1445,118 @@ function openBehind(a){
   }
 }
 
+// ═══ Coordinate — คุมงานที่รับไปแล้ว ═══
+// ข้อมูลอยู่ในเบราว์เซอร์เครื่องนี้เท่านั้น ไม่ได้ฝังในโค้ด เพราะ repo นี้ public
+// และในนี้มีเรทกับเงื่อนไขการจ่ายซึ่งเป็นเรื่องภายใน
+const LS_COORD = "cf_coord_v1";
+const PROJECTS = ["Red Chamber Phase 1", "Red Chamber Phase 2",
+                  "OBSBOT-KOL", "OBSBOT-KOC", "TikTok Live"];
+const STATUSES = ["", "briefed", "confirmed", "shipped", "filming", "posted", "paid"];
+const ST_TH = { "":"—", briefed:"ส่งบรีฟแล้ว", confirmed:"คอนเฟิร์มแล้ว",
+                shipped:"ส่งของแล้ว", filming:"ถ่ายอยู่", posted:"โพสต์แล้ว", paid:"จ่ายแล้ว" };
+let COORD = {};
+let PROJ = PROJECTS[0];
+
+function loadCoord(){
+  try {
+    const o = JSON.parse(localStorage.getItem(LS_COORD) || "{}");
+    if (o && typeof o === "object") COORD = o;
+  } catch(e){}
+  PROJECTS.forEach(p => { if (!Array.isArray(COORD[p])) COORD[p] = []; });
+}
+function saveCoord(){
+  try { localStorage.setItem(LS_COORD, JSON.stringify(COORD)); } catch(e){}
+}
+
+function renderProjTabs(){
+  $("#projTabs").innerHTML = PROJECTS.map(p =>
+    `<button role="tab" data-p="${esc(p)}" aria-selected="${p === PROJ}">${esc(p)}<span
+      class="n">${(COORD[p] || []).length}</span></button>`).join("");
+  document.querySelectorAll("#projTabs button").forEach(b => b.onclick = () => {
+    PROJ = b.dataset.p; renderProjTabs(); renderCoord();
+  });
+}
+
+function renderCoord(){
+  const rows = COORD[PROJ] || [];
+  if (!rows.length){
+    $("#coordSum").innerHTML = "";
+    $("#coordBody").innerHTML = `<div class="empty"><h3>${esc(PROJ)} ยังไม่มีข้อมูล</h3>
+      <div>กด <b>นำเข้าไฟล์ .json</b> มุมขวาบน — ไฟล์ Red Chamber อยู่ที่<br>
+      <code>D:\\DJ\\Projects\\kol-tools\\redc-coordinate.json</code></div></div>`;
+    return;
+  }
+
+  const byStatus = {};
+  rows.forEach(r => byStatus[r.status || ""] = (byStatus[r.status || ""] || 0) + 1);
+  const money = rows.reduce((s, r) => s + (Number(r.rate) || 0), 0);
+  const flagged = rows.filter(r => r.rate == null || (r.rate_all || []).length > 1).length;
+  $("#coordSum").innerHTML =
+    `<span>ทั้งหมด <b>${rows.length}</b> คน</span>` +
+    `<span>KOL <b>${rows.filter(r => r.kind === "KOL").length}</b></span>` +
+    `<span>KOC <b>${rows.filter(r => r.kind === "KOC").length}</b></span>` +
+    STATUSES.filter(s => byStatus[s]).map(s =>
+      `<span>${esc(ST_TH[s])} <b>${byStatus[s]}</b></span>`).join("") +
+    `<span>รวมเรท <b>฿${money.toLocaleString("en-US")}</b></span>` +
+    (flagged ? `<span style="color:var(--lo)">ต้องยืนยันเรท <b style="color:var(--lo)">${flagged}</b></span>` : "");
+
+  $("#coordBody").innerHTML = `<div class="cwrap"><table class="ctable">
+    <thead><tr>
+      <th>ครีเอเตอร์</th><th>กลุ่ม</th><th>งาน</th><th>สถานะ</th>
+      <th style="text-align:right">เรท</th><th style="text-align:right">จ่ายจริง</th>
+      <th>SKU</th><th>โพสต์</th><th>บรีฟ</th><th>โน้ต</th>
+    </tr></thead><tbody>${rows.map((r, i) => coordRow(r, i)).join("")}</tbody></table></div>`;
+
+  document.querySelectorAll("#coordBody [data-f]").forEach(el => {
+    el.onchange = () => {
+      const r = COORD[PROJ][+el.dataset.i], f = el.dataset.f;
+      r[f] = (f === "rate" || f === "net3")
+        ? (el.value.trim() === "" ? null : Number(el.value.replace(/,/g, "")))
+        : el.value;
+      if (f === "rate") r.rate_all = [];        // ยืนยันด้วยมือแล้ว ธงลง
+      saveCoord(); renderProjTabs(); renderCoord();
+    };
+  });
+}
+
+function coordRow(r, i){
+  const amb = (r.rate_all || []).length > 1;
+  const noRate = r.rate == null;
+  const link = safeLinkUrl(r.brief);
+  return `<tr>
+    <td class="who">${safeLinkUrl("https://www.tiktok.com/@" + r.handle)
+      ? `<a href="https://www.tiktok.com/@${esc(r.handle)}" target="_blank"
+           rel="noopener noreferrer">${esc(r.handle)} ↗</a>` : esc(r.handle)}</td>
+    <td>${esc(r.kind || "")}</td>
+    <td><span class="tag">${esc(r.code || "-")}</span></td>
+    <td><select data-i="${i}" data-f="status">${STATUSES.map(s =>
+        `<option value="${s}"${s === (r.status||"") ? " selected" : ""}>${esc(ST_TH[s])}</option>`).join("")}</select></td>
+    <td class="mono ${noRate||amb ? "warn" : ""}">
+      <input class="mono" data-i="${i}" data-f="rate" style="width:88px"
+             value="${r.rate == null ? "" : r.rate}" placeholder="ยังไม่รู้">
+      ${amb ? `<span class="flag" title="ในบรีฟเจอหลายค่า: ${esc((r.rate_all||[]).join(" / "))} — เลือกให้ตรงแล้วธงจะหาย">⚑</span>` : ""}
+      ${noRate ? `<span class="flag" title="ในบรีฟไม่มีตัวเลขเรทเลย">⚑</span>` : ""}</td>
+    <td class="mono">${r.net3 == null ? `<span style="color:var(--dim)">—</span>`
+      : "฿" + Number(r.net3).toLocaleString("en-US")}</td>
+    <td>${esc(r.sku || "")}</td>
+    <td>${esc(r.postdate || r.deadline || "")}</td>
+    <td>${link ? `<a href="${esc(link)}" target="_blank" rel="noopener noreferrer">เปิด ↗</a>` : ""}</td>
+    <td class="w-note"><input data-i="${i}" data-f="note" value="${esc(r.note || "")}"
+        placeholder="โน้ต"></td>
+  </tr>`;
+}
+
+function setMode(m){
+  const find = m !== "coord";
+  document.querySelector(".wrap").hidden = !find;
+  $("#coordView").hidden = find;
+  $("#foldBtn").hidden = !find;
+  document.querySelectorAll(".modes button").forEach(b =>
+    b.setAttribute("aria-selected", String(b.dataset.mode === m)));
+  try { localStorage.setItem("cf_mode", m); } catch(e){}
+  if (!find){ renderProjTabs(); renderCoord(); }
+}
+
 function scoreClass(s){ return s>=8 ? "hi" : s>=5 ? "mid" : "lo"; }
 
 // เกณฑ์ค้างไว้เหนือผลลัพธ์ — เว็บวัดให้ไม่ได้ ต้องเปิดคลิปดูเอง
@@ -1876,6 +2064,133 @@ $("#acSave").onclick = async () => {
   $("#acSave").disabled = false;
 };
 
+// ─── วางทีละหลายคน ───
+// เดาให้ว่าคอลัมน์ไหนคืออะไร แต่ให้คนยืนยันก่อนเขียน
+// เดาผิดแล้วเขียนลงชีตเลย = ข้อมูลทีมเพี้ยนโดยไม่มีใครรู้
+const BULK_ROLES = { skip:"— ไม่เอา —", id:"ID", link:"Link",
+                     follower:"Follower", rate:"Rate", cat:"Cat" };
+let BULK = { rows: [], roles: [] };
+
+function bulkSplit(text){
+  return String(text).split(/\r?\n/).map(l => l.trim()).filter(Boolean)
+    .map(l => l.split(/\t+|\s{2,}/).map(c => c.trim()).filter((c,i,a) => c || i < a.length-1));
+}
+
+// เดาบทบาทของแต่ละคอลัมน์จากหน้าตาของข้อมูลทั้งคอลัมน์ ไม่ใช่จากแถวเดียว
+function guessRole(vals){
+  const v = vals.filter(Boolean);
+  if (!v.length) return "skip";
+  const all = f => v.every(f);
+  if (all(x => /tiktok\.com\/@/i.test(x))) return "link";
+  // ช่วงตัวเลข เช่น "2K - 19K" ไม่มีคอลัมน์ไหนรับได้ตรงๆ ต้องให้คนเลือกเอง
+  if (v.some(x => /\d\s*[kKmM]?\s*[-–—]\s*\d/.test(x))) return "skip";
+  if (v.some(x => /฿|บาท|barter|unknown|เรท/i.test(x))) return "rate";
+  // เช็คตัวเลขก่อน ID เสมอ — "1166" กับ "24.5K" เข้าเงื่อนไข ID ได้ด้วยถ้าเช็คทีหลัง
+  if (all(x => /^[\d,]+(\.\d+)?\s*[kKmM]?$/.test(x))) return "follower";
+  if (all(x => /^@?[A-Za-z0-9._]{2,30}$/.test(x)) && v.some(x => /[a-z]/i.test(x))) return "id";
+  return "skip";
+}
+
+$("#bulkParse").onclick = () => {
+  const rows = bulkSplit($("#bulkText").value);
+  const msg = $("#bulkMsg");
+  if (!rows.length){ msg.className = "addmsg on err"; msg.textContent = "ยังไม่ได้วางอะไร"; return; }
+  const width = Math.max(...rows.map(r => r.length));
+  rows.forEach(r => { while (r.length < width) r.push(""); });
+  BULK.rows = rows;
+  BULK.roles = Array.from({length: width}, (_, c) => guessRole(rows.map(r => r[c])));
+  msg.className = "addmsg";
+  renderBulk();
+};
+
+function renderBulk(){
+  const { rows, roles } = BULK;
+  const show = rows.slice(0, 8);
+  $("#bulkPreview").innerHTML = `
+    <p class="sect-sub" style="margin-top:13px">
+      เจอ <b>${rows.length}</b> บรรทัด · ${roles.length} คอลัมน์ — เช็คหัวคอลัมน์ให้ตรงก่อนกดเพิ่ม
+      ${rows.length > 8 ? `<br>(แสดง 8 บรรทัดแรก)` : ""}</p>
+    <div class="cwrap"><table class="ctable"><thead><tr>${
+      roles.map((r, c) => `<th><select data-c="${c}" class="brole">${
+        Object.entries(BULK_ROLES).map(([k, lbl]) =>
+          `<option value="${k}"${k === r ? " selected" : ""}>${esc(lbl)}</option>`).join("")
+      }</select></th>`).join("")}</tr></thead><tbody>${
+      show.map(r => `<tr>${r.map(c =>
+        `<td>${esc(c).slice(0, 40) || '<span style="color:var(--dim)">—</span>'}</td>`).join("")}</tr>`).join("")
+    }</tbody></table></div>
+    <div class="field" style="margin:12px 0 0">
+      <label>หมวด (Cat) สำหรับทุกคนที่วางมา — เว้นว่างได้</label>
+      <input id="bulkCat" list="acCatList" placeholder="เช่น Beauty">
+    </div>
+    <button class="run" id="bulkSave" style="margin-top:10px">เพิ่มทั้งหมดลงชีต</button>`;
+
+  document.querySelectorAll(".brole").forEach(s => s.onchange = () => {
+    BULK.roles[+s.dataset.c] = s.value;
+  });
+  $("#bulkSave").onclick = bulkSave;
+}
+
+async function bulkSave(){
+  saveHook();
+  const msg = $("#bulkMsg");
+  if (!HOOK.url){ msg.className = "addmsg on err";
+    msg.textContent = "ยังไม่ได้ตั้งค่า Apps Script — ไปที่ ⚙ ตั้งค่า ก่อน"; return; }
+  const iOf = role => BULK.roles.indexOf(role);
+  const ii = iOf("id"), il = iOf("link");
+  if (ii < 0 && il < 0){ msg.className = "addmsg on err";
+    msg.textContent = "ต้องมีคอลัมน์ ID หรือ Link อย่างน้อยหนึ่งอย่าง"; return; }
+
+  const cat = ($("#bulkCat").value || "").trim();
+  const items = BULK.rows.map(r => {
+    const link = il >= 0 ? r[il] : "";
+    let id = ii >= 0 ? r[ii] : "";
+    if (!id && link){ const m = link.match(/tiktok\.com\/@([A-Za-z0-9._]+)/i); id = m ? m[1] : ""; }
+    return { id: normId(id), link,
+             follower: iOf("follower") >= 0 ? r[iOf("follower")] : "",
+             rate: iOf("rate") >= 0 ? r[iOf("rate")] : "",
+             cat: iOf("cat") >= 0 ? (r[iOf("cat")] || cat) : cat };
+  }).filter(x => x.id);
+
+  const dupInPool = items.filter(x => POOL.some(p => normId(p.id) === x.id)).map(x => x.id);
+  const todo = items.filter(x => !dupInPool.includes(x.id));
+  msg.className = "addmsg on busy";
+  msg.innerHTML = `กำลังเพิ่ม ${todo.length} คน` +
+    (dupInPool.length ? ` (ข้าม ${dupInPool.length} คนที่มีใน ${esc(KIND)} อยู่แล้ว)` : "") + "...";
+  $("#bulkSave").disabled = true;
+
+  let ok = 0; const failed = [];
+  for (const it of todo){
+    try {
+      const r = await fetch(HOOK.url, { method:"POST",
+        headers:{ "Content-Type":"text/plain;charset=utf-8" },
+        body: JSON.stringify(Object.assign({ token: HOOK.token, tab: ADD_KIND }, it)) });
+      const said = await r.json().catch(() => null);
+      if (said && said.ok === false) failed.push(it.id + " (" + said.error + ")");
+      else ok++;
+    } catch(e){ ok++; }   // อ่านคำตอบไม่ได้ ไม่ได้แปลว่าเขียนไม่สำเร็จ ไปนับของจริงทีหลัง
+  }
+
+  // นับจากชีตจริง ไม่เชื่อคำตอบอย่างเดียว
+  const sheet = sheetsOfKind(ADD_KIND)[0];
+  let landed = 0;
+  if (sheet){
+    try {
+      await new Promise(r => setTimeout(r, 1500));
+      const fresh = await fetchPool(sheet.url + "&_=" + Date.now());
+      landed = todo.filter(t => fresh.some(p => normId(p.id) === t.id)).length;
+      if (ADD_KIND === KIND){ POOL = fresh; POOL_URL = sheet.url;
+        CATS = [...new Set(POOL.flatMap(catsOf))].sort();
+        renderCatChips(pickedCats()); renderDealTabs(); refreshExclude(); refreshLiked();
+        $("#poolN").textContent = POOL.length; }
+    } catch(e){}
+  }
+  msg.className = "addmsg on " + (landed === todo.length ? "ok" : "err");
+  msg.innerHTML = `เห็นในชีตแล้ว <b>${landed}/${todo.length}</b> คน` +
+    (dupInPool.length ? `<br>ข้าม ${dupInPool.length} คนที่มีอยู่แล้ว: ${esc(dupInPool.slice(0,8).join(", "))}` : "") +
+    (failed.length ? `<br><span style="color:var(--lo)">ไม่สำเร็จ ${failed.length}: ${esc(failed.slice(0,5).join(", "))}</span>` : "");
+  $("#bulkSave").disabled = false;
+}
+
 $("#addBtn").onclick = openAdd;
 $("#closeAdd").onclick = () => { $("#addPanel").hidden = true; };
 $("#addPanel").onclick = e => { if (e.target.id === "addPanel") $("#addPanel").hidden = true; };
@@ -2027,6 +2342,60 @@ document.addEventListener("keydown", e => {
 $("#sheetSel").onchange = selectSheet;
 
 $("#runBtn").onclick = run;
+// ─── Coordinate: นำเข้า / ส่งออก / ล้าง ───
+$("#coordFile").onchange = async e => {
+  const f = e.target.files[0];
+  e.target.value = "";
+  if (!f) return;
+  let data;
+  try { data = JSON.parse(await f.text()); }
+  catch(err){ return alert("อ่านไฟล์ไม่ได้ — ต้องเป็น JSON\n" + err.message); }
+  if (!Array.isArray(data)) return alert("ไฟล์ต้องเป็น array ของครีเอเตอร์");
+
+  // แถวไหนไม่บอกโปรเจกต์ ให้ลงโปรเจกต์ที่เปิดอยู่
+  const added = {};
+  data.forEach(r => {
+    if (!r || !r.handle) return;
+    const p = PROJECTS.includes(r.project) ? r.project : PROJ;
+    const list = COORD[p] || (COORD[p] = []);
+    const at = list.findIndex(x => normId(x.handle) === normId(r.handle) &&
+                                   (x.code || "") === (r.code || ""));
+    // มีอยู่แล้ว = อัปเดตของใหม่ทับ แต่เก็บ status กับ note ที่คนแก้ไว้
+    if (at >= 0) list[at] = Object.assign({}, r, {
+      status: list[at].status || r.status, note: list[at].note || r.note || "" });
+    else list.push(r);
+    added[p] = (added[p] || 0) + 1;
+  });
+  saveCoord(); renderProjTabs(); renderCoord();
+  alert("นำเข้าแล้ว:\n" + Object.entries(added).map(([p, n]) => `  ${p}: ${n} คน`).join("\n"));
+};
+
+$("#coordExport").onclick = () => {
+  const rows = COORD[PROJ] || [];
+  if (!rows.length) return;
+  const head = ["Project","Creator","Link","Kind","งาน","สถานะ","เรท","จ่ายจริง",
+                "SKU","โพสต์","บรีฟ","โน้ต","เรทที่ต้องยืนยัน"];
+  const body = rows.map(r => [PROJ, r.handle, "https://www.tiktok.com/@" + r.handle,
+    r.kind || "", r.code || "", ST_TH[r.status || ""] || "", r.rate ?? "", r.net3 ?? "",
+    r.sku || "", r.postdate || r.deadline || "", r.brief || "", r.note || "",
+    (r.rate_all || []).length > 1 ? (r.rate_all || []).join(" / ") : ""]);
+  const csv = [head, ...body].map(r =>
+    r.map(c => `"${String(c).replace(/"/g,'""')}"`).join(",")).join("\n");
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(new Blob(["﻿"+csv], {type:"text/csv;charset=utf-8"}));
+  a.download = `coordinate_${PROJ.replace(/\s+/g,"_")}_${new Date().toISOString().slice(0,10)}.csv`;
+  a.click();
+};
+
+$("#coordClear").onclick = () => {
+  const n = (COORD[PROJ] || []).length;
+  if (!n || !confirm(`ล้าง ${PROJ} ทั้งหมด ${n} คน?`)) return;
+  COORD[PROJ] = []; saveCoord(); renderProjTabs(); renderCoord();
+};
+
+document.querySelectorAll(".modes button").forEach(b =>
+  b.onclick = () => setMode(b.dataset.mode));
+
 $("#cartExport").onclick = exportCSV;
 $("#cartBtn").onclick = openCart;
 $("#closeCart").onclick = closeCart;
@@ -2062,8 +2431,10 @@ try { HIDE_LIKED = !!localStorage.getItem(LS_HIDELIKED); } catch(e){}
 $("#hideLiked").checked = HIDE_LIKED;
 loadCrit();
 loadCart();
+loadCoord();
 updateCartBtn();
 renderCrit();
+try { setMode(localStorage.getItem("cf_mode") || "find"); } catch(e){ setMode("find"); }
 refreshExclude();
 refreshLiked();
 loadHook();
