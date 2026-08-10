@@ -938,16 +938,22 @@ function loadSheets(){
     return o;
   });
 
-  // กลุ่มไหนไม่เหลือ sheet เลย ให้เติมตัวตั้งต้นกลับมา
-  // (เดิมเติมให้เฉพาะตอนย้ายของเก่า ถ้าพลาดจังหวะนั้นแล้ว KOC จะหายถาวร)
+  if (healSheets(arr)) moved = true;
+  if (moved){ SHEETS = arr; saveSheets(); }
+  return arr;
+}
+
+// กลุ่มไหนไม่เหลือ sheet เลย ให้เติมตัวตั้งต้นกลับมา
+// ลบทิ้งหมดแล้วเว็บจะโหลดอะไรไม่ได้เลย และไม่มีอะไรบนจอบอกว่าต้องกดตรงไหนถึงจะกลับมา
+function healSheets(arr){
+  let added = false;
   for (const d of DEFAULT_SHEETS){
     if (!arr.some(s => (s.kind || KINDS[0]) === d.kind)){
       arr.push(Object.assign({}, d));
-      moved = true;
+      added = true;
     }
   }
-  if (moved){ SHEETS = arr; saveSheets(); }
-  return arr;
+  return added;
 }
 
 function sheetsOfKind(k){ return SHEETS.filter(s => (s.kind || KINDS[0]) === k); }
@@ -1991,7 +1997,13 @@ async function selectSheet(){
   if (!url){
     POOL = []; POOL_URL = ""; CATS = []; renderCatChips();
     $("#poolN").textContent = 0;
-    $("#banner").innerHTML = `กลุ่ม <b>${esc(KIND)}</b> ยังไม่มี Google Sheet — กด <b>⚙ ตั้งค่า</b> มุมขวาบนเพื่อเพิ่มลิงก์`;
+    $("#banner").innerHTML = `กลุ่ม <b>${esc(KIND)}</b> ยังไม่มี Google Sheet — ` +
+      `<button class="export" id="fixSheets" style="padding:5px 12px;font-size:.8rem">` +
+      `คืนลิงก์ตั้งต้น (KOL + KOC)</button> หรือกด <b>⚙ ตั้งค่า</b> เพื่อเพิ่มเอง`;
+    $("#fixSheets").onclick = () => {
+      SHEETS = DEFAULT_SHEETS.map(s => Object.assign({}, s));
+      saveSheets(); renderKindTabs(); renderSheetSelect(); selectSheet();
+    };
     return;
   }
   try {
@@ -2021,8 +2033,11 @@ function renderSheetList(){
     if (!s || !confirm(`ลบ "${s.name || s.url}" ออกจากรายการ?`)) return;
     const wasActive = currentSheetUrl() === s.url;
     SHEETS.splice(+b.dataset.i, 1);
+    // ลบจนกลุ่มไหนไม่เหลือเลย เติมตัวตั้งต้นกลับทันที ไม่ปล่อยให้เว็บใช้ไม่ได้
+    const healed = healSheets(SHEETS);
     saveSheets(); renderSheetList(); renderKindTabs(); renderSheetSelect();
-    if (wasActive) selectSheet();   // ตัวที่ใช้อยู่ถูกลบ → สลับไปตัวใหม่
+    if (healed) setMsg("กลุ่มนั้นไม่เหลือ Sheet เลย — คืนลิงก์ตั้งต้นกลับให้แล้ว", "busy");
+    if (wasActive || healed) selectSheet();   // ตัวที่ใช้อยู่ถูกลบ → สลับไปตัวใหม่
   });
 }
 
