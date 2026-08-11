@@ -1911,14 +1911,45 @@ async function loadCoordData(force){
   shapeCoord(SEED_COORD);
   COORD_SRC = "ชุดที่ฝังมากับหน้าเว็บ";
   try {
+    let list = null;
+    // ต่อ Apps Script ได้ = อ่านจากแท็บรายโปรเจกต์ ซึ่งเป็นที่เดียวกับที่เราเขียนลงไป
+    // ถ้าอ่านที่นึงเขียนอีกที่นึง กดโหลดใหม่ทีไรของที่แก้จะเหมือนหายไป
+    if (canSync()){
+      try {
+        const r = await fetch(`${HOOK.url}?token=${encodeURIComponent(HOOK.token)}&action=coordAll`,
+                              { cache:"no-store" });
+        const d = await r.json();
+        if (d && d.ok && d.projects){
+          list = [];
+          for (const p in d.projects)
+            (d.projects[p] || []).forEach(o => list.push({
+              handle: normId(o.handle), project: p, kind: o.kind || "",
+              code: o.code || "", status: o.status || "",
+              videos: o.videos ? Number(o.videos) : null,
+              rate: o.rate ? Number(String(o.rate).replace(/[฿,\s]/g,"")) : null,
+              paytype: o.paytype || "",
+              net3: o.net3 ? Number(String(o.net3).replace(/[฿,\s]/g,"")) : null,
+              sku: o.sku || "", postdate: o.postdate || "", deadline: o.deadline || "",
+              brief: o.brief || "", note: o.note || "", rate_all: [],
+            }));
+          if (list.length){
+            shapeCoord(list);
+            COORD_SRC = `แท็บรายโปรเจกต์ในชีต (${list.length} แถว) · ผ่าน Apps Script`;
+            return;
+          }
+          // แท็บรายโปรเจกต์ยังว่าง = ยังไม่เคยซิงก์ ตกไปอ่านแท็บ Coordinate เดิม
+        }
+      } catch(e){}
+    }
     const u = privateOn()
       ? `${HOOK.url}?token=${encodeURIComponent(HOOK.token)}&action=csv&tab=Coordinate`
       : COORD_URL;
-    const list = coordFromCSV(await (await fetch(u, { cache: "no-store" })).text());
+    list = coordFromCSV(await (await fetch(u, { cache: "no-store" })).text());
     if (list.length){
       shapeCoord(list);
-      COORD_SRC = `แท็บ Coordinate ในชีต (${list.length} แถว)` +
-                  (privateOn() ? " · ผ่าน Apps Script" : "");
+      COORD_SRC = `แท็บ Coordinate เดิม (${list.length} แถว)` +
+                  (privateOn() ? " · ผ่าน Apps Script" : "") +
+                  (canSync() ? " — ยังไม่เคยซิงก์แท็บรายโปรเจกต์" : "");
     }
   } catch(e){
     COORD_SRC += ` — อ่านชีตไม่ได้: ${e.message}`;
