@@ -105,8 +105,11 @@ body:not([data-view="home"]) #homeView{display:none}
 body:not([data-view="find"]) .wrap{display:none}
 body:not([data-view="coord"]) #coordView{display:none}
 body[data-view="home"] .hgroup > :not(#gearBtn){display:none}
+/* หน้า Coordinate ไม่เกี่ยวกับการหาคนใหม่ ซ่อนของฝั่งค้นหาไปเลย */
 body[data-view="coord"] #foldBtn,
-body[data-view="coord"] .poolstat{display:none}
+body[data-view="coord"] .poolstat,
+body[data-view="coord"] #addBtn,
+body[data-view="coord"] #cartBtn{display:none}
 
 /* ── Coordinate ── */
 #coordView{padding:20px 24px}
@@ -203,6 +206,28 @@ body[data-view="coord"] .poolstat{display:none}
 .paydot.p-wht{background:#8fb8ff}
 .paydot.p-net{background:var(--accent)}
 .paydot.p-vat{background:var(--hi)}
+/* สีในลิสต์ตัวเลือกของ dropdown ภาษี — เห็นสีตั้งแต่ตอนกางเลือก */
+.ctable select.pay option{background:var(--surface2)}
+.ctable select.pay option[value=""]{color:var(--dim)}
+.ctable select.pay option[value="wht3"],
+.ctable select.pay option[value="corp"],
+.ctable select.pay option[value="pers"]{color:#8fb8ff}
+.ctable select.pay option[value="net"]{color:var(--accent)}
+.ctable select.pay option[value="corpvat"],
+.ctable select.pay option[value="persvat"]{color:var(--hi)}
+.ctable select.pay.p-wht{background:rgba(143,184,255,.1)}
+.ctable select.pay.p-net{background:rgba(232,255,99,.1)}
+.ctable select.pay.p-vat{background:rgba(124,231,196,.1)}
+
+/* สีของงาน */
+.tag.job{font-weight:600;border-width:1px}
+.tag.job.j-b{color:#ff9ec4;border-color:rgba(255,158,196,.35);background:rgba(255,158,196,.1)}
+.tag.job.j-e{color:#b79cff;border-color:rgba(183,156,255,.35);background:rgba(183,156,255,.1)}
+.tag.job.j-l{color:#ffb37a;border-color:rgba(255,179,122,.35);background:rgba(255,179,122,.1)}
+.tag.job.j-f{color:#7fd8ff;border-color:rgba(127,216,255,.35);background:rgba(127,216,255,.1)}
+.tag.job.j-c{color:#d0d5a8;border-color:rgba(208,213,168,.35);background:rgba(208,213,168,.1)}
+.tag.job.j-x{color:var(--mute)}
+
 .paycell{display:flex;align-items:center}
 .ctable td.vid{text-align:center}
 .ctable td.vid input{width:58px;text-align:center;
@@ -787,6 +812,17 @@ main{padding:22px 24px;overflow-y:auto;max-height:calc(100vh - 62px)}
         </div>
         <button class="run" id="ncAdd" style="margin-top:11px">เพิ่มเข้าโปรเจกต์</button>
         <div class="addmsg" id="ncMsg"></div>
+
+        <p class="sect-sub" style="margin:15px 0 8px;border-top:1px solid var(--line);padding-top:13px">
+          หรือ <b>ก๊อปจากชีตมาวางทีเดียวหลายคน</b> — บรรทัดละคน คั่นด้วย Tab<br>
+          <code style="font-size:.72rem;color:var(--mute)">cenakims&#9;Blush - Lekui (20)&#9;1&#9;Already Post</code><br>
+          อ่านให้: ID · สินค้า/SKU · จำนวนวิดีโอ · สถานะ — ช่องไหนไม่มีก็เว้นได้
+        </p>
+        <textarea id="ncBulk" style="min-height:120px"
+          placeholder="วางที่นี่ แล้วกดตรวจ"></textarea>
+        <button class="run" id="ncBulkParse" style="margin-top:10px">ตรวจก่อนเพิ่ม</button>
+        <div id="ncBulkPreview"></div>
+        <div class="addmsg" id="ncBulkMsg"></div>
       </div>
     </details>
 
@@ -1738,7 +1774,12 @@ const COORD_URL = BOOK + "33859969";
 const LS_COORD = "cf_coord_v1";       // เก็บเฉพาะที่แก้เอง ทับข้อมูลจากชีต
 const PROJECTS = ["Red Chamber Phase 1", "Red Chamber Phase 2",
                   "OBSBOT-KOL", "OBSBOT-KOC", "TikTok Live"];
-const STATUSES = ["", "briefed", "confirmed", "shipped", "filming", "posted", "paid"];
+// สถานะตามที่ทีมใช้จริงในชีต — ของเก่ายังอยู่ท้ายลิสต์ไว้ไม่ให้ค่าเดิมหาย
+const STATUSES = ["", "Waiting to post", "Waiting 1st Draft", "Waiting 2nd Draft",
+  "Waiting Creators Update Script", "Waiting PM / PMA Asst. Feedback 1st Draft",
+  "Waiting IBD Feedback 1st Draft", "Waiting PMA / PM Confirm final Draft",
+  "Already Post",
+  "briefed", "confirmed", "shipped", "filming", "posted", "paid"];
 
 // รูปแบบภาษี — คิด "จ่ายจริง" จากเรทที่ตกลงกัน
 // หัก ณ ที่จ่ายค่าบริการ = 3% ทั้งบุคคลและนิติบุคคล · VAT 7% บวกเฉพาะคนที่จด VAT
@@ -1765,8 +1806,22 @@ function payOf(rate, type){
   if (!t.f || !isFinite(n) || n <= 0) return null;
   return Math.round(t.f(n) * 100) / 100;
 }
-const ST_TH = { "":"—", briefed:"ส่งบรีฟแล้ว", confirmed:"คอนเฟิร์มแล้ว",
-                shipped:"ส่งของแล้ว", filming:"ถ่ายอยู่", posted:"โพสต์แล้ว", paid:"จ่ายแล้ว" };
+const ST_TH = { "":"—",
+  "Waiting to post":"รอโพสต์", "Waiting 1st Draft":"รอ Draft 1",
+  "Waiting 2nd Draft":"รอ Draft 2", "Waiting Creators Update Script":"รอครีเอเตอร์แก้สคริป",
+  "Waiting PM / PMA Asst. Feedback 1st Draft":"รอ PM/PMA ฟีดแบค Draft 1",
+  "Waiting IBD Feedback 1st Draft":"รอ IBD ฟีดแบค Draft 1",
+  "Waiting PMA / PM Confirm final Draft":"รอ PMA/PM คอนเฟิร์ม Draft สุดท้าย",
+  "Already Post":"โพสต์แล้ว",
+  briefed:"ส่งบรีฟแล้ว", confirmed:"คอนเฟิร์มแล้ว", shipped:"ส่งของแล้ว",
+  filming:"ถ่ายอยู่", posted:"โพสต์แล้ว (เก่า)", paid:"จ่ายแล้ว" };
+
+// สีของงาน — กวาดตาดูคอลัมน์เดียวรู้เลยว่าใครทำอะไร
+const CODE_CLASS = { B:"j-b", E:"j-e", L:"j-l", F:"j-f", C:"j-c" };
+function codeClass(code){
+  const first = String(code || "").trim().split(/\s*\+\s*/)[0].toUpperCase();
+  return CODE_CLASS[first] || "j-x";
+}
 let COORD = {};
 let EDITS = {};          // ที่แก้เอง — ทับข้อมูลจากชีตเสมอ
 let COORD_SRC = "";      // มาจากไหน โชว์ให้เห็นบนหน้าจอ
@@ -2183,7 +2238,8 @@ function coordRow(r, i){
     <td class="vid"><input data-i="${i}" data-f="videos" type="number" min="0" step="1"
         value="${r.videos ?? ""}" placeholder="-"></td>
     <td>${esc(r.kind || "")}</td>
-    <td><span class="tag" title="${esc(r.code || "")}">${esc(codeLabel(r.code))}</span></td>
+    <td><span class="tag job ${codeClass(r.code)}"
+        title="${esc(r.code || "")}">${esc(codeLabel(r.code))}</span></td>
     <td><select data-i="${i}" data-f="status">${STATUSES.map(s =>
         `<option value="${s}"${s === (r.status||"") ? " selected" : ""}>${esc(ST_TH[s])}</option>`).join("")}</select></td>
     <td class="mono ${noRate&&!isKOC ? "warn" : amb ? "warn" : ""}">
@@ -2220,7 +2276,9 @@ function coordRow(r, i){
         ${list.map(v => `<option value="${esc(v)}"${v === cur ? " selected" : ""}>${esc(v)}</option>`).join("")}
       </select>`;
     })()}</td>
-    <td>${esc(r.postdate || r.deadline || "")}</td>
+    <td><input data-i="${i}" data-f="postdate" value="${esc(r.postdate || "")}"
+        placeholder="${esc(r.deadline ? "กำหนด " + r.deadline : "-")}" style="width:104px"
+        title="${esc(r.deadline ? "ไทม์ไลน์ในบรีฟ: " + r.deadline : "")}"></td>
     <td>${link ? `<a href="${esc(link)}" target="_blank" rel="noopener noreferrer">เปิด ↗</a>` : ""}</td>
     <td class="w-note"><input data-i="${i}" data-f="note" value="${esc(r.note || "")}"
         placeholder="โน้ต"></td>
@@ -3402,6 +3460,72 @@ $("#ncAdd").onclick = () => {
   msg.className = "addmsg on ok";
   msg.innerHTML = `เพิ่ม <b>${esc(id)}</b> เข้า ${esc(proj)} แล้ว — จะขึ้นชีตในรอบซิงก์ถัดไป`;
   $("#ncId").focus();
+};
+
+// ─── วางหลายคนจากชีต ───
+// คอลัมน์ตามที่ก๊อปมาจริง: ID · สินค้า · จำนวนวิดีโอ · สถานะ
+// แถวที่ไม่มี ID = สินค้าเพิ่มของคนบรรทัดบน (ชีตทีมเขียนแบบนั้น)
+let NCBULK = [];
+
+function parseNcBulk(text){
+  const out = [];
+  let cur = null;
+  for (const line of String(text).split(/\r?\n/)){
+    if (!line.trim()) continue;
+    const c = line.split(/\t+|\s{3,}/).map(s => s.trim());
+    const [id, prod, vid, prog] = [c[0]||"", c[1]||"", c[2]||"", c[3]||""];
+    if (id && /^@?[A-Za-z0-9._]{2,30}$/.test(id)){
+      cur = { handle: normId(id), products: [], videos: null, status: prog, why: "" };
+      out.push(cur);
+      const n = parseInt(vid, 10);
+      if (isFinite(n)) cur.videos = n;
+    } else if (!cur){
+      out.push({ handle:"", why:`อ่านไม่ออก: ${line.trim().slice(0,40)}` });
+      continue;
+    }
+    if (prod) prod.split(",").forEach(p => p.trim() && cur.products.push(p.trim()));
+    if (!id && vid){ const n = parseInt(vid,10); if (isFinite(n)) cur.videos = (cur.videos||0)+n; }
+  }
+  return out;
+}
+
+const CODE_OF = p => /feather/i.test(p) ? "F" : /eye/i.test(p) ? "E"
+  : /blush/i.test(p) ? "B" : /lip/i.test(p) ? "L" : /contour/i.test(p) ? "C" : "";
+
+$("#ncBulkParse").onclick = () => {
+  const proj = $("#ncProj").value;
+  NCBULK = parseNcBulk($("#ncBulk").value);
+  NCBULK.forEach(o => {
+    if (!o.handle) return;
+    if ((COORD[proj] || []).some(r => normId(r.handle) === o.handle))
+      o.why = `มีใน ${proj} อยู่แล้ว — จะข้าม`;
+  });
+  const good = NCBULK.filter(o => o.handle && !o.why);
+  $("#ncBulkPreview").innerHTML = NCBULK.map(o => o.handle
+    ? `<div class="qorow"><span class="${o.why ? "no" : "ok"}">${o.why ? "✕" : "✓"}</span>
+        <div><b>${esc(o.handle)}</b> · วิดีโอ ${o.videos ?? "-"} · ${esc(o.status || "ไม่มีสถานะ")}<br>
+        <span style="color:var(--dim)">${esc(o.products.join(" + ") || "ไม่มีสินค้า")}</span>
+        ${o.why ? `<br><span class="no">${esc(o.why)}</span>` : ""}</div></div>`
+    : `<div class="qorow"><span class="no">✕</span><div>${esc(o.why)}</div></div>`).join("");
+  const m = $("#ncBulkMsg");
+  m.className = "addmsg on " + (good.length ? "ok" : "err");
+  m.innerHTML = `เพิ่มได้ ${good.length}/${NCBULK.length} คน เข้า <b>${esc(proj)}</b>` +
+    (good.length ? ` <button class="export" id="ncBulkGo" style="margin-left:8px;padding:4px 12px">เพิ่ม ${good.length} คน</button>` : "");
+  if ($("#ncBulkGo")) $("#ncBulkGo").onclick = () => {
+    const kind = $("#ncKind").value;
+    good.forEach(o => {
+      COORD[proj].push({ handle:o.handle, project:proj, kind,
+        link:`https://www.tiktok.com/@${o.handle}`,
+        code: [...new Set(o.products.map(CODE_OF).filter(Boolean))].join("+"),
+        status:o.status || "", videos:o.videos, rate:null, paytype:"", net3:null,
+        sku:o.products.join(" + "), postdate:"", deadline:"", brief:"", note:"", rate_all:[] });
+      NEWROWS.push({ project:proj, handle:o.handle });
+    });
+    saveNewRows(); markDirty(); renderProjTabs(); renderCoord();
+    $("#ncBulk").value = ""; $("#ncBulkPreview").innerHTML = ""; NCBULK = [];
+    m.className = "addmsg on ok";
+    m.innerHTML = `เพิ่ม <b>${good.length}</b> คนแล้ว — จะขึ้นชีตในรอบซิงก์ถัดไป`;
+  };
 };
 
 // ─── Quick Order ───
