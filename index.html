@@ -807,16 +807,6 @@ main{padding:22px 24px;overflow-y:auto;max-height:calc(100vh - 62px)}
 
 <!-- ═══ Coordinate — คุมงานที่รับไปแล้ว แยกตามโปรเจกต์ ═══ -->
 <section id="coordView">
-  <div class="coord-head">
-    <div class="tabs sub" id="projTabs" role="tablist"></div>
-    <div class="headact">
-      <a class="export" id="coordSheet" target="_blank" rel="noopener noreferrer"
-         href="https://docs.google.com/spreadsheets/d/1v5CrMct_EQEnHYndMAujZZI_DUBhGY5j5msfJ-2uBOM/edit#gid=33859969">เปิดชีต ↗</a>
-      <button class="export" id="coordReload">โหลดจากชีตใหม่</button>
-      <button class="export" id="coordExport">Export CSV</button>
-      <button class="export ghost" id="coordResetEdits">คืนค่าที่แก้ในเครื่อง</button>
-    </div>
-  </div>
   <div class="coordtools">
     <details class="ctool" open>
       <summary>➕ เพิ่มครีเอเตอร์เข้าโปรเจกต์</summary>
@@ -863,6 +853,16 @@ main{padding:22px 24px;overflow-y:auto;max-height:calc(100vh - 62px)}
     </details>
   </div>
 
+  <div class="coord-head">
+    <div class="tabs sub" id="projTabs" role="tablist"></div>
+    <div class="headact">
+      <a class="export" id="coordSheet" target="_blank" rel="noopener noreferrer"
+         href="https://docs.google.com/spreadsheets/d/1v5CrMct_EQEnHYndMAujZZI_DUBhGY5j5msfJ-2uBOM/edit#gid=33859969">เปิดชีต ↗</a>
+      <button class="export" id="coordReload">โหลดจากชีตใหม่</button>
+      <button class="export" id="coordExport">Export CSV</button>
+      <button class="export ghost" id="coordResetEdits">คืนค่าที่แก้ในเครื่อง</button>
+    </div>
+  </div>
   <div class="coord-sum" id="coordSum"></div>
   <div class="syncbar" id="syncBar"></div>
 
@@ -2180,28 +2180,22 @@ function renderCoord(){
   const all = COORD[PROJ] || [];
   const rows = KINDSEG === "all" ? all : all.filter(r => (r.kind || "") === KINDSEG);
   if (!all.length){
-    $("#coordSum").innerHTML = `<span>ข้อมูลจาก: ${esc(COORD_SRC)}</span>`;
+    $("#coordSum").innerHTML =
+      `<span class="src ${privateOn() ? "locked" : "open"}">${privateOn() ? "🔒" : "🌐"}
+        ข้อมูลจาก: ${esc(COORD_SRC)}</span>`;
     $("#coordBody").innerHTML = `<div class="empty"><h3>${esc(PROJ)} ยังไม่มีข้อมูล</h3>
       <div>เพิ่มแถวในแท็บ <b>Coordinate</b> ของชีต แล้วกดโหลดใหม่<br>
       (คอลัมน์ Project ต้องเขียนว่า <b>${esc(PROJ)}</b> เป๊ะ)</div></div>`;
     return;
   }
 
-  // ตัวเลขสรุปนับทั้งโปรเจกต์เสมอ ไม่ผูกกับตัวกรอง KOL/KOC ที่เลือกอยู่
-  const byStatus = {};
-  all.forEach(r => byStatus[r.status || ""] = (byStatus[r.status || ""] || 0) + 1);
-  const money = all.reduce((s, r) => s + (Number(r.rate) || 0), 0);
+  // ตัวเลขสรุปเอาออกแล้ว — จำนวนคนดูได้จากตัวเลขบนแท็บโปรเจกต์กับปุ่ม KOL/KOC อยู่แล้ว
+  // เหลือไว้ 2 อย่างที่ไม่ใช่สถิติ: อ่านชีตทางไหน (ตัวชี้ขาดก่อนปิด Share) และเรทที่ยังต้องยืนยัน
   const flagged = all.filter(r => r.rate == null || (r.rate_all || []).length > 1).length;
   $("#coordSum").innerHTML =
     `<span class="src ${privateOn() ? "locked" : "open"}">${privateOn() ? "🔒" : "🌐"}
       ข้อมูลจาก: ${esc(COORD_SRC)}</span>` +
-    `<span>ทั้งหมด <b>${all.length}</b> คน</span>` +
-    `<span>KOL <b>${all.filter(r => r.kind === "KOL").length}</b></span>` +
-    `<span>KOC <b>${all.filter(r => r.kind === "KOC").length}</b></span>` +
-    STATUSES.filter(s => byStatus[s]).map(s =>
-      `<span>${esc(ST_TH[s])} <b>${byStatus[s]}</b></span>`).join("") +
-    `<span>รวมเรท <b>฿${money.toLocaleString("en-US")}</b></span>` +
-    (flagged ? `<span style="color:var(--lo)">ต้องยืนยันเรท <b style="color:var(--lo)">${flagged}</b></span>` : "");
+    (flagged ? `<span style="color:var(--lo)">⚑ ต้องยืนยันเรท <b style="color:var(--lo)">${flagged}</b> คน</span>` : "");
 
   $("#coordBody").innerHTML = `<div class="cwrap"><table class="ctable">
     <thead><tr>
