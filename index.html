@@ -337,6 +337,23 @@ tr.dropover td{border-top:2px solid var(--accent)}
 .fpop label span{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .fpop label i{font-style:normal;color:var(--dim);font-family:'IBM Plex Mono',monospace;
   font-size:.7rem;flex:none}
+.fpop .fadd{border-top:1px solid var(--line);padding:8px}
+.fpop .fadd input{width:100%;font-size:.78rem}
+.skupop{width:300px}
+
+/* ── SKU หลายอัน ── */
+.ctable th.w-sku,.ctable td.w-sku{min-width:210px;position:relative}
+.skucell{display:flex;flex-wrap:wrap;gap:5px;align-items:center;min-height:30px}
+.skuchip{display:inline-flex;align-items:center;gap:5px;max-width:190px;
+  background:var(--surface2);border:1px solid var(--line);border-radius:6px;
+  padding:3px 4px 3px 8px;font-size:.74rem;color:var(--mute);
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.skuchip button{background:none;border:0;color:var(--dim);font-size:.7rem;
+  padding:0 2px;line-height:1;flex:none}
+.skuchip button:hover{color:var(--lo)}
+.skuadd{background:none;border:1px dashed var(--line);color:var(--dim);
+  border-radius:6px;padding:3px 9px;font-size:.74rem;font-weight:600}
+.skuadd:hover{border-color:var(--accent);color:var(--accent)}
 
 .paycell{display:flex;align-items:center}
 .ctable td.vid{text-align:center}
@@ -627,6 +644,16 @@ main{padding:22px 24px;overflow-y:auto;max-height:calc(100vh - 62px)}
 .cmdbtn{background:var(--surface2);border:1px solid var(--line);color:var(--dim);
   border-radius:6px;padding:2px 8px;font-size:.72rem;font-weight:600;margin-left:7px}
 .cmdbtn:hover{border-color:var(--accent);color:var(--accent)}
+.cmdblk.edited{border-color:rgba(232,255,99,.4)}
+.cmdblk.edited > header::before{content:"แก้แล้ว";font-size:.66rem;color:var(--accent);
+  border:1px solid rgba(232,255,99,.35);border-radius:4px;padding:1px 6px}
+.cmdblk .cmdt{flex:1;min-width:0;font-size:.8rem;font-weight:600;padding:4px 8px}
+.cmdblk .cmdb{width:100%;border:0;border-radius:0;background:var(--surface2);
+  font-family:'IBM Plex Sans Thai',sans-serif;font-size:.82rem;line-height:1.65;
+  padding:12px;resize:vertical}
+.cmdblk .cmdb:focus{outline:none;background:var(--surface)}
+.cmdmeta code{background:var(--surface2);border-radius:4px;padding:1px 5px;
+  font-size:.72rem;color:var(--accent)}
 
 .drawer-head{display:flex;align-items:center;justify-content:space-between;gap:12px;
   padding:17px 18px;border-bottom:1px solid var(--line);flex:none}
@@ -2187,6 +2214,65 @@ const SKU_RC2 = [
 ];
 const skuListFor = proj => proj === "Red Chamber Phase 2" ? SKU_RC2 : null;
 
+// ─── SKU หลายอันต่อคน ───
+// เก็บเป็นสตริงเดียวคั่นด้วย " + " เหมือนเดิม เพราะ clipsOf() แยกคลิปจากตรงนี้อยู่แล้ว
+// ไม่ต้องเพิ่มคอลัมน์ในชีต และของเก่าที่พิมพ์ไว้แบบผสมก็ยังใช้ได้
+const skuParts = v => String(v || "").split(/\s*\+\s*/).map(s => s.trim()).filter(Boolean);
+const skuJoin = a => a.join(" + ");
+
+function skuOptions(){
+  const list = skuListFor(PROJ);
+  if (list) return list;
+  // โปรเจกต์ที่ไม่มีลิสต์ตายตัว ใช้ของที่เคยกรอกในโปรเจกต์นั้นเป็นตัวเลือก
+  return [...new Set((COORD[PROJ] || []).flatMap(r => skuParts(r.sku)))].sort();
+}
+
+function skuCell(r, i){
+  const parts = skuParts(r.sku);
+  return `<div class="skucell">${
+    parts.map(p => `<span class="skuchip" title="${esc(p)}">${esc(p)}<button
+      data-skudel="${i}" data-v="${esc(p)}" title="เอาออก">✕</button></span>`).join("")
+    }<button class="skuadd" data-sku="${i}" title="เพิ่ม SKU">${parts.length ? "＋" : "＋ เพิ่ม SKU"}</button></div>`;
+}
+
+function openSkuPicker(i, host){
+  document.querySelectorAll(".fpop").forEach(p => p.remove());
+  const r = (COORD[PROJ] || [])[i];
+  if (!r) return;
+  const cur = skuParts(r.sku);
+  const opts = [...new Set(skuOptions().concat(cur))];
+  const pop = document.createElement("div");
+  pop.className = "fpop skupop";
+  pop.innerHTML =
+    `<div class="fhead">เลือกได้หลายอัน<button data-clear="1">ล้าง</button></div>
+     <div class="flist">${opts.map(v =>
+       `<label><input type="checkbox" value="${esc(v)}"${cur.includes(v)?" checked":""}>
+        <span>${esc(v)}</span></label>`).join("") || `<div class="hint" style="padding:8px 10px">
+        ยังไม่มีตัวเลือก พิมพ์เพิ่มด้านล่างได้</div>`}</div>
+     <div class="fadd"><input placeholder="พิมพ์ SKU ใหม่แล้วกด Enter"></div>`;
+  host.appendChild(pop);
+
+  const commit = list => {
+    r.sku = skuJoin(list);
+    const k = ekey(r);
+    EDITS[k] = Object.assign({}, EDITS[k], { sku: r.sku });
+    saveEdits(); markDirty(); renderCoord();
+  };
+  pop.querySelectorAll(".flist input").forEach(c => c.onchange = () =>
+    commit([...pop.querySelectorAll(".flist input:checked")].map(x => x.value)));
+  pop.querySelector("[data-clear]").onclick = () => commit([]);
+  const add = pop.querySelector(".fadd input");
+  add.onkeydown = e => {
+    if (e.key !== "Enter") return;
+    e.preventDefault();
+    const v = add.value.trim();
+    if (v && !cur.includes(v)) commit(cur.concat(v));
+  };
+  pop.onclick = e => e.stopPropagation();
+  setTimeout(() => { add.focus(); document.addEventListener("click", function close(){
+    pop.remove(); document.removeEventListener("click", close); }); }, 0);
+}
+
 // ใส่จุลภาคระหว่างพิมพ์ โดยพยายามคงตำแหน่งเคอร์เซอร์ไว้ที่หลักเดิม
 function formatRateInput(inp){
   const before = inp.value.slice(0, inp.selectionStart).replace(/\D/g, "").length;
@@ -2401,6 +2487,18 @@ function renderCoord(){
   document.querySelectorAll("#coordBody [data-cmd]").forEach(b =>
     b.onclick = () => openCmd(PROJ, b.dataset.cmd));
 
+  document.querySelectorAll("#coordBody [data-sku]").forEach(b => b.onclick = e => {
+    e.stopPropagation(); openSkuPicker(+b.dataset.sku, b.parentElement);
+  });
+  document.querySelectorAll("#coordBody [data-skudel]").forEach(b => b.onclick = () => {
+    const r = (COORD[PROJ] || [])[+b.dataset.skudel];
+    if (!r) return;
+    r.sku = skuJoin(skuParts(r.sku).filter(v => v !== b.dataset.v));
+    const k = ekey(r);
+    EDITS[k] = Object.assign({}, EDITS[k], { sku: r.sku });
+    saveEdits(); markDirty(); renderCoord();
+  });
+
   document.querySelectorAll("#coordBody [data-exp]").forEach(b => b.onclick = () => {
     const r = (COORD[PROJ] || [])[+b.dataset.exp];
     if (!r) return;
@@ -2574,18 +2672,7 @@ function coordRow(r, i){
            title="ต้นทุนบริษัทรวมภาษีที่ออกให้">บริษัทจ่าย ฿${
            (Math.round(cost*100)/100).toLocaleString("en-US",{minimumFractionDigits:2})}</span>` : "");
     })()}</td>
-    <td>${(() => {
-      const list = skuListFor(PROJ);
-      if (!list) return `<input data-i="${i}" data-f="sku" value="${esc(r.sku || "")}"
-        placeholder="-" style="min-width:120px">`;
-      const cur = r.sku || "";
-      const extra = cur && !list.includes(cur) ? [cur] : [];
-      return `<select data-i="${i}" data-f="sku" style="min-width:190px">
-        <option value=""${cur ? "" : " selected"}>— ยังไม่เลือก —</option>
-        ${extra.map(v => `<option value="${esc(v)}" selected>${esc(v)} (ค่าเดิม)</option>`).join("")}
-        ${list.map(v => `<option value="${esc(v)}"${v === cur ? " selected" : ""}>${esc(v)}</option>`).join("")}
-      </select>`;
-    })()}</td>
+    <td class="w-sku">${skuCell(r, i)}</td>
     <td><input data-i="${i}" data-f="postdate" value="${esc(r.postdate || "")}"
         placeholder="-" style="width:100px"></td>
     <td><input data-i="${i}" data-f="deadline" value="${esc(r.deadline || "")}"
@@ -2727,15 +2814,24 @@ Hashtag:📱
 // ลิงก์ที่ใช้ซ้ำทุกคน เก็บในเครื่อง ไม่ฝังลงหน้าเว็บสาธารณะ
 const LS_CMDLINKS = "cf_cmdlinks_v1";
 const CMD_LINK_FIELDS = [
-  ["docs", "เอกสารสำคัญสำหรับร่วมงาน (Drive)"],
+  ["docsKOL", "เอกสารสำคัญร่วมงาน — KOL"],
+  ["docsKOC", "เอกสารสำคัญร่วมงาน — KOC"],
   ["form", "ฟอร์มเอกสารหัก ณ ที่จ่าย (Lark)"],
   ["cart", "ลิงก์ตะกร้า"],
   ["hashtag", "Hashtag"],
   ["timeline", "Timeline"],
 ];
+// เอกสารคนละใบระหว่าง KOL กับ KOC — เลือกตามช่องกลุ่มของแถวนั้น
+const CMD_DEFAULT_LINKS = {
+  docsKOL: "https://drive.google.com/file/d/1wxrLaSr5vZB6BLrglanTvCBYSPIsu0Tv/view",
+  docsKOC: "https://docs.google.com/document/d/1DUIOG2h2AYkbz_oaxL3Rxr1IV87eFKGW/edit?usp=sharing&ouid=110852103457419441632&rtpof=true&sd=true",
+};
 let CMDLINKS = {};
 function loadCmdLinks(){
   try { CMDLINKS = JSON.parse(localStorage.getItem(LS_CMDLINKS) || "{}") || {}; } catch(e){}
+  // ยังไม่เคยตั้งเอง = ใช้ค่าตั้งต้น แต่ถ้าเคยแก้แล้วเคารพของที่แก้ (รวมถึงลบให้ว่าง)
+  for (const k in CMD_DEFAULT_LINKS)
+    if (!(k in CMDLINKS)) CMDLINKS[k] = CMD_DEFAULT_LINKS[k];
 }
 function saveCmdLinks(){
   try { localStorage.setItem(LS_CMDLINKS, JSON.stringify(CMDLINKS)); } catch(e){}
@@ -2748,7 +2844,8 @@ function cmdValues(r){
     paytype: r.paytype ? payType(r.paytype).label.replace(/\s*\(.*\)$/, "") : "",
     net: net != null ? net.toLocaleString("en-US", {minimumFractionDigits:2}) : "",
     brief: r.brief || "", script: r.script || "", feedback: "",
-    docs: CMDLINKS.docs || "", form: CMDLINKS.form || "",
+    docs: ((r.kind || "") === "KOC" ? CMDLINKS.docsKOC : CMDLINKS.docsKOL) || "",
+    form: CMDLINKS.form || "",
     cart: CMDLINKS.cart || "", hashtag: CMDLINKS.hashtag || "",
     timeline: CMDLINKS.timeline || "",
   };
@@ -2756,7 +2853,7 @@ function cmdValues(r){
 
 const CMD_GAP = { sku:"ยังไม่มี SKU", rate:"ยังไม่มีเรท", paytype:"ยังไม่เลือกรูปแบบภาษี",
   net:"คิดไม่ได้ ต้องมีเรท+รูปแบบภาษี", brief:"ยังไม่มีลิงก์บรีฟ", script:"ยังไม่มีลิงก์สคริป",
-  feedback:"พิมพ์ฟีดแบคเอง", docs:"ตั้งลิงก์เอกสารในตั้งค่า", form:"ตั้งลิงก์ฟอร์มในตั้งค่า",
+  feedback:"พิมพ์ฟีดแบคเอง", docs:"ยังไม่มีลิงก์เอกสารของกลุ่มนี้", form:"ตั้งลิงก์ฟอร์มในตั้งค่า",
   cart:"ตั้งลิงก์ตะกร้าในตั้งค่า", hashtag:"ตั้ง hashtag ในตั้งค่า", timeline:"ใส่ไทม์ไลน์เอง" };
 
 // คืน 2 แบบ: ข้อความจริงไว้ก๊อป กับ HTML ที่ไฮไลต์ให้เห็นว่าตรงไหนยังว่าง
@@ -2771,15 +2868,72 @@ function fillBlock(body, vals){
   return { text, html, missing };
 }
 
+// ─── แก้ข้อความ Command เองได้ ───
+// เก็บเฉพาะบล็อกที่แก้ ที่ไม่แตะยังใช้ของตั้งต้น พออัปเดตโค้ดทีหลังจะได้ของใหม่ตามไปด้วย
+const LS_CMDEDIT = "cf_cmdedit_v1";
+let CMDEDIT = {};
+let CMD_EDITING = false;
+function loadCmdEdit(){
+  try { CMDEDIT = JSON.parse(localStorage.getItem(LS_CMDEDIT) || "{}") || {}; } catch(e){}
+}
+function saveCmdEdit(){
+  try { localStorage.setItem(LS_CMDEDIT, JSON.stringify(CMDEDIT)); } catch(e){}
+}
+const cmdBlocks = () => CMD_BLOCKS.map((b, i) =>
+  ({ t: (CMDEDIT[i] && CMDEDIT[i].t) || b.t,
+     b: (CMDEDIT[i] && CMDEDIT[i].b != null) ? CMDEDIT[i].b : b.b,
+     edited: !!CMDEDIT[i] }));
+
+function renderCmdEditor(proj, handle){
+  const list = cmdBlocks();
+  $("#cmdBody").innerHTML =
+    `<div class="cmdmeta">
+       กำลังแก้ข้อความต้นแบบ — <b>ใช้กับครีเอเตอร์ทุกคน</b> ไม่ใช่เฉพาะคนนี้<br>
+       ตัวแปรที่ใส่ได้: ${Object.keys(CMD_GAP).map(k => `<code>{{${k}}}</code>`).join(" ")}
+       <button class="cmdbtn" id="cmdDone">เสร็จแล้ว</button>
+       <button class="cmdbtn" id="cmdResetAll">คืนค่าต้นแบบทั้งหมด</button>
+     </div>` +
+    list.map((b, i) => `<div class="cmdblk${b.edited ? " edited" : ""}">
+      <header><span class="no">${String(i+1).padStart(2,"0")}</span>
+        <input class="cmdt" data-i="${i}" value="${esc(b.t)}">
+        ${b.edited ? `<button data-reset="${i}" title="คืนค่าบล็อกนี้">↺</button>` : ""}
+      </header>
+      <textarea class="cmdb" data-i="${i}" rows="${Math.min(16, b.b.split("\n").length + 1)}">${esc(b.b)}</textarea>
+    </div>`).join("");
+
+  const save = (i, key, val) => {
+    const def = CMD_BLOCKS[i];
+    const cur = Object.assign({ t: def.t, b: def.b }, CMDEDIT[i] || {});
+    cur[key] = val;
+    if (cur.t === def.t && cur.b === def.b) delete CMDEDIT[i];
+    else CMDEDIT[i] = cur;
+    saveCmdEdit();
+  };
+  document.querySelectorAll("#cmdBody .cmdt").forEach(el =>
+    el.onchange = () => save(+el.dataset.i, "t", el.value));
+  document.querySelectorAll("#cmdBody .cmdb").forEach(el =>
+    el.onchange = () => save(+el.dataset.i, "b", el.value));
+  document.querySelectorAll("#cmdBody [data-reset]").forEach(b => b.onclick = () => {
+    delete CMDEDIT[+b.dataset.reset]; saveCmdEdit(); renderCmdEditor(proj, handle);
+  });
+  $("#cmdResetAll").onclick = () => {
+    if (!confirm("คืนข้อความทุกบล็อกเป็นต้นแบบ? ที่แก้ไว้จะหาย")) return;
+    CMDEDIT = {}; saveCmdEdit(); renderCmdEditor(proj, handle);
+  };
+  $("#cmdDone").onclick = () => { CMD_EDITING = false; openCmd(proj, handle); };
+}
+
 function openCmd(proj, handle){
   const r = (COORD[proj] || []).find(x => normId(x.handle) === normId(handle));
   if (!r) return;
-  loadCmdLinks();
+  loadCmdLinks(); loadCmdEdit();
+  $("#cmdPanel").classList.add("on");
+  $("#cmdTitle").innerHTML = `Command · <span style="color:var(--accent)">${esc(r.handle)}</span>`;
+  if (CMD_EDITING) return renderCmdEditor(proj, handle);
+
   const vals = cmdValues(r);
   const net = payOf(r.rate, r.paytype);
-  $("#cmdTitle").innerHTML = `Command · <span style="color:var(--accent)">${esc(r.handle)}</span>`;
-
-  const blocks = CMD_BLOCKS.map(bl => Object.assign({ t: bl.t }, fillBlock(bl.b, vals)));
+  const blocks = cmdBlocks().map(bl => Object.assign({ t: bl.t }, fillBlock(bl.b, vals)));
   const gaps = blocks.reduce((s, b) => s + b.missing, 0);
 
   $("#cmdBody").innerHTML =
@@ -2791,6 +2945,7 @@ function openCmd(proj, handle){
        ${gaps ? `<span style="color:var(--lo)">ยังมีช่องว่าง ${gaps} จุด</span> — ที่ไฮไลต์แดงคือยังไม่มีข้อมูล เติมในตารางแล้วเปิดใหม่จะอัปเดตให้เอง`
               : `<span style="color:var(--hi)">ข้อมูลครบทุกช่อง</span>`}
        <button class="cmdbtn" id="cmdSetLinks">ตั้งลิงก์ที่ใช้ร่วมกัน</button>
+       <button class="cmdbtn" id="cmdEditBtn">✎ แก้ข้อความ</button>
      </div>` +
     blocks.map((b, i) => `<div class="cmdblk">
       <header><span class="no">${String(i+1).padStart(2,"0")}</span>${esc(b.t)}
@@ -2812,8 +2967,7 @@ function openCmd(proj, handle){
     }
     saveCmdLinks(); openCmd(proj, handle);
   };
-
-  $("#cmdPanel").classList.add("on");
+  $("#cmdEditBtn").onclick = () => { CMD_EDITING = true; renderCmdEditor(proj, handle); };
 }
 
 $("#syncBtn").onclick = () => syncCoord(true);
