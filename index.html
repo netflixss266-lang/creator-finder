@@ -122,6 +122,35 @@ body[data-view="coord"] .poolstat{display:none}
 .coord-sum span.src.locked{color:var(--hi);border-color:rgba(124,231,196,.4);
   background:rgba(124,231,196,.1)}
 .coord-sum b{color:var(--accent);font-family:'IBM Plex Mono',monospace}
+.syncbar{font-size:.8rem;border-radius:9px;padding:9px 13px;margin-bottom:12px;
+  border:1px solid var(--line);display:flex;align-items:center;flex-wrap:wrap;gap:6px}
+.syncbar:empty{display:none}
+.syncbar.ok{color:var(--hi);border-color:rgba(124,231,196,.3);background:rgba(124,231,196,.07)}
+.syncbar.warn{color:#f0c46b;border-color:rgba(240,196,107,.35);background:rgba(240,196,107,.09)}
+.syncbar.bad{color:var(--lo);border-color:rgba(240,128,107,.35);background:rgba(240,128,107,.09)}
+.syncbar.busy{color:var(--mute)}
+
+.coordtools{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:14px}
+@media(max-width:860px){.coordtools{grid-template-columns:1fr}}
+.ctool{background:var(--surface);border:1px solid var(--line);border-radius:11px}
+.ctool > summary{list-style:none;cursor:pointer;padding:12px 15px;font-size:.86rem;
+  font-weight:600;color:var(--mute);display:flex;align-items:center;gap:8px}
+.ctool > summary::-webkit-details-marker{display:none}
+.ctool > summary::after{content:"▾";margin-left:auto;color:var(--dim);transition:transform .13s}
+.ctool:not([open]) > summary::after{transform:rotate(-90deg)}
+.ctool > summary:hover{color:var(--ink)}
+.ctbody{padding:0 15px 15px}
+.ctbody .sect-sub{margin-bottom:11px}
+.cgrid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+@media(max-width:520px){.cgrid{grid-template-columns:1fr}}
+.cgrid label{display:block;font-size:.72rem;text-transform:uppercase;letter-spacing:.06em;
+  color:var(--mute);margin-bottom:5px;font-weight:600}
+.qorow{display:flex;gap:9px;align-items:flex-start;padding:8px 0;
+  border-bottom:1px solid var(--line);font-size:.8rem}
+.qorow:last-child{border-bottom:0}
+.qorow .ok{color:var(--hi)}
+.qorow .no{color:var(--lo)}
+
 .ctable{width:100%;border-collapse:collapse;font-size:.82rem}
 .ctable th{text-align:left;font-size:.68rem;text-transform:uppercase;letter-spacing:.07em;
   color:var(--dim);font-weight:600;padding:8px 9px;border-bottom:1px solid var(--line);
@@ -670,6 +699,43 @@ main{padding:22px 24px;overflow-y:auto;max-height:calc(100vh - 62px)}
     </div>
   </div>
   <div class="coord-sum" id="coordSum"></div>
+  <div class="syncbar" id="syncBar"></div>
+
+  <div class="coordtools">
+    <details class="ctool">
+      <summary>➕ เพิ่มครีเอเตอร์เข้าโปรเจกต์</summary>
+      <div class="ctbody">
+        <p class="sect-sub">ใส่แค่ 4 ช่องนี้ ที่เหลือเว้นไว้ ค่อยเติมในตารางทีหลัง</p>
+        <div class="cgrid">
+          <div><label>ID ครีเอเตอร์ *</label>
+            <input id="ncId" placeholder="เช่น tangkwaqs" autocomplete="off"></div>
+          <div><label>Link</label>
+            <input id="ncLink" placeholder="เว้นว่างได้ — สร้างจาก ID ให้เอง"></div>
+          <div><label>Project *</label><select id="ncProj"></select></div>
+          <div><label>กลุ่ม</label>
+            <select id="ncKind"><option>KOL</option><option>KOC</option></select></div>
+        </div>
+        <button class="run" id="ncAdd" style="margin-top:11px">เพิ่มเข้าโปรเจกต์</button>
+        <div class="addmsg" id="ncMsg"></div>
+      </div>
+    </details>
+
+    <details class="ctool">
+      <summary>⚡ Quick Order — สั่งแก้ด้วยข้อความ</summary>
+      <div class="ctbody">
+        <p class="sect-sub">
+          รูปแบบ: <code>ID / Project + สิ่งที่จะแก้</code> — บรรทัดละคำสั่ง<br>
+          <code style="color:var(--mute)">tangkwaqs / Red Chamber 2 + เปลี่ยนยอดการชำระ 1800</code><br>
+          คำที่รู้จัก: เรท/ยอดชำระ/จ่าย · สถานะ · โน้ต · งาน(code) · SKU · วันโพสต์ · ภาษี
+        </p>
+        <textarea id="qoText" placeholder="พิมพ์คำสั่งที่นี่ แล้วกดตรวจ"></textarea>
+        <button class="run" id="qoParse" style="margin-top:10px">ตรวจก่อนใช้</button>
+        <div id="qoPreview"></div>
+        <div class="addmsg" id="qoMsg"></div>
+      </div>
+    </details>
+  </div>
+
   <div id="coordBody"></div>
 </section>
 
@@ -1580,6 +1646,28 @@ const LS_COORD = "cf_coord_v1";       // เก็บเฉพาะที่แ
 const PROJECTS = ["Red Chamber Phase 1", "Red Chamber Phase 2",
                   "OBSBOT-KOL", "OBSBOT-KOC", "TikTok Live"];
 const STATUSES = ["", "briefed", "confirmed", "shipped", "filming", "posted", "paid"];
+
+// รูปแบบภาษี — คิด "จ่ายจริง" จากเรทที่ตกลงกัน
+// หัก ณ ที่จ่ายค่าบริการ = 3% ทั้งบุคคลและนิติบุคคล · VAT 7% บวกเฉพาะคนที่จด VAT
+// NET = ครีเอเตอร์รับเต็ม เราออกภาษีให้ ต้นทุนบริษัทจึงสูงกว่าเรท (rate/0.97)
+const PAYTYPES = [
+  { id:"",        label:"— ยังไม่เลือก —", f:null },
+  { id:"wht3",    label:"หัก ณ ที่จ่าย 3%",              f:r => r * 0.97 },
+  { id:"net",     label:"จ่าย NET (เราออกภาษีให้)",       f:r => r,          cost:r => r / 0.97 },
+  { id:"corpvat", label:"นิติบุคคล จด VAT (+7% −3%)",     f:r => r * 1.04 },
+  { id:"corp",    label:"นิติบุคคล ไม่จด VAT (−3%)",      f:r => r * 0.97 },
+  { id:"persvat", label:"บุคคลธรรมดา จด VAT (+7% −3%)",   f:r => r * 1.04 },
+  { id:"pers",    label:"บุคคลธรรมดา ไม่จด VAT (−3%)",    f:r => r * 0.97 },
+];
+const payType = id => PAYTYPES.find(p => p.id === (id || "")) || PAYTYPES[0];
+
+// คืน null ถ้าคำนวณไม่ได้ ดีกว่าโชว์เลขที่ไม่มีที่มา
+function payOf(rate, type){
+  const t = payType(type);
+  const n = Number(rate);
+  if (!t.f || !isFinite(n) || n <= 0) return null;
+  return Math.round(t.f(n) * 100) / 100;
+}
 const ST_TH = { "":"—", briefed:"ส่งบรีฟแล้ว", confirmed:"คอนเฟิร์มแล้ว",
                 shipped:"ส่งของแล้ว", filming:"ถ่ายอยู่", posted:"โพสต์แล้ว", paid:"จ่ายแล้ว" };
 let COORD = {};
@@ -1588,6 +1676,94 @@ let COORD_SRC = "";      // มาจากไหน โชว์ให้เห
 let PROJ = PROJECTS[0];
 
 const ekey = r => `${r.project}|${normId(r.handle)}|${r.code || ""}`;
+
+// ─── ซิงก์ขึ้นชีต ───
+// เว็บเป็นหน้าเว็บนิ่งๆ ตัวจับเวลาเดินได้เฉพาะตอนแท็บเปิดอยู่
+// ปิดแท็บ = ไม่มีอะไรซิงก์ เลยต้องบอกบนหน้าจอเสมอว่าค้างส่งอยู่กี่รายการ
+const LS_NEWROWS = "cf_coord_new_v1";
+const LS_DIRTY = "cf_coord_dirty_v1";
+const SYNC_EVERY = 60 * 60 * 1000;      // 1 ชั่วโมง
+let NEWROWS = [];
+let DIRTY = false;
+let SYNC_AT = 0;
+let SYNCING = false;
+
+function loadNewRows(){
+  try { NEWROWS = JSON.parse(localStorage.getItem(LS_NEWROWS) || "[]") || []; } catch(e){}
+  try { DIRTY = !!localStorage.getItem(LS_DIRTY); } catch(e){}
+}
+function saveNewRows(){
+  try { localStorage.setItem(LS_NEWROWS, JSON.stringify(NEWROWS)); } catch(e){}
+}
+function markDirty(){
+  DIRTY = true;
+  try { localStorage.setItem(LS_DIRTY, "1"); } catch(e){}
+  updateSyncBar();
+}
+function clearDirty(){
+  DIRTY = false; NEWROWS = [];
+  try { localStorage.removeItem(LS_DIRTY); localStorage.removeItem(LS_NEWROWS); } catch(e){}
+}
+
+function canSync(){ return !!(HOOK.url && HOOK.token); }
+
+async function syncCoord(manual){
+  if (SYNCING) return;
+  if (!DIRTY && !manual) return;
+  if (!canSync()){
+    if (manual) alert("ยังไม่ได้ตั้งค่า Apps Script — ไปที่ ⚙ ตั้งค่า ใส่ URL กับ token ก่อน");
+    return;
+  }
+  SYNCING = true; updateSyncBar();
+  const failed = [];
+  for (const p of PROJECTS){
+    const rows = COORD[p] || [];
+    if (!rows.length) continue;
+    const payload = rows.map(r => ({
+      handle: r.handle, link: r.link || `https://www.tiktok.com/@${r.handle}`,
+      kind: r.kind || "", code: r.code || "", status: r.status || "",
+      rate: r.rate ?? "", paytype: r.paytype || "",
+      net3: payOf(r.rate, r.paytype) ?? (r.net3 ?? ""),
+      sku: r.sku || "", postdate: r.postdate || "", deadline: r.deadline || "",
+      brief: r.brief || "", note: r.note || "",
+    }));
+    try {
+      const res = await fetch(HOOK.url, { method:"POST",
+        headers:{ "Content-Type":"text/plain;charset=utf-8" },
+        body: JSON.stringify({ token: HOOK.token, action:"coordWrite",
+                               project: p, rows: payload }) });
+      const said = await res.json().catch(() => null);
+      if (said && said.ok === false) failed.push(`${p}: ${said.error}`);
+    } catch(e){ failed.push(`${p}: ${e.message}`); }
+  }
+  SYNCING = false;
+  SYNC_AT = Date.now();
+  if (!failed.length) clearDirty();
+  updateSyncBar(failed);
+  if (manual)
+    alert(failed.length ? "ซิงก์ไม่ครบ:\n" + failed.join("\n")
+                        : "ซิงก์ขึ้นชีตเรียบร้อย");
+}
+
+function updateSyncBar(failed){
+  const el = $("#syncBar");
+  if (!el) return;
+  const when = SYNC_AT ? new Date(SYNC_AT).toLocaleTimeString("th-TH", {hour:"2-digit",minute:"2-digit"}) : "";
+  if (SYNCING){ el.className = "syncbar busy"; el.textContent = "กำลังซิงก์ขึ้นชีต..."; return; }
+  if (failed && failed.length){
+    el.className = "syncbar bad";
+    el.textContent = "ซิงก์ไม่สำเร็จ: " + failed[0]; return;
+  }
+  if (DIRTY){
+    el.className = "syncbar warn";
+    el.innerHTML = `มีที่แก้ยังไม่ขึ้นชีต — ซิงก์อัตโนมัติทุก 1 ชม. <b>เฉพาะตอนเปิดหน้านี้ค้างไว้</b>
+      <button class="export" id="syncNow" style="padding:3px 11px;margin-left:8px">ซิงก์เดี๋ยวนี้</button>`;
+  } else {
+    el.className = "syncbar ok";
+    el.textContent = when ? `ขึ้นชีตแล้ว · ล่าสุด ${when} น.` : "ตรงกับชีตแล้ว";
+  }
+  if ($("#syncNow")) $("#syncNow").onclick = () => syncCoord(true);
+}
 
 function loadEdits(){
   try {
@@ -1687,7 +1863,8 @@ function renderCoord(){
   $("#coordBody").innerHTML = `<div class="cwrap"><table class="ctable">
     <thead><tr>
       <th>ครีเอเตอร์</th><th>กลุ่ม</th><th>งาน</th><th>สถานะ</th>
-      <th style="text-align:right">เรท</th><th style="text-align:right">จ่ายจริง</th>
+      <th style="text-align:right">เรท</th><th>รูปแบบภาษี</th>
+      <th style="text-align:right">จ่ายจริง</th>
       <th>SKU</th><th>โพสต์</th><th>บรีฟ</th><th>โน้ต</th>
     </tr></thead><tbody>${rows.map((r, i) => coordRow(r, i)).join("")}</tbody></table></div>`;
 
@@ -1698,10 +1875,13 @@ function renderCoord(){
         ? (el.value.trim() === "" ? null : Number(el.value.replace(/,/g, "")))
         : el.value;
       if (f === "rate") r.rate_all = [];        // ยืนยันด้วยมือแล้ว ธงลง
+      // จ่ายจริงคิดจากเรท+รูปแบบภาษีเสมอ เก็บไว้ด้วยเพื่อให้ชีตมีตัวเลขให้อ่าน
+      if (f === "rate" || f === "paytype") r.net3 = payOf(r.rate, r.paytype);
       const k = ekey(r);
       EDITS[k] = Object.assign({}, EDITS[k], { [f]: r[f] },
-                               f === "rate" ? { rate_all: [] } : {});
-      saveEdits(); renderProjTabs(); renderCoord();
+                               f === "rate" ? { rate_all: [] } : {},
+                               (f === "rate" || f === "paytype") ? { net3: r.net3 } : {});
+      saveEdits(); markDirty(); renderProjTabs(); renderCoord();
     };
   });
 }
@@ -1723,8 +1903,18 @@ function coordRow(r, i){
              value="${r.rate == null ? "" : r.rate}" placeholder="ยังไม่รู้">
       ${amb ? `<span class="flag" title="ในบรีฟเจอหลายค่า: ${esc((r.rate_all||[]).join(" / "))} — เลือกให้ตรงแล้วธงจะหาย">⚑</span>` : ""}
       ${noRate ? `<span class="flag" title="ในบรีฟไม่มีตัวเลขเรทเลย">⚑</span>` : ""}</td>
-    <td class="mono">${r.net3 == null ? `<span style="color:var(--dim)">—</span>`
-      : "฿" + Number(r.net3).toLocaleString("en-US")}</td>
+    <td><select data-i="${i}" data-f="paytype" style="min-width:150px">${PAYTYPES.map(p =>
+        `<option value="${p.id}"${p.id === (r.paytype||"") ? " selected" : ""}>${esc(p.label)}</option>`).join("")}</select></td>
+    <td class="mono">${(() => {
+      const auto = payOf(r.rate, r.paytype);
+      if (auto == null) return `<span style="color:var(--dim)">—</span>`;
+      const t = payType(r.paytype);
+      const cost = t.cost ? t.cost(Number(r.rate)) : null;
+      return `<b>฿${auto.toLocaleString("en-US",{minimumFractionDigits:2})}</b>` +
+        (cost ? `<br><span style="color:var(--dim);font-size:.72rem"
+           title="ต้นทุนบริษัทรวมภาษีที่ออกให้">บริษัทจ่าย ฿${
+           (Math.round(cost*100)/100).toLocaleString("en-US",{minimumFractionDigits:2})}</span>` : "");
+    })()}</td>
     <td>${esc(r.sku || "")}</td>
     <td>${esc(r.postdate || r.deadline || "")}</td>
     <td>${link ? `<a href="${esc(link)}" target="_blank" rel="noopener noreferrer">เปิด ↗</a>` : ""}</td>
@@ -1806,7 +1996,7 @@ async function setView(v){
   if (v === "coord"){
     $("#coordBody").innerHTML = `<div class="loading"><span class="spin"></span>กำลังโหลดจากชีต...</div>`;
     await loadCoordData();
-    renderProjTabs(); renderCoord();
+    renderProjTabs(); renderCoord(); fillProjSelect(); updateSyncBar();
   }
   if (v === "home") homeCounts();
 }
@@ -2663,6 +2853,138 @@ $("#coordExport").onclick = () => {
   a.click();
 };
 
+// ─── เพิ่มครีเอเตอร์เข้าโปรเจกต์ (Coordinate เท่านั้น ไม่ยุ่งกับ pool) ───
+function fillProjSelect(){
+  $("#ncProj").innerHTML = PROJECTS.map(p =>
+    `<option value="${esc(p)}"${p === PROJ ? " selected" : ""}>${esc(p)}</option>`).join("");
+}
+
+$("#ncAdd").onclick = () => {
+  const msg = $("#ncMsg");
+  const id = normId($("#ncId").value);
+  const proj = $("#ncProj").value;
+  if (!id){ msg.className = "addmsg on err"; msg.textContent = "ต้องใส่ ID"; return; }
+  if ((COORD[proj] || []).some(r => normId(r.handle) === id)){
+    msg.className = "addmsg on err";
+    msg.innerHTML = `มี <b>${esc(id)}</b> ใน ${esc(proj)} อยู่แล้ว`; return;
+  }
+  COORD[proj].push({ handle: id, project: proj, kind: $("#ncKind").value,
+    link: safeLinkUrl($("#ncLink").value) || `https://www.tiktok.com/@${id}`,
+    code:"", status:"", rate:null, paytype:"", net3:null,
+    sku:"", postdate:"", deadline:"", brief:"", note:"", rate_all:[] });
+  NEWROWS.push({ project: proj, handle: id });
+  saveNewRows(); markDirty();
+  ["ncId","ncLink"].forEach(x => $("#"+x).value = "");
+  if (proj !== PROJ){ PROJ = proj; }
+  renderProjTabs(); renderCoord(); fillProjSelect();
+  msg.className = "addmsg on ok";
+  msg.innerHTML = `เพิ่ม <b>${esc(id)}</b> เข้า ${esc(proj)} แล้ว — จะขึ้นชีตในรอบซิงก์ถัดไป`;
+  $("#ncId").focus();
+};
+
+// ─── Quick Order ───
+// ตั้งใจให้แคบและเดาน้อย: อ่านไม่ออกคือบอกว่าอ่านไม่ออก ไม่เดาแล้วแก้ผิดตัว
+const QO_FIELDS = [
+  { f:"rate",    re:/(เรท|ยอด(?:การ)?ชำระ|ค่าตัว|จ่าย|rate)\D{0,12}?([\d,]+)/i, num:true },
+  { f:"note",    re:/(โน้ต|หมายเหตุ|note)\s*[:：]?\s*(.+)$/i },
+  { f:"code",    re:/(งาน|code)\s*[:：]?\s*([A-Za-z0-9+\/._-]+)/i },
+  { f:"sku",     re:/sku\s*[:：]?\s*([A-Za-z0-9\s]+)/i, one:true },
+  { f:"postdate",re:/(วันโพสต์|โพสต์วันที่|post)\s*[:：]?\s*(.+?)$/i },
+];
+const QO_STATUS = { "ส่งบรีฟ":"briefed", "บรีฟแล้ว":"briefed", "คอนเฟิร์ม":"confirmed",
+  "ส่งของ":"shipped", "ถ่าย":"filming", "โพสต์แล้ว":"posted", "จ่ายแล้ว":"paid" };
+
+function matchProject(s){
+  const t = String(s).trim().toLowerCase().replace(/\s+/g, " ");
+  let hit = PROJECTS.find(p => p.toLowerCase() === t);
+  if (hit) return hit;
+  // "Red Chamber 2" -> "Red Chamber Phase 2"
+  const digits = (t.match(/\d+/) || [])[0];
+  const words = t.replace(/\d+/g, "").trim();
+  hit = PROJECTS.find(p => {
+    const pl = p.toLowerCase();
+    const pd = (pl.match(/\d+/) || [])[0];
+    return pl.replace(/phase|\d+/g, "").trim().startsWith(words.slice(0, 6))
+           && (!digits || digits === pd);
+  });
+  return hit || null;
+}
+
+function parseQuickOrder(line){
+  const out = { line, ok:false, why:"", changes:{} };
+  const m = line.split("+");
+  const head = (m[0] || "").split("/");
+  if (head.length < 2 || m.length < 2){
+    out.why = "ต้องเป็นรูปแบบ  ID / Project + สิ่งที่จะแก้"; return out;
+  }
+  const id = normId(head[0]);
+  const proj = matchProject(head.slice(1).join("/"));
+  const body = m.slice(1).join("+").trim();
+  if (!proj){ out.why = `ไม่รู้จักโปรเจกต์ "${head.slice(1).join("/").trim()}"`; return out; }
+  const row = (COORD[proj] || []).find(r => normId(r.handle) === id);
+  if (!row){ out.why = `ไม่เจอ ${id} ใน ${proj}`; return out; }
+  out.id = id; out.proj = proj; out.row = row;
+
+  for (const k in QO_STATUS) if (body.includes(k)) out.changes.status = QO_STATUS[k];
+  for (const t of PAYTYPES)
+    if (t.id && (body.includes(t.label) || (t.id === "net" && /\bNET\b/i.test(body))))
+      out.changes.paytype = t.id;
+  for (const spec of QO_FIELDS){
+    const mm = body.match(spec.re);
+    if (!mm) continue;
+    const raw = (spec.one ? mm[1] : mm[2] || "").trim();
+    if (!raw) continue;
+    out.changes[spec.f] = spec.num ? Number(raw.replace(/,/g, "")) : raw;
+  }
+  if (!Object.keys(out.changes).length){
+    out.why = "อ่านไม่ออกว่าจะให้แก้อะไร"; return out;
+  }
+  if ("rate" in out.changes)
+    out.changes.net3 = payOf(out.changes.rate, out.changes.paytype ?? row.paytype);
+  out.ok = true;
+  return out;
+}
+
+const QO_LABEL = { rate:"เรท", net3:"จ่ายจริง", status:"สถานะ", note:"โน้ต",
+                   code:"งาน", sku:"SKU", postdate:"วันโพสต์", paytype:"รูปแบบภาษี" };
+let QO = [];
+
+$("#qoParse").onclick = () => {
+  QO = $("#qoText").value.split(/\r?\n/).map(s => s.trim()).filter(Boolean)
+        .map(parseQuickOrder);
+  const good = QO.filter(q => q.ok);
+  $("#qoPreview").innerHTML = QO.map(q => q.ok
+    ? `<div class="qorow"><span class="ok">✓</span><div><b>${esc(q.id)}</b>
+        <span style="color:var(--dim)">${esc(q.proj)}</span><br>${
+        Object.entries(q.changes).map(([k, v]) =>
+          `${esc(QO_LABEL[k] || k)}: <b>${esc(k === "paytype" ? payType(v).label : v)}</b>`
+        ).join(" · ")}</div></div>`
+    : `<div class="qorow"><span class="no">✕</span><div>${esc(q.line)}<br>
+        <span class="no">${esc(q.why)}</span></div></div>`).join("");
+  const msg = $("#qoMsg");
+  msg.className = "addmsg on " + (good.length ? "ok" : "err");
+  msg.innerHTML = `อ่านได้ ${good.length}/${QO.length} คำสั่ง` +
+    (good.length ? ` <button class="export" id="qoApply" style="margin-left:8px;padding:4px 12px">ใช้ ${good.length} คำสั่งนี้</button>` : "");
+  if ($("#qoApply")) $("#qoApply").onclick = applyQuickOrder;
+};
+
+function applyQuickOrder(){
+  let n = 0;
+  QO.filter(q => q.ok).forEach(q => {
+    Object.assign(q.row, q.changes);
+    if ("rate" in q.changes) q.row.rate_all = [];
+    const k = ekey(q.row);
+    EDITS[k] = Object.assign({}, EDITS[k], q.changes,
+                             "rate" in q.changes ? { rate_all: [] } : {});
+    n++;
+  });
+  saveEdits(); markDirty(); renderProjTabs(); renderCoord();
+  $("#qoText").value = ""; $("#qoPreview").innerHTML = ""; QO = [];
+  const msg = $("#qoMsg");
+  msg.className = "addmsg on ok";
+  msg.innerHTML = `แก้แล้ว <b>${n}</b> รายการ — จะขึ้นชีตในรอบซิงก์ถัดไป`;
+}
+
 document.querySelectorAll(".hcard").forEach(b => b.onclick = () => setView(b.dataset.go));
 $("#backBtn").onclick = () => setView("home");
 
@@ -2702,7 +3024,9 @@ $("#hideLiked").checked = HIDE_LIKED;
 loadCrit();
 loadCart();
 loadEdits();
+loadNewRows();
 shapeCoord(SEED_COORD);
+setInterval(() => syncCoord(false), SYNC_EVERY);
 updateCartBtn();
 renderCrit();
 // ประตูหน้าแรกก่อน แล้วค่อยเจอสองช่อง — ไม่จำหน้าล่าสุด
