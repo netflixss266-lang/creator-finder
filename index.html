@@ -964,11 +964,13 @@ main{padding:22px 24px;overflow-y:auto;max-height:calc(100vh - 62px)}
       <summary>⚡ Quick Order — สั่งแก้ด้วยข้อความ</summary>
       <div class="ctbody">
         <p class="sect-sub">
-          รูปแบบ: <code>ID / Project + สิ่งที่จะแก้</code> — บรรทัดละคำสั่ง<br>
-          <code style="color:var(--mute)">tangkwaqs / Red Chamber 2 + เปลี่ยนยอดการชำระ 1800</code><br>
-          คำที่รู้จัก: เรท/ยอดชำระ/จ่าย · สถานะ · โน้ต · งาน(code) · SKU · วันโพสต์ · ภาษี<br>
-          <b>ย้ายโปรเจกต์:</b> <code style="color:var(--mute)">tangkwaqs / Red Chamber 1 + ย้ายไป Red Chamber 2</code><br>
-          <b>สลับ KOL/KOC:</b> <code style="color:var(--mute)">remind555 / Red Chamber 2 + KOC</code>
+          พิมพ์เป็นประโยคได้เลย ไม่ต้องมีรูปแบบตายตัว — <b>บรรทัดละคำสั่ง</b><br>
+          <code style="color:var(--mute)">cenakims เรท 12000 หัก ณ ที่จ่าย 3% โพสต์แล้ว</code><br>
+          <code style="color:var(--mute)">ย้าย 052.be ไป Red Chamber 2</code><br>
+          <code style="color:var(--mute)">RC2 tangkwaqs babimaofad รอ Draft 2</code><br>
+          <span style="color:var(--dim)">อ่านจากทั้งบรรทัด ไม่สนลำดับ · ชื่อครีเอเตอร์เทียบกับรายชื่อจริง
+          · ใส่หลายคนในบรรทัดเดียวได้ · ชื่อซ้ำหลายโปรเจกต์ให้ระบุโปรเจกต์ด้วย<br>
+          อ่านได้: เรท · ภาษี · สถานะ · จำนวนคลิป · SKU · งาน · โน้ต: · วันโพสต์ · กำหนดส่ง · ลิงก์บรีฟ · KOL/KOC · ย้ายโปรเจกต์</span>
         </p>
         <textarea id="qoText" placeholder="พิมพ์คำสั่งที่นี่ แล้วกดตรวจ"></textarea>
         <button class="run" id="qoParse" style="margin-top:10px">ตรวจก่อนใช้</button>
@@ -4079,11 +4081,13 @@ $("#ncBulkParse").onclick = () => {
 // ─── Quick Order ───
 // ตั้งใจให้แคบและเดาน้อย: อ่านไม่ออกคือบอกว่าอ่านไม่ออก ไม่เดาแล้วแก้ผิดตัว
 const QO_FIELDS = [
-  { f:"rate",    re:/(เรท|ยอด(?:การ)?ชำระ|ค่าตัว|จ่าย|rate)\D{0,12}?([\d,]+)/i, num:true },
-  { f:"note",    re:/(โน้ต|หมายเหตุ|note)\s*[:：]?\s*(.+)$/i },
-  { f:"code",    re:/(งาน|code)\s*[:：]?\s*([A-Za-z0-9+\/._-]+)/i },
-  { f:"sku",     re:/sku\s*[:：]?\s*([A-Za-z0-9\s]+)/i, one:true },
-  { f:"postdate",re:/(วันโพสต์|โพสต์วันที่|post)\s*[:：]?\s*(.+?)$/i },
+  { f:"rate",    re:/(?:เรท|ยอด(?:การ)?ชำระ|ค่าตัว|ค่าจ้าง|จ่าย|rate)\D{0,12}?([\d,]+)/i, num:true },
+  { f:"videos",  re:/(\d+)\s*(?:คลิป|วิดีโอ|วีดีโอ|clips?|videos?)/i, num:true },
+  { f:"note",    re:/(?:โน้ต|หมายเหตุ|note)\s*[:：]\s*(.+?)$/i },
+  { f:"postdate",re:/(?:วันโพสต์|โพสต์วันที่|ลงวันที่|post(?:ed)?\s*date)\s*[:：]?\s*(.+?)$/i },
+  { f:"deadline",re:/(?:กำหนดส่ง|เดดไลน์|deadline|ไม่เกินวันที่)\s*[:：]?\s*(.+?)$/i },
+  { f:"code",    re:/(?:งาน|code)\s*[:：]?\s*([A-Za-z](?:\s*\+\s*[A-Za-z])*)\b/i },
+  { f:"brief",   re:/(https?:\/\/\S*canva\S*|https?:\/\/\S*(?:brief|drive|docs)\S*)/i },
 ];
 const QO_STATUS = { "ส่งบรีฟ":"briefed", "บรีฟแล้ว":"briefed", "คอนเฟิร์ม":"confirmed",
   "ส่งของ":"shipped", "ถ่าย":"filming", "โพสต์แล้ว":"posted", "จ่ายแล้ว":"paid" };
@@ -4104,54 +4108,122 @@ function matchProject(s){
   return hit || null;
 }
 
-function parseQuickOrder(line){
-  const out = { line, ok:false, why:"", changes:{} };
-  const m = line.split("+");
-  const head = (m[0] || "").split("/");
-  if (head.length < 2 || m.length < 2){
-    out.why = "ต้องเป็นรูปแบบ  ID / Project + สิ่งที่จะแก้"; return out;
-  }
-  const id = normId(head[0]);
-  const proj = matchProject(head.slice(1).join("/"));
-  const body = m.slice(1).join("+").trim();
-  if (!proj){ out.why = `ไม่รู้จักโปรเจกต์ "${head.slice(1).join("/").trim()}"`; return out; }
-  const row = (COORD[proj] || []).find(r => normId(r.handle) === id);
-  if (!row){ out.why = `ไม่เจอ ${id} ใน ${proj}`; return out; }
-  out.id = id; out.proj = proj; out.row = row;
+// ─── ตัวอ่านคำสั่งแบบอิสระ ───
+// ไม่บังคับรูปแบบ พิมพ์เป็นประโยคได้เลย หลักการคือหา "ใคร" กับ "เปลี่ยนอะไร"
+// จากทั้งบรรทัด ไม่สนลำดับ — ชื่อครีเอเตอร์ใช้เทียบกับรายชื่อจริงในระบบ ไม่เดาจากตำแหน่ง
+const esc4re = s => s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 
-  // ย้ายโปรเจกต์ — "ย้ายไป Red Chamber 2" / "-> OBSBOT-KOL"
-  const mv = body.match(/(?:ย้าย(?:ไป)?|move|->|→)\s*(.+?)\s*$/i);
-  if (mv){
-    const dest = matchProject(mv[1]);
-    if (dest && dest !== proj) out.moveTo = dest;
-    else if (!dest && /ย้าย|move|->|→/i.test(body) && !/KO[LC]/i.test(body)){
-      out.why = `ไม่รู้จักโปรเจกต์ปลายทาง "${mv[1]}"`; return out;
-    }
-  }
-  // สลับ KOL/KOC — เขียนคำว่า KOL หรือ KOC ลอยๆ ก็พอ
-  const km = body.match(/\b(KOL|KOC)\b/i);
-  if (km && km[1].toUpperCase() !== (row.kind || "").toUpperCase())
-    out.changes.kind = km[1].toUpperCase();
+function handleIndex(){
+  const m = new Map();
+  PROJECTS.forEach(p => (COORD[p] || []).forEach(r => {
+    const k = normId(r.handle);
+    if (!m.has(k)) m.set(k, []);
+    m.get(k).push({ proj: p, row: r });
+  }));
+  return m;
+}
 
-  for (const k in QO_STATUS) if (body.includes(k)) out.changes.status = QO_STATUS[k];
+// หาชื่อโปรเจกต์ที่ถูกพูดถึงในข้อความ พร้อมตำแหน่งที่เจอ
+function findProjects(text){
+  const low = text.toLowerCase();
+  const hits = [];
+  PROJECTS.forEach(p => {
+    const aliases = [p.toLowerCase()];
+    const mm = p.match(/^(.*?)\s*phase\s*(\d+)$/i);
+    if (mm) aliases.push(`${mm[1].toLowerCase()} ${mm[2]}`, `rc${mm[2]}`, `rc ${mm[2]}`);
+    if (p === "OBSBOT-KOL") aliases.push("obs-kol", "obs kol", "obsbot kol");
+    if (p === "OBSBOT-KOC") aliases.push("obs-koc", "obs koc", "obsbot koc");
+    aliases.forEach(a => {
+      const at = low.indexOf(a);
+      if (at >= 0) hits.push({ proj: p, at, len: a.length });
+    });
+  });
+  // ตัวที่ยาวกว่าชนะเมื่อทับตำแหน่งกัน ("red chamber phase 2" ชนะ "rc2")
+  hits.sort((a, b) => a.at - b.at || b.len - a.len);
+  return hits.filter((h, i) => !hits.slice(0, i).some(g =>
+    g.proj === h.proj || (h.at >= g.at && h.at < g.at + g.len)));
+}
+
+function parseQuickLine(line){
+  const idx = handleIndex();
+  const bad = why => [{ line, ok:false, why, changes:{} }];
+
+  // ── ใคร ──
+  const found = [];
+  idx.forEach((entries, h) => {
+    if (new RegExp(`(?<![A-Za-z0-9._])${esc4re(h)}(?![A-Za-z0-9._])`, "i").test(line))
+      found.push({ h, entries });
+  });
+  if (!found.length) return bad("ไม่เจอชื่อครีเอเตอร์ที่มีอยู่จริงในบรรทัดนี้");
+  // ชื่อที่ยาวกว่ากินชื่อที่สั้นกว่า กันกรณี "ns.juice" ไปโดนจับพร้อม "ns.juice_"
+  const names = found.filter(a => !found.some(b => b !== a && b.h.includes(a.h)));
+
+  // ── โปรเจกต์ + การย้าย ──
+  const projs = findProjects(line);
+  const mvAt = (line.match(/ย้าย(?:ไป|เข้า)?|move to|move|->|→/i) || {}).index;
+  const moveWord = /ย้าย|move|->|→/i.test(line);
+  let dest = null, filter = null;
+  if (moveWord && projs.length){
+    const after = mvAt == null ? projs[projs.length-1] : projs.find(p => p.at > mvAt) || projs[projs.length-1];
+    dest = after.proj;
+    filter = (projs.find(p => p !== after) || {}).proj || null;
+  } else if (projs.length) {
+    filter = projs[0].proj;
+  }
+  if (moveWord && !dest) return bad("บอกว่าจะย้าย แต่ไม่เจอชื่อโปรเจกต์ปลายทางที่รู้จัก");
+
+  // ── เปลี่ยนอะไร ──
+  const changes = {};
+  for (const k in QO_STATUS) if (line.includes(k)) changes.status = QO_STATUS[k];
+  for (const s of STATUSES)
+    if (s && (line.toLowerCase().includes(s.toLowerCase()) ||
+              (ST_TH[s] && line.includes(ST_TH[s])))) changes.status = s;
   for (const t of PAYTYPES)
-    if (t.id && (body.includes(t.label) || (t.id === "net" && /\bNET\b/i.test(body))))
-      out.changes.paytype = t.id;
+    if (t.id && (line.includes(t.label) ||
+        (t.id === "net" && /\bNET\b/.test(line)) ||
+        (t.id === "wht3" && /หัก\s*ณ\s*ที่จ่าย\s*3/.test(line)))) changes.paytype = t.id;
+  const km = line.match(/(?<![A-Za-z])(KOL|KOC)(?![A-Za-z])/i);
+  if (km) changes.kind = km[1].toUpperCase();
+  for (const sku of skuOptions()) if (line.includes(sku)) changes.sku = sku;
   for (const spec of QO_FIELDS){
-    const mm = body.match(spec.re);
-    if (!mm) continue;
-    const raw = (spec.one ? mm[1] : mm[2] || "").trim();
+    const mm = line.match(spec.re);
+    if (!mm || !mm[1]) continue;
+    const raw = String(mm[1]).trim();
     if (!raw) continue;
-    out.changes[spec.f] = spec.num ? Number(raw.replace(/,/g, "")) : raw;
+    changes[spec.f] = spec.num ? Number(raw.replace(/,/g, "")) : raw;
   }
-  if (!Object.keys(out.changes).length && !out.moveTo){
-    out.why = "อ่านไม่ออกว่าจะให้แก้อะไร"; return out;
+
+  if (!Object.keys(changes).length && !dest)
+    return bad(`เจอ ${names.map(n => n.h).join(", ")} แต่อ่านไม่ออกว่าจะให้แก้อะไร`);
+
+  // ── จับคู่คนกับโปรเจกต์ ──
+  const out = [];
+  for (const n of names){
+    let hit = n.entries;
+    if (filter) hit = hit.filter(e => e.proj === filter);
+    if (!hit.length)
+      { out.push({ line, ok:false, changes:{},
+        why:`${n.h} ไม่อยู่ใน ${filter}` }); continue; }
+    if (hit.length > 1)
+      { out.push({ line, ok:false, changes:{},
+        why:`${n.h} อยู่ใน ${hit.map(e => e.proj).join(" และ ")} — ระบุโปรเจกต์ด้วย` }); continue; }
+    const { proj, row } = hit[0];
+    if (dest && dest === proj)
+      { out.push({ line, ok:false, changes:{}, why:`${n.h} อยู่ใน ${dest} อยู่แล้ว` }); continue; }
+    const ch = Object.assign({}, changes);
+    if (ch.kind === (row.kind || "").toUpperCase()) delete ch.kind;
+    // ทุกอย่างที่สั่งตรงกับของเดิมอยู่แล้ว = ไม่มีอะไรให้ทำ บอกไปตรงๆ ดีกว่าขึ้นว่าสำเร็จ
+    if (!Object.keys(ch).length && !dest)
+      { out.push({ line, ok:false, changes:{},
+        why:`${n.h} เป็นแบบนั้นอยู่แล้ว ไม่มีอะไรเปลี่ยน` }); continue; }
+    if ("rate" in ch) ch.net3 = payOf(ch.rate, ch.paytype ?? row.paytype);
+    out.push({ line, ok:true, id:n.h, proj, row, changes:ch, moveTo: dest || undefined });
   }
-  if ("rate" in out.changes)
-    out.changes.net3 = payOf(out.changes.rate, out.changes.paytype ?? row.paytype);
-  out.ok = true;
   return out;
 }
+
+// เก็บชื่อเดิมไว้ให้ที่อื่นเรียกได้เหมือนเดิม
+function parseQuickOrder(line){ return parseQuickLine(line); }
 
 const QO_LABEL = { rate:"เรท", net3:"จ่ายจริง", status:"สถานะ", note:"โน้ต",
                    code:"งาน", sku:"SKU", postdate:"วันโพสต์", paytype:"รูปแบบภาษี" };
@@ -4159,7 +4231,7 @@ let QO = [];
 
 $("#qoParse").onclick = () => {
   QO = $("#qoText").value.split(/\r?\n/).map(s => s.trim()).filter(Boolean)
-        .map(parseQuickOrder);
+        .flatMap(parseQuickLine);
   const good = QO.filter(q => q.ok);
   $("#qoPreview").innerHTML = QO.map(q => q.ok
     ? `<div class="qorow"><span class="ok">✓</span><div><b>${esc(q.id)}</b>
