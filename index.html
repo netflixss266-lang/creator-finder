@@ -243,6 +243,57 @@ body[data-view="coord"] #cartBtn{display:none}
 .tag.job.j-c{color:#d0d5a8;border-color:rgba(208,213,168,.35);background:rgba(208,213,168,.1)}
 .tag.job.j-x{color:var(--mute)}
 
+/* คอลัมน์ที่ต้องคุมความกว้างเอง ไม่งั้นเบียดกันจนอ่านไม่ออก */
+.ctable th.w-move,.ctable td.w-move{width:26px;text-align:center;color:var(--dim);
+  cursor:grab;user-select:none;padding-left:4px;padding-right:4px}
+.ctable td.w-move:active{cursor:grabbing}
+.ctable th.w-job,.ctable td.w-job{min-width:104px}
+.ctable td.w-job input{width:96px;text-align:center;font-weight:600;
+  font-family:'IBM Plex Mono',monospace}
+.ctable th.w-status,.ctable td.w-status{min-width:236px}
+.ctable td.w-status select{width:230px}
+.ctable td.w-brief{white-space:nowrap}
+.ctable th.w-del,.ctable td.w-del{width:38px;text-align:center}
+.delrow{background:none;border:1px solid transparent;color:var(--dim);
+  border-radius:7px;padding:4px 7px;font-size:.9rem;line-height:1}
+.delrow:hover{border-color:var(--lo);color:var(--lo);background:rgba(240,128,107,.1)}
+.ctable .who .go{color:var(--dim);flex:none;padding:0 2px}
+.ctable .who .go:hover{color:var(--accent)}
+.ctable .who input.nm{flex:1;min-width:0;font-weight:600}
+tr.dragging{opacity:.4}
+tr.dropover td{border-top:2px solid var(--accent)}
+/* สีของงานตอนเป็นช่องกรอก */
+.job-in.j-b{color:#ff9ec4;border-color:rgba(255,158,196,.4)}
+.job-in.j-e{color:#b79cff;border-color:rgba(183,156,255,.4)}
+.job-in.j-l{color:#ffb37a;border-color:rgba(255,179,122,.4)}
+.job-in.j-f{color:#7fd8ff;border-color:rgba(127,216,255,.4)}
+.job-in.j-c{color:#d0d5a8;border-color:rgba(208,213,168,.4)}
+
+/* ── ตัวกรองหัวตาราง ── */
+.ctable th.hasfilter{position:relative;padding-right:26px}
+.fbtn{position:absolute;right:5px;top:50%;transform:translateY(-50%);
+  background:none;border:0;color:var(--dim);font-size:.6rem;padding:3px 4px;
+  border-radius:4px;line-height:1}
+.fbtn:hover{color:var(--accent);background:var(--surface2)}
+.fbtn.on{color:var(--accent-ink);background:var(--accent)}
+.fpop{position:absolute;top:100%;right:0;z-index:20;width:270px;text-align:left;
+  background:var(--surface2);border:1px solid var(--accent);border-radius:10px;
+  box-shadow:0 10px 30px rgba(0,0,0,.55);text-transform:none;letter-spacing:0}
+.fpop .fhead{display:flex;gap:6px;align-items:center;padding:9px 11px;
+  border-bottom:1px solid var(--line);font-size:.78rem;color:var(--ink);font-weight:600}
+.fpop .fhead button{margin-left:auto;background:none;border:1px solid var(--line);
+  color:var(--mute);border-radius:5px;padding:2px 7px;font-size:.68rem;font-weight:600}
+.fpop .fhead button:last-child{margin-left:0}
+.fpop .fhead button:hover{border-color:var(--accent);color:var(--accent)}
+.fpop .flist{max-height:280px;overflow-y:auto;padding:7px 4px}
+.fpop label{display:flex;align-items:center;gap:8px;padding:5px 8px;border-radius:6px;
+  font-size:.78rem;color:var(--mute);font-weight:400;cursor:pointer}
+.fpop label:hover{background:var(--surface)}
+.fpop label input{width:auto;flex:none;accent-color:var(--accent)}
+.fpop label span{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.fpop label i{font-style:normal;color:var(--dim);font-family:'IBM Plex Mono',monospace;
+  font-size:.7rem;flex:none}
+
 .paycell{display:flex;align-items:center}
 .ctable td.vid{text-align:center}
 .ctable td.vid input{width:58px;text-align:center;
@@ -604,6 +655,7 @@ main{padding:22px 24px;overflow-y:auto;max-height:calc(100vh - 62px)}
     <div class="srcchip" id="srcChip" title="ตอนนี้เว็บอ่านชีตด้วยวิธีไหน"></div>
     <button class="gear accent" id="addBtn" aria-haspopup="dialog">+ เพิ่มครีเอเตอร์</button>
     <button class="gear" id="gearBtn" aria-haspopup="dialog">⚙ ตั้งค่า</button>
+    <button class="gear" id="syncBtn" hidden title="ส่งที่แก้ขึ้นชีตเดี๋ยวนี้">⇧ ซิงก์</button>
     <button class="gear" id="lockBtn" title="ล็อกหน้าจอ ต้องใส่รหัสใหม่">🔒 ล็อก</button>
     <button class="gear cartbtn empty" id="cartBtn" aria-haspopup="dialog"
             title="ครีเอเตอร์ที่หยิบไว้">🛒 ตะกร้า <span class="n" id="cartN">0</span></button>
@@ -843,7 +895,9 @@ main{padding:22px 24px;overflow-y:auto;max-height:calc(100vh - 62px)}
         <p class="sect-sub">
           รูปแบบ: <code>ID / Project + สิ่งที่จะแก้</code> — บรรทัดละคำสั่ง<br>
           <code style="color:var(--mute)">tangkwaqs / Red Chamber 2 + เปลี่ยนยอดการชำระ 1800</code><br>
-          คำที่รู้จัก: เรท/ยอดชำระ/จ่าย · สถานะ · โน้ต · งาน(code) · SKU · วันโพสต์ · ภาษี
+          คำที่รู้จัก: เรท/ยอดชำระ/จ่าย · สถานะ · โน้ต · งาน(code) · SKU · วันโพสต์ · ภาษี<br>
+          <b>ย้ายโปรเจกต์:</b> <code style="color:var(--mute)">tangkwaqs / Red Chamber 1 + ย้ายไป Red Chamber 2</code><br>
+          <b>สลับ KOL/KOC:</b> <code style="color:var(--mute)">remind555 / Red Chamber 2 + KOC</code>
         </p>
         <textarea id="qoText" placeholder="พิมพ์คำสั่งที่นี่ แล้วกดตรวจ"></textarea>
         <button class="run" id="qoParse" style="margin-top:10px">ตรวจก่อนใช้</button>
@@ -1797,7 +1851,8 @@ const PROJECTS = ["Red Chamber Phase 1", "Red Chamber Phase 2",
                   "OBSBOT-KOL", "OBSBOT-KOC", "TikTok Live"];
 // สถานะตามที่ทีมใช้จริงในชีต — ของเก่ายังอยู่ท้ายลิสต์ไว้ไม่ให้ค่าเดิมหาย
 const STATUSES = ["", "Waiting to post", "Waiting 1st Draft", "Waiting 2nd Draft",
-  "Waiting Creators Update Script", "Waiting PM / PMA Asst. Feedback 1st Draft",
+  "Waiting Creators Update Script", "Waiting Brand Feedback 1st Draft",
+  "Waiting PM / PMA Asst. Feedback 1st Draft",
   "Waiting IBD Feedback 1st Draft", "Waiting PMA / PM Confirm final Draft",
   "Already Post",
   "briefed", "confirmed", "shipped", "filming", "posted", "paid"];
@@ -1830,6 +1885,7 @@ function payOf(rate, type){
 const ST_TH = { "":"—",
   "Waiting to post":"รอโพสต์", "Waiting 1st Draft":"รอ Draft 1",
   "Waiting 2nd Draft":"รอ Draft 2", "Waiting Creators Update Script":"รอครีเอเตอร์แก้สคริป",
+  "Waiting Brand Feedback 1st Draft":"รอแบรนด์ฟีดแบค Draft 1",
   "Waiting PM / PMA Asst. Feedback 1st Draft":"รอ PM/PMA ฟีดแบค Draft 1",
   "Waiting IBD Feedback 1st Draft":"รอ IBD ฟีดแบค Draft 1",
   "Waiting PMA / PM Confirm final Draft":"รอ PMA/PM คอนเฟิร์ม Draft สุดท้าย",
@@ -1921,6 +1977,13 @@ async function syncCoord(manual){
 
 function updateSyncBar(failed){
   const el = $("#syncBar");
+  const btn = $("#syncBtn");
+  if (btn){
+    btn.hidden = document.body.dataset.view !== "coord";
+    btn.disabled = SYNCING;
+    btn.classList.toggle("accent", DIRTY && !SYNCING);
+    btn.textContent = SYNCING ? "⇧ กำลังซิงก์..." : DIRTY ? "⇧ ซิงก์ (ค้างอยู่)" : "⇧ ซิงก์";
+  }
   if (!el) return;
   const when = SYNC_AT ? new Date(SYNC_AT).toLocaleTimeString("th-TH", {hour:"2-digit",minute:"2-digit"}) : "";
   if (SYNCING){ el.className = "syncbar busy"; el.textContent = "กำลังซิงก์ขึ้นชีต..."; return; }
@@ -1931,12 +1994,11 @@ function updateSyncBar(failed){
   if (DIRTY){
     el.className = "syncbar warn";
     el.innerHTML = `มีที่แก้ยังไม่ขึ้นชีต — ซิงก์อัตโนมัติทุก 1 ชม. <b>เฉพาะตอนเปิดหน้านี้ค้างไว้</b>
-      <button class="export" id="syncNow" style="padding:3px 11px;margin-left:8px">ซิงก์เดี๋ยวนี้</button>`;
+      หรือกดปุ่ม <b>⇧ ซิงก์</b> มุมขวาบน`;
   } else {
     el.className = "syncbar ok";
     el.textContent = when ? `ขึ้นชีตแล้ว · ล่าสุด ${when} น.` : "ตรงกับชีตแล้ว";
   }
-  if ($("#syncNow")) $("#syncNow").onclick = () => syncCoord(true);
 }
 
 function loadEdits(){
@@ -2175,10 +2237,59 @@ function renderCreatorCard(q){
 
 $("#coordFind").addEventListener("input", e => renderCreatorCard(e.target.value.trim()));
 
+// ─── ตัวกรองหัวตาราง แบบ Excel ───
+// เก็บเป็นค่าที่ "ไม่เอา" ต่อคอลัมน์ เหมือน hiddenValues ของ Google Sheet
+let COLFILTER = {};
+const FILTERABLE = { kind:"กลุ่ม", code:"งาน", status:"สถานะ", paytype:"รูปแบบภาษี", sku:"SKU" };
+const filterText = (f, v) => f === "status" ? (ST_TH[v] || v || "—")
+  : f === "paytype" ? payType(v).label
+  : f === "code" ? (codeLabel(v) || "—") : (v || "—");
+
+function passFilter(r){
+  return Object.keys(COLFILTER).every(f =>
+    !COLFILTER[f].length || !COLFILTER[f].includes(String(r[f] ?? "")));
+}
+function filterCount(){ return Object.values(COLFILTER).reduce((s,a) => s + a.length, 0); }
+
+function openColFilter(field, th){
+  document.querySelectorAll(".fpop").forEach(p => p.remove());
+  const all = COORD[PROJ] || [];
+  const vals = [...new Set(all.map(r => String(r[field] ?? "")))]
+    .sort((a,b) => filterText(field,a).localeCompare(filterText(field,b),"th"));
+  const off = COLFILTER[field] || [];
+  const pop = document.createElement("div");
+  pop.className = "fpop";
+  pop.innerHTML =
+    `<div class="fhead">${esc(FILTERABLE[field])}
+       <button data-all="1">เลือกทั้งหมด</button>
+       <button data-none="1">ไม่เอาเลย</button></div>
+     <div class="flist">${vals.map(v => {
+       const n = all.filter(r => String(r[field] ?? "") === v).length;
+       return `<label><input type="checkbox" value="${esc(v)}"${off.includes(v)?"":" checked"}>
+         <span>${esc(filterText(field, v))}</span><i>${n}</i></label>`;
+     }).join("")}</div>`;
+  th.appendChild(pop);
+  const apply = () => {
+    COLFILTER[field] = [...pop.querySelectorAll("input:not(:checked)")].map(i => i.value);
+    if (!COLFILTER[field].length) delete COLFILTER[field];
+    renderCoord();
+  };
+  pop.querySelectorAll(".flist input").forEach(i => i.onchange = apply);
+  pop.querySelector("[data-all]").onclick = () => {
+    pop.querySelectorAll(".flist input").forEach(i => i.checked = true); apply(); };
+  pop.querySelector("[data-none]").onclick = () => {
+    pop.querySelectorAll(".flist input").forEach(i => i.checked = false); apply(); };
+  pop.onclick = e => e.stopPropagation();
+  setTimeout(() => document.addEventListener("click", function close(){
+    pop.remove(); document.removeEventListener("click", close);
+  }), 0);
+}
+
 function renderCoord(){
   renderKindSeg();
   const all = COORD[PROJ] || [];
-  const rows = KINDSEG === "all" ? all : all.filter(r => (r.kind || "") === KINDSEG);
+  const rows = (KINDSEG === "all" ? all : all.filter(r => (r.kind || "") === KINDSEG))
+                 .filter(passFilter);
   if (!all.length){
     $("#coordSum").innerHTML =
       `<span class="src ${privateOn() ? "locked" : "open"}">${privateOn() ? "🔒" : "🌐"}
@@ -2199,16 +2310,32 @@ function renderCoord(){
 
   $("#coordBody").innerHTML = `<div class="cwrap"><table class="ctable">
     <thead><tr>
+      <th class="w-move" title="ลากเพื่อสลับลำดับ">↕</th>
       <th>ครีเอเตอร์</th><th style="text-align:center">วิดีโอ</th>
-      <th>กลุ่ม</th><th>งาน</th><th>สถานะ</th>
+      <th>กลุ่ม</th><th class="w-job">งาน</th><th class="w-status">สถานะ</th>
       <th style="text-align:right">เรท</th><th>รูปแบบภาษี</th>
       <th style="text-align:right">จ่ายจริง</th>
-      <th>SKU</th><th>โพสต์</th><th>บรีฟ</th><th>โน้ต</th>
+      <th>SKU</th><th>โพสต์</th><th>กำหนดส่ง</th><th>บรีฟ</th><th>โน้ต</th>
+      <th class="w-del"></th>
     </tr></thead><tbody>${rows.length
       ? rows.map(r => coordRow(r, all.indexOf(r))).join("")
-      : `<tr><td colspan="11" style="text-align:center;color:var(--dim);padding:22px">
-          ${esc(PROJ)} ไม่มี ${esc(KINDSEG)} สักคน</td></tr>`
+      : `<tr><td colspan="15" style="text-align:center;color:var(--dim);padding:22px">
+          ไม่มีแถวที่ตรงกับตัวกรอง</td></tr>`
     }</tbody></table></div>`;
+
+  // ปุ่มกรองบนหัวตาราง
+  Object.keys(FILTERABLE).forEach(f => {
+    const th = [...document.querySelectorAll("#coordBody thead th")]
+      .find(x => x.textContent.trim() === FILTERABLE[f]);
+    if (!th) return;
+    const on = (COLFILTER[f] || []).length;
+    th.classList.add("hasfilter");
+    th.insertAdjacentHTML("beforeend",
+      `<button class="fbtn${on?" on":""}" data-filter="${f}" title="กรอง${FILTERABLE[f]}">▼</button>`);
+  });
+  document.querySelectorAll("#coordBody [data-filter]").forEach(b => b.onclick = e => {
+    e.stopPropagation(); openColFilter(b.dataset.filter, b.parentElement);
+  });
 
   document.querySelectorAll("#coordBody [data-cmd]").forEach(b =>
     b.onclick = () => openCmd(PROJ, b.dataset.cmd));
@@ -2223,17 +2350,63 @@ function renderCoord(){
   document.querySelectorAll("#coordBody [data-f]").forEach(el => {
     el.onchange = () => {
       const r = COORD[PROJ][+el.dataset.i], f = el.dataset.f;
+      const before = ekey(r);
       r[f] = (f === "rate" || f === "net3" || f === "videos")
         ? (el.value.trim() === "" ? null : Number(el.value.replace(/,/g, "")))
         : el.value;
       if (f === "rate") r.rate_all = [];        // ยืนยันด้วยมือแล้ว ธงลง
       // จ่ายจริงคิดจากเรท+รูปแบบภาษีเสมอ เก็บไว้ด้วยเพื่อให้ชีตมีตัวเลขให้อ่าน
       if (f === "rate" || f === "paytype") r.net3 = payOf(r.rate, r.paytype);
+      // แก้ชื่อ = คนละคนแล้ว key เดิมใช้ไม่ได้ ต้องล้างของเก่าทิ้งและอัปเดตลิงก์ตาม
+      if (f === "handle"){
+        const clean = normId(el.value);
+        if (!clean){ renderCoord(); return; }
+        delete EDITS[before];
+        r.handle = clean;
+        r.link = `https://www.tiktok.com/@${clean}`;
+      }
       const k = ekey(r);
       EDITS[k] = Object.assign({}, EDITS[k], { [f]: r[f] },
+                               f === "handle" ? { handle: r.handle, link: r.link } : {},
                                f === "rate" ? { rate_all: [] } : {},
                                (f === "rate" || f === "paytype") ? { net3: r.net3 } : {});
       saveEdits(); markDirty(); renderProjTabs(); renderCoord();
+    };
+  });
+
+  // ลบคนออกจากโปรเจกต์ — ถามก่อนเสมอ กดพลาดแล้วเรียกคืนจากชีตได้แต่เสียเวลา
+  document.querySelectorAll("#coordBody [data-del]").forEach(b => b.onclick = () => {
+    const r = (COORD[PROJ] || [])[+b.dataset.del];
+    if (!r) return;
+    if (!confirm(`ลบ ${r.handle} ออกจาก ${PROJ}?\nจะหายจากชีตด้วยตอนซิงก์รอบถัดไป`)) return;
+    COORD[PROJ].splice(+b.dataset.del, 1);
+    delete EDITS[ekey(r)];
+    saveEdits(); markDirty(); renderProjTabs(); renderCoord();
+  });
+
+  // ลากสลับลำดับ — ลำดับในตารางคือลำดับที่จะเขียนลงชีต
+  let dragFrom = null;
+  document.querySelectorAll("#coordBody tbody tr[data-row]").forEach(tr => {
+    tr.ondragstart = e => {
+      dragFrom = +tr.dataset.row;
+      tr.classList.add("dragging");
+      e.dataTransfer.effectAllowed = "move";
+      e.dataTransfer.setData("text/plain", String(dragFrom));
+    };
+    tr.ondragend = () => {
+      tr.classList.remove("dragging");
+      document.querySelectorAll(".dropover").forEach(x => x.classList.remove("dropover"));
+    };
+    tr.ondragover = e => { e.preventDefault(); tr.classList.add("dropover"); };
+    tr.ondragleave = () => tr.classList.remove("dropover");
+    tr.ondrop = e => {
+      e.preventDefault();
+      const to = +tr.dataset.row;
+      if (dragFrom == null || dragFrom === to) return;
+      const list = COORD[PROJ];
+      list.splice(to, 0, list.splice(dragFrom, 1)[0]);
+      dragFrom = null;
+      markDirty(); renderCoord();
     };
   });
 }
@@ -2244,18 +2417,24 @@ function coordRow(r, i){
   // KOC ส่วนใหญ่เป็นของแลก ไม่มีเงิน — ช่องว่างจึงเป็นเรื่องปกติ ไม่ต้องติดธงเตือน
   const isKOC = (r.kind || "") === "KOC";
   const link = safeLinkUrl(r.brief);
-  return `<tr>
+  return `<tr draggable="true" data-row="${i}">
+    <td class="w-move" title="ลากขึ้นลงเพื่อสลับลำดับ">⠿</td>
     <td class="who"><div class="wrapper">
-      <a class="nm" href="https://www.tiktok.com/@${esc(r.handle)}" target="_blank"
-         rel="noopener noreferrer" title="${esc(r.handle)}">${esc(r.handle)} ↗</a>
+      <input class="nm" data-i="${i}" data-f="handle" value="${esc(r.handle)}"
+             title="แก้ชื่อได้ — ลิงก์จะตามไปเอง">
+      <a class="go" href="https://www.tiktok.com/@${esc(r.handle)}" target="_blank"
+         rel="noopener noreferrer" title="เปิด TikTok">↗</a>
       <button class="cmdbtn" data-cmd="${esc(normId(r.handle))}">Command</button>
     </div></td>
     <td class="vid"><input data-i="${i}" data-f="videos" type="number" min="0" step="1"
         value="${r.videos ?? ""}" placeholder="-"></td>
-    <td>${esc(r.kind || "")}</td>
-    <td><span class="tag job ${codeClass(r.code)}"
-        title="${esc(r.code || "")}">${esc(codeLabel(r.code))}</span></td>
-    <td><select data-i="${i}" data-f="status">${STATUSES.map(s =>
+    <td><select data-i="${i}" data-f="kind" style="width:72px">${
+      ["", "KOL", "KOC"].map(k =>
+        `<option value="${k}"${k === (r.kind||"") ? " selected" : ""}>${k || "—"}</option>`).join("")}</select></td>
+    <td class="w-job"><input class="job-in ${codeClass(r.code)}" data-i="${i}" data-f="code"
+        value="${esc(r.code || "")}" placeholder="-"
+        title="${esc(codeLabel(r.code))} — B=Creamblush E=Eyeshadow L=Lipgloss F=Feather C=Contour"></td>
+    <td class="w-status"><select data-i="${i}" data-f="status">${STATUSES.map(s =>
         `<option value="${s}"${s === (r.status||"") ? " selected" : ""}>${esc(ST_TH[s])}</option>`).join("")}</select></td>
     <td class="mono ${noRate&&!isKOC ? "warn" : amb ? "warn" : ""}">
       <input class="mono" data-i="${i}" data-f="rate" style="width:92px" inputmode="numeric"
@@ -2292,11 +2471,17 @@ function coordRow(r, i){
       </select>`;
     })()}</td>
     <td><input data-i="${i}" data-f="postdate" value="${esc(r.postdate || "")}"
-        placeholder="${esc(r.deadline ? "กำหนด " + r.deadline : "-")}" style="width:104px"
-        title="${esc(r.deadline ? "ไทม์ไลน์ในบรีฟ: " + r.deadline : "")}"></td>
-    <td>${link ? `<a href="${esc(link)}" target="_blank" rel="noopener noreferrer">เปิด ↗</a>` : ""}</td>
+        placeholder="-" style="width:100px"></td>
+    <td><input data-i="${i}" data-f="deadline" value="${esc(r.deadline || "")}"
+        placeholder="-" style="width:100px" title="ไทม์ไลน์ที่ตกลงในบรีฟ"></td>
+    <td class="w-brief"><input data-i="${i}" data-f="brief" value="${esc(r.brief || "")}"
+        placeholder="วางลิงก์บรีฟ" style="width:118px">
+      ${link ? `<a href="${esc(link)}" target="_blank" rel="noopener noreferrer"
+        class="go" title="เปิดบรีฟ">↗</a>` : ""}</td>
     <td class="w-note"><input data-i="${i}" data-f="note" value="${esc(r.note || "")}"
         placeholder="โน้ต"></td>
+    <td class="w-del"><button class="delrow" data-del="${i}"
+        title="ลบ ${esc(r.handle)} ออกจาก ${esc(PROJ)}">🗑</button></td>
   </tr>`;
 }
 
@@ -2514,6 +2699,8 @@ function openCmd(proj, handle){
 
   $("#cmdPanel").classList.add("on");
 }
+
+$("#syncBtn").onclick = () => syncCoord(true);
 
 // ล็อกเองได้โดยไม่ต้องปิดแท็บ — ลุกจากโต๊ะแล้วกดทีนึง
 $("#lockBtn").onclick = async () => {
@@ -3662,6 +3849,20 @@ function parseQuickOrder(line){
   if (!row){ out.why = `ไม่เจอ ${id} ใน ${proj}`; return out; }
   out.id = id; out.proj = proj; out.row = row;
 
+  // ย้ายโปรเจกต์ — "ย้ายไป Red Chamber 2" / "-> OBSBOT-KOL"
+  const mv = body.match(/(?:ย้าย(?:ไป)?|move|->|→)\s*(.+?)\s*$/i);
+  if (mv){
+    const dest = matchProject(mv[1]);
+    if (dest && dest !== proj) out.moveTo = dest;
+    else if (!dest && /ย้าย|move|->|→/i.test(body) && !/KO[LC]/i.test(body)){
+      out.why = `ไม่รู้จักโปรเจกต์ปลายทาง "${mv[1]}"`; return out;
+    }
+  }
+  // สลับ KOL/KOC — เขียนคำว่า KOL หรือ KOC ลอยๆ ก็พอ
+  const km = body.match(/\b(KOL|KOC)\b/i);
+  if (km && km[1].toUpperCase() !== (row.kind || "").toUpperCase())
+    out.changes.kind = km[1].toUpperCase();
+
   for (const k in QO_STATUS) if (body.includes(k)) out.changes.status = QO_STATUS[k];
   for (const t of PAYTYPES)
     if (t.id && (body.includes(t.label) || (t.id === "net" && /\bNET\b/i.test(body))))
@@ -3673,7 +3874,7 @@ function parseQuickOrder(line){
     if (!raw) continue;
     out.changes[spec.f] = spec.num ? Number(raw.replace(/,/g, "")) : raw;
   }
-  if (!Object.keys(out.changes).length){
+  if (!Object.keys(out.changes).length && !out.moveTo){
     out.why = "อ่านไม่ออกว่าจะให้แก้อะไร"; return out;
   }
   if ("rate" in out.changes)
@@ -3693,9 +3894,10 @@ $("#qoParse").onclick = () => {
   $("#qoPreview").innerHTML = QO.map(q => q.ok
     ? `<div class="qorow"><span class="ok">✓</span><div><b>${esc(q.id)}</b>
         <span style="color:var(--dim)">${esc(q.proj)}</span><br>${
-        Object.entries(q.changes).map(([k, v]) =>
-          `${esc(QO_LABEL[k] || k)}: <b>${esc(k === "paytype" ? payType(v).label : v)}</b>`
-        ).join(" · ")}</div></div>`
+        (q.moveTo ? [`<b style="color:var(--accent)">ย้ายไป ${esc(q.moveTo)}</b>`] : [])
+        .concat(Object.entries(q.changes).map(([k, v]) =>
+          `${esc(QO_LABEL[k] || k)}: <b>${esc(k === "paytype" ? payType(v).label : v)}</b>`))
+        .join(" · ")}</div></div>`
     : `<div class="qorow"><span class="no">✕</span><div>${esc(q.line)}<br>
         <span class="no">${esc(q.why)}</span></div></div>`).join("");
   const msg = $("#qoMsg");
@@ -3706,12 +3908,23 @@ $("#qoParse").onclick = () => {
 };
 
 function applyQuickOrder(){
-  let n = 0;
+  let n = 0, moved = 0;
   QO.filter(q => q.ok).forEach(q => {
+    const oldKey = ekey(q.row);
     Object.assign(q.row, q.changes);
     if ("rate" in q.changes) q.row.rate_all = [];
+    if (q.moveTo){
+      // ย้ายข้ามโปรเจกต์ — ต้องถอดออกจากที่เดิมจริงๆ ไม่งั้นจะโผล่สองที่
+      const from = COORD[q.proj], at = from.indexOf(q.row);
+      if (at >= 0) from.splice(at, 1);
+      delete EDITS[oldKey];
+      q.row.project = q.moveTo;
+      (COORD[q.moveTo] = COORD[q.moveTo] || []).push(q.row);
+      moved++;
+    }
     const k = ekey(q.row);
     EDITS[k] = Object.assign({}, EDITS[k], q.changes,
+                             q.moveTo ? { project: q.moveTo } : {},
                              "rate" in q.changes ? { rate_all: [] } : {});
     n++;
   });
@@ -3719,7 +3932,9 @@ function applyQuickOrder(){
   $("#qoText").value = ""; $("#qoPreview").innerHTML = ""; QO = [];
   const msg = $("#qoMsg");
   msg.className = "addmsg on ok";
-  msg.innerHTML = `แก้แล้ว <b>${n}</b> รายการ — จะขึ้นชีตในรอบซิงก์ถัดไป`;
+  msg.innerHTML = `แก้แล้ว <b>${n}</b> รายการ` +
+    (moved ? ` · ย้ายข้ามโปรเจกต์ <b>${moved}</b> คน` : "") +
+    ` — จะขึ้นชีตในรอบซิงก์ถัดไป`;
 }
 
 document.querySelectorAll(".hcard").forEach(b => b.onclick = () => setView(b.dataset.go));
