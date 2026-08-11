@@ -243,6 +243,50 @@ body[data-view="coord"] #cartBtn{display:none}
 .tag.job.j-c{color:#d0d5a8;border-color:rgba(208,213,168,.35);background:rgba(208,213,168,.1)}
 .tag.job.j-x{color:var(--mute)}
 
+/* ── ตรึง 2 คอลัมน์แรกไว้ตอนเลื่อนขวา ── */
+.ctable th:nth-child(1),.ctable td:nth-child(1){position:sticky;left:0;z-index:3}
+.ctable th:nth-child(2),.ctable td:nth-child(2){position:sticky;left:26px;z-index:3}
+.ctable td:nth-child(1),.ctable td:nth-child(2){background:var(--surface)}
+.ctable th:nth-child(1),.ctable th:nth-child(2){z-index:5;background:var(--bg)}
+.ctable tr:hover td:nth-child(1),.ctable tr:hover td:nth-child(2){background:var(--surface2)}
+.ctable td:nth-child(2){box-shadow:1px 0 0 var(--line)}
+.ctable th:nth-child(2){box-shadow:1px 0 0 var(--line)}
+
+/* ── สีตามช่วงงาน ── */
+.st-sel.s-done{color:var(--hi);border-color:rgba(124,231,196,.45);background:rgba(124,231,196,.12)}
+.st-sel.s-wait{color:#ffae5c;border-color:rgba(255,174,92,.45);background:rgba(255,174,92,.12)}
+.st-sel.s-pay{color:#c79cff;border-color:rgba(199,156,255,.5);background:rgba(199,156,255,.14)}
+.st-sel.s-none{color:var(--dim)}
+.ctable option.s-done{color:var(--hi)}
+.ctable option.s-wait{color:#ffae5c}
+.ctable option.s-pay{color:#c79cff}
+.st{font-size:.75rem;border-radius:6px;padding:3px 9px;border:1px solid var(--line)}
+.st.s-done{color:var(--hi);border-color:rgba(124,231,196,.4);background:rgba(124,231,196,.1)}
+.st.s-wait{color:#ffae5c;border-color:rgba(255,174,92,.4);background:rgba(255,174,92,.1)}
+.st.s-pay{color:#c79cff;border-color:rgba(199,156,255,.45);background:rgba(199,156,255,.12)}
+.st.s-none{color:var(--dim)}
+
+/* ── ช่องเรท เน้นให้เห็นชัด ── */
+.ctable td .mono[data-f="rate"]{color:var(--accent);font-weight:700;font-size:.86rem;
+  border-color:rgba(232,255,99,.35);background:rgba(232,255,99,.07)}
+.ctable td .mono[data-f="rate"]:focus{border-color:var(--accent);background:rgba(232,255,99,.14)}
+.ctable td .mono[data-f="rate"]::placeholder{color:var(--dim);font-weight:400}
+
+/* ── แถวย่อยรายคลิป ── */
+.chev{background:none;border:0;color:var(--dim);font-size:.85rem;padding:2px 4px;
+  flex:none;transition:transform .13s;line-height:1}
+.chev:hover{color:var(--accent)}
+.chev.open{transform:rotate(90deg);color:var(--accent)}
+.chev-gap{width:17px;flex:none}
+tr.hasclips td:nth-child(2){border-left:2px solid rgba(232,255,99,.35)}
+tr.subrow td{background:var(--bg);border-bottom:1px solid var(--line);padding-top:5px;padding-bottom:5px}
+tr.subrow td:nth-child(1),tr.subrow td:nth-child(2){background:var(--bg)}
+tr.subrow .wrapper.sub{display:flex;align-items:center;gap:7px;padding-left:6px;min-height:30px}
+tr.subrow .branch{color:var(--dim);font-family:'IBM Plex Mono',monospace}
+tr.subrow .clipno{font-size:.76rem;color:var(--mute);font-weight:600}
+tr.subrow .one{font-family:'IBM Plex Mono',monospace;font-weight:700;color:var(--accent)}
+tr.subrow .clipsku{font-size:.78rem;color:var(--mute)}
+
 /* คอลัมน์ที่ต้องคุมความกว้างเอง ไม่งั้นเบียดกันจนอ่านไม่ออก */
 .ctable th.w-move,.ctable td.w-move{width:26px;text-align:center;color:var(--dim);
   cursor:grab;user-select:none;padding-left:4px;padding-right:4px}
@@ -1855,7 +1899,8 @@ const STATUSES = ["", "Waiting to post", "Waiting 1st Draft", "Waiting 2nd Draft
   "Waiting PM / PMA Asst. Feedback 1st Draft",
   "Waiting IBD Feedback 1st Draft", "Waiting PMA / PM Confirm final Draft",
   "Already Post",
-  "briefed", "confirmed", "shipped", "filming", "posted", "paid"];
+  "Waiting Payment Docs", "Waiting Payment", "paid",
+  "briefed", "confirmed", "shipped", "filming", "posted"];
 
 // รูปแบบภาษี — คิด "จ่ายจริง" จากเรทที่ตกลงกัน
 // หัก ณ ที่จ่ายค่าบริการ = 3% ทั้งบุคคลและนิติบุคคล · VAT 7% บวกเฉพาะคนที่จด VAT
@@ -1890,8 +1935,16 @@ const ST_TH = { "":"—",
   "Waiting IBD Feedback 1st Draft":"รอ IBD ฟีดแบค Draft 1",
   "Waiting PMA / PM Confirm final Draft":"รอ PMA/PM คอนเฟิร์ม Draft สุดท้าย",
   "Already Post":"โพสต์แล้ว",
+  "Waiting Payment Docs":"รอเอกสารทำจ่าย", "Waiting Payment":"รอโอนเงิน",
   briefed:"ส่งบรีฟแล้ว", confirmed:"คอนเฟิร์มแล้ว", shipped:"ส่งของแล้ว",
   filming:"ถ่ายอยู่", posted:"โพสต์แล้ว (เก่า)", paid:"จ่ายแล้ว" };
+
+// สีตามช่วงงาน — เขียว = จบแล้ว/ตกลงแล้ว · ส้ม = ยังรออยู่ · ม่วง = เข้าเรื่องเงิน
+const ST_CLASS = {
+  "Already Post":"s-done", posted:"s-done", confirmed:"s-done",
+  "Waiting Payment Docs":"s-pay", "Waiting Payment":"s-pay", paid:"s-pay",
+};
+const stClass = s => ST_CLASS[s || ""] || (s ? "s-wait" : "s-none");
 
 // สีของงาน — กวาดตาดูคอลัมน์เดียวรู้เลยว่าใครทำอะไร
 const CODE_CLASS = { B:"j-b", E:"j-e", L:"j-l", F:"j-f", C:"j-c" };
@@ -2104,7 +2157,8 @@ function renderProjTabs(){
 }
 
 // ตัวย่อในช่องงาน — เก็บตัวย่อไว้เหมือนเดิม แต่โชว์ชื่อเต็มให้อ่านออก
-const CODE_MAP = { B:"Creamblush", E:"Eyeshadow", L:"Lipgloss", F:"Feather Eyeshadow" };
+const CODE_MAP = { B:"Creamblush", E:"Eyeshadow", L:"Lipgloss",
+                   F:"Feather Eyeshadow", C:"Contour" };
 function codeLabel(code){
   const raw = String(code || "").trim();
   if (!raw) return "-";
@@ -2340,6 +2394,14 @@ function renderCoord(){
   document.querySelectorAll("#coordBody [data-cmd]").forEach(b =>
     b.onclick = () => openCmd(PROJ, b.dataset.cmd));
 
+  document.querySelectorAll("#coordBody [data-exp]").forEach(b => b.onclick = () => {
+    const r = (COORD[PROJ] || [])[+b.dataset.exp];
+    if (!r) return;
+    const k = ekey(r);
+    EXPANDED.has(k) ? EXPANDED.delete(k) : EXPANDED.add(k);
+    renderCoord();
+  });
+
   // คลิกช่องเรทแล้วคลุมเลขทั้งหมดเลย จะได้พิมพ์ทับได้ทันทีไม่ต้องลบทีละตัว
   document.querySelectorAll('#coordBody [data-f="rate"]').forEach(inp => {
     inp.onfocus = () => inp.select();
@@ -2411,15 +2473,60 @@ function renderCoord(){
   });
 }
 
+// งานที่รวมกันในช่อง SKU เช่น "Blush - Haelyn (40) + Eyeshadow - CP301 (10)"
+// = คนละคลิป แยกดูทีละคลิปได้ ตัวเลขวิดีโอก็หารตามคลิป
+const CLIP_SPLIT = /\s*\+\s*/;
+function clipsOf(r){
+  const parts = String(r.sku || "").split(CLIP_SPLIT).map(s => s.trim()).filter(Boolean);
+  if (parts.length < 2) return [];
+  // สถานะรายคลิปที่ติดมาในโน้ต ("สถานะอื่นในชีต: A / B") เอามาใส่คลิปที่ 2 เป็นต้นไป
+  const extra = (String(r.note || "").match(/สถานะอื่นในชีต:\s*(.+)$/) || [])[1];
+  const more = extra ? extra.split(/\s*\/\s*/).map(s => s.trim()).filter(Boolean) : [];
+  const total = Number(r.videos) || parts.length;
+  const each = Math.max(1, Math.round(total / parts.length));
+  return parts.map((p, k) => ({
+    sku: p, videos: each,
+    code: (/feather/i.test(p) ? "F" : /eye/i.test(p) ? "E" : /blush/i.test(p) ? "B"
+          : /lip/i.test(p) ? "L" : /contour/i.test(p) ? "C" : ""),
+    status: k === 0 ? (r.status || "") : (more[k - 1] || r.status || ""),
+  }));
+}
+
+let EXPANDED = new Set();
+
+function subRows(r, i){
+  const clips = clipsOf(r);
+  if (!clips.length || !EXPANDED.has(ekey(r))) return "";
+  return clips.map((c, k) => `<tr class="subrow">
+    <td class="w-move"></td>
+    <td class="who"><div class="wrapper sub">
+      <span class="branch">${k === clips.length - 1 ? "└" : "├"}</span>
+      <span class="clipno">คลิป ${k + 1}</span></div></td>
+    <td class="vid"><span class="one">${c.videos}</span></td>
+    <td></td>
+    <td class="w-job"><span class="tag job ${codeClass(c.code)}">${esc(codeLabel(c.code))}</span></td>
+    <td class="w-status"><span class="st ${stClass(c.status)}">${esc(ST_TH[c.status] || "—")}</span></td>
+    <td></td><td></td><td></td>
+    <td class="clipsku">${esc(c.sku)}</td>
+    <td></td><td></td><td></td><td></td><td></td>
+  </tr>`).join("");
+}
+
 function coordRow(r, i){
   const amb = (r.rate_all || []).length > 1;
   const noRate = r.rate == null;
   // KOC ส่วนใหญ่เป็นของแลก ไม่มีเงิน — ช่องว่างจึงเป็นเรื่องปกติ ไม่ต้องติดธงเตือน
   const isKOC = (r.kind || "") === "KOC";
   const link = safeLinkUrl(r.brief);
-  return `<tr draggable="true" data-row="${i}">
+  const clips = clipsOf(r);
+  const open = EXPANDED.has(ekey(r));
+  return `<tr draggable="true" data-row="${i}"${clips.length ? ' class="hasclips"' : ""}>
     <td class="w-move" title="ลากขึ้นลงเพื่อสลับลำดับ">⠿</td>
     <td class="who"><div class="wrapper">
+      ${clips.length
+        ? `<button class="chev${open ? " open" : ""}" data-exp="${i}"
+             title="${open ? "ยุบ" : "แยกดูทีละคลิป"} (${clips.length} คลิป)">▸</button>`
+        : `<span class="chev-gap"></span>`}
       <input class="nm" data-i="${i}" data-f="handle" value="${esc(r.handle)}"
              title="แก้ชื่อได้ — ลิงก์จะตามไปเอง">
       <a class="go" href="https://www.tiktok.com/@${esc(r.handle)}" target="_blank"
@@ -2427,15 +2534,17 @@ function coordRow(r, i){
       <button class="cmdbtn" data-cmd="${esc(normId(r.handle))}">Command</button>
     </div></td>
     <td class="vid"><input data-i="${i}" data-f="videos" type="number" min="0" step="1"
-        value="${r.videos ?? ""}" placeholder="-"></td>
+        value="${r.videos ?? ""}" placeholder="-"
+        title="${clips.length ? "กางดูจะเห็นแยกเป็น " + clips.map(c => c.videos).join(" - ") : ""}"></td>
     <td><select data-i="${i}" data-f="kind" style="width:72px">${
       ["", "KOL", "KOC"].map(k =>
         `<option value="${k}"${k === (r.kind||"") ? " selected" : ""}>${k || "—"}</option>`).join("")}</select></td>
     <td class="w-job"><input class="job-in ${codeClass(r.code)}" data-i="${i}" data-f="code"
         value="${esc(r.code || "")}" placeholder="-"
         title="${esc(codeLabel(r.code))} — B=Creamblush E=Eyeshadow L=Lipgloss F=Feather C=Contour"></td>
-    <td class="w-status"><select data-i="${i}" data-f="status">${STATUSES.map(s =>
-        `<option value="${s}"${s === (r.status||"") ? " selected" : ""}>${esc(ST_TH[s])}</option>`).join("")}</select></td>
+    <td class="w-status"><select class="st-sel ${stClass(r.status)}" data-i="${i}" data-f="status">${
+      STATUSES.map(s => `<option value="${s}" class="${stClass(s)}"${
+        s === (r.status||"") ? " selected" : ""}>${esc(ST_TH[s])}</option>`).join("")}</select></td>
     <td class="mono ${noRate&&!isKOC ? "warn" : amb ? "warn" : ""}">
       <input class="mono" data-i="${i}" data-f="rate" style="width:92px" inputmode="numeric"
              value="${r.rate == null ? "" : Number(r.rate).toLocaleString("en-US")}"
@@ -2482,7 +2591,7 @@ function coordRow(r, i){
         placeholder="โน้ต"></td>
     <td class="w-del"><button class="delrow" data-del="${i}"
         title="ลบ ${esc(r.handle)} ออกจาก ${esc(PROJ)}">🗑</button></td>
-  </tr>`;
+  </tr>${subRows(r, i)}`;
 }
 
 // ═══ Command — ข้อความสำเร็จรูปที่ส่งให้ครีเอเตอร์ ═══
