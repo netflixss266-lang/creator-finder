@@ -72,7 +72,22 @@ body[data-view="home"] .srcchip{display:none}
 .lockbox h2{font-family:'Space Grotesk','IBM Plex Sans Thai',sans-serif;
   font-size:1.15rem;font-weight:700;margin-bottom:6px}
 .lockhint{font-size:.8rem;color:var(--dim);margin-bottom:18px;line-height:1.5}
-.lockbox input{text-align:center;font-size:1rem;letter-spacing:.12em;margin-bottom:11px}
+.lockbox input{text-align:center;font-size:1rem;letter-spacing:.12em}
+/* ช่องรหัสตัวเลข — ช่องละหลัก เห็นได้ว่ากรอกถึงไหนแล้ว */
+.pin{display:flex;gap:8px;justify-content:center;margin-bottom:12px}
+.pin input{width:44px;height:54px;padding:0;font-size:1.4rem;font-weight:700;
+  letter-spacing:0;font-family:'IBM Plex Mono',monospace;caret-color:var(--accent)}
+.pin input:focus{border-color:var(--accent);background:var(--surface2)}
+.pin input.filled{border-color:var(--accent);color:var(--accent)}
+@media(max-width:400px){.pin input{width:38px;height:48px;font-size:1.2rem}}
+/* ช่องรหัสแบบพิมพ์ + ปุ่มลืมตาดูรหัส */
+.pwrow{display:flex;gap:8px;margin-bottom:12px}
+.pwrow input{flex:1}
+.pwrow[hidden]{display:none}
+.eye{flex:none;width:46px;background:var(--surface2);border:1px solid var(--line);
+  border-radius:8px;font-size:1rem;line-height:1;color:var(--mute)}
+.eye:hover{border-color:var(--accent)}
+.eye.on{border-color:var(--accent);color:var(--accent);background:rgba(232,255,99,.1)}
 .lockmsg{font-size:.82rem;margin-top:11px;min-height:1.2em}
 .lockmsg.err{color:var(--lo)}
 .lockmsg.busy{color:var(--mute)}
@@ -601,7 +616,12 @@ main{padding:22px 24px;overflow-y:auto;max-height:calc(100vh - 62px)}
     <div class="lk">🔑</div>
     <h2 id="lockTitle">ใส่รหัสเพื่อเข้าใช้งาน</h2>
     <p class="lockhint" id="lockHint"></p>
-    <input id="lockPw" type="password" autocomplete="off" placeholder="รหัสผ่าน" required>
+    <div class="pin" id="lockPin" hidden></div>
+    <div class="pwrow" id="lockPwRow">
+      <input id="lockPw" type="password" autocomplete="off" placeholder="รหัสผ่าน">
+      <button type="button" class="eye" id="lockEye" aria-label="ดู/ซ่อนรหัส"
+              title="ดู/ซ่อนรหัส">👁</button>
+    </div>
     <button class="run" type="submit" id="lockGo">เข้าใช้งาน</button>
     <div class="lockmsg" id="lockMsg"></div>
   </form>
@@ -2525,6 +2545,7 @@ const GATES = {"site":{"s":"iFDWL51EFjL36dl7POx7Gg==","h":"tB2UqgIe3xcP6veZzo2kS
 const GATE_ITER = 250000;
 const GATE_LABEL = { site: ["ใส่รหัสเพื่อเข้าใช้งาน", "Creator Finder — เครื่องมือภายในทีม"],
                      coord: ["หน้า Coordinator", "ในนี้มีเรทและเงื่อนไขการจ่ายของครีเอเตอร์ ใช้รหัสคนละตัวกับหน้าแรก"] };
+const GATE_PIN = { site: 6 };     // ประตูไหนใช้ช่องตัวเลขแยกช่อง และกี่หลัก
 
 const b64 = s => Uint8Array.from(atob(s), c => c.charCodeAt(0));
 
@@ -2546,6 +2567,56 @@ async function gateCheck(name, pw){
 let GATE_OK = {};
 function gatePassed(n){ return GATE_OK[n] === true; }
 
+let GATE_SHOW = false;   // ลืมตาดูรหัสอยู่ไหม
+
+function gateFields(){
+  return [...document.querySelectorAll("#lockPin input"), $("#lockPw")]
+    .filter(el => el && el.offsetParent !== null);
+}
+function gateValue(){
+  const pin = [...document.querySelectorAll("#lockPin input")];
+  return $("#lockPin").hidden ? $("#lockPw").value : pin.map(i => i.value).join("");
+}
+function applyGateShow(){
+  const t = GATE_SHOW ? "text" : "password";
+  document.querySelectorAll("#lockPin input").forEach(i => i.type = t);
+  $("#lockPw").type = t;
+  $("#lockEye").classList.toggle("on", GATE_SHOW);
+  $("#lockEye").textContent = GATE_SHOW ? "🙈" : "👁";
+}
+
+// ช่องตัวเลขแยกช่อง — พิมพ์แล้วเลื่อนเอง ลบแล้วถอยเอง วางทั้งชุดได้
+function buildPin(n, onFull){
+  const box = $("#lockPin");
+  box.innerHTML = Array.from({length:n}, () =>
+    `<input type="password" inputmode="numeric" maxlength="1" autocomplete="off">`).join("");
+  const els = [...box.querySelectorAll("input")];
+  els.forEach((el, i) => {
+    el.oninput = () => {
+      el.value = el.value.replace(/\D/g, "").slice(0, 1);
+      el.classList.toggle("filled", !!el.value);
+      if (el.value && i < n - 1) els[i + 1].focus();
+      if (els.every(x => x.value)) onFull();
+    };
+    el.onkeydown = e => {
+      if (e.key === "Backspace" && !el.value && i > 0){ els[i-1].focus(); els[i-1].value = "";
+        els[i-1].classList.remove("filled"); e.preventDefault(); }
+      if (e.key === "ArrowLeft" && i > 0) els[i-1].focus();
+      if (e.key === "ArrowRight" && i < n-1) els[i+1].focus();
+    };
+    el.onfocus = () => el.select();
+    el.onpaste = e => {
+      const d = (e.clipboardData.getData("text") || "").replace(/\D/g, "").slice(0, n);
+      if (!d) return;
+      e.preventDefault();
+      els.forEach((x, k) => { x.value = d[k] || ""; x.classList.toggle("filled", !!x.value); });
+      els[Math.min(d.length, n) - 1].focus();
+      if (d.length >= n) onFull();
+    };
+  });
+  return els;
+}
+
 // คืนค่าเมื่อใส่รหัสถูก — ถ้าปิดไปก่อนก็ไม่ผ่าน
 function askGate(name){
   if (gatePassed(name)) return Promise.resolve(true);
@@ -2555,13 +2626,23 @@ function askGate(name){
   $("#lockPw").value = "";
   $("#lockMsg").className = "lockmsg";
   $("#lockMsg").textContent = "";
+
+  const pinLen = GATE_PIN[name] || 0;
+  $("#lockPin").hidden = !pinLen;
+  $("#lockPwRow").hidden = !!pinLen;
+  let pinEls = [];
+  if (pinLen) pinEls = buildPin(pinLen, () => $("#lockForm").requestSubmit());
+  applyGateShow();
+
   $("#lockView").hidden = false;
-  setTimeout(() => $("#lockPw").focus(), 50);
+  setTimeout(() => (pinLen ? pinEls[0] : $("#lockPw")).focus(), 50);
 
   return new Promise(resolve => {
+    $("#lockEye").onclick = () => { GATE_SHOW = !GATE_SHOW; applyGateShow(); };
     $("#lockForm").onsubmit = async e => {
       e.preventDefault();
-      const pw = $("#lockPw").value;
+      const pw = gateValue();
+      if (!pw) return;
       $("#lockGo").disabled = true;
       $("#lockMsg").className = "lockmsg busy";
       $("#lockMsg").textContent = "กำลังตรวจ...";
@@ -2570,7 +2651,10 @@ function askGate(name){
       if (!ok){
         $("#lockMsg").className = "lockmsg err";
         $("#lockMsg").textContent = "รหัสไม่ถูกต้อง";
-        $("#lockPw").select();
+        if (pinEls.length){
+          pinEls.forEach(x => { x.value = ""; x.classList.remove("filled"); });
+          pinEls[0].focus();
+        } else $("#lockPw").select();
         return;
       }
       GATE_OK[name] = true;
