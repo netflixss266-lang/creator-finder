@@ -589,6 +589,7 @@ main{padding:22px 24px;overflow-y:auto;max-height:calc(100vh - 62px)}
     <div class="srcchip" id="srcChip" title="ตอนนี้เว็บอ่านชีตด้วยวิธีไหน"></div>
     <button class="gear accent" id="addBtn" aria-haspopup="dialog">+ เพิ่มครีเอเตอร์</button>
     <button class="gear" id="gearBtn" aria-haspopup="dialog">⚙ ตั้งค่า</button>
+    <button class="gear" id="lockBtn" title="ล็อกหน้าจอ ต้องใส่รหัสใหม่">🔒 ล็อก</button>
     <button class="gear cartbtn empty" id="cartBtn" aria-haspopup="dialog"
             title="ครีเอเตอร์ที่หยิบไว้">🛒 ตะกร้า <span class="n" id="cartN">0</span></button>
   </div>
@@ -2500,6 +2501,17 @@ function openCmd(proj, handle){
   $("#cmdPanel").classList.add("on");
 }
 
+// ล็อกเองได้โดยไม่ต้องปิดแท็บ — ลุกจากโต๊ะแล้วกดทีนึง
+$("#lockBtn").onclick = async () => {
+  GATE_OK = {};
+  $("#cmdPanel").classList.remove("on");
+  $("#cart").classList.remove("on");
+  $("#settings").hidden = true;
+  $("#addPanel").hidden = true;
+  await askGate("site");
+  setView("home");
+};
+
 $("#closeCmd").onclick = () => $("#cmdPanel").classList.remove("on");
 $("#cmdScrim").onclick = () => $("#cmdPanel").classList.remove("on");
 
@@ -2528,10 +2540,11 @@ async function gateCheck(name, pw){
   return diff === 0;
 }
 
-const gateKey = n => "cf_gate_" + n;
-function gatePassed(n){
-  try { return sessionStorage.getItem(gateKey(n)) === "1"; } catch(e){ return false; }
-}
+// เก็บไว้ในตัวแปรเท่านั้น ไม่ลง sessionStorage
+// sessionStorage อยู่ยาวตลอดอายุแท็บ รีเฟรชก็ยังจำ เปิดเว็บใหม่เลยไม่เคยถามรหัสอีก
+// แบบนี้ = โหลดหน้าใหม่ทีไรถามใหม่ทุกครั้ง ตรงกับที่ตั้งใจว่า "เข้าเว็บต้องใส่รหัส"
+let GATE_OK = {};
+function gatePassed(n){ return GATE_OK[n] === true; }
 
 // คืนค่าเมื่อใส่รหัสถูก — ถ้าปิดไปก่อนก็ไม่ผ่าน
 function askGate(name){
@@ -2560,7 +2573,7 @@ function askGate(name){
         $("#lockPw").select();
         return;
       }
-      try { sessionStorage.setItem(gateKey(name), "1"); } catch(err){}
+      GATE_OK[name] = true;
       $("#lockView").hidden = true;
       resolve(true);
     };
