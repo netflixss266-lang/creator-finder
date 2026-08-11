@@ -182,10 +182,14 @@ body[data-view="coord"] .poolstat{display:none}
   white-space:nowrap;position:sticky;top:0;background:var(--bg);z-index:1}
 .ctable td{padding:7px 9px;border-bottom:1px solid var(--line);vertical-align:middle}
 .ctable tr:hover td{background:var(--surface)}
-/* ช่องครีเอเตอร์ — ให้สูงเท่าช่องอื่น ปุ่มไม่ดันแถวให้บวม */
-.ctable .who{font-weight:600;white-space:nowrap;max-width:230px}
-.ctable .who .wrapper{display:flex;align-items:center;gap:8px}
-.ctable .who .nm{overflow:hidden;text-overflow:ellipsis;flex:1;min-width:0}
+/* ช่องครีเอเตอร์ — บังคับให้สูงเท่าช่องที่มี input/select ในแถวเดียวกัน
+   ไม่งั้นชื่อจะลอยไม่ตรงกับของช่องอื่น เพราะ input มี padding ของตัวเอง */
+.ctable .who{font-weight:600;white-space:nowrap;width:236px;max-width:236px}
+/* ความสูงต้องเท่ากับ input/select ในแถวเดียวกัน ไม่งั้นชื่อลอยสูงกว่าเพื่อน */
+.ctable .who .wrapper{display:flex;align-items:center;gap:8px;min-height:var(--rowh,40px)}
+.ctable .who .nm{overflow:hidden;text-overflow:ellipsis;flex:1;min-width:0;line-height:1.4}
+.ctable .who .cmdbtn{margin-left:0;flex:none;line-height:1.5}
+.ctable td,.ctable th{vertical-align:middle}
 
 /* รูปแบบภาษี — สีบอกกลุ่มได้ในแวบเดียว ไม่ต้องอ่านตัวหนังสือ */
 .ctable select.pay{border-left-width:4px}
@@ -200,9 +204,11 @@ body[data-view="coord"] .poolstat{display:none}
 .paydot.p-net{background:var(--accent)}
 .paydot.p-vat{background:var(--hi)}
 .paycell{display:flex;align-items:center}
+.ctable td.vid{text-align:center}
+.ctable td.vid input{width:58px;text-align:center;
+  font-family:'IBM Plex Mono',monospace;font-weight:600}
 .dash{color:var(--dim)}
 
-.ctable .who{font-weight:600;white-space:nowrap}
 .ctable .mono{font-family:'IBM Plex Mono',monospace;text-align:right;white-space:nowrap}
 .ctable select,.ctable input{padding:4px 7px;font-size:.79rem;border-radius:6px}
 .ctable input.mono{text-align:right}
@@ -765,16 +771,6 @@ main{padding:22px 24px;overflow-y:auto;max-height:calc(100vh - 62px)}
       <button class="export ghost" id="coordResetEdits">คืนค่าที่แก้ในเครื่อง</button>
     </div>
   </div>
-  <div class="coord-sum" id="coordSum"></div>
-  <div class="syncbar" id="syncBar"></div>
-
-  <div class="coordbar">
-    <div class="tabs sub kindseg" id="kindSeg" role="tablist"></div>
-    <input id="coordFind" placeholder="ค้นหาครีเอเตอร์ — พิมพ์ชื่อเพื่อดูประวัติทุกโปรเจกต์"
-           autocomplete="off">
-  </div>
-  <div id="creatorCard"></div>
-
   <div class="coordtools">
     <details class="ctool" open>
       <summary>➕ เพิ่มครีเอเตอร์เข้าโปรเจกต์</summary>
@@ -809,6 +805,17 @@ main{padding:22px 24px;overflow-y:auto;max-height:calc(100vh - 62px)}
       </div>
     </details>
   </div>
+
+  <div class="coord-sum" id="coordSum"></div>
+  <div class="syncbar" id="syncBar"></div>
+
+  <div class="coordbar">
+    <div class="tabs sub kindseg" id="kindSeg" role="tablist"></div>
+    <input id="coordFind" placeholder="ค้นหาครีเอเตอร์ — พิมพ์ชื่อเพื่อดูประวัติทุกโปรเจกต์"
+           autocomplete="off">
+  </div>
+  <div id="creatorCard"></div>
+
 
   <div id="coordBody"></div>
 </section>
@@ -1812,6 +1819,7 @@ async function syncCoord(manual){
     const payload = rows.map(r => ({
       handle: r.handle, link: r.link || `https://www.tiktok.com/@${r.handle}`,
       kind: r.kind || "", code: r.code || "", status: r.status || "",
+      videos: r.videos ?? "",
       rate: r.rate ?? "", paytype: r.paytype || "",
       net3: payOf(r.rate, r.paytype) ?? (r.net3 ?? ""),
       sku: r.sku || "", postdate: r.postdate || "", deadline: r.deadline || "",
@@ -1888,6 +1896,7 @@ function coordFromCSV(text){
   return rows.slice(1).filter(r => get(r, "handle")).map(r => ({
     handle: normId(get(r, "handle")), project: get(r, "project"),
     kind: get(r, "kind"), code: get(r, "code"), status: get(r, "status"),
+    videos: num(get(r, "videos")),
     rate: num(get(r, "rate")), net3: num(get(r, "net3")), sku: get(r, "sku"),
     postdate: get(r, "postdate"), deadline: get(r, "deadline"),
     brief: get(r, "brief"), note: get(r, "note"),
@@ -1923,6 +1932,44 @@ function renderProjTabs(){
   document.querySelectorAll("#projTabs button").forEach(b => b.onclick = () => {
     PROJ = b.dataset.p; renderProjTabs(); renderCoord();
   });
+}
+
+// ตัวย่อในช่องงาน — เก็บตัวย่อไว้เหมือนเดิม แต่โชว์ชื่อเต็มให้อ่านออก
+const CODE_MAP = { B:"Creamblush", E:"Eyeshadow", L:"Lipgloss", F:"Feather Eyeshadow" };
+function codeLabel(code){
+  const raw = String(code || "").trim();
+  if (!raw) return "-";
+  const parts = raw.split(/\s*\+\s*/);
+  const named = parts.map(p => CODE_MAP[p.toUpperCase()] || null);
+  // แปลได้ทุกตัวถึงจะแทนที่ ไม่งั้นเก็บของเดิมไว้ (รหัส Phase 1 อย่าง D1C คนละระบบ)
+  return named.every(Boolean) ? named.join(" + ") : raw;
+}
+
+// SKU ของ Red Chamber Phase 2 — ตัวเลขในวงเล็บคือจำนวนที่มี
+const SKU_RC2 = [
+  "Blush - Haelyn (40)", "Blush - Lekui (20)", "Blush - Gemi（Moomin) (30)",
+  "Blush - Minki（Moomin) (30)", "Blush - Liben (10)",
+  "Eyeshadow - CP303 (20)", "Eyeshadow - CP301 (10)", "Eyeshadow - CP306 (10)",
+  "Feather Eyeshadow - FE800 (25)", "Feather Eyeshadow - FE300 (15)",
+  "Feather Eyeshadow - FE900 (20)",
+  "Lip - LB400 Oat Glaze (40)", "Lip - LB300 Ashy Rose (30)",
+  "Lip - LB100 Peach Ember (10)", "Contour - CP000 (20)",
+];
+const skuListFor = proj => proj === "Red Chamber Phase 2" ? SKU_RC2 : null;
+
+// ใส่จุลภาคระหว่างพิมพ์ โดยพยายามคงตำแหน่งเคอร์เซอร์ไว้ที่หลักเดิม
+function formatRateInput(inp){
+  const before = inp.value.slice(0, inp.selectionStart).replace(/\D/g, "").length;
+  const digits = inp.value.replace(/\D/g, "");
+  const out = digits ? Number(digits).toLocaleString("en-US") : "";
+  if (out === inp.value) return;
+  inp.value = out;
+  let seen = 0, pos = out.length;
+  if (before === 0) pos = 0;
+  else for (let i = 0; i < out.length; i++){
+    if (/\d/.test(out[i]) && ++seen === before){ pos = i + 1; break; }
+  }
+  inp.setSelectionRange(pos, pos);
 }
 
 let KINDSEG = "all";     // ทั้งหมด / KOL / KOC ในโปรเจกต์ที่เปิดอยู่
@@ -2051,7 +2098,8 @@ function renderCoord(){
 
   $("#coordBody").innerHTML = `<div class="cwrap"><table class="ctable">
     <thead><tr>
-      <th>ครีเอเตอร์</th><th>กลุ่ม</th><th>งาน</th><th>สถานะ</th>
+      <th>ครีเอเตอร์</th><th style="text-align:center">วิดีโอ</th>
+      <th>กลุ่ม</th><th>งาน</th><th>สถานะ</th>
       <th style="text-align:right">เรท</th><th>รูปแบบภาษี</th>
       <th style="text-align:right">จ่ายจริง</th>
       <th>SKU</th><th>โพสต์</th><th>บรีฟ</th><th>โน้ต</th>
@@ -2068,12 +2116,13 @@ function renderCoord(){
   document.querySelectorAll('#coordBody [data-f="rate"]').forEach(inp => {
     inp.onfocus = () => inp.select();
     inp.onmouseup = e => e.preventDefault();   // กัน browser ยกเลิกการคลุมหลังปล่อยเมาส์
+    inp.oninput = () => formatRateInput(inp);  // ใส่จุลภาคให้ระหว่างพิมพ์
   });
 
   document.querySelectorAll("#coordBody [data-f]").forEach(el => {
     el.onchange = () => {
       const r = COORD[PROJ][+el.dataset.i], f = el.dataset.f;
-      r[f] = (f === "rate" || f === "net3")
+      r[f] = (f === "rate" || f === "net3" || f === "videos")
         ? (el.value.trim() === "" ? null : Number(el.value.replace(/,/g, "")))
         : el.value;
       if (f === "rate") r.rate_all = [];        // ยืนยันด้วยมือแล้ว ธงลง
@@ -2100,13 +2149,15 @@ function coordRow(r, i){
          rel="noopener noreferrer" title="${esc(r.handle)}">${esc(r.handle)} ↗</a>
       <button class="cmdbtn" data-cmd="${esc(normId(r.handle))}">Command</button>
     </div></td>
+    <td class="vid"><input data-i="${i}" data-f="videos" type="number" min="0" step="1"
+        value="${r.videos ?? ""}" placeholder="-"></td>
     <td>${esc(r.kind || "")}</td>
-    <td><span class="tag">${esc(r.code || "-")}</span></td>
+    <td><span class="tag" title="${esc(r.code || "")}">${esc(codeLabel(r.code))}</span></td>
     <td><select data-i="${i}" data-f="status">${STATUSES.map(s =>
         `<option value="${s}"${s === (r.status||"") ? " selected" : ""}>${esc(ST_TH[s])}</option>`).join("")}</select></td>
     <td class="mono ${noRate&&!isKOC ? "warn" : amb ? "warn" : ""}">
-      <input class="mono" data-i="${i}" data-f="rate" style="width:88px"
-             value="${r.rate == null ? "" : r.rate}"
+      <input class="mono" data-i="${i}" data-f="rate" style="width:92px" inputmode="numeric"
+             value="${r.rate == null ? "" : Number(r.rate).toLocaleString("en-US")}"
              placeholder="${isKOC ? "-" : "ยังไม่รู้"}">
       ${amb ? `<span class="flag" title="ในบรีฟเจอหลายค่า: ${esc((r.rate_all||[]).join(" / "))} — เลือกให้ตรงแล้วธงจะหาย">⚑</span>` : ""}
       ${noRate && !isKOC ? `<span class="flag" title="ในบรีฟไม่มีตัวเลขเรทเลย">⚑</span>` : ""}</td>
@@ -2126,7 +2177,18 @@ function coordRow(r, i){
            title="ต้นทุนบริษัทรวมภาษีที่ออกให้">บริษัทจ่าย ฿${
            (Math.round(cost*100)/100).toLocaleString("en-US",{minimumFractionDigits:2})}</span>` : "");
     })()}</td>
-    <td>${esc(r.sku || "")}</td>
+    <td>${(() => {
+      const list = skuListFor(PROJ);
+      if (!list) return `<input data-i="${i}" data-f="sku" value="${esc(r.sku || "")}"
+        placeholder="-" style="min-width:120px">`;
+      const cur = r.sku || "";
+      const extra = cur && !list.includes(cur) ? [cur] : [];
+      return `<select data-i="${i}" data-f="sku" style="min-width:190px">
+        <option value=""${cur ? "" : " selected"}>— ยังไม่เลือก —</option>
+        ${extra.map(v => `<option value="${esc(v)}" selected>${esc(v)} (ค่าเดิม)</option>`).join("")}
+        ${list.map(v => `<option value="${esc(v)}"${v === cur ? " selected" : ""}>${esc(v)}</option>`).join("")}
+      </select>`;
+    })()}</td>
     <td>${esc(r.postdate || r.deadline || "")}</td>
     <td>${link ? `<a href="${esc(link)}" target="_blank" rel="noopener noreferrer">เปิด ↗</a>` : ""}</td>
     <td class="w-note"><input data-i="${i}" data-f="note" value="${esc(r.note || "")}"
