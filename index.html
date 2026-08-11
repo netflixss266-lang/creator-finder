@@ -22,16 +22,26 @@
   object-src 'none'">
 <title>Creator Finder — KOL Sourcing</title>
 <link rel="icon" href="favicon.svg" type="image/svg+xml">
-<meta name="theme-color" content="#0E0F13">
+<meta name="theme-color" content="#0B0B0B">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Thai:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Thai:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&family=Bebas+Neue&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
+/* ── ธีม Netflix ──
+   ดำสนิท + แดง #E50914 อันเดียว ที่เหลือเป็นเทาไล่ระดับ
+   สีที่บอกความหมาย (เขียว/ส้ม/ม่วง/ฟ้า) ยังอยู่ครบ แต่หรี่ให้แดงเป็นตัวเด่นตัวเดียว
+   เก็บเป็น RGB ด้วย เพราะทั้งไฟล์ใช้ rgba(var(--x), .12) ทำพื้นจางๆ */
 :root{
-  --bg:#0E0F13; --surface:#16181F; --surface2:#1C1F28; --line:#282C38;
-  --ink:#ECEEF3; --mute:#8A93A6; --dim:#565E70;
-  --accent:#E8FF63;           /* เหลืองมะนาว — ตัวเดียวที่ใช้เน้น */
-  --accent-ink:#141600;
-  --hi:#7CE7C4; --lo:#F0806B;
+  --bg:#0B0B0B; --surface:#181818; --surface2:#232323; --line:#333;
+  --ink:#FFF; --mute:#B3B3B3; --dim:#777;
+  --accent:#E50914;           /* แดง Netflix — ตัวเดียวที่ใช้เน้น */
+  --accent-ink:#FFF;
+  --accent-rgb:229,9,20;
+  --hi:#46D369;  --hi-rgb:70,211,105;      /* ผ่าน / เสร็จ */
+  --lo:#FF5C5C;  --lo-rgb:255,92,92;       /* พลาด / ต้องแก้ */
+  --warn:#F5B546; --warn-rgb:245,181,70;   /* รอ / ยังไม่ปิด */
+  --info:#7EB6FF; --info-rgb:126,182,255;  /* หัก ณ ที่จ่าย */
+  --pay:#C79CFF;                            /* ช่วงทำเรื่องจ่าย */
+  --shadow:0 12px 34px rgba(0,0,0,.7);
 }
 *{box-sizing:border-box;margin:0;padding:0}
 body{background:var(--bg);color:var(--ink);
@@ -39,44 +49,69 @@ body{background:var(--bg);color:var(--ink);
 a{color:inherit;text-decoration:none}
 button{font-family:inherit;cursor:pointer}
 
-header{display:flex;align-items:center;justify-content:space-between;gap:16px;
-  padding:16px 24px;border-bottom:1px solid var(--line);flex-wrap:wrap}
-.brand{display:flex;align-items:center;gap:11px}
-.brand .mark{width:28px;height:28px;flex:none;border:1px solid var(--line);border-radius:7px}
-.brand h1{font-family:'Space Grotesk',sans-serif;font-size:1.25rem;font-weight:700;letter-spacing:-.02em}
-.brand .sub{font-size:.78rem;color:var(--dim);font-family:'IBM Plex Mono',monospace}
-.hgroup{display:flex;align-items:center;gap:10px}
+/* แถบบน — ดำทึบ ติดบนตลอด ไม่ต้องเลื่อนขึ้นมาหา */
+header{display:flex;align-items:center;gap:18px;position:sticky;top:0;z-index:40;
+  padding:12px 26px;flex-wrap:wrap;
+  background:linear-gradient(180deg,#0B0B0B 0%,rgba(11,11,11,.94) 70%,rgba(11,11,11,.72) 100%);
+  border-bottom:1px solid rgba(255,255,255,.06)}
+.brand{display:flex;align-items:center;gap:10px;flex:none;
+  background:none;border:0;padding:0;font-family:inherit;color:inherit;cursor:pointer}
+.brand:hover h1{color:#F6121D}
+.brand .mark{width:26px;height:26px;flex:none}
+.brand h1{font-family:'Bebas Neue','Space Grotesk',sans-serif;font-size:1.5rem;
+  font-weight:400;letter-spacing:.05em;color:var(--accent);line-height:1}
+.brand .sub{font-size:.66rem;color:var(--dim);font-family:'IBM Plex Mono',monospace;
+  letter-spacing:.1em;text-transform:uppercase}
+@media(max-width:640px){.brand .sub{display:none}}
+
+/* สลับหน้าได้จากทุกที่ — ไม่ต้องถอยกลับหน้าแรกก่อน */
+.nav{display:flex;align-items:center;gap:2px;flex:none}
+.nav button{background:none;border:0;color:var(--mute);font-family:inherit;
+  font-size:.88rem;font-weight:600;padding:7px 14px;border-radius:6px;
+  position:relative;transition:color .13s}
+.nav button:hover{color:var(--ink)}
+.nav button[aria-current="page"]{color:var(--ink)}
+.nav button[aria-current="page"]::after{content:"";position:absolute;left:14px;right:14px;
+  bottom:0;height:2px;border-radius:2px;background:var(--accent)}
+body[data-view="home"] .nav{display:none}
+.hgroup{display:flex;align-items:center;gap:8px;margin-left:auto;flex-wrap:wrap}
 .poolstat{font-family:'IBM Plex Mono',monospace;font-size:.8rem;color:var(--mute);
   background:var(--surface);border:1px solid var(--line);border-radius:999px;padding:6px 14px}
 .poolstat b{color:var(--accent)}
 /* บอกตลอดว่าตอนนี้อ่านชีตทางไหน — ตัวชี้ขาดก่อนจะไปปิด Share ของชีต */
 .srcchip{font-size:.78rem;font-weight:600;border-radius:999px;padding:6px 13px;
   border:1px solid var(--line);white-space:nowrap}
-.srcchip.open{color:#f0c46b;border-color:rgba(240,196,107,.35);background:rgba(240,196,107,.1)}
-.srcchip.locked{color:var(--hi);border-color:rgba(124,231,196,.4);background:rgba(124,231,196,.12)}
-.srcchip.bad{color:var(--lo);border-color:rgba(240,128,107,.4);background:rgba(240,128,107,.12)}
+.srcchip.open{color:var(--warn);border-color:rgba(var(--warn-rgb),.35);background:rgba(var(--warn-rgb),.1)}
+.srcchip.locked{color:var(--hi);border-color:rgba(var(--hi-rgb),.4);background:rgba(var(--hi-rgb),.12)}
+.srcchip.bad{color:var(--lo);border-color:rgba(var(--lo-rgb),.4);background:rgba(var(--lo-rgb),.12)}
 body[data-view="home"] .srcchip{display:none}
 
-.gear{background:var(--surface);border:1px solid var(--line);color:var(--mute);
-  border-radius:999px;padding:6px 15px;font-size:.82rem;font-weight:600;transition:all .13s}
-.gear:hover{border-color:var(--accent);color:var(--accent)}
-.gear.accent{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
-.gear.accent:hover{filter:brightness(1.07);color:var(--accent-ink)}
+.gear{background:rgba(255,255,255,.06);border:1px solid transparent;color:var(--mute);
+  border-radius:5px;padding:6px 13px;font-size:.8rem;font-weight:600;transition:all .13s}
+.gear:hover{background:rgba(255,255,255,.14);color:var(--ink)}
+.gear.accent{background:var(--accent);color:var(--accent-ink)}
+.gear.accent:hover{background:#F6121D;color:var(--accent-ink)}
 /* ── ประตูรหัส ── */
-.lock{position:fixed;inset:0;z-index:90;background:var(--bg);
+.lock{position:fixed;inset:0;z-index:90;background:#000;
   display:flex;align-items:center;justify-content:center;padding:24px}
+/* แสงแดงเบาๆ หลังกล่องรหัส ให้จอดำล้วนไม่ดูเหมือนเว็บค้าง */
+.lock::before{content:"";position:absolute;inset:0;pointer-events:none;
+  background:radial-gradient(ellipse at 50% 42%,rgba(var(--accent-rgb),.16),transparent 58%)}
 .lock[hidden]{display:none}
-.lockbox{width:100%;max-width:360px;background:var(--surface);
-  border:1px solid var(--line);border-radius:16px;padding:32px 28px;text-align:center}
-.lockbox .lk{font-size:2rem;margin-bottom:10px}
+.lockbox{position:relative;width:100%;max-width:380px;background:rgba(0,0,0,.78);
+  border:1px solid rgba(255,255,255,.08);border-radius:6px;padding:44px 36px 34px;
+  text-align:center;box-shadow:var(--shadow)}
+.lockbox .lk{font-family:'Bebas Neue',sans-serif;font-size:1.7rem;line-height:1;
+  color:var(--accent);letter-spacing:.14em;margin-bottom:16px}
 .lockbox h2{font-family:'Space Grotesk','IBM Plex Sans Thai',sans-serif;
-  font-size:1.15rem;font-weight:700;margin-bottom:6px}
+  font-size:1.3rem;font-weight:700;margin-bottom:6px}
 .lockhint{font-size:.8rem;color:var(--dim);margin-bottom:18px;line-height:1.5}
 .lockbox input{text-align:center;font-size:1rem;letter-spacing:.12em}
 /* ช่องรหัสตัวเลข — ช่องละหลัก เห็นได้ว่ากรอกถึงไหนแล้ว */
 .pin{display:flex;gap:8px;justify-content:center;margin-bottom:12px}
-.pin input{width:44px;height:54px;padding:0;font-size:1.4rem;font-weight:700;
-  letter-spacing:0;font-family:'IBM Plex Mono',monospace;caret-color:var(--accent)}
+.pin input{width:44px;height:56px;padding:0;font-size:1.4rem;font-weight:700;
+  letter-spacing:0;font-family:'IBM Plex Mono',monospace;caret-color:var(--accent);
+  background:#1a1a1a;border-color:#454545}
 .pin input:focus{border-color:var(--accent);background:var(--surface2)}
 .pin input.filled{border-color:var(--accent);color:var(--accent)}
 @media(max-width:400px){.pin input{width:38px;height:48px;font-size:1.2rem}}
@@ -87,32 +122,47 @@ body[data-view="home"] .srcchip{display:none}
 .eye{flex:none;width:46px;background:var(--surface2);border:1px solid var(--line);
   border-radius:8px;font-size:1rem;line-height:1;color:var(--mute)}
 .eye:hover{border-color:var(--accent)}
-.eye.on{border-color:var(--accent);color:var(--accent);background:rgba(232,255,99,.1)}
+.eye.on{border-color:var(--accent);color:var(--accent);background:rgba(var(--accent-rgb),.1)}
+/* ทางออกจากประตูชั้นในอย่างเดียว — ประตูหน้าเว็บไม่มีปุ่มนี้ ถอยไปไหนไม่ได้อยู่แล้ว */
+.lockcancel{display:block;width:100%;margin-top:10px;background:none;border:0;
+  color:var(--dim);font-family:inherit;font-size:.8rem;padding:8px}
+.lockcancel[hidden]{display:none}
+.lockcancel:hover{color:var(--mute);text-decoration:underline}
 .lockmsg{font-size:.82rem;margin-top:11px;min-height:1.2em}
 .lockmsg.err{color:var(--lo)}
 .lockmsg.busy{color:var(--mute)}
 
-/* ── หน้าแรก — สองช่องใหญ่ เลือกก่อนว่าจะทำอะไร ── */
-#homeView{min-height:calc(100vh - 62px);display:flex;align-items:center;justify-content:center;
-  padding:40px 24px}
-.hcard{cursor:pointer}
-.home{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:20px;
-  width:100%;max-width:880px}
+/* ── หน้าแรก — billboard แบบ Netflix แล้วต่อด้วยสองไทล์ ── */
+#homeView{min-height:calc(100vh - 52px);display:flex;flex-direction:column;
+  justify-content:center;gap:34px;padding:44px 26px 60px;position:relative;overflow:hidden}
+/* แสงแดงจางๆ หลังหัวข้อ ให้จอดำมีมิติแทนที่จะแบน */
+#homeView::before{content:"";position:absolute;inset:-30% 30% 40% -20%;pointer-events:none;
+  background:radial-gradient(ellipse at 30% 40%,rgba(var(--accent-rgb),.22),transparent 62%)}
+.hero{position:relative;max-width:1000px;width:100%;margin:0 auto}
+.hero .eyebrow{font-family:'Bebas Neue',sans-serif;letter-spacing:.22em;font-size:.9rem;
+  color:var(--accent);margin-bottom:10px}
+.hero h2{font-family:'Space Grotesk','IBM Plex Sans Thai',sans-serif;font-weight:700;
+  font-size:clamp(1.9rem,5vw,3.1rem);line-height:1.08;letter-spacing:-.02em;margin-bottom:14px}
+.hero p{font-size:.98rem;color:var(--mute);line-height:1.65;max-width:56ch}
+.home{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px;
+  width:100%;max-width:1000px;margin:0 auto;position:relative}
 @media(max-width:720px){.home{grid-template-columns:1fr}}
-.hcard{display:flex;flex-direction:column;align-items:flex-start;gap:9px;text-align:left;
-  background:var(--surface);border:1px solid var(--line);border-radius:18px;
-  padding:34px 30px 30px;color:var(--ink);font-family:inherit;
-  transition:border-color .15s,transform .15s,background .15s}
-.hcard:hover{border-color:var(--accent);transform:translateY(-3px);background:var(--surface2)}
-.hcard .ic{font-size:2rem;line-height:1}
+/* ไทล์แบบ Netflix — ขยายตอนชี้ ขอบแดงมาจากซ้าย */
+.hcard{cursor:pointer;display:flex;flex-direction:column;align-items:flex-start;gap:8px;
+  text-align:left;background:var(--surface);border:0;border-radius:6px;overflow:hidden;
+  padding:30px 28px 26px;color:var(--ink);font-family:inherit;position:relative;
+  transition:transform .22s cubic-bezier(.3,0,.2,1),background .22s,box-shadow .22s}
+.hcard::before{content:"";position:absolute;left:0;top:0;bottom:0;width:4px;
+  background:var(--accent);transform:scaleY(0);transform-origin:top;transition:transform .22s}
+.hcard:hover{transform:scale(1.03);background:var(--surface2);box-shadow:var(--shadow)}
+.hcard:hover::before{transform:scaleY(1)}
+.hcard .ic{font-size:1.7rem;line-height:1}
 .hcard .ht{font-family:'Space Grotesk','IBM Plex Sans Thai',sans-serif;
-  font-size:1.5rem;font-weight:700;letter-spacing:-.01em}
-.hcard:hover .ht{color:var(--accent)}
-.hcard .hs{font-size:.85rem;color:var(--mute);line-height:1.6}
-.hcard .hn{margin-top:6px;font-family:'IBM Plex Mono',monospace;font-size:.76rem;
+  font-size:1.35rem;font-weight:700;letter-spacing:-.01em}
+.hcard .hs{font-size:.84rem;color:var(--mute);line-height:1.6}
+.hcard .hn{margin-top:8px;font-family:'IBM Plex Mono',monospace;font-size:.74rem;
   color:var(--dim);border-top:1px solid var(--line);padding-top:11px;width:100%}
 .hcard .hn b{color:var(--accent)}
-.gear.back{font-weight:600}
 
 /* หน้าไหนโชว์อะไร — แยกกันคนละหน้า ไม่ปนกัน */
 body[data-view="home"] #homeView{display:flex}
@@ -131,22 +181,32 @@ body[data-view="coord"] #cartBtn{display:none}
 .coord-head{display:flex;align-items:center;justify-content:space-between;
   gap:14px;flex-wrap:wrap;margin-bottom:14px}
 .coord-head .tabs{margin-bottom:0;flex:1;min-width:280px}
-.coord-sum{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:14px}
+/* เหลือแค่ธงเตือน — "อ่านชีตทางไหน" ไปอยู่บนแถบหัวเว็บแล้ว ไม่ต้องบอกซ้ำสองที่
+   กินความสูงไปเปล่าๆ 83px ก่อนจะถึงตาราง */
+.coord-sum{display:flex;flex-wrap:wrap;gap:8px;flex:none}
+.coord-sum:empty{display:none}
 .coord-sum span{font-size:.78rem;color:var(--mute);background:var(--surface);
-  border:1px solid var(--line);border-radius:7px;padding:5px 11px}
-.coord-sum span.src{font-weight:600;order:-1;flex-basis:100%}
-.coord-sum span.src.open{color:#f0c46b;border-color:rgba(240,196,107,.35);
-  background:rgba(240,196,107,.09)}
-.coord-sum span.src.locked{color:var(--hi);border-color:rgba(124,231,196,.4);
-  background:rgba(124,231,196,.1)}
-.coord-sum b{color:var(--accent);font-family:'IBM Plex Mono',monospace}
+  border:1px solid var(--line);border-radius:7px;padding:5px 11px;cursor:help}
+.coord-sum b{font-family:'IBM Plex Mono',monospace}
 .coordbar{display:flex;gap:12px;align-items:center;flex-wrap:wrap;margin-bottom:13px}
 .coordbar .kindseg{margin-bottom:0;flex:none;min-width:230px}
-.coordbar input{flex:1;min-width:230px}
+.coordbar .colseg{margin-bottom:0;flex:none;min-width:184px}
+.coordbar input{flex:1;min-width:200px}
+/* โหมดย่อ — ซ่อนคอลัมน์ที่ไม่ได้แตะทุกวัน ให้ที่เหลือพอดีจอโดยไม่ต้องเลื่อนไปขวา
+   ของที่ซ่อนไม่ได้หายไปไหน กด ⤢ ท้ายชื่อดูและแก้ได้ครบในลิ้นชัก
+   คอลัมน์กลุ่มซ้ำกับปุ่ม KOL/KOC ที่อยู่เหนือตารางอยู่แล้ว เลยซ่อนด้วย */
+.ctable.lean th.opt,.ctable.lean td.opt{display:none}
+.ctable.lean .who{width:206px;max-width:206px}
+.ctable.lean th.w-sku,.ctable.lean td.w-sku{min-width:176px}
+.ctable.lean th.w-job,.ctable.lean td.w-job{min-width:88px}
+.ctable.lean td.w-job input{width:80px}
+.ctable.lean select.pay{min-width:138px!important}
+.ctable.lean td .mono[data-f="rate"]{width:82px!important}
+.ctable.lean td.vid input{width:50px}
 
 /* ── การ์ดประวัติครีเอเตอร์ ── */
-.ccard{border:1px solid var(--accent);border-radius:12px;background:var(--surface);
-  padding:15px 17px;margin-bottom:14px}
+.ccard{border:1px solid var(--line);border-left:3px solid var(--accent);border-radius:8px;
+  background:var(--surface);padding:15px 17px;margin-bottom:14px}
 .ccard:empty{display:none}
 .ccard h3{font-family:'Space Grotesk',sans-serif;font-size:1rem;font-weight:700;
   margin-bottom:3px}
@@ -157,6 +217,9 @@ body[data-view="coord"] #cartBtn{display:none}
   color:var(--dim);font-weight:600;padding:6px 9px;border-bottom:1px solid var(--line)}
 .ccard td{padding:7px 9px;border-bottom:1px solid var(--line);white-space:nowrap}
 .ccard tr:last-child td{border-bottom:0}
+.ccard tr[data-goto]{cursor:pointer}
+.ccard tr[data-goto]:hover td{background:var(--surface2)}
+.ccard tr[data-goto]:hover td:first-child{color:var(--accent)}
 .ccard .mono{font-family:'IBM Plex Mono',monospace;text-align:right}
 .up{color:var(--hi);font-weight:600}
 .down{color:var(--lo);font-weight:600}
@@ -168,22 +231,33 @@ body[data-view="coord"] #cartBtn{display:none}
 .syncbar{font-size:.8rem;border-radius:9px;padding:9px 13px;margin-bottom:12px;
   border:1px solid var(--line);display:flex;align-items:center;flex-wrap:wrap;gap:6px}
 .syncbar:empty{display:none}
-.syncbar.ok{color:var(--hi);border-color:rgba(124,231,196,.3);background:rgba(124,231,196,.07)}
-.syncbar.warn{color:#f0c46b;border-color:rgba(240,196,107,.35);background:rgba(240,196,107,.09)}
-.syncbar.bad{color:var(--lo);border-color:rgba(240,128,107,.35);background:rgba(240,128,107,.09)}
+.syncbar.ok{color:var(--hi);border-color:rgba(var(--hi-rgb),.3);background:rgba(var(--hi-rgb),.07)}
+.syncbar.warn{color:var(--warn);border-color:rgba(var(--warn-rgb),.35);background:rgba(var(--warn-rgb),.09)}
+.syncbar.bad{color:var(--lo);border-color:rgba(var(--lo-rgb),.35);background:rgba(var(--lo-rgb),.09)}
 .syncbar.busy{color:var(--mute)}
 
-.coordtools{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:14px}
-@media(max-width:860px){.coordtools{grid-template-columns:1fr}}
-.ctool{background:var(--surface);border:1px solid var(--line);border-radius:11px}
-.ctool > summary{list-style:none;cursor:pointer;padding:12px 15px;font-size:.86rem;
-  font-weight:600;color:var(--mute);display:flex;align-items:center;gap:8px}
-.ctool > summary::-webkit-details-marker{display:none}
-.ctool > summary::after{content:"▾";margin-left:auto;color:var(--dim);transition:transform .13s}
-.ctool:not([open]) > summary::after{transform:rotate(-90deg)}
-.ctool > summary:hover{color:var(--ink)}
-.ctbody{padding:0 15px 15px}
-.ctbody .sect-sub{margin-bottom:11px}
+/* ── ช่องคำสั่งช่องเดียว ──
+   เพิ่มคนใหม่กับแก้ข้อมูลใช้ช่องเดียวกัน เพราะทั้งคู่คือ "พิมพ์ประโยคแล้วให้เว็บอ่าน"
+   สูงแค่บรรทัดเดียวตอนยังไม่พิมพ์ ตารางจะได้ไม่ถูกดันตกจอ */
+.cmdbar{margin-bottom:14px}
+.cmdbar-in{display:flex;align-items:flex-start;gap:9px;
+  background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:8px 8px 8px 13px;
+  transition:border-color .13s}
+.cmdbar-in:focus-within{border-color:var(--accent)}
+.cmdbar-ic{color:var(--accent);font-size:1rem;line-height:1.9;flex:none;font-weight:700}
+.cmdbar-in textarea{flex:1;min-width:0;min-height:36px;max-height:210px;background:none;
+  border:0;padding:7px 0;font-size:.88rem;line-height:1.5;resize:none}
+.cmdbar-in textarea:focus{outline:none}
+.cmdbar-in .run{flex:none;width:auto;padding:9px 22px;font-size:.86rem}
+.cmdbar-foot{display:flex;gap:16px;padding:7px 3px 0}
+.linkish{background:none;border:0;color:var(--dim);font-family:inherit;font-size:.76rem;padding:2px 0}
+.linkish:hover{color:var(--accent)}
+.linkish.on{color:var(--accent)}
+.cmdhelp,.cmdbulk{margin-top:10px;background:var(--surface);border:1px solid var(--line);
+  border-radius:8px;padding:13px 15px;font-size:.78rem;color:var(--mute);line-height:1.75}
+.cmdhelp[hidden],.cmdbulk[hidden]{display:none}
+.cmdhelp code{background:var(--surface2);border-radius:4px;padding:2px 7px;
+  font-size:.75rem;color:var(--ink);display:inline-block;margin:2px 0}
 .cgrid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
 @media(max-width:520px){.cgrid{grid-template-columns:1fr}}
 .cgrid label{display:block;font-size:.72rem;text-transform:uppercase;letter-spacing:.06em;
@@ -204,21 +278,24 @@ body[data-view="coord"] #cartBtn{display:none}
    ไม่งั้นชื่อจะลอยไม่ตรงกับของช่องอื่น เพราะ input มี padding ของตัวเอง */
 .ctable .who{font-weight:600;white-space:nowrap;width:236px;max-width:236px}
 /* ความสูงต้องเท่ากับ input/select ในแถวเดียวกัน ไม่งั้นชื่อลอยสูงกว่าเพื่อน */
-.ctable .who .wrapper{display:flex;align-items:center;gap:8px;min-height:var(--rowh,40px)}
+.ctable .who .wrapper{display:flex;align-items:center;gap:6px;min-height:var(--rowh,40px)}
 .ctable .who .nm{overflow:hidden;text-overflow:ellipsis;flex:1;min-width:0;line-height:1.4}
-.ctable .who .cmdbtn{margin-left:0;flex:none;line-height:1.5}
+/* ปุ่มท้ายชื่อเป็นไอคอนล้วน — ช่องนี้แคบ คำว่า "Command" กินที่จนชื่อคนถูกตัด */
+.icobtn{flex:none;background:none;border:1px solid transparent;color:var(--dim);
+  border-radius:5px;padding:3px 6px;font-size:.82rem;line-height:1.2}
+.icobtn:hover{border-color:var(--accent);color:var(--accent);background:rgba(var(--accent-rgb),.1)}
 .ctable td,.ctable th{vertical-align:middle}
 
 /* รูปแบบภาษี — สีบอกกลุ่มได้ในแวบเดียว ไม่ต้องอ่านตัวหนังสือ */
 .ctable select.pay{border-left-width:4px}
 .ctable select.pay.p-none{border-left-color:var(--line);color:var(--dim)}
-.ctable select.pay.p-wht{border-left-color:#8fb8ff;color:#8fb8ff}
+.ctable select.pay.p-wht{border-left-color:var(--info);color:var(--info)}
 .ctable select.pay.p-net{border-left-color:var(--accent);color:var(--accent)}
 .ctable select.pay.p-vat{border-left-color:var(--hi);color:var(--hi)}
 .paydot{display:inline-block;width:9px;height:9px;border-radius:50%;flex:none;
   margin-right:6px;vertical-align:middle}
 .paydot.p-none{background:var(--line)}
-.paydot.p-wht{background:#8fb8ff}
+.paydot.p-wht{background:var(--info)}
 .paydot.p-net{background:var(--accent)}
 .paydot.p-vat{background:var(--hi)}
 /* สีในลิสต์ตัวเลือกของ dropdown ภาษี — เห็นสีตั้งแต่ตอนกางเลือก */
@@ -226,13 +303,13 @@ body[data-view="coord"] #cartBtn{display:none}
 .ctable select.pay option[value=""]{color:var(--dim)}
 .ctable select.pay option[value="wht3"],
 .ctable select.pay option[value="corp"],
-.ctable select.pay option[value="pers"]{color:#8fb8ff}
+.ctable select.pay option[value="pers"]{color:var(--info)}
 .ctable select.pay option[value="net"]{color:var(--accent)}
 .ctable select.pay option[value="corpvat"],
 .ctable select.pay option[value="persvat"]{color:var(--hi)}
-.ctable select.pay.p-wht{background:rgba(143,184,255,.1)}
-.ctable select.pay.p-net{background:rgba(232,255,99,.1)}
-.ctable select.pay.p-vat{background:rgba(124,231,196,.1)}
+.ctable select.pay.p-wht{background:rgba(var(--info-rgb),.1)}
+.ctable select.pay.p-net{background:rgba(var(--accent-rgb),.1)}
+.ctable select.pay.p-vat{background:rgba(var(--hi-rgb),.1)}
 
 /* สีของงาน */
 .tag.job{font-weight:600;border-width:1px}
@@ -253,7 +330,7 @@ body[data-view="coord"] #cartBtn{display:none}
 .ctable th:nth-child(2){box-shadow:1px 0 0 var(--line)}
 
 /* ── สีตามช่วงงาน ── */
-.st-sel.s-done{color:var(--hi);border-color:rgba(124,231,196,.45);background:rgba(124,231,196,.12)}
+.st-sel.s-done{color:var(--hi);border-color:rgba(var(--hi-rgb),.45);background:rgba(var(--hi-rgb),.12)}
 .st-sel.s-wait{color:#ffae5c;border-color:rgba(255,174,92,.45);background:rgba(255,174,92,.12)}
 .st-sel.s-pay{color:#c79cff;border-color:rgba(199,156,255,.5);background:rgba(199,156,255,.14)}
 .st-sel.s-none{color:var(--dim)}
@@ -261,15 +338,19 @@ body[data-view="coord"] #cartBtn{display:none}
 .ctable option.s-wait{color:#ffae5c}
 .ctable option.s-pay{color:#c79cff}
 .st{font-size:.75rem;border-radius:6px;padding:3px 9px;border:1px solid var(--line)}
-.st.s-done{color:var(--hi);border-color:rgba(124,231,196,.4);background:rgba(124,231,196,.1)}
+.st.s-done{color:var(--hi);border-color:rgba(var(--hi-rgb),.4);background:rgba(var(--hi-rgb),.1)}
 .st.s-wait{color:#ffae5c;border-color:rgba(255,174,92,.4);background:rgba(255,174,92,.1)}
 .st.s-pay{color:#c79cff;border-color:rgba(199,156,255,.45);background:rgba(199,156,255,.12)}
 .st.s-none{color:var(--dim)}
 
-/* ── ช่องเรท เน้นให้เห็นชัด ── */
-.ctable td .mono[data-f="rate"]{color:var(--accent);font-weight:700;font-size:.86rem;
-  border-color:rgba(232,255,99,.35);background:rgba(232,255,99,.07)}
-.ctable td .mono[data-f="rate"]:focus{border-color:var(--accent);background:rgba(232,255,99,.14)}
+/* ── ช่องเรท เน้นให้เห็นชัด ──
+   ตัวเลขเป็นสีขาวสว่าง ไม่ใช้แดง เพราะแดงในหน้านี้แปลว่า "ผิด/ต้องแก้"
+   ที่เน้นคือขีดแดงด้านซ้ายกับพื้นจางๆ แทน */
+.ctable td .mono[data-f="rate"]{color:#fff;font-weight:700;font-size:.86rem;
+  border-color:var(--line);border-left:3px solid var(--accent);
+  background:rgba(var(--accent-rgb),.08)}
+.ctable td .mono[data-f="rate"]:focus{border-color:var(--accent);
+  border-left-color:var(--accent);background:rgba(var(--accent-rgb),.16)}
 .ctable td .mono[data-f="rate"]::placeholder{color:var(--dim);font-weight:400}
 
 /* ── แถวย่อยรายคลิป ── */
@@ -278,7 +359,7 @@ body[data-view="coord"] #cartBtn{display:none}
 .chev:hover{color:var(--accent)}
 .chev.open{transform:rotate(90deg);color:var(--accent)}
 .chev-gap{width:17px;flex:none}
-tr.hasclips td:nth-child(2){border-left:2px solid rgba(232,255,99,.35)}
+tr.hasclips td:nth-child(2){border-left:2px solid rgba(var(--accent-rgb),.35)}
 tr.subrow td{background:var(--bg);border-bottom:1px solid var(--line);padding-top:5px;padding-bottom:5px}
 tr.subrow td:nth-child(1),tr.subrow td:nth-child(2){background:var(--bg)}
 tr.subrow .wrapper.sub{display:flex;align-items:center;gap:7px;padding-left:6px;min-height:30px}
@@ -300,7 +381,7 @@ tr.subrow .clipsku{font-size:.78rem;color:var(--mute)}
 .ctable th.w-del,.ctable td.w-del{width:38px;text-align:center}
 .delrow{background:none;border:1px solid transparent;color:var(--dim);
   border-radius:7px;padding:4px 7px;font-size:.9rem;line-height:1}
-.delrow:hover{border-color:var(--lo);color:var(--lo);background:rgba(240,128,107,.1)}
+.delrow:hover{border-color:var(--lo);color:var(--lo);background:rgba(var(--lo-rgb),.1)}
 .ctable .who .go{color:var(--dim);flex:none;padding:0 2px}
 .ctable .who .go:hover{color:var(--accent)}
 .ctable .who input.nm{flex:1;min-width:0;font-weight:600}
@@ -371,10 +452,10 @@ tr.dropover td{border-top:2px solid var(--accent)}
 .st{font-size:.72rem;border-radius:999px;padding:2px 9px;white-space:nowrap;
   border:1px solid var(--line);color:var(--mute)}
 .st.briefed{color:var(--mute)}
-.st.confirmed{color:var(--accent);border-color:rgba(232,255,99,.3);background:rgba(232,255,99,.08)}
-.st.shipped{color:#8fb8ff;border-color:rgba(143,184,255,.3);background:rgba(143,184,255,.08)}
-.st.filming{color:var(--hi);border-color:rgba(124,231,196,.3);background:rgba(124,231,196,.08)}
-.st.posted{color:var(--hi);border-color:rgba(124,231,196,.45);background:rgba(124,231,196,.16)}
+.st.confirmed{color:var(--accent);border-color:rgba(var(--accent-rgb),.3);background:rgba(var(--accent-rgb),.08)}
+.st.shipped{color:var(--info);border-color:rgba(var(--info-rgb),.3);background:rgba(var(--info-rgb),.08)}
+.st.filming{color:var(--hi);border-color:rgba(var(--hi-rgb),.3);background:rgba(var(--hi-rgb),.08)}
+.st.posted{color:var(--hi);border-color:rgba(var(--hi-rgb),.45);background:rgba(var(--hi-rgb),.16)}
 .st.paid{color:var(--accent-ink);background:var(--accent);border-color:var(--accent);font-weight:700}
 .flag{color:var(--lo);cursor:help;font-weight:700}
 
@@ -415,7 +496,7 @@ details.sect .field:first-of-type{margin-top:13px}
   background:var(--surface2);border:1px solid var(--line);border-radius:9px}
 .srow .kind{flex:none;font-family:'Space Grotesk',sans-serif;font-size:.68rem;
   font-weight:700;letter-spacing:.04em;color:var(--accent);
-  background:rgba(232,255,99,.08);border:1px solid rgba(232,255,99,.25);
+  background:rgba(var(--accent-rgb),.08);border:1px solid rgba(var(--accent-rgb),.25);
   border-radius:5px;padding:3px 7px}
 .srow .info{flex:1;min-width:0}
 .srow .nm{font-size:.87rem;font-weight:600;margin-bottom:2px}
@@ -449,7 +530,7 @@ aside{border-right:1px solid var(--line);padding:22px;overflow-y:auto;
   color:var(--mute);margin-bottom:9px;font-weight:600}
 /* แท็บเลือกกลุ่มครีเอเตอร์ (KOL / KOC) */
 .tabs{display:flex;gap:4px;background:var(--surface2);border:1px solid var(--line);
-  border-radius:9px;padding:3px;margin-bottom:9px}
+  border-radius:6px;padding:3px;margin-bottom:9px}
 .tabs:empty{display:none}
 .tabs button{flex:1;background:none;border:0;color:var(--mute);border-radius:6px;
   padding:8px 6px;font-size:.85rem;font-weight:600;font-family:'Space Grotesk',sans-serif;
@@ -513,9 +594,9 @@ textarea{resize:vertical;min-height:74px;line-height:1.5}
 .count-input input{width:90px;font-family:'IBM Plex Mono',monospace;font-weight:600}
 
 .run{width:100%;background:var(--accent);color:var(--accent-ink);border:0;
-  border-radius:9px;padding:13px;font-weight:700;font-size:.95rem;letter-spacing:.01em;
-  font-family:'Space Grotesk',sans-serif}
-.run:hover{filter:brightness(1.06)}
+  border-radius:5px;padding:13px;font-weight:700;font-size:.95rem;letter-spacing:.01em;
+  font-family:'Space Grotesk','IBM Plex Sans Thai',sans-serif;transition:background .13s}
+.run:hover{background:#F6121D}
 .run:disabled{opacity:.5;cursor:not-allowed}
 aside .run{margin-top:18px}
 
@@ -532,12 +613,16 @@ main{padding:22px 24px;overflow-y:auto;max-height:calc(100vh - 62px)}
 .export.ghost:hover{border-color:var(--lo);color:var(--lo)}
 .export:disabled{opacity:.4;cursor:not-allowed}
 
-.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:12px}
-.card{background:var(--surface);border:1px solid var(--line);border-radius:12px;
-  padding:15px;transition:border-color .13s;position:relative}
-.card:hover{border-color:var(--dim)}
-.card.fav{border-color:rgba(232,255,99,.34)}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:13px}
+/* ไทล์แบบ Netflix — ชี้แล้วขยายขึ้นมาเหนือเพื่อน */
+.card{background:var(--surface);border:1px solid var(--line);border-radius:6px;
+  padding:15px;position:relative;
+  transition:transform .18s cubic-bezier(.3,0,.2,1),box-shadow .18s,border-color .13s}
+.card:hover{border-color:#4a4a4a;transform:scale(1.025);box-shadow:var(--shadow);z-index:2}
+.card.fav{border-color:rgba(var(--accent-rgb),.5)}
 .card.incart{border-color:var(--accent)}
+.card.incart::before{content:"";position:absolute;left:-1px;top:12px;bottom:12px;width:3px;
+  border-radius:0 3px 3px 0;background:var(--accent)}
 /* เปิดลิงก์ไปแล้ว — หรี่ลงให้เห็นชัดว่าไล่ถึงไหนแล้ว */
 .card.seen{border-style:dashed;border-color:var(--dim);background:var(--bg)}
 .card.seen .handle,.card.seen .reason{opacity:.55}
@@ -564,28 +649,28 @@ main{padding:22px 24px;overflow-y:auto;max-height:calc(100vh - 62px)}
 .av img.dead{display:none}
 .score{font-family:'IBM Plex Mono',monospace;font-weight:600;font-size:.9rem;
   padding:2px 9px;border-radius:6px;white-space:nowrap;flex:none}
-.score.hi{background:rgba(124,231,196,.14);color:var(--hi)}
-.score.mid{background:rgba(232,255,99,.13);color:var(--accent)}
-.score.lo{background:rgba(240,128,107,.13);color:var(--lo)}
+.score.hi{background:rgba(var(--hi-rgb),.14);color:var(--hi)}
+.score.mid{background:rgba(var(--warn-rgb),.14);color:var(--warn)}
+.score.lo{background:rgba(var(--lo-rgb),.13);color:var(--lo)}
 .meta{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:9px}
 .tag{font-size:.72rem;background:var(--surface2);border:1px solid var(--line);
   border-radius:5px;padding:2px 8px;color:var(--mute)}
 .tag.fol{font-family:'IBM Plex Mono',monospace}
-.tag.rate{font-family:'IBM Plex Mono',monospace;color:var(--accent);
-  border-color:rgba(232,255,99,.28);background:rgba(232,255,99,.07);font-weight:600}
+.tag.rate{font-family:'IBM Plex Mono',monospace;color:#fff;
+  border-color:rgba(var(--accent-rgb),.45);background:rgba(var(--accent-rgb),.14);font-weight:600}
 .tag.norate{color:var(--dim);font-style:italic}
 /* แลกของ — ไม่มีค่าตัวเป็นเงิน ใช้สีเขียวเหมือนในชีต */
-.tag.rate.barter{color:var(--hi);border-color:rgba(124,231,196,.3);
-  background:rgba(124,231,196,.08);font-family:'IBM Plex Sans Thai',sans-serif}
+.tag.rate.barter{color:var(--hi);border-color:rgba(var(--hi-rgb),.3);
+  background:rgba(var(--hi-rgb),.08);font-family:'IBM Plex Sans Thai',sans-serif}
 /* ต้นทุนต่อ 1,000 followers — ยิ่งต่ำยิ่งคุ้ม */
 .tag.cpf{font-family:'IBM Plex Mono',monospace}
-.tag.cpf.good{color:var(--hi);border-color:rgba(124,231,196,.28);background:rgba(124,231,196,.07)}
-.tag.cpf.pricey{color:var(--lo);border-color:rgba(240,128,107,.28);background:rgba(240,128,107,.07)}
+.tag.cpf.good{color:var(--hi);border-color:rgba(var(--hi-rgb),.28);background:rgba(var(--hi-rgb),.07)}
+.tag.cpf.pricey{color:var(--lo);border-color:rgba(var(--lo-rgb),.28);background:rgba(var(--lo-rgb),.07)}
 /* อยู่ในลิสต์แนวที่ชอบ / ใกล้เคียงกับแนวนั้น */
-.tag.fav{color:var(--accent);border-color:rgba(232,255,99,.35);
-  background:rgba(232,255,99,.1);font-weight:600}
-.tag.near{color:var(--hi);border-color:rgba(124,231,196,.28);
-  background:rgba(124,231,196,.07);font-family:'IBM Plex Mono',monospace}
+.tag.fav{color:var(--accent);border-color:rgba(var(--accent-rgb),.35);
+  background:rgba(var(--accent-rgb),.1);font-weight:600}
+.tag.near{color:var(--hi);border-color:rgba(var(--hi-rgb),.28);
+  background:rgba(var(--hi-rgb),.07);font-family:'IBM Plex Mono',monospace}
 
 /* เกณฑ์คัดงาน — ค้างไว้เหนือผลลัพธ์ ตอนไล่เปิดคลิปจะได้ไม่ต้องจำ */
 .critbar{display:flex;flex-wrap:wrap;align-items:center;gap:7px;margin:-4px 0 13px}
@@ -639,14 +724,14 @@ main{padding:22px 24px;overflow-y:auto;max-height:calc(100vh - 62px)}
   font-size:.82rem;line-height:1.65;white-space:pre-wrap;word-break:break-word;
   color:var(--ink);max-height:340px;overflow-y:auto}
 .cmdblk pre .fill{color:var(--accent);font-weight:600}
-.cmdblk pre .gap{color:var(--lo);background:rgba(240,128,107,.1);
+.cmdblk pre .gap{color:var(--lo);background:rgba(var(--lo-rgb),.1);
   border-radius:4px;padding:0 4px}
 .cmdbtn{background:var(--surface2);border:1px solid var(--line);color:var(--dim);
   border-radius:6px;padding:2px 8px;font-size:.72rem;font-weight:600;margin-left:7px}
 .cmdbtn:hover{border-color:var(--accent);color:var(--accent)}
-.cmdblk.edited{border-color:rgba(232,255,99,.4)}
+.cmdblk.edited{border-color:rgba(var(--accent-rgb),.4)}
 .cmdblk.edited > header::before{content:"แก้แล้ว";font-size:.66rem;color:var(--accent);
-  border:1px solid rgba(232,255,99,.35);border-radius:4px;padding:1px 6px}
+  border:1px solid rgba(var(--accent-rgb),.35);border-radius:4px;padding:1px 6px}
 .cmdblk .cmdt{flex:1;min-width:0;font-size:.8rem;font-weight:600;padding:4px 8px}
 .cmdblk .cmdb{width:100%;border:0;border-radius:0;background:var(--surface2);
   font-family:'IBM Plex Sans Thai',sans-serif;font-size:.82rem;line-height:1.65;
@@ -654,6 +739,33 @@ main{padding:22px 24px;overflow-y:auto;max-height:calc(100vh - 62px)}
 .cmdblk .cmdb:focus{outline:none;background:var(--surface)}
 .cmdmeta code{background:var(--surface2);border-radius:4px;padding:1px 5px;
   font-size:.72rem;color:var(--accent)}
+
+/* ── ลิ้นชักรายละเอียดครีเอเตอร์ ── */
+.dhead{display:flex;align-items:center;gap:11px;margin-bottom:16px}
+.dhead .nmbig{font-family:'Space Grotesk','IBM Plex Sans Thai',sans-serif;
+  font-size:1.3rem;font-weight:700;flex:1;min-width:0;word-break:break-all}
+.dhead a{color:var(--accent);font-size:.84rem;flex:none;font-weight:600}
+.dhead a:hover{text-decoration:underline}
+.dgrid{display:grid;grid-template-columns:1fr 1fr;gap:11px 12px;margin-bottom:6px}
+.dgrid .wide2{grid-column:1/-1}
+@media(max-width:520px){.dgrid{grid-template-columns:1fr}}
+.dfield label{display:block;font-size:.68rem;text-transform:uppercase;letter-spacing:.07em;
+  color:var(--dim);margin-bottom:5px;font-weight:600}
+.dfield input,.dfield select{font-size:.86rem;padding:8px 10px;background:var(--surface2)}
+.dfield .ro{font-family:'IBM Plex Mono',monospace;font-size:.95rem;font-weight:700;
+  padding:8px 10px;border:1px dashed var(--line);border-radius:8px;color:var(--ink)}
+.dfield .ro small{display:block;font-family:inherit;font-weight:400;
+  font-size:.7rem;color:var(--dim);margin-top:3px}
+.dsect{margin-top:20px;padding-top:16px;border-top:1px solid var(--line)}
+.dsect > h3{font-size:.68rem;text-transform:uppercase;letter-spacing:.08em;
+  color:var(--dim);font-weight:600;margin-bottom:11px}
+.dact{display:flex;gap:8px;margin-top:18px;flex-wrap:wrap}
+.dact .export{flex:1;min-width:130px;text-align:center}
+.dsku{display:flex;flex-wrap:wrap;gap:6px;align-items:center;position:relative;
+  min-height:38px;padding:5px;background:var(--surface2);
+  border:1px solid var(--line);border-radius:8px}
+.dclips{font-size:.78rem;color:var(--mute);line-height:1.8}
+.dclips .branch{color:var(--dim);font-family:'IBM Plex Mono',monospace;margin-right:6px}
 
 .drawer-head{display:flex;align-items:center;justify-content:space-between;gap:12px;
   padding:17px 18px;border-bottom:1px solid var(--line);flex:none}
@@ -708,17 +820,17 @@ main{padding:22px 24px;overflow-y:auto;max-height:calc(100vh - 62px)}
 <body>
 
 <header>
-  <div class="brand">
+  <button class="brand" id="brandBtn" title="กลับหน้าแรก">
     <svg class="mark" viewBox="0 0 32 32" aria-hidden="true">
-      <rect width="32" height="32" rx="7" fill="#0E0F13"/>
-      <circle cx="14" cy="14" r="7.6" fill="none" stroke="#E8FF63" stroke-width="2.8"/>
-      <path d="M11.7 10.4 18.4 14 11.7 17.6Z" fill="#E8FF63"/>
-      <path d="M19.9 19.9 25.6 25.6" stroke="#E8FF63" stroke-width="3.3" stroke-linecap="round"/>
+      <path d="M6 3h6.4l7.2 16.1V3H26v26h-6.2L12.4 12v17H6Z" fill="#E50914"/>
     </svg>
     <h1>Creator Finder</h1>
-    <span class="sub">KOL sourcing</span>
-  </div>
-  <button class="gear back" id="backBtn" hidden>← หน้าแรก</button>
+    <span class="sub">Alta Global Commerce</span>
+  </button>
+  <nav class="nav" id="navBar">
+    <button data-go="find">ค้นหาครีเอเตอร์</button>
+    <button data-go="coord">Coordinator</button>
+  </nav>
   <div class="hgroup">
     <button class="gear" id="foldBtn" aria-expanded="true"
             title="พับ/กางแถบตัวกรอง">◧ แถบตัวกรอง</button>
@@ -736,7 +848,7 @@ main{padding:22px 24px;overflow-y:auto;max-height:calc(100vh - 62px)}
 <!-- ═══ ประตูรหัส ═══ -->
 <div class="lock" id="lockView" hidden>
   <form class="lockbox" id="lockForm">
-    <div class="lk">🔑</div>
+    <div class="lk">CREATOR FINDER</div>
     <h2 id="lockTitle">ใส่รหัสเพื่อเข้าใช้งาน</h2>
     <p class="lockhint" id="lockHint"></p>
     <div class="pin" id="lockPin" hidden></div>
@@ -746,12 +858,19 @@ main{padding:22px 24px;overflow-y:auto;max-height:calc(100vh - 62px)}
               title="ดู/ซ่อนรหัส">👁</button>
     </div>
     <button class="run" type="submit" id="lockGo">เข้าใช้งาน</button>
+    <button type="button" class="lockcancel" id="lockCancel" hidden>ไม่รู้รหัส — กลับหน้าแรก</button>
     <div class="lockmsg" id="lockMsg"></div>
   </form>
 </div>
 
 <!-- ═══ หน้าแรก — เลือกว่าจะทำงานอะไร ═══ -->
 <section id="homeView">
+  <div class="hero">
+    <div class="eyebrow">CREATOR FINDER</div>
+    <h2>หาครีเอเตอร์ แล้วคุมงานให้จบ<br>ในที่เดียว</h2>
+    <p>ดึงรายชื่อจากชีตทีม คัดตามหมวดและงบ แล้วส่งต่อเข้าโปรเจกต์ —
+       เรท ภาษี สถานะ วันโพสต์ แก้ได้หมดจากหน้าเดียว</p>
+  </div>
   <div class="home">
     <button class="hcard" data-go="find">
       <span class="ic">🔍</span>
@@ -899,7 +1018,9 @@ main{padding:22px 24px;overflow-y:auto;max-height:calc(100vh - 62px)}
       </div>
     </details>
 
-    <button class="run" id="runBtn">ค้นหา</button>
+    <button class="run" id="runBtn">จัดอันดับด้วย Reference</button>
+    <div class="hint" id="runHint" style="text-align:center;margin-top:8px">
+      ตัวกรองด้านบนทำงานทันที ไม่ต้องกดปุ่ม</div>
   </aside>
 
   <!-- ═══ ผลลัพธ์ ═══ -->
@@ -930,58 +1051,54 @@ main{padding:22px 24px;overflow-y:auto;max-height:calc(100vh - 62px)}
 
 <!-- ═══ Coordinate — คุมงานที่รับไปแล้ว แยกตามโปรเจกต์ ═══ -->
 <section id="coordView">
-  <div class="coordtools">
-    <details class="ctool" open>
-      <summary>➕ เพิ่มครีเอเตอร์เข้าโปรเจกต์</summary>
-      <div class="ctbody">
-        <p class="sect-sub">ใส่แค่ 4 ช่องนี้ ที่เหลือเว้นไว้ ค่อยเติมในตารางทีหลัง</p>
-        <div class="cgrid">
-          <div><label>ID ครีเอเตอร์ *</label>
-            <input id="ncId" placeholder="เช่น tangkwaqs" autocomplete="off"></div>
-          <div><label>Link</label>
-            <input id="ncLink" placeholder="เว้นว่างได้ — สร้างจาก ID ให้เอง"></div>
-          <div><label>Project *</label><select id="ncProj"></select></div>
-          <div><label>กลุ่ม</label>
-            <select id="ncKind"><option>KOL</option><option>KOC</option></select></div>
-        </div>
-        <button class="run" id="ncAdd" style="margin-top:11px">เพิ่มเข้าโปรเจกต์</button>
-        <div class="addmsg" id="ncMsg"></div>
+  <!-- ช่องคำสั่งช่องเดียว — เพิ่มคนใหม่กับแก้ข้อมูลใช้ช่องเดียวกัน
+       เมื่อก่อนเป็นสองกล่องใหญ่กางค้างไว้ กินจอทั้งหน้าก่อนจะเห็นตาราง -->
+  <div class="cmdbar">
+    <div class="cmdbar-in">
+      <span class="cmdbar-ic">⌘</span>
+      <textarea id="qoText" rows="1" spellcheck="false"
+        placeholder="สั่งงานที่นี่ — «cenakims เรท 12000 หัก 3% โพสต์แล้ว» · «เพิ่ม tangkwaqs เข้า RC2 KOL» · «ย้าย 052.be ไป Red Chamber 2»"></textarea>
+      <button class="run" id="qoParse">ตรวจ</button>
+    </div>
+    <div class="cmdbar-foot">
+      <button class="linkish" id="cmdHelpBtn">พิมพ์อะไรได้บ้าง</button>
+      <button class="linkish" id="bulkToggle">⇥ ก๊อปจากชีตมาวางหลายคน</button>
+    </div>
 
-        <p class="sect-sub" style="margin:15px 0 8px;border-top:1px solid var(--line);padding-top:13px">
-          หรือ <b>ก๊อปจากชีตมาวางทีเดียวหลายคน</b> — บรรทัดละคน คั่นด้วย Tab<br>
-          <code style="font-size:.72rem;color:var(--mute)">cenakims&#9;Blush - Lekui (20)&#9;1&#9;Already Post</code><br>
-          อ่านให้: ID · สินค้า/SKU · จำนวนวิดีโอ · สถานะ — ช่องไหนไม่มีก็เว้นได้
-        </p>
-        <textarea id="ncBulk" style="min-height:120px"
-          placeholder="วางที่นี่ แล้วกดตรวจ"></textarea>
-        <button class="run" id="ncBulkParse" style="margin-top:10px">ตรวจก่อนเพิ่ม</button>
-        <div id="ncBulkPreview"></div>
-        <div class="addmsg" id="ncBulkMsg"></div>
-      </div>
-    </details>
+    <div class="cmdhelp" id="cmdHelp" hidden>
+      <b>บรรทัดละคำสั่ง</b> — อ่านจากทั้งบรรทัด ไม่สนลำดับคำ
+      ชื่อครีเอเตอร์เทียบกับรายชื่อที่มีอยู่จริง ใส่หลายคนในบรรทัดเดียวได้<br>
+      <code>เพิ่ม tangkwaqs เข้า RC2 KOL</code> — คนใหม่ ข้อมูลอื่นเว้นไว้เติมทีหลัง<br>
+      <code>cenakims เรท 12000 หัก ณ ที่จ่าย 3% โพสต์แล้ว</code><br>
+      <code>ย้าย 052.be ไป Red Chamber 2</code><br>
+      <code>RC2 tangkwaqs babimaofad รอ Draft 2</code><br>
+      <span style="color:var(--dim)">แก้ได้: เรท · ภาษี · สถานะ · จำนวนคลิป · SKU · งาน · โน้ต: ·
+      วันโพสต์ · กำหนดส่ง · ลิงก์บรีฟ · KOL/KOC · ย้ายโปรเจกต์ —
+      ชื่อซ้ำหลายโปรเจกต์ต้องบอกโปรเจกต์ด้วย</span>
+    </div>
 
-    <details class="ctool" open>
-      <summary>⚡ Quick Order — สั่งแก้ด้วยข้อความ</summary>
-      <div class="ctbody">
-        <p class="sect-sub">
-          พิมพ์เป็นประโยคได้เลย ไม่ต้องมีรูปแบบตายตัว — <b>บรรทัดละคำสั่ง</b><br>
-          <code style="color:var(--mute)">cenakims เรท 12000 หัก ณ ที่จ่าย 3% โพสต์แล้ว</code><br>
-          <code style="color:var(--mute)">ย้าย 052.be ไป Red Chamber 2</code><br>
-          <code style="color:var(--mute)">RC2 tangkwaqs babimaofad รอ Draft 2</code><br>
-          <span style="color:var(--dim)">อ่านจากทั้งบรรทัด ไม่สนลำดับ · ชื่อครีเอเตอร์เทียบกับรายชื่อจริง
-          · ใส่หลายคนในบรรทัดเดียวได้ · ชื่อซ้ำหลายโปรเจกต์ให้ระบุโปรเจกต์ด้วย<br>
-          อ่านได้: เรท · ภาษี · สถานะ · จำนวนคลิป · SKU · งาน · โน้ต: · วันโพสต์ · กำหนดส่ง · ลิงก์บรีฟ · KOL/KOC · ย้ายโปรเจกต์</span>
-        </p>
-        <textarea id="qoText" placeholder="พิมพ์คำสั่งที่นี่ แล้วกดตรวจ"></textarea>
-        <button class="run" id="qoParse" style="margin-top:10px">ตรวจก่อนใช้</button>
-        <div id="qoPreview"></div>
-        <div class="addmsg" id="qoMsg"></div>
+    <div class="cmdbulk" id="bulkFold" hidden>
+      <p class="sect-sub">บรรทัดละคน คั่นด้วย Tab — อ่านให้: ID · สินค้า/SKU · จำนวนวิดีโอ · สถานะ<br>
+        <code style="font-size:.72rem;color:var(--mute)">cenakims&#9;Blush - Lekui (20)&#9;1&#9;Already Post</code>
+      </p>
+      <div class="cgrid" style="margin-bottom:10px">
+        <div><label>ลงโปรเจกต์</label><select id="ncProj"></select></div>
+        <div><label>กลุ่ม</label>
+          <select id="ncKind"><option>KOL</option><option>KOC</option></select></div>
       </div>
-    </details>
+      <textarea id="ncBulk" style="min-height:110px" placeholder="วางที่นี่ แล้วกดตรวจ"></textarea>
+      <button class="run" id="ncBulkParse" style="margin-top:10px">ตรวจก่อนเพิ่ม</button>
+      <div id="ncBulkPreview"></div>
+      <div class="addmsg" id="ncBulkMsg"></div>
+    </div>
+
+    <div id="qoPreview"></div>
+    <div class="addmsg" id="qoMsg"></div>
   </div>
 
   <div class="coord-head">
     <div class="tabs sub" id="projTabs" role="tablist"></div>
+    <div class="coord-sum" id="coordSum"></div>
     <div class="headact">
       <a class="export" id="coordSheet" target="_blank" rel="noopener noreferrer"
          href="https://docs.google.com/spreadsheets/d/1v5CrMct_EQEnHYndMAujZZI_DUBhGY5j5msfJ-2uBOM/edit#gid=33859969">เปิดชีต ↗</a>
@@ -990,19 +1107,31 @@ main{padding:22px 24px;overflow-y:auto;max-height:calc(100vh - 62px)}
       <button class="export ghost" id="coordResetEdits">คืนค่าที่แก้ในเครื่อง</button>
     </div>
   </div>
-  <div class="coord-sum" id="coordSum"></div>
   <div class="syncbar" id="syncBar"></div>
 
   <div class="coordbar">
     <div class="tabs sub kindseg" id="kindSeg" role="tablist"></div>
     <input id="coordFind" placeholder="ค้นหาครีเอเตอร์ — พิมพ์ชื่อเพื่อดูประวัติทุกโปรเจกต์"
            autocomplete="off">
+    <div class="tabs sub colseg" id="colSeg" role="tablist"></div>
   </div>
   <div id="creatorCard"></div>
 
 
   <div id="coordBody"></div>
 </section>
+
+<!-- ═══ รายละเอียดครีเอเตอร์ — ทุกช่องอยู่ในแนวตั้ง ไม่ต้องเลื่อนตารางไปขวา ═══ -->
+<div class="drawer" id="detailPanel">
+  <div class="scrim" id="detailScrim"></div>
+  <aside class="panel wide" role="dialog" aria-modal="true" aria-labelledby="detailTitle">
+    <div class="drawer-head">
+      <h2 id="detailTitle">รายละเอียด</h2>
+      <button class="x" id="closeDetail" aria-label="ปิด">✕</button>
+    </div>
+    <div class="drawer-body" id="detailBody"></div>
+  </aside>
+</div>
 
 <!-- ═══ Command — ข้อความสำเร็จรูปสำหรับคุยกับครีเอเตอร์ ═══ -->
 <div class="drawer" id="cmdPanel">
@@ -1578,7 +1707,7 @@ function renderCatChips(keepOn = []){
     `<span class="chip${keepOn.includes(c)?' on':''}" data-cat="${esc(c)}">${esc(c)}</span>`).join("") ||
     '<span class="hint">โหลด pool ก่อน แล้วหมวดจะขึ้นที่นี่</span>';
   document.querySelectorAll("#catChips .chip").forEach(ch =>
-    ch.onclick = () => { ch.classList.toggle("on"); updateCatSummary(); });
+    ch.onclick = () => { ch.classList.toggle("on"); updateCatSummary(); runLive(); });
   updateCatSummary();
 }
 
@@ -1647,7 +1776,7 @@ function addLikes(text, label){
   const hit = POOL.filter(p => found.has(normId(p.id))).length;
   $("#likeInfo").insertAdjacentHTML("afterbegin",
     `${esc(label)}: อ่านได้ ${found.size} ชื่อ · ใหม่ ${LIKED.size - before} · ตรงกับ pool นี้ ${hit} คน<br>`);
-  if (RESULTS.length) run();
+  runLive();
 }
 
 // ─── หัวข้อพับได้ในแถบตัวกรอง ───
@@ -1690,7 +1819,17 @@ function saveFolds(){
 }
 
 // ─── ค้นหา ───
-async function run(){
+// ตัวกรองทำงานทันทีที่แตะ ไม่ต้องกดปุ่ม — หน่วงไว้นิดเดียวกันพิมพ์ทีละตัวแล้วกรองรัวๆ
+// ยกเว้นการจัดอันดับด้วย Claude ที่เสียเงินและช้า อันนั้นต้องกดเอง
+let RUN_T = null;
+function runLive(){
+  if (document.body.dataset.view !== "find") return;
+  clearTimeout(RUN_T);
+  RUN_T = setTimeout(() => run({ rank: false }), 180);
+}
+
+async function run(opt){
+  const useRank = !opt || opt.rank !== false;
   const url = currentSheetUrl();
   if (!url){
     $("#banner").style.display = "";
@@ -1700,13 +1839,14 @@ async function run(){
 
   $("#runBtn").disabled = true;
   $("#banner").style.display = "none";
-  $("#results").innerHTML = `<div class="loading"><span class="spin"></span>กำลังโหลด pool...</div>`;
+  if (!POOL.length || POOL_URL !== url)
+    $("#results").innerHTML = `<div class="loading"><span class="spin"></span>กำลังโหลด pool...</div>`;
 
   try {
     if (!POOL.length || POOL_URL !== url) await loadPool(url);
   } catch(e){
     $("#results").innerHTML = `<div class="empty"><h3>โหลด pool ไม่ได้</h3><div>${esc(e.message)} — เช็คว่า publish เป็น CSV แล้ว</div></div>`;
-    $("#runBtn").disabled = false; return;
+    syncRunBtn(); return;
   }
 
   // กรองพื้นฐาน
@@ -1752,13 +1892,13 @@ async function run(){
   const ref = $("#ref").value.trim();
   const key = $("#apiKey").value.trim();
 
-  if (ref && key){
+  if (ref && key && useRank){
     $("#results").innerHTML = `<div class="loading"><span class="spin"></span>Claude กำลังวิเคราะห์ reference และจัดอันดับ ${filtered.length} คน...</div>`;
     try {
       filtered = await scoreWithClaude(filtered, ref, key);
     } catch(e){
       $("#results").innerHTML = `<div class="empty"><h3>จับคู่ reference ไม่ได้</h3><div>${esc(e.message)}</div></div>`;
-      $("#runBtn").disabled = false; return;
+      syncRunBtn(); return;
     }
   } else if (LIKED.size){
     // มีลิสต์แนวที่ชอบ → คนในลิสต์ขึ้นก่อน ตามด้วยคนที่โปรไฟล์ใกล้แนวนั้น
@@ -1770,7 +1910,7 @@ async function run(){
 
   RESULTS = filtered.slice(0, want);
   render();
-  $("#runBtn").disabled = false;
+  syncRunBtn();
 }
 
 // ─── เรียก Claude วิเคราะห์ ref + ให้คะแนน ───
@@ -2237,10 +2377,11 @@ function skuCell(r, i){
     }<button class="skuadd" data-sku="${i}" title="เพิ่ม SKU">${parts.length ? "＋" : "＋ เพิ่ม SKU"}</button></div>`;
 }
 
-function openSkuPicker(i, host){
+// after = สิ่งที่ต้องวาดใหม่หลังเลือกเสร็จ — ตารางกับลิ้นชักรายละเอียดใช้ตัวเดียวกัน
+function openSkuPicker(r, host, after){
   document.querySelectorAll(".fpop").forEach(p => p.remove());
-  const r = (COORD[PROJ] || [])[i];
   if (!r) return;
+  after = after || renderCoord;
   const cur = skuParts(r.sku);
   const opts = [...new Set(skuOptions().concat(cur))];
   const pop = document.createElement("div");
@@ -2255,10 +2396,8 @@ function openSkuPicker(i, host){
   host.appendChild(pop);
 
   const commit = list => {
-    r.sku = skuJoin(list);
-    const k = ekey(r);
-    EDITS[k] = Object.assign({}, EDITS[k], { sku: r.sku });
-    saveEdits(); markDirty(); renderCoord();
+    setField(r, "sku", skuJoin(list));
+    after();
   };
   pop.querySelectorAll(".flist input").forEach(c => c.onchange = () =>
     commit([...pop.querySelectorAll(".flist input:checked")].map(x => x.value)));
@@ -2292,6 +2431,24 @@ function formatRateInput(inp){
 
 let KINDSEG = "all";     // ทั้งหมด / KOL / KOC ในโปรเจกต์ที่เปิดอยู่
 
+// โหมดย่อ — ซ่อน โพสต์/กำหนดส่ง/บรีฟ/โน้ต ให้ที่เหลือพอดีจอ 1280 โดยไม่ต้องเลื่อนขวา
+// ตั้งเป็นค่าตั้งต้น เพราะ 4 ช่องนั้นแตะน้อยกว่าเรทกับสถานะมาก และยังแก้ได้ครบในลิ้นชัก
+const LS_LEAN = "cf_lean_v1";
+let LEAN = true;
+try { const v = localStorage.getItem(LS_LEAN); if (v !== null) LEAN = v === "1"; } catch(e){}
+
+function renderColSeg(){
+  $("#colSeg").innerHTML = [[true,"คอลัมน์หลัก"],[false,"ทุกคอลัมน์"]].map(([v,label]) =>
+    `<button role="tab" data-lean="${v}" aria-selected="${v === LEAN}"
+       title="${v ? "ซ่อน โพสต์/กำหนดส่ง/บรีฟ/โน้ต — กด ⤢ ท้ายชื่อเพื่อดูและแก้ครบ"
+                  : "โชว์ทั้ง 15 คอลัมน์ ต้องเลื่อนไปทางขวา"}">${label}</button>`).join("");
+  document.querySelectorAll("#colSeg button").forEach(b => b.onclick = () => {
+    LEAN = b.dataset.lean === "true";
+    try { localStorage.setItem(LS_LEAN, LEAN ? "1" : "0"); } catch(e){}
+    renderColSeg(); renderCoord();
+  });
+}
+
 function renderKindSeg(){
   const all = COORD[PROJ] || [];
   const n = k => all.filter(r => (r.kind || "") === k).length;
@@ -2304,6 +2461,156 @@ function renderKindSeg(){
     KINDSEG = b.dataset.k; renderKindSeg(); renderCoord();
   });
 }
+
+// ═══ ลิ้นชักรายละเอียด — ทุกช่องของคนเดียวเรียงแนวตั้ง ═══
+// ตารางมี 15 คอลัมน์ ต่อให้ตรึงชื่อไว้ก็ยังต้องเลื่อนไปขวาเพื่อแก้เรทหรือวันโพสต์
+// ที่นี่เห็นครบในจอเดียว แก้ได้ทุกช่อง รวมถึงย้ายโปรเจกต์และลบ
+let DETAIL = null;   // { proj, handle } — เก็บเป็นชื่อ ไม่ใช่ index เพราะแถวถูกย้าย/ลบได้
+
+function openDetail(proj, i){
+  const r = (COORD[proj] || [])[i];
+  if (!r) return;
+  DETAIL = { proj: r.project, handle: normId(r.handle) };
+  $("#detailPanel").classList.add("on");
+  renderDetail();
+}
+function closeDetail(){ $("#detailPanel").classList.remove("on"); DETAIL = null; }
+
+function detailRow(){
+  if (!DETAIL) return null;
+  return (COORD[DETAIL.proj] || []).find(r => normId(r.handle) === DETAIL.handle) || null;
+}
+
+const D_TEXT = [
+  { f:"code",     label:"งาน (ตัวย่อ)", ph:"B / E+L" },
+  { f:"videos",   label:"จำนวนวิดีโอ", ph:"-", num:true },
+  { f:"postdate", label:"วันโพสต์",    ph:"ยังไม่ลง" },
+  { f:"deadline", label:"กำหนดส่ง",     ph:"-" },
+];
+
+function renderDetail(){
+  const r = detailRow();
+  const body = $("#detailBody");
+  if (!r){
+    body.innerHTML = `<div class="empty"><h3>แถวนี้ไม่อยู่แล้ว</h3>
+      <div>อาจถูกลบหรือย้ายไปโปรเจกต์อื่น</div></div>`;
+    return;
+  }
+  $("#detailTitle").textContent = "รายละเอียดครีเอเตอร์";
+
+  const auto = payOf(r.rate, r.paytype);
+  const t = payType(r.paytype);
+  const cost = (auto != null && t.cost) ? t.cost(Number(r.rate)) : null;
+  const clips = clipsOf(r);
+  const hist = creatorHistory(r.handle);
+
+  body.innerHTML = `
+    <div class="dhead">
+      <span class="nmbig">${esc(r.handle)}</span>
+      <a href="https://www.tiktok.com/@${esc(r.handle)}" target="_blank"
+         rel="noopener noreferrer">TikTok ↗</a>
+    </div>
+
+    <div class="dgrid">
+      <div class="dfield"><label>ชื่อ (ID)</label>
+        <input data-d="handle" value="${esc(r.handle)}"></div>
+      <div class="dfield"><label>กลุ่ม</label>
+        <select data-d="kind">${["","KOL","KOC"].map(k =>
+          `<option value="${k}"${k === (r.kind||"") ? " selected" : ""}>${k || "—"}</option>`).join("")}</select></div>
+
+      <div class="dfield"><label>โปรเจกต์ — เลือกใหม่คือย้าย</label>
+        <select data-move>${PROJECTS.map(p =>
+          `<option value="${esc(p)}"${p === r.project ? " selected" : ""}>${esc(p)}</option>`).join("")}</select></div>
+      <div class="dfield"><label>สถานะ</label>
+        <select class="st-sel ${stClass(r.status)}" data-d="status">${STATUSES.map(s =>
+          `<option value="${esc(s)}" class="${stClass(s)}"${s === (r.status||"") ? " selected" : ""}>${
+            esc(ST_TH[s])}</option>`).join("")}</select></div>
+
+      ${D_TEXT.map(x => `<div class="dfield"><label>${esc(x.label)}</label>
+        <input data-d="${x.f}"${x.num ? ' type="number" min="0" step="1"' : ""}
+               value="${esc(r[x.f] ?? "")}" placeholder="${esc(x.ph)}"></div>`).join("")}
+
+      <div class="dfield"><label>เรท (บาท)</label>
+        <input class="mono" data-d="rate" data-f="rate" inputmode="numeric"
+               value="${r.rate == null ? "" : Number(r.rate).toLocaleString("en-US")}"
+               placeholder="${(r.kind||"") === "KOC" ? "-" : "ยังไม่รู้"}"></div>
+      <div class="dfield"><label>รูปแบบภาษี</label>
+        <select class="pay ${payClass(r.paytype)}" data-d="paytype">${PAYTYPES.map(p =>
+          `<option value="${p.id}"${p.id === (r.paytype||"") ? " selected" : ""}>${
+            esc(p.label)}</option>`).join("")}</select></div>
+
+      <div class="dfield wide2"><label>จ่ายจริง — คิดให้จากเรท × รูปแบบภาษี</label>
+        <div class="ro">${auto == null ? `<span class="dash">ยังคิดไม่ได้</span>`
+          : "฿" + auto.toLocaleString("en-US",{minimumFractionDigits:2})}${
+          cost ? `<small>บริษัทจ่ายจริงรวมภาษีที่ออกให้ ฿${
+            (Math.round(cost*100)/100).toLocaleString("en-US",{minimumFractionDigits:2})}</small>` : ""}</div></div>
+
+      <div class="dfield wide2"><label>SKU — ใส่ได้หลายอัน</label>
+        <div class="dsku" id="dSku">${skuParts(r.sku).map(p =>
+          `<span class="skuchip" title="${esc(p)}">${esc(p)}<button
+             data-dskudel="${esc(p)}" title="เอาออก">✕</button></span>`).join("")
+          }<button class="skuadd" id="dSkuAdd">＋ เพิ่ม SKU</button></div></div>
+
+      <div class="dfield wide2"><label>ลิงก์บรีฟ</label>
+        <input data-d="brief" value="${esc(r.brief || "")}" placeholder="วางลิงก์บรีฟ"></div>
+      <div class="dfield wide2"><label>โน้ต</label>
+        <input data-d="note" value="${esc(r.note || "")}" placeholder="โน้ต"></div>
+    </div>
+
+    ${clips.length ? `<div class="dsect"><h3>แยกรายคลิป (${clips.length} คลิป)</h3>
+      <div class="dclips">${clips.map((c, k) => `<div>
+        <span class="branch">${k === clips.length-1 ? "└" : "├"}</span>
+        คลิป ${k+1} · ${esc(c.sku)} · <span class="st ${stClass(c.status)}">${
+          esc(ST_TH[c.status] || "—")}</span></div>`).join("")}</div></div>` : ""}
+
+    ${hist.length > 1 ? `<div class="dsect"><h3>เคยร่วมงาน ${hist.length} โปรเจกต์</h3>
+      ${histTable(hist)}</div>` : ""}
+
+    <div class="dact">
+      <button class="export" id="dCmd">✉ เปิด Command</button>
+      <button class="export ghost" id="dDel">🗑 ลบออกจากโปรเจกต์</button>
+    </div>`;
+
+  // ทุกช่องเซฟด้วย setField ตัวเดียวกับตาราง แล้ววาดใหม่ทั้งคู่
+  body.querySelectorAll("[data-d]").forEach(el => el.onchange = () => {
+    setField(r, el.dataset.d, el.value);
+    if (el.dataset.d === "handle") DETAIL.handle = normId(r.handle);
+    renderProjTabs(); renderCoord(); renderDetail();
+  });
+  const rateIn = body.querySelector('[data-f="rate"]');
+  if (rateIn){
+    rateIn.onfocus = () => rateIn.select();
+    rateIn.oninput = () => formatRateInput(rateIn);
+  }
+  body.querySelector("[data-move]").onchange = e => {
+    const to = e.target.value;
+    if (!confirm(`ย้าย ${r.handle} จาก ${r.project} ไป ${to}?`)){ renderDetail(); return; }
+    moveRow(r, to);
+    DETAIL.proj = to;
+    PROJ = to;
+    renderProjTabs(); renderCoord(); fillProjSelect(); renderDetail();
+  };
+  body.querySelectorAll("[data-dskudel]").forEach(b => b.onclick = () => {
+    setField(r, "sku", skuJoin(skuParts(r.sku).filter(v => v !== b.dataset.dskudel)));
+    renderCoord(); renderDetail();
+  });
+  $("#dSkuAdd").onclick = e => {
+    e.stopPropagation();
+    openSkuPicker(r, $("#dSku"), () => { renderCoord(); renderDetail(); });
+  };
+  $("#dCmd").onclick = () => openCmd(r.project, normId(r.handle));
+  $("#dDel").onclick = () => {
+    if (!confirm(`ลบ ${r.handle} ออกจาก ${r.project}?\nจะหายจากชีตด้วยตอนซิงก์รอบถัดไป`)) return;
+    const list = COORD[r.project] || [], at = list.indexOf(r);
+    if (at >= 0) list.splice(at, 1);
+    delete EDITS[ekey(r)];
+    saveEdits(); markDirty(); renderProjTabs(); renderCoord();
+    closeDetail();
+  };
+}
+
+$("#closeDetail").onclick = closeDetail;
+$("#detailScrim").onclick = closeDetail;
 
 // ─── ประวัติครีเอเตอร์ข้ามโปรเจกต์ ───
 function creatorHistory(handle){
@@ -2339,8 +2646,30 @@ function renderCreatorCard(q){
 
   const h = names.includes(term) ? term : names[0];
   const hist = creatorHistory(h);
-  let prev = null, first = null, last = null;
+  const paid = hist.map(r => payOf(r.rate, r.paytype)).filter(v => v != null)
+                   .reduce((s, v) => s + v, 0);
 
+  el.innerHTML = `<div class="ccard">
+    <h3><a href="https://www.tiktok.com/@${esc(h)}" target="_blank" rel="noopener noreferrer">${esc(h)} ↗</a></h3>
+    <div class="sub">เคยร่วมงาน <b>${hist.length}</b> โปรเจกต์</div>
+    ${histTable(hist)}
+    <div class="tot">${rateGrowth(hist)}<br>รวมจ่ายจริงทุกโปรเจกต์ <b>฿${
+      paid.toLocaleString("en-US",{minimumFractionDigits:2})}</b></div>
+  </div>`;
+
+  // ค้นเจอแล้วกดแก้ต่อได้เลย ไม่ต้องไปไล่หาแถวในตารางเอง
+  el.querySelectorAll("[data-goto]").forEach(tr => tr.onclick = () => {
+    const p = tr.dataset.goto;
+    const i = (COORD[p] || []).findIndex(r => normId(r.handle) === tr.dataset.gh);
+    if (i < 0) return;
+    if (p !== PROJ){ PROJ = p; renderProjTabs(); renderCoord(); }
+    openDetail(p, i);
+  });
+}
+
+// ตารางประวัติข้ามโปรเจกต์ — ใช้ทั้งในการ์ดค้นหาและในลิ้นชักรายละเอียด
+function histTable(hist){
+  let prev = null;
   const body = hist.map(r => {
     const rate = Number(r.rate);
     const has = isFinite(rate) && rate > 0;
@@ -2351,9 +2680,10 @@ function renderCreatorCard(q){
         : `<span class="${d > 0 ? "up" : "down"}">${d > 0 ? "▲ +" : "▼ "}${
             Math.abs(d).toLocaleString("en-US")} (${d > 0 ? "+" : "−"}${Math.abs(pct).toFixed(1)}%)</span>`;
     }
-    if (has){ if (first == null) first = rate; last = rate; prev = rate; }
+    if (has) prev = rate;
     const net = payOf(r.rate, r.paytype);
-    return `<tr>
+    return `<tr data-goto="${esc(r.project)}" data-gh="${esc(normId(r.handle))}"
+                title="กดเพื่อเปิดแถวนี้ใน ${esc(r.project)} แล้วแก้ได้เลย">
       <td>${esc(r.project)}</td>
       <td>${esc(r.kind || "-")}</td>
       <td>${esc(r.code || "-")}</td>
@@ -2364,24 +2694,22 @@ function renderCreatorCard(q){
       <td>${delta}</td></tr>`;
   }).join("");
 
-  const paid = hist.map(r => payOf(r.rate, r.paytype)).filter(v => v != null)
-                   .reduce((s, v) => s + v, 0);
-  const growth = (first != null && last != null && first !== last && first > 0)
-    ? `เรทเปลี่ยนจาก <b>฿${first.toLocaleString("en-US")}</b> เป็น <b>฿${last.toLocaleString("en-US")}</b>
-       รวม <span class="${last > first ? "up" : "down"}">${last > first ? "+" : "−"}${
-       Math.abs(last - first).toLocaleString("en-US")} บาท (${last > first ? "+" : "−"}${
-       Math.abs((last - first) / first * 100).toFixed(1)}%)</span>`
-    : `ยังเทียบการขึ้นเรทไม่ได้ — ต้องมีเรทอย่างน้อย 2 โปรเจกต์`;
-
-  el.innerHTML = `<div class="ccard">
-    <h3><a href="https://www.tiktok.com/@${esc(h)}" target="_blank" rel="noopener noreferrer">${esc(h)} ↗</a></h3>
-    <div class="sub">เคยร่วมงาน <b>${hist.length}</b> โปรเจกต์</div>
-    <table><thead><tr><th>Project</th><th>กลุ่ม</th><th>งาน</th><th>สถานะ</th>
+  return `<table><thead><tr><th>Project</th><th>กลุ่ม</th><th>งาน</th><th>สถานะ</th>
       <th style="text-align:right">เรท</th><th style="text-align:right">จ่ายจริง</th>
-      <th>เทียบโปรเจกต์ก่อน</th></tr></thead><tbody>${body}</tbody></table>
-    <div class="tot">${growth}<br>รวมจ่ายจริงทุกโปรเจกต์ <b>฿${
-      paid.toLocaleString("en-US",{minimumFractionDigits:2})}</b></div>
-  </div>`;
+      <th>เทียบโปรเจกต์ก่อน</th></tr></thead><tbody>${body}</tbody></table>`;
+}
+
+// เรทขึ้นเท่าไหร่ตั้งแต่โปรเจกต์แรกถึงล่าสุด
+function rateGrowth(hist){
+  const rates = hist.map(r => Number(r.rate)).filter(v => isFinite(v) && v > 0);
+  const first = rates[0], last = rates[rates.length - 1];
+  if (rates.length < 2 || first === last || !first)
+    return `ยังเทียบการขึ้นเรทไม่ได้ — ต้องมีเรทอย่างน้อย 2 โปรเจกต์`;
+  const up = last > first;
+  return `เรทเปลี่ยนจาก <b>฿${first.toLocaleString("en-US")}</b> เป็น <b>฿${last.toLocaleString("en-US")}</b>
+     รวม <span class="${up ? "up" : "down"}">${up ? "+" : "−"}${
+     Math.abs(last - first).toLocaleString("en-US")} บาท (${up ? "+" : "−"}${
+     Math.abs((last - first) / first * 100).toFixed(1)}%)</span>`;
 }
 
 $("#coordFind").addEventListener("input", e => renderCreatorCard(e.target.value.trim()));
@@ -2435,14 +2763,12 @@ function openColFilter(field, th){
 }
 
 function renderCoord(){
-  renderKindSeg();
+  renderKindSeg(); renderColSeg();
   const all = COORD[PROJ] || [];
   const rows = (KINDSEG === "all" ? all : all.filter(r => (r.kind || "") === KINDSEG))
                  .filter(passFilter);
   if (!all.length){
-    $("#coordSum").innerHTML =
-      `<span class="src ${privateOn() ? "locked" : "open"}">${privateOn() ? "🔒" : "🌐"}
-        ข้อมูลจาก: ${esc(COORD_SRC)}</span>`;
+    $("#coordSum").innerHTML = "";
     $("#coordBody").innerHTML = `<div class="empty"><h3>${esc(PROJ)} ยังไม่มีข้อมูล</h3>
       <div>เพิ่มแถวในแท็บ <b>Coordinate</b> ของชีต แล้วกดโหลดใหม่<br>
       (คอลัมน์ Project ต้องเขียนว่า <b>${esc(PROJ)}</b> เป๊ะ)</div></div>`;
@@ -2452,19 +2778,19 @@ function renderCoord(){
   // ตัวเลขสรุปเอาออกแล้ว — จำนวนคนดูได้จากตัวเลขบนแท็บโปรเจกต์กับปุ่ม KOL/KOC อยู่แล้ว
   // เหลือไว้ 2 อย่างที่ไม่ใช่สถิติ: อ่านชีตทางไหน (ตัวชี้ขาดก่อนปิด Share) และเรทที่ยังต้องยืนยัน
   const flagged = all.filter(r => r.rate == null || (r.rate_all || []).length > 1).length;
-  $("#coordSum").innerHTML =
-    `<span class="src ${privateOn() ? "locked" : "open"}">${privateOn() ? "🔒" : "🌐"}
-      ข้อมูลจาก: ${esc(COORD_SRC)}</span>` +
-    (flagged ? `<span style="color:var(--lo)">⚑ ต้องยืนยันเรท <b style="color:var(--lo)">${flagged}</b> คน</span>` : "");
+  $("#coordSum").innerHTML = flagged
+    ? `<span style="color:var(--lo)" title="ข้อมูลจาก: ${esc(COORD_SRC)}">⚑ ต้องยืนยันเรท <b>${flagged}</b> คน</span>`
+    : "";
 
-  $("#coordBody").innerHTML = `<div class="cwrap"><table class="ctable">
+  $("#coordBody").innerHTML = `<div class="cwrap"><table class="ctable${LEAN ? " lean" : ""}">
     <thead><tr>
       <th class="w-move" title="ลากเพื่อสลับลำดับ">↕</th>
       <th>ครีเอเตอร์</th><th style="text-align:center">วิดีโอ</th>
-      <th>กลุ่ม</th><th class="w-job">งาน</th><th class="w-status">สถานะ</th>
+      <th class="opt">กลุ่ม</th><th class="w-job">งาน</th><th class="w-status">สถานะ</th>
       <th style="text-align:right">เรท</th><th>รูปแบบภาษี</th>
       <th style="text-align:right">จ่ายจริง</th>
-      <th>SKU</th><th>โพสต์</th><th>กำหนดส่ง</th><th>บรีฟ</th><th>โน้ต</th>
+      <th>SKU</th><th class="opt">โพสต์</th><th class="opt">กำหนดส่ง</th>
+      <th class="opt">บรีฟ</th><th class="opt">โน้ต</th>
       <th class="w-del"></th>
     </tr></thead><tbody>${rows.length
       ? rows.map(r => coordRow(r, all.indexOf(r))).join("")
@@ -2490,15 +2816,14 @@ function renderCoord(){
     b.onclick = () => openCmd(PROJ, b.dataset.cmd));
 
   document.querySelectorAll("#coordBody [data-sku]").forEach(b => b.onclick = e => {
-    e.stopPropagation(); openSkuPicker(+b.dataset.sku, b.parentElement);
+    e.stopPropagation();
+    openSkuPicker((COORD[PROJ] || [])[+b.dataset.sku], b.parentElement);
   });
   document.querySelectorAll("#coordBody [data-skudel]").forEach(b => b.onclick = () => {
     const r = (COORD[PROJ] || [])[+b.dataset.skudel];
     if (!r) return;
-    r.sku = skuJoin(skuParts(r.sku).filter(v => v !== b.dataset.v));
-    const k = ekey(r);
-    EDITS[k] = Object.assign({}, EDITS[k], { sku: r.sku });
-    saveEdits(); markDirty(); renderCoord();
+    setField(r, "sku", skuJoin(skuParts(r.sku).filter(v => v !== b.dataset.v)));
+    renderCoord();
   });
 
   document.querySelectorAll("#coordBody [data-exp]").forEach(b => b.onclick = () => {
@@ -2518,30 +2843,13 @@ function renderCoord(){
 
   document.querySelectorAll("#coordBody [data-f]").forEach(el => {
     el.onchange = () => {
-      const r = COORD[PROJ][+el.dataset.i], f = el.dataset.f;
-      const before = ekey(r);
-      r[f] = (f === "rate" || f === "net3" || f === "videos")
-        ? (el.value.trim() === "" ? null : Number(el.value.replace(/,/g, "")))
-        : el.value;
-      if (f === "rate") r.rate_all = [];        // ยืนยันด้วยมือแล้ว ธงลง
-      // จ่ายจริงคิดจากเรท+รูปแบบภาษีเสมอ เก็บไว้ด้วยเพื่อให้ชีตมีตัวเลขให้อ่าน
-      if (f === "rate" || f === "paytype") r.net3 = payOf(r.rate, r.paytype);
-      // แก้ชื่อ = คนละคนแล้ว key เดิมใช้ไม่ได้ ต้องล้างของเก่าทิ้งและอัปเดตลิงก์ตาม
-      if (f === "handle"){
-        const clean = normId(el.value);
-        if (!clean){ renderCoord(); return; }
-        delete EDITS[before];
-        r.handle = clean;
-        r.link = `https://www.tiktok.com/@${clean}`;
-      }
-      const k = ekey(r);
-      EDITS[k] = Object.assign({}, EDITS[k], { [f]: r[f] },
-                               f === "handle" ? { handle: r.handle, link: r.link } : {},
-                               f === "rate" ? { rate_all: [] } : {},
-                               (f === "rate" || f === "paytype") ? { net3: r.net3 } : {});
-      saveEdits(); markDirty(); renderProjTabs(); renderCoord();
+      setField(COORD[PROJ][+el.dataset.i], el.dataset.f, el.value);
+      renderProjTabs(); renderCoord();
     };
   });
+
+  document.querySelectorAll("#coordBody [data-detail]").forEach(b =>
+    b.onclick = () => openDetail(PROJ, +b.dataset.detail));
 
   // ลบคนออกจากโปรเจกต์ — ถามก่อนเสมอ กดพลาดแล้วเรียกคืนจากชีตได้แต่เสียเวลา
   document.querySelectorAll("#coordBody [data-del]").forEach(b => b.onclick = () => {
@@ -2580,6 +2888,51 @@ function renderCoord(){
   });
 }
 
+// ─── แก้ค่าหนึ่งช่อง — ใช้ร่วมกันทั้งตารางและลิ้นชักรายละเอียด ───
+// ที่เดียวจบ จะได้ไม่มีทางที่สองที่แก้ข้อมูลคนละแบบกัน
+function setField(r, f, raw){
+  if (!r) return false;
+  const before = ekey(r);
+  if (f === "handle"){
+    // แก้ชื่อ = คนละคนแล้ว key เดิมใช้ไม่ได้ ต้องล้างของเก่าทิ้งและอัปเดตลิงก์ตาม
+    const clean = normId(raw);
+    if (!clean) return false;
+    delete EDITS[before];
+    r.handle = clean;
+    r.link = `https://www.tiktok.com/@${clean}`;
+  } else if (f === "rate" || f === "net3" || f === "videos"){
+    const s = String(raw).trim();
+    r[f] = s === "" ? null : Number(s.replace(/,/g, ""));
+  } else {
+    r[f] = raw;
+  }
+  if (f === "rate") r.rate_all = [];        // ยืนยันด้วยมือแล้ว ธงลง
+  // จ่ายจริงคิดจากเรท+รูปแบบภาษีเสมอ เก็บไว้ด้วยเพื่อให้ชีตมีตัวเลขให้อ่าน
+  if (f === "rate" || f === "paytype") r.net3 = payOf(r.rate, r.paytype);
+  const k = ekey(r);
+  EDITS[k] = Object.assign({}, EDITS[k], { [f]: r[f] },
+                           f === "handle" ? { handle: r.handle, link: r.link } : {},
+                           f === "rate" ? { rate_all: [] } : {},
+                           (f === "rate" || f === "paytype") ? { net3: r.net3 } : {});
+  saveEdits(); markDirty();
+  return true;
+}
+
+// ย้ายข้ามโปรเจกต์ — ต้องถอดออกจากที่เดิมจริงๆ ไม่งั้นจะโผล่สองที่
+function moveRow(r, to){
+  const from = r.project;
+  if (!to || to === from) return false;
+  const list = COORD[from] || [];
+  const at = list.indexOf(r);
+  if (at >= 0) list.splice(at, 1);
+  delete EDITS[ekey(r)];
+  r.project = to;
+  (COORD[to] = COORD[to] || []).push(r);
+  EDITS[ekey(r)] = Object.assign({}, EDITS[ekey(r)], { project: to });
+  saveEdits(); markDirty();
+  return true;
+}
+
 // งานที่รวมกันในช่อง SKU เช่น "Blush - Haelyn (40) + Eyeshadow - CP301 (10)"
 // = คนละคลิป แยกดูทีละคลิปได้ ตัวเลขวิดีโอก็หารตามคลิป
 const CLIP_SPLIT = /\s*\+\s*/;
@@ -2610,12 +2963,12 @@ function subRows(r, i){
       <span class="branch">${k === clips.length - 1 ? "└" : "├"}</span>
       <span class="clipno">คลิป ${k + 1}</span></div></td>
     <td class="vid"><span class="one">${c.videos}</span></td>
-    <td></td>
+    <td class="opt"></td>
     <td class="w-job"><span class="tag job ${codeClass(c.code)}">${esc(codeLabel(c.code))}</span></td>
     <td class="w-status"><span class="st ${stClass(c.status)}">${esc(ST_TH[c.status] || "—")}</span></td>
     <td></td><td></td><td></td>
     <td class="clipsku">${esc(c.sku)}</td>
-    <td></td><td></td><td></td><td></td><td></td>
+    <td class="opt"></td><td class="opt"></td><td class="opt"></td><td class="opt"></td><td></td>
   </tr>`).join("");
 }
 
@@ -2638,12 +2991,15 @@ function coordRow(r, i){
              title="แก้ชื่อได้ — ลิงก์จะตามไปเอง">
       <a class="go" href="https://www.tiktok.com/@${esc(r.handle)}" target="_blank"
          rel="noopener noreferrer" title="เปิด TikTok">↗</a>
-      <button class="cmdbtn" data-cmd="${esc(normId(r.handle))}">Command</button>
+      <button class="icobtn" data-detail="${i}"
+              title="ดู/แก้ทุกอย่างของ ${esc(r.handle)} — ไม่ต้องเลื่อนตารางไปขวา">⤢</button>
+      <button class="icobtn" data-cmd="${esc(normId(r.handle))}"
+              title="ข้อความสำเร็จรูปสำหรับคุยกับ ${esc(r.handle)}">✉</button>
     </div></td>
     <td class="vid"><input data-i="${i}" data-f="videos" type="number" min="0" step="1"
         value="${r.videos ?? ""}" placeholder="-"
         title="${clips.length ? "กางดูจะเห็นแยกเป็น " + clips.map(c => c.videos).join(" - ") : ""}"></td>
-    <td><select data-i="${i}" data-f="kind" style="width:72px">${
+    <td class="opt"><select data-i="${i}" data-f="kind" style="width:72px">${
       ["", "KOL", "KOC"].map(k =>
         `<option value="${k}"${k === (r.kind||"") ? " selected" : ""}>${k || "—"}</option>`).join("")}</select></td>
     <td class="w-job"><input class="job-in ${codeClass(r.code)}" data-i="${i}" data-f="code"
@@ -2675,15 +3031,15 @@ function coordRow(r, i){
            (Math.round(cost*100)/100).toLocaleString("en-US",{minimumFractionDigits:2})}</span>` : "");
     })()}</td>
     <td class="w-sku">${skuCell(r, i)}</td>
-    <td><input data-i="${i}" data-f="postdate" value="${esc(r.postdate || "")}"
+    <td class="opt"><input data-i="${i}" data-f="postdate" value="${esc(r.postdate || "")}"
         placeholder="-" style="width:100px"></td>
-    <td><input data-i="${i}" data-f="deadline" value="${esc(r.deadline || "")}"
+    <td class="opt"><input data-i="${i}" data-f="deadline" value="${esc(r.deadline || "")}"
         placeholder="-" style="width:100px" title="ไทม์ไลน์ที่ตกลงในบรีฟ"></td>
-    <td class="w-brief"><input data-i="${i}" data-f="brief" value="${esc(r.brief || "")}"
+    <td class="w-brief opt"><input data-i="${i}" data-f="brief" value="${esc(r.brief || "")}"
         placeholder="วางลิงก์บรีฟ" style="width:118px">
       ${link ? `<a href="${esc(link)}" target="_blank" rel="noopener noreferrer"
         class="go" title="เปิดบรีฟ">↗</a>` : ""}</td>
-    <td class="w-note"><input data-i="${i}" data-f="note" value="${esc(r.note || "")}"
+    <td class="w-note opt"><input data-i="${i}" data-f="note" value="${esc(r.note || "")}"
         placeholder="โน้ต"></td>
     <td class="w-del"><button class="delrow" data-del="${i}"
         title="ลบ ${esc(r.handle)} ออกจาก ${esc(PROJ)}">🗑</button></td>
@@ -3087,11 +3443,16 @@ function askGate(name){
   if (pinLen) pinEls = buildPin(pinLen, () => $("#lockForm").requestSubmit());
   applyGateShow();
 
+  // ประตูชั้นในต้องมีทางถอย ไม่งั้นคนที่ไม่มีรหัส Coordinator จะติดอยู่กับจอล็อก
+  // โดยเฉพาะตอนเว็บพากลับมาหน้าที่ค้างไว้เอง
+  $("#lockCancel").hidden = (name === "site");
+
   $("#lockView").hidden = false;
   setTimeout(() => (pinLen ? pinEls[0] : $("#lockPw")).focus(), 50);
 
   return new Promise(resolve => {
     $("#lockEye").onclick = () => { GATE_SHOW = !GATE_SHOW; applyGateShow(); };
+    $("#lockCancel").onclick = () => { $("#lockView").hidden = true; resolve(false); };
     $("#lockForm").onsubmit = async e => {
       e.preventDefault();
       const pw = gateValue();
@@ -3117,13 +3478,23 @@ function askGate(name){
   });
 }
 
+// จำหน้าล่าสุดไว้ — เปิดเว็บใหม่จะได้ไม่ต้องเดินผ่านหน้าแรกทุกครั้ง
+// (ยังต้องใส่รหัสอยู่ ประตูไม่ได้ถูกข้าม แค่ไม่ต้องกดการ์ดซ้ำ)
+const LS_VIEW = "cf_view_v1";
+let COORD_READY = false;
+
 async function setView(v){
-  if (v === "coord" && !gatePassed("coord")) await askGate("coord");
+  if (v === "coord" && !gatePassed("coord") && !(await askGate("coord"))) return;
   document.body.dataset.view = v;
-  $("#backBtn").hidden = (v === "home");
+  document.querySelectorAll(".nav button").forEach(b =>
+    b.setAttribute("aria-current", b.dataset.go === v ? "page" : "false"));
+  try { localStorage.setItem(LS_VIEW, v); } catch(e){}
   updateSrcChip();
   window.scrollTo(0, 0);
-  if (v === "coord"){
+  // pool มักโหลดเสร็จก่อนจะเข้าหน้านี้ ตอนนั้น runLive() ยังไม่ทำงานเพราะยังไม่ได้อยู่หน้า find
+  if (v === "find" && !RESULTS.length) runLive();
+  if (v === "coord" && !COORD_READY){
+    COORD_READY = true;
     $("#coordBody").innerHTML = `<div class="loading"><span class="spin"></span>กำลังโหลดจากชีต...</div>`;
     await loadCoordData();
     renderProjTabs(); renderCoord(); fillProjSelect(); updateSyncBar();
@@ -3379,7 +3750,7 @@ function renderDealTabs(){
     if (b.dataset.deal === DEAL) return;
     DEAL = b.dataset.deal;
     renderDealTabs();
-    run();
+    runLive();
   });
   syncRateField();
 }
@@ -3420,7 +3791,9 @@ async function selectSheet(){
   }
   try {
     await loadPool(url);
-    $("#banner").innerHTML = `โหลด <b>${esc(KIND)}</b> แล้ว <b>${POOL.length} คน</b> · เลือกตัวกรองแล้วกดค้นหา`;
+    $("#banner").style.display = "none";
+    // โหลดเสร็จก็โชว์ผลเลย ไม่ต้องให้กดค้นหาก่อนถึงจะเห็นอะไร
+    runLive();
   } catch(e){
     POOL = []; POOL_URL = ""; $("#poolN").textContent = 0;
     $("#banner").innerHTML = `<b>โหลด pool ไม่ได้:</b> ${esc(e.message)}`;
@@ -3655,7 +4028,7 @@ $("#acSave").onclick = async () => {
         CATS = [...new Set(POOL.flatMap(catsOf))].sort();
         renderCatChips(pickedCats()); renderDealTabs(); refreshExclude(); refreshLiked();
         $("#poolN").textContent = POOL.length;
-        if (RESULTS.length) run();
+        runLive();
       }
     } catch(e){}
   }
@@ -3842,7 +4215,7 @@ function addExclusions(text, label){
   const hit = POOL.filter(p => found.has(normId(p.id))).length;
   $("#exInfo").innerHTML =
     `${esc(label)}: อ่านได้ ${found.size} ชื่อ · ใหม่ ${EXCLUDE.size - before} · ตรงกับ pool นี้ ${hit} คน`;
-  if (RESULTS.length) run();
+  runLive();
 }
 
 $("#exFile").onchange = async e => {
@@ -3867,7 +4240,7 @@ $("#exText").addEventListener("change", () => {
 $("#exClear").onclick = () => {
   EXCLUDE.clear(); lsSaveSet(LS_EX, EXCLUDE); refreshExclude();
   $("#exInfo").textContent = "ล้างแล้ว";
-  if (RESULTS.length) run();
+  runLive();
 };
 
 // ─── เกณฑ์คัดงาน ───
@@ -3908,13 +4281,13 @@ $("#likeClear").onclick = () => {
   if (LIKED.size && !confirm(`ล้างลิสต์แนวที่ชอบทั้งหมด ${LIKED.size} ชื่อ?`)) return;
   LIKED.clear(); lsSaveSet(LS_LIKED, LIKED); refreshLiked();
   $("#likeInfo").textContent = "ล้างแล้ว";
-  if (RESULTS.length) run();
+  runLive();
 };
 
 $("#hideLiked").onchange = e => {
   HIDE_LIKED = e.target.checked;
   try { localStorage.setItem(LS_HIDELIKED, HIDE_LIKED ? "1" : ""); } catch(err){}
-  if (RESULTS.length) run();
+  runLive();
 };
 
 $("#catNone").onclick = () => {
@@ -3946,13 +4319,27 @@ $("#addSheet").onclick = addSheet;
 $("#settings").onclick = e => { if (e.target.id === "settings") closeSettings(); };
 document.addEventListener("keydown", e => {
   if (e.key !== "Escape") return;
-  if ($("#cart").classList.contains("on")) closeCart();
+  if ($("#detailPanel").classList.contains("on")) closeDetail();
+  else if ($("#cmdPanel").classList.contains("on")) $("#cmdPanel").classList.remove("on");
+  else if ($("#cart").classList.contains("on")) closeCart();
   else if (!$("#addPanel").hidden) $("#addPanel").hidden = true;
   else if (!$("#settings").hidden) closeSettings();
 });
 $("#sheetSel").onchange = selectSheet;
 
-$("#runBtn").onclick = run;
+// ปุ่มนี้เหลือหน้าที่เดียว — สั่ง Claude จัดอันดับตาม reference (เสียเงิน ต้องกดเอง)
+// การกรองธรรมดาทำงานเองอยู่แล้วทุกครั้งที่แตะตัวกรอง
+$("#runBtn").onclick = () => run({ rank: true });
+function syncRunBtn(){
+  const ready = $("#ref").value.trim() && $("#apiKey").value.trim();
+  $("#runBtn").disabled = !ready;
+  $("#runHint").innerHTML = ready
+    ? `ตัวกรองทำงานทันทีอยู่แล้ว — ปุ่มนี้ใช้ตอนอยากให้ Claude เรียงตาม reference`
+    : `ตัวกรองด้านบนทำงานทันที ไม่ต้องกดปุ่ม<br>
+       <span style="color:var(--dim)">ปุ่มนี้ต้องมีทั้ง Reference และ API Key ถึงจะใช้ได้</span>`;
+}
+["ref","apiKey"].forEach(id => $("#"+id).addEventListener("input", syncRunBtn));
+syncRunBtn();
 // ─── Coordinate: โหลดใหม่ / ส่งออก / คืนค่าที่แก้ ───
 $("#coordReload").onclick = async () => {
   $("#coordBody").innerHTML = `<div class="loading"><span class="spin"></span>กำลังโหลดจากชีต...</div>`;
@@ -3989,28 +4376,19 @@ function fillProjSelect(){
     `<option value="${esc(p)}"${p === PROJ ? " selected" : ""}>${esc(p)}</option>`).join("");
 }
 
-$("#ncAdd").onclick = () => {
-  const msg = $("#ncMsg");
-  const id = normId($("#ncId").value);
-  const proj = $("#ncProj").value;
-  if (!id){ msg.className = "addmsg on err"; msg.textContent = "ต้องใส่ ID"; return; }
-  if ((COORD[proj] || []).some(r => normId(r.handle) === id)){
-    msg.className = "addmsg on err";
-    msg.innerHTML = `มี <b>${esc(id)}</b> ใน ${esc(proj)} อยู่แล้ว`; return;
-  }
-  COORD[proj].push({ handle: id, project: proj, kind: $("#ncKind").value,
-    link: safeLinkUrl($("#ncLink").value) || `https://www.tiktok.com/@${id}`,
-    code:"", status:"", rate:null, paytype:"", net3:null,
-    sku:"", postdate:"", deadline:"", brief:"", note:"", rate_all:[] });
+// แถวเปล่าของคนใหม่ — ที่เหลือเว้นไว้ เติมในตารางหรือในลิ้นชักรายละเอียดทีหลัง
+function blankRow(id, proj, kind){
+  return { handle:id, project:proj, kind:kind || "",
+    link:`https://www.tiktok.com/@${id}`,
+    code:"", status:"", videos:null, rate:null, paytype:"", net3:null,
+    sku:"", postdate:"", deadline:"", brief:"", note:"", rate_all:[] };
+}
+
+function addToProject(id, proj, kind){
+  (COORD[proj] = COORD[proj] || []).push(blankRow(id, proj, kind));
   NEWROWS.push({ project: proj, handle: id });
   saveNewRows(); markDirty();
-  ["ncId","ncLink"].forEach(x => $("#"+x).value = "");
-  if (proj !== PROJ){ PROJ = proj; }
-  renderProjTabs(); renderCoord(); fillProjSelect();
-  msg.className = "addmsg on ok";
-  msg.innerHTML = `เพิ่ม <b>${esc(id)}</b> เข้า ${esc(proj)} แล้ว — จะขึ้นชีตในรอบซิงก์ถัดไป`;
-  $("#ncId").focus();
-};
+}
 
 // ─── วางหลายคนจากชีต ───
 // คอลัมน์ตามที่ก๊อปมาจริง: ID · สินค้า · จำนวนวิดีโอ · สถานะ
@@ -4229,19 +4607,61 @@ const QO_LABEL = { rate:"เรท", net3:"จ่ายจริง", status:"�
                    code:"งาน", sku:"SKU", postdate:"วันโพสต์", paytype:"รูปแบบภาษี" };
 let QO = [];
 
+// ─── บรรทัดที่ขึ้นต้นว่า "เพิ่ม" = คนใหม่ ไม่ใช่การแก้ของเดิม ───
+// แยกทางกันตั้งแต่ต้นบรรทัด เพราะ parseQuickLine ตั้งใจให้ปฏิเสธชื่อที่ยังไม่มีในระบบ
+// ถ้าไม่แยก การเพิ่มคนใหม่จะโดนตอบว่า "ไม่เจอชื่อครีเอเตอร์"
+const ADD_RE = /^\s*(?:\+|เพิ่ม|add)\s+/i;
+function parseAddLine(line){
+  const bad = why => [{ line, ok:false, add:true, why, changes:{} }];
+  const rest = line.replace(ADD_RE, "");
+
+  const projs = findProjects(rest);
+  const proj = projs.length ? projs[0].proj : PROJ;
+  const km = rest.match(/(?<![A-Za-z])(KOL|KOC)(?![A-Za-z])/i);
+  const kind = km ? km[1].toUpperCase() : "";
+
+  // ตัดคำที่เป็นโปรเจกต์/กลุ่ม/คำเชื่อมออกก่อน ที่เหลือคือชื่อคน
+  let left = rest;
+  projs.forEach(p => { left = left.slice(0, p.at) + " ".repeat(p.len) + left.slice(p.at + p.len); });
+  left = left.replace(/(?<![A-Za-z])(KOL|KOC)(?![A-Za-z])/gi, " ")
+             .replace(/\b(?:เข้า|ไป|ที่|ใน|into|to|in)\b/gi, " ")
+             .replace(/https?:\/\/\S*?tiktok\.com\/@?/gi, " ");
+  const ids = [...new Set(left.split(/[\s,·|]+/)
+    .map(s => normId(s.replace(/[^\w.@_-]+$/g, "")))
+    .filter(s => s && /[a-z0-9]/i.test(s) && s.length > 1))];
+
+  if (!ids.length) return bad("อ่านชื่อครีเอเตอร์ในบรรทัดนี้ไม่ออก");
+  if (!projs.length && !PROJ) return bad("ไม่รู้ว่าจะเพิ่มเข้าโปรเจกต์ไหน");
+
+  return ids.map(id =>
+    (COORD[proj] || []).some(r => normId(r.handle) === id)
+      ? { line, ok:false, add:true, why:`${id} อยู่ใน ${proj} อยู่แล้ว`, changes:{} }
+      : { line, ok:true, add:true, id, proj, kind, changes:{} });
+}
+
+function parseCmdLine(line){
+  return ADD_RE.test(line) ? parseAddLine(line) : parseQuickLine(line);
+}
+
 $("#qoParse").onclick = () => {
   QO = $("#qoText").value.split(/\r?\n/).map(s => s.trim()).filter(Boolean)
-        .flatMap(parseQuickLine);
+        .flatMap(parseCmdLine);
   const good = QO.filter(q => q.ok);
-  $("#qoPreview").innerHTML = QO.map(q => q.ok
+  $("#qoPreview").innerHTML = QO.map(q => !q.ok
+    ? `<div class="qorow"><span class="no">✕</span><div>${esc(q.line)}<br>
+        <span class="no">${esc(q.why)}</span></div></div>`
+    : q.add
     ? `<div class="qorow"><span class="ok">✓</span><div><b>${esc(q.id)}</b>
+        <span style="color:var(--dim)">คนใหม่</span><br>
+        เข้า <b style="color:var(--accent)">${esc(q.proj)}</b>${
+        q.kind ? ` · กลุ่ม <b>${esc(q.kind)}</b>` : ""}
+        <span style="color:var(--dim)"> — ข้อมูลอื่นเว้นไว้</span></div></div>`
+    : `<div class="qorow"><span class="ok">✓</span><div><b>${esc(q.id)}</b>
         <span style="color:var(--dim)">${esc(q.proj)}</span><br>${
         (q.moveTo ? [`<b style="color:var(--accent)">ย้ายไป ${esc(q.moveTo)}</b>`] : [])
         .concat(Object.entries(q.changes).map(([k, v]) =>
           `${esc(QO_LABEL[k] || k)}: <b>${esc(k === "paytype" ? payType(v).label : v)}</b>`))
-        .join(" · ")}</div></div>`
-    : `<div class="qorow"><span class="no">✕</span><div>${esc(q.line)}<br>
-        <span class="no">${esc(q.why)}</span></div></div>`).join("");
+        .join(" · ")}</div></div>`).join("");
   const msg = $("#qoMsg");
   msg.className = "addmsg on " + (good.length ? "ok" : "err");
   msg.innerHTML = `อ่านได้ ${good.length}/${QO.length} คำสั่ง` +
@@ -4250,8 +4670,12 @@ $("#qoParse").onclick = () => {
 };
 
 function applyQuickOrder(){
-  let n = 0, moved = 0;
-  QO.filter(q => q.ok).forEach(q => {
+  let n = 0, moved = 0, added = 0;
+  QO.filter(q => q.ok && q.add).forEach(q => {
+    addToProject(q.id, q.proj, q.kind);
+    added++;
+  });
+  QO.filter(q => q.ok && !q.add).forEach(q => {
     const oldKey = ekey(q.row);
     Object.assign(q.row, q.changes);
     if ("rate" in q.changes) q.row.rate_all = [];
@@ -4270,17 +4694,38 @@ function applyQuickOrder(){
                              "rate" in q.changes ? { rate_all: [] } : {});
     n++;
   });
-  saveEdits(); markDirty(); renderProjTabs(); renderCoord();
-  $("#qoText").value = ""; $("#qoPreview").innerHTML = ""; QO = [];
+  saveEdits(); markDirty(); renderProjTabs(); renderCoord(); fillProjSelect();
+  $("#qoText").value = ""; growCmd(); $("#qoPreview").innerHTML = ""; QO = [];
   const msg = $("#qoMsg");
   msg.className = "addmsg on ok";
-  msg.innerHTML = `แก้แล้ว <b>${n}</b> รายการ` +
-    (moved ? ` · ย้ายข้ามโปรเจกต์ <b>${moved}</b> คน` : "") +
-    ` — จะขึ้นชีตในรอบซิงก์ถัดไป`;
+  msg.innerHTML = [
+    added ? `เพิ่มคนใหม่ <b>${added}</b> คน` : "",
+    n ? `แก้แล้ว <b>${n}</b> รายการ` : "",
+    moved ? `ย้ายข้ามโปรเจกต์ <b>${moved}</b> คน` : "",
+  ].filter(Boolean).join(" · ") + ` — จะขึ้นชีตในรอบซิงก์ถัดไป`;
 }
 
-document.querySelectorAll(".hcard").forEach(b => b.onclick = () => setView(b.dataset.go));
-$("#backBtn").onclick = () => setView("home");
+// ─── ช่องคำสั่ง: โตตามข้อความ + ปุ่มพับตัวช่วย ───
+function growCmd(){
+  const t = $("#qoText");
+  t.style.height = "auto";
+  t.style.height = Math.min(t.scrollHeight, 210) + "px";
+}
+$("#qoText").addEventListener("input", growCmd);
+// Enter = ตรวจ, Shift+Enter = ขึ้นบรรทัดใหม่ (หลายคำสั่งพร้อมกัน)
+$("#qoText").addEventListener("keydown", e => {
+  if (e.key === "Enter" && !e.shiftKey){ e.preventDefault(); $("#qoParse").click(); }
+});
+const toggleFold = (btn, box) => $(btn).onclick = () => {
+  $(box).hidden = !$(box).hidden;
+  $(btn).classList.toggle("on", !$(box).hidden);
+};
+toggleFold("#cmdHelpBtn", "#cmdHelp");
+toggleFold("#bulkToggle", "#bulkFold");
+
+document.querySelectorAll(".hcard,.nav button").forEach(b =>
+  b.onclick = () => setView(b.dataset.go));
+$("#brandBtn").onclick = () => setView("home");
 
 $("#cartExport").onclick = exportCSV;
 $("#cartBtn").onclick = openCart;
@@ -4307,8 +4752,13 @@ $("#cartLike").onclick = () => {
   alert(`เพิ่มเข้าลิสต์แนวที่ชอบแล้ว ${LIKED.size - before} ชื่อใหม่ (ในลิสต์รวม ${LIKED.size})\n` +
         `กดค้นหาอีกครั้งเพื่อให้จัดอันดับใหม่ตามลิสต์ที่อัปเดตแล้ว`);
 };
-// พิมพ์อะไรในแถบตัวกรอง หัวข้อที่พับอยู่ต้องอัปเดตตาม
-document.querySelector("aside").addEventListener("input", foldSummaries);
+// พิมพ์อะไรในแถบตัวกรอง หัวข้อที่พับอยู่ต้องอัปเดตตาม แล้วกรองใหม่ทันที
+// ปุ่มค้นหาเลยเหลือไว้ใช้อย่างเดียวคือสั่ง Claude จัดอันดับตาม reference
+const LIVE_FIELDS = ["folMin","folMax","rateMin","rateMax","want"];
+document.querySelector("aside").addEventListener("input", e => {
+  foldSummaries();
+  if (LIVE_FIELDS.includes(e.target.id)) runLive();
+});
 // ─── เริ่มต้น: โหลดรายการ Sheet แล้วดึงตัวแรกมาเลย ───
 EXCLUDE = lsLoadSet(LS_EX);
 SEEN = lsLoadSet(LS_SEEN);
@@ -4323,8 +4773,15 @@ shapeCoord(SEED_COORD);
 setInterval(() => syncCoord(false), SYNC_EVERY);
 updateCartBtn();
 renderCrit();
-// ประตูหน้าแรกก่อน แล้วค่อยเจอสองช่อง — ไม่จำหน้าล่าสุด
-askGate("site").then(() => setView("home"));
+// ประตูหน้าแรกก่อน แล้วเข้าหน้าที่ทำค้างไว้เลย ไม่ต้องเดินผ่านการ์ดสองใบซ้ำทุกครั้ง
+// หน้า Coordinator ยังถามรหัสของมันเองอยู่ ถ้ากดยกเลิกจะตกมาที่หน้าแรก
+askGate("site").then(async () => {
+  let last = "home";
+  try { last = localStorage.getItem(LS_VIEW) || "home"; } catch(e){}
+  if (!["find","coord","home"].includes(last)) last = "home";
+  await setView(last);
+  if (document.body.dataset.view !== last) await setView("home");
+});
 refreshExclude();
 refreshLiked();
 loadHook();
