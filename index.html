@@ -420,6 +420,28 @@ main{padding:22px 24px;overflow-y:auto;max-height:calc(100vh - 62px)}
 .drawer.on{pointer-events:auto}
 .drawer.on .scrim{opacity:1}
 .drawer.on .panel{transform:none}
+.drawer .panel.wide{width:min(620px,96vw)}
+.cmdmeta{font-size:.78rem;color:var(--dim);margin-bottom:14px;line-height:1.6}
+.cmdmeta b{color:var(--mute)}
+.cmdblk{border:1px solid var(--line);border-radius:11px;margin-bottom:11px;
+  background:var(--surface2);overflow:hidden}
+.cmdblk > header{display:flex;align-items:center;gap:9px;padding:9px 12px;
+  border-bottom:1px solid var(--line);font-size:.8rem;font-weight:600;color:var(--mute)}
+.cmdblk > header .no{font-family:'IBM Plex Mono',monospace;color:var(--dim);flex:none}
+.cmdblk > header button{margin-left:auto;background:none;border:1px solid var(--line);
+  color:var(--mute);border-radius:6px;padding:4px 11px;font-size:.75rem;font-weight:600;flex:none}
+.cmdblk > header button:hover{border-color:var(--accent);color:var(--accent)}
+.cmdblk > header button.done{border-color:var(--hi);color:var(--hi)}
+.cmdblk pre{margin:0;padding:12px;font-family:'IBM Plex Sans Thai',sans-serif;
+  font-size:.82rem;line-height:1.65;white-space:pre-wrap;word-break:break-word;
+  color:var(--ink);max-height:340px;overflow-y:auto}
+.cmdblk pre .fill{color:var(--accent);font-weight:600}
+.cmdblk pre .gap{color:var(--lo);background:rgba(240,128,107,.1);
+  border-radius:4px;padding:0 4px}
+.cmdbtn{background:var(--surface2);border:1px solid var(--line);color:var(--dim);
+  border-radius:6px;padding:2px 8px;font-size:.72rem;font-weight:600;margin-left:7px}
+.cmdbtn:hover{border-color:var(--accent);color:var(--accent)}
+
 .drawer-head{display:flex;align-items:center;justify-content:space-between;gap:12px;
   padding:17px 18px;border-bottom:1px solid var(--line);flex:none}
 .drawer-head h2{font-family:'Space Grotesk',sans-serif;font-size:1.02rem;font-weight:700}
@@ -702,7 +724,7 @@ main{padding:22px 24px;overflow-y:auto;max-height:calc(100vh - 62px)}
   <div class="syncbar" id="syncBar"></div>
 
   <div class="coordtools">
-    <details class="ctool">
+    <details class="ctool" open>
       <summary>➕ เพิ่มครีเอเตอร์เข้าโปรเจกต์</summary>
       <div class="ctbody">
         <p class="sect-sub">ใส่แค่ 4 ช่องนี้ ที่เหลือเว้นไว้ ค่อยเติมในตารางทีหลัง</p>
@@ -720,7 +742,7 @@ main{padding:22px 24px;overflow-y:auto;max-height:calc(100vh - 62px)}
       </div>
     </details>
 
-    <details class="ctool">
+    <details class="ctool" open>
       <summary>⚡ Quick Order — สั่งแก้ด้วยข้อความ</summary>
       <div class="ctbody">
         <p class="sect-sub">
@@ -738,6 +760,18 @@ main{padding:22px 24px;overflow-y:auto;max-height:calc(100vh - 62px)}
 
   <div id="coordBody"></div>
 </section>
+
+<!-- ═══ Command — ข้อความสำเร็จรูปสำหรับคุยกับครีเอเตอร์ ═══ -->
+<div class="drawer" id="cmdPanel">
+  <div class="scrim" id="cmdScrim"></div>
+  <aside class="panel wide" role="dialog" aria-modal="true" aria-labelledby="cmdTitle">
+    <div class="drawer-head">
+      <h2 id="cmdTitle">Command</h2>
+      <button class="x" id="closeCmd" aria-label="ปิด">✕</button>
+    </div>
+    <div class="drawer-body" id="cmdBody"></div>
+  </aside>
+</div>
 
 <!-- ═══ ตะกร้า — ลิ้นชักเลื่อนเข้ามาจากขวา ═══ -->
 <div class="drawer" id="cart">
@@ -1868,6 +1902,9 @@ function renderCoord(){
       <th>SKU</th><th>โพสต์</th><th>บรีฟ</th><th>โน้ต</th>
     </tr></thead><tbody>${rows.map((r, i) => coordRow(r, i)).join("")}</tbody></table></div>`;
 
+  document.querySelectorAll("#coordBody [data-cmd]").forEach(b =>
+    b.onclick = () => openCmd(PROJ, b.dataset.cmd));
+
   document.querySelectorAll("#coordBody [data-f]").forEach(el => {
     el.onchange = () => {
       const r = COORD[PROJ][+el.dataset.i], f = el.dataset.f;
@@ -1891,9 +1928,9 @@ function coordRow(r, i){
   const noRate = r.rate == null;
   const link = safeLinkUrl(r.brief);
   return `<tr>
-    <td class="who">${safeLinkUrl("https://www.tiktok.com/@" + r.handle)
-      ? `<a href="https://www.tiktok.com/@${esc(r.handle)}" target="_blank"
-           rel="noopener noreferrer">${esc(r.handle)} ↗</a>` : esc(r.handle)}</td>
+    <td class="who"><a href="https://www.tiktok.com/@${esc(r.handle)}" target="_blank"
+        rel="noopener noreferrer">${esc(r.handle)} ↗</a>
+      <button class="cmdbtn" data-cmd="${esc(normId(r.handle))}">Command</button></td>
     <td>${esc(r.kind || "")}</td>
     <td><span class="tag">${esc(r.code || "-")}</span></td>
     <td><select data-i="${i}" data-f="status">${STATUSES.map(s =>
@@ -1922,6 +1959,224 @@ function coordRow(r, i){
         placeholder="โน้ต"></td>
   </tr>`;
 }
+
+// ═══ Command — ข้อความสำเร็จรูปที่ส่งให้ครีเอเตอร์ ═══
+// แยกเป็นบล็อกตามที่ส่งจริงทีละข้อความ ช่องไหนยังไม่มีข้อมูลจะขึ้นแดงให้เห็น
+// ไม่เติมเดาให้ เพราะข้อความพวกนี้ส่งให้คนนอกทีมอ่าน ผิดแล้วแก้ยาก
+const CMD_BLOCKS = [
+  { t:"1. ขอคอนเฟิร์มการร่วมงาน", b:
+`สวัสดีครับ🙏😊 แอดมินจาก Alta Global Commerce นะครับ ขออนุญาต Confirm✅ การร่วมงาน
+
+สำหรับแบรนด์: Red Chamber ({{sku}})
+โดยเรทราคา 1 video + gencode 60 days + ติดตะกร้า = {{rate}} บาท
+
+หากครีเอเตอร์คอนเฟิร์มการร่วมงาน กรุณาตอบกลับ “Confirm” เพื่อร่วมงานครับ` },
+
+  { t:"2. ขอให้แอดไลน์", b:
+`รบกวนครีเอเตอร์แอดไลน์ Official ของทาง Alta Global Commerce ครับ😊 แอดไลน์✅ ID: @altathailand
+
+💬สามารถทักไลน์โดยการแคปหลักฐานการคอนเฟิร์มขั้นต้นได้เลยนะค้าบบ😊` },
+
+  { t:"3. คอนเฟิร์มเรท + รูปแบบนำจ่าย", b:
+`ขออนุญาตคอนเฟิร์มเรทราคา + รูปแบบนำจ่ายนะครับ😀
+สำหรับแบรนด์: Red Chamber ({{sku}})
+
+โดยเรทราคา 1 video + gencode 60 days + ติดตะกร้า = {{rate}} บาท
+รูปแบบการชำระ: {{paytype}}✅= {{net}} บาท
+
+หากครีเอเตอร์คอนเฟิร์มการร่วมงาน กรุณาตอบกลับ “Confirm”` },
+
+  { t:"4. ขอที่อยู่จัดส่ง", b:
+`แอดมินรบกวนขอที่อยู่สำหรับจัดส่งสินค้าด้วยนะค้าบบ😀` },
+
+  { t:"5. ส่งคู่มือการถ่ายทำ", b:
+`ขออนุญาตส่งคู่มือการถ่ายทำนะครับ🙏 หากมีข้อสงสัยเพิ่มเติมตรงไหนสามารถสอบถามแอดมินได้เลยครับ🩷
+
+📖คู่มือการถ่ายทำ :
+{{brief}}
+
+‼️รบกวนเน้น ตัวสินค้าให้เด่นกว่า เมคอัพอื่นบนหน้า‼️
+
+✅ “จุดขาย” สามารถเลือกนำเสนอ ไม่ต้องนำเสนอทั้งหมด
+✅ รบกวนครีเอเตอร์โฟกัส “สิ่งที่ต้องทำ/ห้ามทำในวิดีโอ (Slide 15/16)” ‼️เน้นเป็นพิเศษ‼️
+
+📌📌รบกวนครีเอเตอร์อ่านรายละเอียดและข้อกำหนดในการถ่ายทำให้ชัดเจนนะครับ เพื่อหลีกเลี่ยงการแก้ไขงานให้ภายหลัง😊🙏
+
+📢เอกสารสำคัญสำหรับร่วมงาน:
+{{docs}}` },
+
+  { t:"6. ถามรูปแบบการชำระเงิน", b:
+`ขออนุญาตสอบถามครีเอเตอร์ต้องการรูปแบบการชำระเงินรูปแบบไหนครับ💵😀
+✅ณ ที่จ่าย 3%
+✅จ่าย NET
+✅นิติบุคคล (vat 7% หัก ณ ที่จ่าย 3%)` },
+
+  { t:"7. แจ้ง Timeline", b:
+`แอดมินขออนุญาตแจ้ง Timeline นะค้าบบ🕞
+📢📢📢
+
+{{timeline}}
+
+📌หากมีการแก้ไขDraft#2-3 ไทม์ไลน์จะปรับเปลี่ยนตามสมควร
+หากต้องการปรับเปลี่ยนไทม์ไลน์จุดไหนสามารถ copy ข้อความ และส่งไทม์ไลน์ที่สะดวกได้เลยนะครับ😊` },
+
+  { t:"8. แจ้งรอจัดส่ง", b:
+`ขอบคุณมากครับ🙏😀 แอดมินจะแจ้งให้ทราบ หากมีการจัดส่งนะครับ` },
+
+  { t:"9. ส่ง key content + สคริป", b:
+`เพื่อความรวดเร็วในการถ่ายวิดีโอแอดมินขอส่ง key content สรุปพร้อมสคริปจากครีเอเตอร์ให้นะครับ
+
+📌📌📌
+{{script}}
+
+หากเกิดปัญหาในการเข้า Doc รบกวนแจ้งครีเอเตอร์นะครับ😊` },
+
+  { t:"10. Feedback Draft #1", b:
+`แอดมินขออนุญาตส่ง Feedback Draft#1 นะครับ😀
+📌📌
+
+{{feedback}}` },
+
+  { t:"11. Feedback Draft #2", b:
+`แอดมินขออนุญาตส่ง Feedback Draft#2 นะครับ😀
+📌📌
+
+{{feedback}}` },
+
+  { t:"12. Feedback Draft #3", b:
+`แอดมินขออนุญาตส่ง Feedback Draft#3 นะครับ😀
+📌📌
+
+{{feedback}}` },
+
+  { t:"13. Hashtag + Link ตะกร้า", b:
+`แอดมินขออนุญาตอัปเดต Hashtag และ Linkตะกร้า สำหรับโพสต์นะครับ🛒
+
+Link ตะกร้า:📦🛒
+{{cart}}
+
+💬FREE CAPTION💬
+
+Hashtag:📱
+{{hashtag}}
+
+✅สามารถลงคลิปในวันนี้ได้เลยนะครับ เวลาตามครีเอเตอร์สะดวกเลยค้าบบ😀
+💬รบกวนแจ้งเวลาลงคลิปกับแอดมินด้วยนะค้าบบ
+
+📌📌รบกวนครีเอเตอร์ **แคปภาพหน้าจอตะกร้าและแฮชแท็ก** ก่อนโพสต์เพื่อให้แอดมินตรวจสอบก่อนโพสต์ด้วยนะค้าบ😊
+📢อย่าลืมGencode 60 วันให้แอดมินด้วยนะค้าบบ🙏😊
+
+ขอบคุณครับ🙏` },
+
+  { t:"14. ฟอร์มเอกสาร + ใบรับเงิน", b:
+`สวัสดีครับ😊
+แอดมินรบกวนครีเอเตอร์กรอกข้อมูลสำหรับออกเอกสารหัก ณ ที่จ่าย และเอกสารอื่น ๆ ประกอบการทำจ่ายในลิ้งด้านล่างนี้นะค้าบ (กรอกเพียงครั้งเดียว✅)
+
+📦สำหรับแบรนด์: Red Chamber 🧴
+📌ฟอร์ม :
+{{form}}
+
+📢หากกรอกเสร็จแล้วรบกวนแคปให้แอดมินด้วยนะครับ
+
+รบกวนครีเอเตอร์ตรวจสอบความถูกต้องก่อนเซ็นใบรับเงิน Acknowledgement of Receipt เพื่อทำการเบิกจ่ายนะครับ😊
+
+{{sign}}` },
+];
+
+// ลิงก์ที่ใช้ซ้ำทุกคน เก็บในเครื่อง ไม่ฝังลงหน้าเว็บสาธารณะ
+const LS_CMDLINKS = "cf_cmdlinks_v1";
+const CMD_LINK_FIELDS = [
+  ["docs", "เอกสารสำคัญสำหรับร่วมงาน (Drive)"],
+  ["form", "ฟอร์มเอกสารหัก ณ ที่จ่าย (Lark)"],
+  ["cart", "ลิงก์ตะกร้า"],
+  ["hashtag", "Hashtag"],
+  ["timeline", "Timeline"],
+];
+let CMDLINKS = {};
+function loadCmdLinks(){
+  try { CMDLINKS = JSON.parse(localStorage.getItem(LS_CMDLINKS) || "{}") || {}; } catch(e){}
+}
+function saveCmdLinks(){
+  try { localStorage.setItem(LS_CMDLINKS, JSON.stringify(CMDLINKS)); } catch(e){}
+}
+
+function cmdValues(r){
+  const net = payOf(r.rate, r.paytype);
+  return {
+    sku: r.sku || "", rate: r.rate != null ? Number(r.rate).toLocaleString("en-US") : "",
+    paytype: r.paytype ? payType(r.paytype).label.replace(/\s*\(.*\)$/, "") : "",
+    net: net != null ? net.toLocaleString("en-US", {minimumFractionDigits:2}) : "",
+    brief: r.brief || "", script: r.script || "", feedback: "",
+    docs: CMDLINKS.docs || "", form: CMDLINKS.form || "",
+    cart: CMDLINKS.cart || "", hashtag: CMDLINKS.hashtag || "",
+    timeline: CMDLINKS.timeline || "",
+  };
+}
+
+const CMD_GAP = { sku:"ยังไม่มี SKU", rate:"ยังไม่มีเรท", paytype:"ยังไม่เลือกรูปแบบภาษี",
+  net:"คิดไม่ได้ ต้องมีเรท+รูปแบบภาษี", brief:"ยังไม่มีลิงก์บรีฟ", script:"ยังไม่มีลิงก์สคริป",
+  feedback:"พิมพ์ฟีดแบคเอง", docs:"ตั้งลิงก์เอกสารในตั้งค่า", form:"ตั้งลิงก์ฟอร์มในตั้งค่า",
+  cart:"ตั้งลิงก์ตะกร้าในตั้งค่า", hashtag:"ตั้ง hashtag ในตั้งค่า", timeline:"ใส่ไทม์ไลน์เอง" };
+
+// คืน 2 แบบ: ข้อความจริงไว้ก๊อป กับ HTML ที่ไฮไลต์ให้เห็นว่าตรงไหนยังว่าง
+function fillBlock(body, vals){
+  let missing = 0;
+  const text = body.replace(/\{\{(\w+)\}\}/g, (_, k) => vals[k] || `…..${CMD_GAP[k] || k}…..`);
+  const html = esc(body).replace(/\{\{(\w+)\}\}/g, (_, k) => {
+    if (vals[k]) return `<span class="fill">${esc(vals[k])}</span>`;
+    missing++;
+    return `<span class="gap">…..${esc(CMD_GAP[k] || k)}…..</span>`;
+  });
+  return { text, html, missing };
+}
+
+function openCmd(proj, handle){
+  const r = (COORD[proj] || []).find(x => normId(x.handle) === normId(handle));
+  if (!r) return;
+  loadCmdLinks();
+  const vals = cmdValues(r);
+  const net = payOf(r.rate, r.paytype);
+  $("#cmdTitle").innerHTML = `Command · <span style="color:var(--accent)">${esc(r.handle)}</span>`;
+
+  const blocks = CMD_BLOCKS.map(bl => Object.assign({ t: bl.t }, fillBlock(bl.b, vals)));
+  const gaps = blocks.reduce((s, b) => s + b.missing, 0);
+
+  $("#cmdBody").innerHTML =
+    `<div class="cmdmeta">
+       <b>${esc(proj)}</b> · ${esc(r.kind || "-")} · งาน ${esc(r.code || "-")}<br>
+       เรท ${r.rate != null ? "฿" + Number(r.rate).toLocaleString("en-US") : "—"} ·
+       ${r.paytype ? esc(payType(r.paytype).label) : "ยังไม่เลือกรูปแบบภาษี"} ·
+       จ่ายจริง ${net != null ? "฿" + net.toLocaleString("en-US",{minimumFractionDigits:2}) : "—"}<br>
+       ${gaps ? `<span style="color:var(--lo)">ยังมีช่องว่าง ${gaps} จุด</span> — ที่ไฮไลต์แดงคือยังไม่มีข้อมูล เติมในตารางแล้วเปิดใหม่จะอัปเดตให้เอง`
+              : `<span style="color:var(--hi)">ข้อมูลครบทุกช่อง</span>`}
+       <button class="cmdbtn" id="cmdSetLinks">ตั้งลิงก์ที่ใช้ร่วมกัน</button>
+     </div>` +
+    blocks.map((b, i) => `<div class="cmdblk">
+      <header><span class="no">${String(i+1).padStart(2,"0")}</span>${esc(b.t)}
+        <button data-i="${i}">คัดลอก</button></header>
+      <pre>${b.html}</pre></div>`).join("");
+
+  document.querySelectorAll("#cmdBody .cmdblk header button").forEach(btn => btn.onclick = () => {
+    navigator.clipboard.writeText(blocks[+btn.dataset.i].text).then(() => {
+      btn.textContent = "คัดลอกแล้ว ✓"; btn.classList.add("done");
+      setTimeout(() => { btn.textContent = "คัดลอก"; btn.classList.remove("done"); }, 1600);
+    }).catch(() => { btn.textContent = "ก๊อปไม่ได้"; });
+  });
+
+  $("#cmdSetLinks").onclick = () => {
+    for (const [k, label] of CMD_LINK_FIELDS){
+      const v = prompt(label, CMDLINKS[k] || "");
+      if (v === null) return;
+      CMDLINKS[k] = v.trim();
+    }
+    saveCmdLinks(); openCmd(proj, handle);
+  };
+
+  $("#cmdPanel").classList.add("on");
+}
+
+$("#closeCmd").onclick = () => $("#cmdPanel").classList.remove("on");
+$("#cmdScrim").onclick = () => $("#cmdPanel").classList.remove("on");
 
 // ═══ ประตูรหัส ═══
 // อ่านให้ชัด: นี่คือ "ม่าน" ไม่ใช่ "กุญแจ"
