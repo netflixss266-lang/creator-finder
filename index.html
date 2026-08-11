@@ -2000,7 +2000,9 @@ async function syncCoord(manual){
   const failed = [];
   for (const p of PROJECTS){
     const rows = COORD[p] || [];
-    if (!rows.length) continue;
+    // โปรเจกต์ที่ว่างต้องส่งขึ้นไปด้วย ถ้าเมื่อตอนโหลดมันเคยมีคน = มีการลบเกิดขึ้น
+    // แต่ถ้าว่างมาตั้งแต่แรกก็ไม่ต้องยุ่ง กันกรณีโหลดชีตไม่สำเร็จแล้วเผลอล้างทิ้ง
+    if (!rows.length && !(LOADED_COUNT[p] > 0)) continue;
     const payload = rows.map(r => ({
       handle: r.handle, link: r.link || `https://www.tiktok.com/@${r.handle}`,
       kind: r.kind || "", code: r.code || "", status: r.status || "",
@@ -2064,6 +2066,9 @@ function saveEdits(){
   try { localStorage.setItem(LS_COORD, JSON.stringify(EDITS)); } catch(e){}
 }
 
+// จำจำนวนคนตอนโหลดมา ใช้แยกว่า "ว่างเพราะลบไป" กับ "ว่างมาตั้งแต่แรก"
+let LOADED_COUNT = {};
+
 function shapeCoord(list){
   COORD = {};
   PROJECTS.forEach(p => COORD[p] = []);
@@ -2072,6 +2077,8 @@ function shapeCoord(list){
     const p = PROJECTS.includes(r.project) ? r.project : PROJECTS[0];
     COORD[p].push(Object.assign({}, r, { project: p }, EDITS[ekey({...r, project:p})] || {}));
   });
+  LOADED_COUNT = {};
+  PROJECTS.forEach(p => LOADED_COUNT[p] = COORD[p].length);
 }
 
 // แปลง CSV ของแท็บ Coordinate เป็นแถวแบบเดียวกับที่ฝังมา
