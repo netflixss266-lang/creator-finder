@@ -337,18 +337,31 @@ body:not([data-view="coord"]) #gearBtn{display:none}
 .ctable td:nth-child(2){box-shadow:1px 0 0 var(--line)}
 .ctable th:nth-child(2){box-shadow:1px 0 0 var(--line)}
 
-/* ── สีตามช่วงงาน ── */
+/* ── สีตามช่วงงาน ── ส้ม = ยังรอ · เขียว = ขั้นนั้นเสร็จ · ฟ้า = ฟีดแบคกลับไปแล้ว · ม่วง = เรื่องเงิน */
 .st-sel.s-done{color:var(--hi);border-color:rgba(var(--hi-rgb),.45);background:rgba(var(--hi-rgb),.12)}
-.st-sel.s-wait{color:#ffae5c;border-color:rgba(255,174,92,.45);background:rgba(255,174,92,.12)}
-.st-sel.s-pay{color:#c79cff;border-color:rgba(199,156,255,.5);background:rgba(199,156,255,.14)}
+.st-sel.s-wait{color:var(--warn);border-color:rgba(var(--warn-rgb),.45);background:rgba(var(--warn-rgb),.12)}
+.st-sel.s-fb{color:var(--info);border-color:rgba(var(--info-rgb),.45);background:rgba(var(--info-rgb),.12)}
+.st-sel.s-pay{color:var(--pay);border-color:rgba(199,156,255,.5);background:rgba(199,156,255,.14)}
 .st-sel.s-none{color:var(--dim)}
-.ctable option.s-done{color:var(--hi)}
-.ctable option.s-wait{color:#ffae5c}
-.ctable option.s-pay{color:#c79cff}
+
+/* ── เมนูที่กางออกมาตอนเลือก ──
+   เมนูของ <select> เป็นของระบบปฏิบัติการ ไม่ได้ใช้พื้นหลังของหน้าเว็บ
+   ไม่กำหนดพื้นเอง Windows จะวาดพื้นขาว แล้วสีตัวอักษรอ่อนๆ ของเราก็จมหายไปทั้งเมนู
+   บังคับพื้นเข้มที่ option ทุกตัว แล้วใช้สีสว่างกว่าตอนเป็นป้ายในตาราง */
+select.st-sel option{background:#1c1c1c;color:#EDEDED;padding:4px}
+select.st-sel option.s-done{color:#6EE787}
+select.st-sel option.s-wait{color:#FFC061}
+select.st-sel option.s-fb{color:#8FC4FF}
+select.st-sel option.s-pay{color:#CDA9FF}
+/* ขั้นที่เดินผ่านมาแล้ว — หรี่ลงคู่กับขีดคาด ไม่ให้แย่งสายตากับขั้นที่ยังต้องทำ */
+select.st-sel option.passed{color:#6E6E6E}
+select.st-sel optgroup{background:#141414;color:var(--dim);font-style:normal}
+
 .st{font-size:.75rem;border-radius:6px;padding:3px 9px;border:1px solid var(--line)}
 .st.s-done{color:var(--hi);border-color:rgba(var(--hi-rgb),.4);background:rgba(var(--hi-rgb),.1)}
-.st.s-wait{color:#ffae5c;border-color:rgba(255,174,92,.4);background:rgba(255,174,92,.1)}
-.st.s-pay{color:#c79cff;border-color:rgba(199,156,255,.45);background:rgba(199,156,255,.12)}
+.st.s-wait{color:var(--warn);border-color:rgba(var(--warn-rgb),.4);background:rgba(var(--warn-rgb),.1)}
+.st.s-fb{color:var(--info);border-color:rgba(var(--info-rgb),.4);background:rgba(var(--info-rgb),.1)}
+.st.s-pay{color:var(--pay);border-color:rgba(199,156,255,.45);background:rgba(199,156,255,.12)}
 .st.s-none{color:var(--dim)}
 
 /* ── ช่องเรท เน้นให้เห็นชัด ──
@@ -2142,13 +2155,62 @@ const LS_COORD = "cf_coord_v1";       // เก็บเฉพาะที่แ
 const PROJECTS = ["Red Chamber Phase 1", "Red Chamber Phase 2",
                   "OBSBOT-KOL", "OBSBOT-KOC", "TikTok Live"];
 // สถานะตามที่ทีมใช้จริงในชีต — ของเก่ายังอยู่ท้ายลิสต์ไว้ไม่ให้ค่าเดิมหาย
-const STATUSES = ["", "Waiting to post", "Waiting 1st Draft", "Waiting 2nd Draft",
+// ─── ขั้นตอนงาน เรียงตามลำดับที่งานเดินจริง ───
+// ลำดับในนี้มีความหมาย ไม่ใช่แค่ลำดับในเมนู — ใช้ตัดสินว่าขั้นไหน "ผ่านมาแล้ว"
+// แล้วขีดฆ่าให้ในช่องเลือกของคนนั้น ย้ายบรรทัดคือย้ายความหมาย
+// W = รอ · A = เสร็จแล้ว · F = ฟีดแบคกลับไปแล้ว
+// เขียนเต็มไม่ใช้ตัวย่อ — W/A/F อ่านแล้วต้องแปลในหัวทุกครั้ง และคนใหม่ในทีมเดาไม่ออก
+// ค่าที่ลงชีตคือข้อความเต็มนี้เลย จะได้เปิดชีตอ่านรู้เรื่องโดยไม่ต้องมีคีย์
+const STAGES = [
+  { v:"Waiting Confirm",          th:"รอคอนเฟิร์มร่วมงาน", c:"s-wait", a:/รอคอนเฟิร์ม|ส่งบรีฟ|บรีฟแล้ว/i },
+  { v:"Confirmed",                th:"คอนเฟิร์มแล้ว",       c:"s-done", a:/คอนเฟิร์มแล้ว/i },
+  { v:"Waiting Delivery",         th:"รอส่งของ",            c:"s-wait", a:/รอส่งของ/i },
+  { v:"Already Delivered",        th:"ส่งของแล้ว",          c:"s-done", a:/ส่งของแล้ว/i },
+  { v:"Waiting Sent to SG",       th:"รอส่งไป SG",          c:"s-wait", a:/รอส่ง.{0,3}sg/i },
+  { v:"Already Sent to SG",       th:"ส่ง SG แล้ว",         c:"s-done", a:/ส่ง\s*sg\s*แล้ว/i },
+  { v:"Waiting Script",           th:"รอสคริป",             c:"s-wait", a:/รอสคริป/i },
+  { v:"Already Feedback Script",  th:"ฟีดแบคสคริปแล้ว",     c:"s-done", a:/ฟีดแบคสคริป/i },
+  { v:"Waiting Draft 1",          th:"รอ Draft 1",          c:"s-wait", a:/รอ\s*draft\s*1/i },
+  { v:"Feedback Draft 1",         th:"ฟีดแบค Draft 1 แล้ว", c:"s-fb",   a:/ฟีดแบค\s*draft\s*1/i },
+  { v:"Waiting Draft 2",          th:"รอ Draft 2",          c:"s-wait", a:/รอ\s*draft\s*2/i },
+  { v:"Feedback Draft 2",         th:"ฟีดแบค Draft 2 แล้ว", c:"s-fb",   a:/ฟีดแบค\s*draft\s*2/i },
+  { v:"Waiting Draft 3",          th:"รอ Draft 3",          c:"s-wait", a:/รอ\s*draft\s*3/i },
+  { v:"Feedback Draft 3",         th:"ฟีดแบค Draft 3 แล้ว", c:"s-fb",   a:/ฟีดแบค\s*draft\s*3/i },
+  { v:"Waiting to Post",          th:"รอโพสต์",             c:"s-wait", a:/รอโพสต์/i },
+  { v:"Already Posted",           th:"โพสต์แล้ว",           c:"s-done", a:/โพสต์แล้ว/i },
+  { v:"Waiting Gencode",          th:"รอ Gencode",          c:"s-pay",  a:/gencode/i },
+  { v:"Waiting Payment",          th:"รอทำจ่าย",            c:"s-pay",  a:/รอทำจ่าย|รอโอนเงิน|รอจ่าย/i },
+  { v:"Already Submitted Payment",th:"ส่งเรื่องจ่ายแล้ว",    c:"s-pay",  a:/ส่งเรื่องจ่าย|จ่ายแล้ว/i },
+];
+
+// ค่าเดิมที่เคยอยู่ในชีต — เก็บไว้ให้แถวเก่าไม่กลายเป็นช่องว่าง
+// ไม่แปลงให้อัตโนมัติ เพราะการเขียนทับสถานะของทั้งทีมควรเป็นการกดเอง ดูปุ่มแปลงเหนือตาราง
+// "Waiting Payment" ตกออกไปเพราะชื่อตรงกับขั้นใหม่อยู่แล้ว ไม่ต้องนับเป็นค่าเดิม
+const LEGACY_STATUS = ["Waiting to post", "Waiting 1st Draft", "Waiting 2nd Draft",
   "Waiting Creators Update Script", "Waiting Brand Feedback 1st Draft",
   "Waiting PM / PMA Asst. Feedback 1st Draft",
   "Waiting IBD Feedback 1st Draft", "Waiting PMA / PM Confirm final Draft",
-  "Already Post",
-  "Waiting Payment Docs", "Waiting Payment", "paid",
+  "Already Post", "Waiting Payment Docs", "paid",
   "briefed", "confirmed", "shipped", "filming", "posted"];
+
+// ค่าเดิม -> ขั้นใหม่ที่ตรงที่สุด · หลายค่าเดิมยุบมาเป็นค่าเดียวได้ (ฟีดแบค Draft 1 มี 3 แบบ)
+const STATUS_MIGRATE = {
+  "briefed":"Waiting Confirm", "confirmed":"Confirmed", "shipped":"Already Delivered",
+  "Waiting Creators Update Script":"Waiting Script",
+  "Waiting 1st Draft":"Waiting Draft 1", "filming":"Waiting Draft 1",
+  "Waiting Brand Feedback 1st Draft":"Feedback Draft 1",
+  "Waiting PM / PMA Asst. Feedback 1st Draft":"Feedback Draft 1",
+  "Waiting IBD Feedback 1st Draft":"Feedback Draft 1",
+  "Waiting 2nd Draft":"Waiting Draft 2",
+  "Waiting PMA / PM Confirm final Draft":"Feedback Draft 2",
+  "Waiting to post":"Waiting to Post",
+  "Already Post":"Already Posted", "posted":"Already Posted",
+  "Waiting Payment Docs":"Waiting Gencode",
+  "paid":"Already Submitted Payment",
+};
+
+const STATUSES = [""].concat(STAGES.map(s => s.v), LEGACY_STATUS);
+const stageAt = v => STAGES.findIndex(s => s.v === v);
 
 // รูปแบบภาษี — คิด "จ่ายจริง" จากเรทที่ตกลงกัน
 // หัก ณ ที่จ่ายค่าบริการ = 3% ทั้งบุคคลและนิติบุคคล · VAT 7% บวกเฉพาะคนที่จด VAT
@@ -2183,24 +2245,58 @@ function payOf(rate, type){
   if (!t.f || !isFinite(n) || n <= 0) return null;
   return Math.round(t.f(n) * 100) / 100;
 }
-const ST_TH = { "":"—",
-  "Waiting to post":"รอโพสต์", "Waiting 1st Draft":"รอ Draft 1",
-  "Waiting 2nd Draft":"รอ Draft 2", "Waiting Creators Update Script":"รอครีเอเตอร์แก้สคริป",
-  "Waiting Brand Feedback 1st Draft":"รอแบรนด์ฟีดแบค Draft 1",
-  "Waiting PM / PMA Asst. Feedback 1st Draft":"รอ PM/PMA ฟีดแบค Draft 1",
-  "Waiting IBD Feedback 1st Draft":"รอ IBD ฟีดแบค Draft 1",
-  "Waiting PMA / PM Confirm final Draft":"รอ PMA/PM คอนเฟิร์ม Draft สุดท้าย",
-  "Already Post":"โพสต์แล้ว",
-  "Waiting Payment Docs":"รอเอกสารทำจ่าย", "Waiting Payment":"รอโอนเงิน",
-  briefed:"ส่งบรีฟแล้ว", confirmed:"คอนเฟิร์มแล้ว", shipped:"ส่งของแล้ว",
-  filming:"ถ่ายอยู่", posted:"โพสต์แล้ว (เก่า)", paid:"จ่ายแล้ว" };
+// ป้ายที่โชว์ = ค่าจริงที่ลงชีต จะได้ตรงกับที่ทีมเห็นในชีตเป๊ะ ส่วนคำไทยอยู่ใน tooltip
+// ค่าเดิมยังโชว์คำไทยเหมือนเดิม เพราะชื่ออังกฤษของมันยาวจนอ่านในช่องแคบไม่ไหว
+const ST_TH = Object.assign({ "":"—" },
+  Object.fromEntries(STAGES.map(s => [s.v, s.v])),
+  { "Waiting to post":"(เดิม) รอโพสต์", "Waiting 1st Draft":"(เดิม) รอ Draft 1",
+    "Waiting 2nd Draft":"(เดิม) รอ Draft 2",
+    "Waiting Creators Update Script":"(เดิม) รอครีเอเตอร์แก้สคริป",
+    "Waiting Brand Feedback 1st Draft":"(เดิม) รอแบรนด์ฟีดแบค Draft 1",
+    "Waiting PM / PMA Asst. Feedback 1st Draft":"(เดิม) รอ PM/PMA ฟีดแบค Draft 1",
+    "Waiting IBD Feedback 1st Draft":"(เดิม) รอ IBD ฟีดแบค Draft 1",
+    "Waiting PMA / PM Confirm final Draft":"(เดิม) รอ PMA/PM คอนเฟิร์ม Draft สุดท้าย",
+    "Already Post":"(เดิม) โพสต์แล้ว",
+    "Waiting Payment Docs":"(เดิม) รอเอกสารทำจ่าย", "Waiting Payment":"(เดิม) รอโอนเงิน",
+    briefed:"(เดิม) ส่งบรีฟแล้ว", confirmed:"(เดิม) คอนเฟิร์มแล้ว",
+    shipped:"(เดิม) ส่งของแล้ว", filming:"(เดิม) ถ่ายอยู่",
+    posted:"(เดิม) โพสต์แล้ว", paid:"(เดิม) จ่ายแล้ว" });
 
-// สีตามช่วงงาน — เขียว = จบแล้ว/ตกลงแล้ว · ส้ม = ยังรออยู่ · ม่วง = เข้าเรื่องเงิน
-const ST_CLASS = {
-  "Already Post":"s-done", posted:"s-done", confirmed:"s-done",
-  "Waiting Payment Docs":"s-pay", "Waiting Payment":"s-pay", paid:"s-pay",
-};
+// คำไทยไว้ขึ้น tooltip — ค่าใหม่เป็นตัวย่ออังกฤษ ไม่ใช่ทุกคนในทีมอ่านออกทันที
+const ST_HINT = Object.fromEntries(STAGES.map(s => [s.v, s.th]));
+
+// สีตามช่วงงาน — เขียว = ขั้นนั้นเสร็จแล้ว · ส้ม = ยังรออยู่ · ฟ้า = ฟีดแบคกลับไปแล้ว · ม่วง = เรื่องเงิน
+const ST_CLASS = Object.assign(
+  Object.fromEntries(STAGES.map(s => [s.v, s.c])),
+  { "Already Post":"s-done", posted:"s-done", confirmed:"s-done", shipped:"s-done",
+    "Waiting Payment Docs":"s-pay", "Waiting Payment":"s-pay", paid:"s-pay" });
 const stClass = s => ST_CLASS[s || ""] || (s ? "s-wait" : "s-none");
+
+// ขีดฆ่าด้วย combining overlay (U+0336) — <option> ในเมนูของระบบไม่รับ text-decoration
+// แต่รับตัวอักษรที่มีขีดคาดมาในตัวเสมอ ใช้กับตัวย่ออังกฤษเท่านั้น ไม่แตะสระไทย
+const strikeText = s => s.split("").map(c => c + "̶").join("");
+
+// ตัวเลือกสถานะของ "คนนี้" — ขั้นที่เดินผ่านมาแล้วโดนขีดฆ่า เหลือแต่ขั้นที่ยังมาไม่ถึง
+// คิดจากสถานะปัจจุบันของแถวนั้น คนละแถวจึงขีดคนละที่ ไม่ใช่ลิสต์กลางอันเดียว
+// ค่าเดิมที่ไม่อยู่ในลำดับ = ไม่รู้ว่าอยู่ขั้นไหน ไม่ขีดให้ และแยกไปไว้ท้ายเมนู
+function statusOptions(cur){
+  const at = stageAt(cur || "");
+  const num = n => String(n).padStart(2, "0");
+  const one = (v, label, i) => {
+    const done = at >= 0 && stageAt(v) >= 0 && stageAt(v) < at;
+    // เลขขั้นนำหน้า — เห็นทันทีว่าอยู่ตรงไหนของเส้นทาง ไม่ต้องนับบรรทัดเอง
+    const text = (i ? num(i) + " · " : "") + label;
+    return `<option value="${esc(v)}" class="${stClass(v)}${done ? " passed" : ""}"${
+      v === (cur || "") ? " selected" : ""}${
+      ST_HINT[v] ? ` title="${esc(ST_HINT[v])}"` : ""}>${
+      esc(done ? strikeText(text) : text)}</option>`;
+  };
+  const legacy = LEGACY_STATUS.filter(v => v === cur);   // โชว์เฉพาะตัวที่แถวนี้ใช้อยู่จริง
+  return `<option value=""${!cur ? " selected" : ""}>— ยังไม่เริ่ม —</option>` +
+    STAGES.map((s, i) => one(s.v, s.v, i + 1)).join("") +
+    (legacy.length ? `<optgroup label="ค่าเดิมในชีต">${
+      legacy.map(v => one(v, ST_TH[v] || v, 0)).join("")}</optgroup>` : "");
+}
 
 // สีของงาน — กวาดตาดูคอลัมน์เดียวรู้เลยว่าใครทำอะไร
 const CODE_CLASS = { B:"j-b", E:"j-e", L:"j-l", F:"j-f", C:"j-c" };
@@ -2639,9 +2735,8 @@ function renderDetail(){
         <select data-move>${PROJECTS.map(p =>
           `<option value="${esc(p)}"${p === r.project ? " selected" : ""}>${esc(p)}</option>`).join("")}</select></div>
       <div class="dfield"><label>สถานะ</label>
-        <select class="st-sel ${stClass(r.status)}" data-d="status">${STATUSES.map(s =>
-          `<option value="${esc(s)}" class="${stClass(s)}"${s === (r.status||"") ? " selected" : ""}>${
-            esc(ST_TH[s])}</option>`).join("")}</select></div>
+        <select class="st-sel ${stClass(r.status)}" data-d="status">${
+          statusOptions(r.status)}</select></div>
 
       ${D_TEXT.map(x => `<div class="dfield"><label>${esc(x.label)}</label>
         <input data-d="${x.f}"${x.num ? ' type="number" min="0" step="1"' : ""}
@@ -2679,9 +2774,8 @@ function renderDetail(){
         <span class="branch">${k === clips.length-1 ? "└" : "├"}</span>
         <span class="cn">คลิป ${k+1}</span>
         <span class="cs">${esc(c.sku)}</span>
-        <select class="st-sel ${stClass(c.status)}" data-dclip="${k}">${STATUSES.map(s =>
-          `<option value="${esc(s)}" class="${stClass(s)}"${
-            s === (c.status || "") ? " selected" : ""}>${esc(ST_TH[s])}</option>`).join("")}</select>
+        <select class="st-sel ${stClass(c.status)}" data-dclip="${k}">${
+          statusOptions(c.status)}</select>
         </div>`).join("")}</div>
       <div class="hint">คลิปแรกใช้ช่องสถานะด้านบน · คลิปที่ 2 เป็นต้นไปเก็บต่อท้ายโน้ต
         เพื่อให้ขึ้นชีตได้โดยไม่ต้องเพิ่มคอลัมน์</div></div>` : ""}
@@ -2889,6 +2983,24 @@ function openColFilter(field, th){
   }), 0);
 }
 
+// แปลงสถานะชุดเก่าทั้งหมดเป็นขั้นใหม่ — ทำทีเดียวทุกโปรเจกต์ ไม่ใช่ทีละแถว
+// โชว์ให้ดูก่อนว่าอะไรจะกลายเป็นอะไร เพราะบางค่าเดิมยุบมาเป็นค่าเดียวกัน (ฟีดแบค Draft 1 มี 3 แบบ)
+function migrateStatuses(){
+  const hits = [];
+  PROJECTS.forEach(p => (COORD[p] || []).forEach(r => {
+    const to = STATUS_MIGRATE[r.status];
+    if (to) hits.push({ r, from: r.status, to });
+  }));
+  if (!hits.length) return;
+  const tally = {};
+  hits.forEach(h => { tally[`${h.from}  →  ${h.to}`] = (tally[`${h.from}  →  ${h.to}`] || 0) + 1; });
+  const lines = Object.entries(tally).map(([k, n]) => `  ${k}   (${n} แถว)`).join("\n");
+  if (!confirm(`แปลงสถานะ ${hits.length} แถวเป็นชุดใหม่?\n\n${lines}\n\n` +
+               `ค่าเดิมจะถูกเขียนทับ และจะขึ้นชีตในรอบซิงก์ถัดไป`)) return;
+  hits.forEach(h => setField(h.r, "status", h.to));
+  renderProjTabs(); renderCoord();
+}
+
 function renderCoord(){
   renderKindSeg(); renderColSeg();
   const all = COORD[PROJ] || [];
@@ -2905,9 +3017,15 @@ function renderCoord(){
   // ตัวเลขสรุปเอาออกแล้ว — จำนวนคนดูได้จากตัวเลขบนแท็บโปรเจกต์กับปุ่ม KOL/KOC อยู่แล้ว
   // เหลือไว้ 2 อย่างที่ไม่ใช่สถิติ: อ่านชีตทางไหน (ตัวชี้ขาดก่อนปิด Share) และเรทที่ยังต้องยืนยัน
   const flagged = all.filter(r => r.rate == null || (r.rate_all || []).length > 1).length;
-  $("#coordSum").innerHTML = flagged
-    ? `<span style="color:var(--lo)" title="ข้อมูลจาก: ${esc(COORD_SRC)}">⚑ ต้องยืนยันเรท <b>${flagged}</b> คน</span>`
-    : "";
+  // แถวที่ยังใช้สถานะชุดเก่า — ไม่แปลงให้เอง เพราะเขียนทับสถานะทั้งทีมควรเป็นการกดเอง
+  const oldN = PROJECTS.reduce((s, p) => s + (COORD[p] || [])
+    .filter(r => STATUS_MIGRATE[r.status]).length, 0);
+  $("#coordSum").innerHTML =
+    (flagged ? `<span style="color:var(--lo)" title="ข้อมูลจาก: ${esc(COORD_SRC)}">⚑ ต้องยืนยันเรท <b>${flagged}</b> คน</span>` : "") +
+    (oldN ? `<span style="color:var(--warn);cursor:pointer" id="migBtn"
+      title="ดูรายการก่อนแปลง">↻ สถานะชุดเก่า <b>${oldN}</b> แถว — แปลงเป็นชุดใหม่</span>` : "");
+  const mig = $("#migBtn");
+  if (mig) mig.onclick = migrateStatuses;
 
   $("#coordBody").innerHTML = `<div class="cwrap"><table class="ctable${LEAN ? " lean" : ""}">
     <thead><tr>
@@ -3131,8 +3249,7 @@ function subRows(r, i){
     <td class="w-status"><select class="st-sel ${stClass(c.status)}"
         data-clip="${i}" data-k="${k}"
         title="สถานะของคลิปนี้เท่านั้น — คลิปอื่นไม่เปลี่ยนตาม">${
-      STATUSES.map(s => `<option value="${esc(s)}" class="${stClass(s)}"${
-        s === (c.status || "") ? " selected" : ""}>${esc(ST_TH[s])}</option>`).join("")}</select></td>
+      statusOptions(c.status)}</select></td>
     <td></td><td></td><td></td>
     <td class="clipsku">${esc(c.sku)}</td>
     <td class="opt"></td><td class="opt"></td><td class="opt"></td><td class="opt"></td><td></td>
@@ -3178,8 +3295,7 @@ function coordRow(r, i){
         value="${esc(r.code || "")}" placeholder="-"
         title="${esc(codeLabel(r.code))} — B=Creamblush E=Eyeshadow L=Lipgloss F=Feather C=Contour"></td>
     <td class="w-status"><select class="st-sel ${stClass(r.status)}" data-i="${i}" data-f="status">${
-      STATUSES.map(s => `<option value="${s}" class="${stClass(s)}"${
-        s === (r.status||"") ? " selected" : ""}>${esc(ST_TH[s])}</option>`).join("")}</select></td>
+      statusOptions(r.status)}</select></td>
     <td class="mono ${noRate&&!isKOC ? "warn" : amb ? "warn" : ""}">
       <input class="mono" data-i="${i}" data-f="rate" style="width:92px" inputmode="numeric"
              value="${r.rate == null ? "" : Number(r.rate).toLocaleString("en-US")}"
@@ -4770,8 +4886,8 @@ const QO_FIELDS = [
   { f:"code",    re:/(?:งาน|code)\s*[:：]?\s*([A-Za-z](?:\s*\+\s*[A-Za-z])*)\b/i },
   { f:"brief",   re:/(https?:\/\/\S*canva\S*|https?:\/\/\S*(?:brief|drive|docs)\S*)/i },
 ];
-const QO_STATUS = { "ส่งบรีฟ":"briefed", "บรีฟแล้ว":"briefed", "คอนเฟิร์ม":"confirmed",
-  "ส่งของ":"shipped", "ถ่าย":"filming", "โพสต์แล้ว":"posted", "จ่ายแล้ว":"paid" };
+// คำสั่งที่พิมพ์ในช่องคำสั่ง เทียบกับ alias ของแต่ละขั้นใน STAGES โดยตรง
+// ไม่มีตารางคำแยกอีกชุดแล้ว จะได้ไม่ต้องแก้สองที่ทุกครั้งที่เพิ่มขั้น
 
 function matchProject(s){
   const t = String(s).trim().toLowerCase().replace(/\s+/g, " ");
@@ -4841,10 +4957,14 @@ function readNames(text){
 // แยกออกมาเพื่อให้คำสั่งอยู่คนละบรรทัดกับรายชื่อได้ (วางรายชื่อยาวๆ แล้วสั่งทีเดียว)
 function readChanges(text){
   const changes = {};
-  for (const k in QO_STATUS) if (text.includes(k)) changes.status = QO_STATUS[k];
-  for (const s of STATUSES)
-    if (s && (text.toLowerCase().includes(s.toLowerCase()) ||
-              (ST_TH[s] && text.includes(ST_TH[s])))) changes.status = s;
+  // ขั้นที่ตรงยาวที่สุดชนะ กัน "Waiting Draft 1" โดน "Waiting Draft" ตัวสั้นกว่าแย่งไป
+  let best = null;
+  for (const s of STAGES){
+    const hit = text.toLowerCase().includes(s.v.toLowerCase()) ? s.v.length
+              : (s.a && s.a.test(text)) ? (text.match(s.a) || [""])[0].length : 0;
+    if (hit && (!best || hit > best.n)) best = { v: s.v, n: hit };
+  }
+  if (best) changes.status = best.v;
   for (const t of PAYTYPES)
     if (t.id && (text.includes(t.label) || (t.alias && t.alias.test(text)))) changes.paytype = t.id;
   const km = text.match(/(?<![A-Za-z])(KOL|KOC)(?![A-Za-z])/i);
