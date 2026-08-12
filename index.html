@@ -258,6 +258,7 @@ body[data-view="coord"] #cartBtn{display:none}
 .cmdhelp[hidden],.cmdbulk[hidden]{display:none}
 .cmdhelp code{background:var(--surface2);border-radius:4px;padding:2px 7px;
   font-size:.75rem;color:var(--ink);display:inline-block;margin:2px 0}
+.cmdhelp .helpsec{margin-top:11px;padding-top:10px;border-top:1px solid var(--line)}
 .cgrid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
 @media(max-width:520px){.cgrid{grid-template-columns:1fr}}
 .cgrid label{display:block;font-size:.72rem;text-transform:uppercase;letter-spacing:.06em;
@@ -284,6 +285,10 @@ body[data-view="coord"] #cartBtn{display:none}
 .icobtn{flex:none;background:none;border:1px solid transparent;color:var(--dim);
   border-radius:5px;padding:3px 6px;font-size:.82rem;line-height:1.2}
 .icobtn:hover{border-color:var(--accent);color:var(--accent);background:rgba(var(--accent-rgb),.1)}
+/* จุดแดง = คนนี้มี Command ของตัวเอง ไม่ได้ใช้ข้อความต้นแบบร่วมกับคนอื่น */
+.icobtn.has{color:var(--accent);position:relative}
+.icobtn.has::after{content:"";position:absolute;top:2px;right:2px;width:5px;height:5px;
+  border-radius:50%;background:var(--accent)}
 .ctable td,.ctable th{vertical-align:middle}
 
 /* รูปแบบภาษี — สีบอกกลุ่มได้ในแวบเดียว ไม่ต้องอ่านตัวหนังสือ */
@@ -732,6 +737,8 @@ main{padding:22px 24px;overflow-y:auto;max-height:calc(100vh - 62px)}
 .cmdblk.edited{border-color:rgba(var(--accent-rgb),.4)}
 .cmdblk.edited > header::before{content:"แก้แล้ว";font-size:.66rem;color:var(--accent);
   border:1px solid rgba(var(--accent-rgb),.35);border-radius:4px;padding:1px 6px}
+.cmdscope{margin:0 0 10px}
+.cmdscope button{font-size:.76rem;padding:6px 8px}
 .cmdblk .cmdt{flex:1;min-width:0;font-size:.8rem;font-weight:600;padding:4px 8px}
 .cmdblk .cmdb{width:100%;border:0;border-radius:0;background:var(--surface2);
   font-family:'IBM Plex Sans Thai',sans-serif;font-size:.82rem;line-height:1.65;
@@ -1057,7 +1064,7 @@ main{padding:22px 24px;overflow-y:auto;max-height:calc(100vh - 62px)}
     <div class="cmdbar-in">
       <span class="cmdbar-ic">⌘</span>
       <textarea id="qoText" rows="1" spellcheck="false"
-        placeholder="สั่งงานที่นี่ — «cenakims เรท 12000 หัก 3% โพสต์แล้ว» · «เพิ่ม tangkwaqs เข้า RC2 KOL» · «ย้าย 052.be ไป Red Chamber 2»"></textarea>
+        placeholder="สั่งงานที่นี่ — วางรายชื่อหลายคนแล้วสั่งบรรทัดสุดท้ายทีเดียวก็ได้ · «cenakims เรท 12000 ชำระ3%» · «เพิ่ม tangkwaqs เข้า RC2 KOL»"></textarea>
       <button class="run" id="qoParse">ตรวจ</button>
     </div>
     <div class="cmdbar-foot">
@@ -1066,15 +1073,24 @@ main{padding:22px 24px;overflow-y:auto;max-height:calc(100vh - 62px)}
     </div>
 
     <div class="cmdhelp" id="cmdHelp" hidden>
-      <b>บรรทัดละคำสั่ง</b> — อ่านจากทั้งบรรทัด ไม่สนลำดับคำ
-      ชื่อครีเอเตอร์เทียบกับรายชื่อที่มีอยู่จริง ใส่หลายคนในบรรทัดเดียวได้<br>
+      อ่านจากทั้งบรรทัด ไม่สนลำดับคำ ชื่อครีเอเตอร์เทียบกับรายชื่อที่มีอยู่จริง<br>
+      <code>cenakims เรท 12000 ชำระ3% โพสต์แล้ว</code><br>
       <code>เพิ่ม tangkwaqs เข้า RC2 KOL</code> — คนใหม่ ข้อมูลอื่นเว้นไว้เติมทีหลัง<br>
-      <code>cenakims เรท 12000 หัก ณ ที่จ่าย 3% โพสต์แล้ว</code><br>
       <code>ย้าย 052.be ไป Red Chamber 2</code><br>
-      <code>RC2 tangkwaqs babimaofad รอ Draft 2</code><br>
       <span style="color:var(--dim)">แก้ได้: เรท · ภาษี · สถานะ · จำนวนคลิป · SKU · งาน · โน้ต: ·
       วันโพสต์ · กำหนดส่ง · ลิงก์บรีฟ · KOL/KOC · ย้ายโปรเจกต์ —
       ชื่อซ้ำหลายโปรเจกต์ต้องบอกโปรเจกต์ด้วย</span>
+
+      <div class="helpsec"><b>วางรายชื่อเป็นกลุ่มแล้วสั่งทีเดียว</b> —
+      บรรทัดที่มีแต่ชื่อจะรอไว้ พอเจอบรรทัดคำสั่งก็ใช้กับทุกคนที่รออยู่<br>
+      <code>tangtangnpc<br>onfireboyth<br>growupwithfah<br>ชำระ3%</code><br>
+      <span style="color:var(--dim)">เว้นบรรทัดว่าง = จบกลุ่ม เริ่มกลุ่มใหม่</span></div>
+
+      <div class="helpsec"><b>ตั้ง Command เฉพาะคนนั้น</b> — ไม่กระทบข้อความของคนอื่น<br>
+      <code>tangtangnpc command 3: สวัสดีครับ ...</code> — ทับข้อความบล็อกที่ 3<br>
+      <code>tangtangnpc ตะกร้า https://… hashtag: #ad</code><br>
+      <span style="color:var(--dim)">ตั้งได้: ตะกร้า · hashtag: · ไทม์ไลน์: · ฟอร์ม · สคริป · เอกสาร
+      — ใช้กับกลุ่มรายชื่อได้เหมือนกัน · เก็บในเครื่องนี้เท่านั้น ไม่ขึ้นชีต</span></div>
     </div>
 
     <div class="cmdbulk" id="bulkFold" hidden>
@@ -2074,14 +2090,22 @@ const STATUSES = ["", "Waiting to post", "Waiting 1st Draft", "Waiting 2nd Draft
 // รูปแบบภาษี — คิด "จ่ายจริง" จากเรทที่ตกลงกัน
 // หัก ณ ที่จ่ายค่าบริการ = 3% ทั้งบุคคลและนิติบุคคล · VAT 7% บวกเฉพาะคนที่จด VAT
 // NET = ครีเอเตอร์รับเต็ม เราออกภาษีให้ ต้นทุนบริษัทจึงสูงกว่าเรท (rate/0.97)
+// alias = คำที่ทีมพิมพ์จริงในช่องคำสั่ง สั้นกว่าชื่อเต็มในเมนู
+// เรียงจากทั่วไปไปเฉพาะเจาะจง ตัวหลังทับตัวหน้าได้ (ระบุนิติบุคคล/VAT ชนะ "หัก 3%" เปล่าๆ)
 const PAYTYPES = [
   { id:"",        label:"— ยังไม่เลือก —", f:null },
-  { id:"wht3",    label:"หัก ณ ที่จ่าย 3%",              f:r => r * 0.97 },
-  { id:"net",     label:"จ่าย NET (เราออกภาษีให้)",       f:r => r,          cost:r => r / 0.97 },
-  { id:"corpvat", label:"นิติบุคคล จด VAT (+7% −3%)",     f:r => r * 1.04 },
-  { id:"corp",    label:"นิติบุคคล ไม่จด VAT (−3%)",      f:r => r * 0.97 },
-  { id:"persvat", label:"บุคคลธรรมดา จด VAT (+7% −3%)",   f:r => r * 1.04 },
-  { id:"pers",    label:"บุคคลธรรมดา ไม่จด VAT (−3%)",    f:r => r * 0.97 },
+  { id:"wht3",    label:"หัก ณ ที่จ่าย 3%",              f:r => r * 0.97,
+    alias:/(?:หัก(?:\s*ณ\s*ที่จ่าย)?|ชำระ|จ่าย|wht)\s*3\s*%?/i },
+  { id:"net",     label:"จ่าย NET (เราออกภาษีให้)",       f:r => r,          cost:r => r / 0.97,
+    alias:/\bNET\b|เน็ต/i },
+  { id:"corpvat", label:"นิติบุคคล จด VAT (+7% −3%)",     f:r => r * 1.04,
+    alias:/นิติ(?:บุคคล)?[^\n]{0,10}(?<!ไม่)จด\s*VAT/i },
+  { id:"corp",    label:"นิติบุคคล ไม่จด VAT (−3%)",      f:r => r * 0.97,
+    alias:/นิติ(?:บุคคล)?[^\n]{0,10}ไม่\s*จด\s*VAT/i },
+  { id:"persvat", label:"บุคคลธรรมดา จด VAT (+7% −3%)",   f:r => r * 1.04,
+    alias:/บุคคล\s*ธรรมดา[^\n]{0,10}(?<!ไม่)จด\s*VAT/i },
+  { id:"pers",    label:"บุคคลธรรมดา ไม่จด VAT (−3%)",    f:r => r * 0.97,
+    alias:/บุคคล\s*ธรรมดา[^\n]{0,10}ไม่\s*จด\s*VAT/i },
 ];
 const payType = id => PAYTYPES.find(p => p.id === (id || "")) || PAYTYPES[0];
 // จัดกลุ่มสี: ไม่เลือก / หัก 3% ล้วน / NET / มี VAT
@@ -2980,6 +3004,9 @@ function coordRow(r, i){
   const link = safeLinkUrl(r.brief);
   const clips = clipsOf(r);
   const open = EXPANDED.has(ekey(r));
+  // มี Command ของตัวเองกี่จุด — ติดจุดแดงไว้ จะได้รู้ว่าคนนี้ไม่ได้ใช้ข้อความต้นแบบ
+  const oc = cmdOwnRead(r.project, r.handle);
+  const ownCmd = Object.keys(oc.blocks || {}).length + Object.keys(oc.links || {}).length;
   return `<tr draggable="true" data-row="${i}"${clips.length ? ' class="hasclips"' : ""}>
     <td class="w-move" title="ลากขึ้นลงเพื่อสลับลำดับ">⠿</td>
     <td class="who"><div class="wrapper">
@@ -2993,8 +3020,10 @@ function coordRow(r, i){
          rel="noopener noreferrer" title="เปิด TikTok">↗</a>
       <button class="icobtn" data-detail="${i}"
               title="ดู/แก้ทุกอย่างของ ${esc(r.handle)} — ไม่ต้องเลื่อนตารางไปขวา">⤢</button>
-      <button class="icobtn" data-cmd="${esc(normId(r.handle))}"
-              title="ข้อความสำเร็จรูปสำหรับคุยกับ ${esc(r.handle)}">✉</button>
+      <button class="icobtn${ownCmd ? " has" : ""}" data-cmd="${esc(normId(r.handle))}"
+              title="${ownCmd
+                ? `${esc(r.handle)} มี Command ของตัวเอง ${ownCmd} จุด — ไม่ใช้ต้นแบบร่วม`
+                : `ข้อความสำเร็จรูปสำหรับคุยกับ ${esc(r.handle)}`}">✉</button>
     </div></td>
     <td class="vid"><input data-i="${i}" data-f="videos" type="number" min="0" step="1"
         value="${r.videos ?? ""}" placeholder="-"
@@ -3195,17 +3224,49 @@ function saveCmdLinks(){
   try { localStorage.setItem(LS_CMDLINKS, JSON.stringify(CMDLINKS)); } catch(e){}
 }
 
+// ─── Command เป็นของใครของมัน ───
+// เมื่อก่อนแก้ข้อความบล็อกไหน = เปลี่ยนของทุกคนพร้อมกัน ซึ่งผิดเวลาครีเอเตอร์คนเดียว
+// ตกลงเงื่อนไขต่างจากคนอื่น  ตอนนี้มี 3 ชั้น เอาชั้นบนสุดที่มีค่า:
+//   ของคนนี้ (CMDOWN) → ต้นแบบที่ทีมแก้ (CMDEDIT) → ต้นแบบในโค้ด (CMD_BLOCKS)
+// เก็บเฉพาะที่ต่างจากชั้นล่าง ไม่ได้ copy ทั้ง 14 บล็อกให้ทุกคน
+const LS_CMDOWN = "cf_cmdown_v1";
+let CMDOWN = {};
+const cmdKey = (proj, handle) => `${proj}|${normId(handle)}`;
+
+function loadCmdOwn(){
+  try { CMDOWN = JSON.parse(localStorage.getItem(LS_CMDOWN) || "{}") || {}; } catch(e){}
+}
+function saveCmdOwn(){
+  try { localStorage.setItem(LS_CMDOWN, JSON.stringify(CMDOWN)); } catch(e){}
+}
+function cmdOwn(proj, handle){
+  const k = cmdKey(proj, handle);
+  return CMDOWN[k] || (CMDOWN[k] = { blocks:{}, links:{} });
+}
+// อ่านอย่างเดียว ไม่สร้างช่องเปล่าทิ้งไว้ใน localStorage
+function cmdOwnRead(proj, handle){
+  return CMDOWN[cmdKey(proj, handle)] || { blocks:{}, links:{} };
+}
+// ลบทิ้งถ้าไม่เหลืออะไรที่ต่างจากต้นแบบ จะได้ไม่มีขยะค้าง
+function pruneCmdOwn(proj, handle){
+  const k = cmdKey(proj, handle), o = CMDOWN[k];
+  if (!o) return;
+  if (!Object.keys(o.blocks || {}).length && !Object.keys(o.links || {}).length)
+    delete CMDOWN[k];
+}
+
 function cmdValues(r){
   const net = payOf(r.rate, r.paytype);
+  const own = cmdOwnRead(r.project, r.handle).links || {};
+  const L = k => (own[k] != null ? own[k] : CMDLINKS[k]) || "";
   return {
     sku: r.sku || "", rate: r.rate != null ? Number(r.rate).toLocaleString("en-US") : "",
     paytype: r.paytype ? payType(r.paytype).label.replace(/\s*\(.*\)$/, "") : "",
     net: net != null ? net.toLocaleString("en-US", {minimumFractionDigits:2}) : "",
-    brief: r.brief || "", script: r.script || "", feedback: "",
-    docs: ((r.kind || "") === "KOC" ? CMDLINKS.docsKOC : CMDLINKS.docsKOL) || "",
-    form: CMDLINKS.form || "",
-    cart: CMDLINKS.cart || "", hashtag: CMDLINKS.hashtag || "",
-    timeline: CMDLINKS.timeline || "",
+    brief: r.brief || "", script: own.script || r.script || "", feedback: own.feedback || "",
+    docs: own.docs != null ? own.docs
+        : (((r.kind || "") === "KOC" ? CMDLINKS.docsKOC : CMDLINKS.docsKOL) || ""),
+    form: L("form"), cart: L("cart"), hashtag: L("hashtag"), timeline: L("timeline"),
   };
 }
 
@@ -3237,29 +3298,77 @@ function loadCmdEdit(){
 function saveCmdEdit(){
   try { localStorage.setItem(LS_CMDEDIT, JSON.stringify(CMDEDIT)); } catch(e){}
 }
+// ต้นแบบกลาง (ชั้นกลาง) — ยังใช้อยู่สำหรับข้อความที่ทุกคนเหมือนกันจริงๆ
 const cmdBlocks = () => CMD_BLOCKS.map((b, i) =>
   ({ t: (CMDEDIT[i] && CMDEDIT[i].t) || b.t,
      b: (CMDEDIT[i] && CMDEDIT[i].b != null) ? CMDEDIT[i].b : b.b,
      edited: !!CMDEDIT[i] }));
 
+// ข้อความจริงของครีเอเตอร์คนหนึ่ง — ทับต้นแบบด้วยของตัวเองถ้ามี
+function cmdBlocksFor(proj, handle){
+  const own = (cmdOwnRead(proj, handle).blocks) || {};
+  return cmdBlocks().map((b, i) => {
+    const o = own[i];
+    return { t: (o && o.t) || b.t,
+             b: (o && o.b != null) ? o.b : b.b,
+             edited: b.edited, mine: !!o };
+  });
+}
+
+// เขียนทับเฉพาะคนนี้ — เหมือนต้นแบบเป๊ะเมื่อไหร่ก็ถอดออก ไม่เก็บของซ้ำ
+function setCmdOwnBlock(proj, handle, i, key, val){
+  const base = cmdBlocks()[i];
+  if (!base) return false;
+  const own = cmdOwn(proj, handle);
+  const cur = Object.assign({ t: base.t, b: base.b }, own.blocks[i] || {});
+  cur[key] = val;
+  if (cur.t === base.t && cur.b === base.b) delete own.blocks[i];
+  else own.blocks[i] = cur;
+  pruneCmdOwn(proj, handle);
+  saveCmdOwn();
+  return true;
+}
+function setCmdOwnLink(proj, handle, key, val){
+  const own = cmdOwn(proj, handle);
+  if (val === null || val === "") delete own.links[key];
+  else own.links[key] = val;
+  pruneCmdOwn(proj, handle);
+  saveCmdOwn();
+}
+
+// "mine" = แก้เฉพาะคนนี้ (ค่าตั้งต้น) · "all" = แก้ต้นแบบที่ทุกคนใช้
+let CMD_SCOPE = "mine";
+
 function renderCmdEditor(proj, handle){
-  const list = cmdBlocks();
+  const mine = CMD_SCOPE === "mine";
+  const list = mine ? cmdBlocksFor(proj, handle) : cmdBlocks();
+  const nMine = Object.keys(cmdOwnRead(proj, handle).blocks || {}).length;
+
   $("#cmdBody").innerHTML =
     `<div class="cmdmeta">
-       กำลังแก้ข้อความต้นแบบ — <b>ใช้กับครีเอเตอร์ทุกคน</b> ไม่ใช่เฉพาะคนนี้<br>
+       <div class="tabs sub cmdscope">
+         <button data-scope="mine" aria-selected="${mine}">เฉพาะ ${esc(normId(handle))}${
+           nMine ? `<span class="n">${nMine}</span>` : ""}</button>
+         <button data-scope="all" aria-selected="${!mine}">ต้นแบบทุกคน${
+           Object.keys(CMDEDIT).length ? `<span class="n">${Object.keys(CMDEDIT).length}</span>` : ""}</button>
+       </div>
+       ${mine
+         ? `แก้แล้ว<b> ใช้กับ ${esc(normId(handle))} คนเดียว</b> คนอื่นยังได้ข้อความต้นแบบเหมือนเดิม`
+         : `แก้แล้ว<b> ใช้กับครีเอเตอร์ทุกคน</b> ยกเว้นคนที่มีข้อความของตัวเองอยู่แล้ว`}<br>
        ตัวแปรที่ใส่ได้: ${Object.keys(CMD_GAP).map(k => `<code>{{${k}}}</code>`).join(" ")}
        <button class="cmdbtn" id="cmdDone">เสร็จแล้ว</button>
-       <button class="cmdbtn" id="cmdResetAll">คืนค่าต้นแบบทั้งหมด</button>
+       <button class="cmdbtn" id="cmdResetAll">${mine ? "คืนให้เหมือนต้นแบบทั้งหมด" : "คืนค่าต้นแบบทั้งหมด"}</button>
      </div>` +
-    list.map((b, i) => `<div class="cmdblk${b.edited ? " edited" : ""}">
+    list.map((b, i) => `<div class="cmdblk${(mine ? b.mine : b.edited) ? " edited" : ""}">
       <header><span class="no">${String(i+1).padStart(2,"0")}</span>
         <input class="cmdt" data-i="${i}" value="${esc(b.t)}">
-        ${b.edited ? `<button data-reset="${i}" title="คืนค่าบล็อกนี้">↺</button>` : ""}
+        ${(mine ? b.mine : b.edited)
+          ? `<button data-reset="${i}" title="${mine ? "คืนบล็อกนี้ให้เหมือนต้นแบบ" : "คืนค่าบล็อกนี้"}">↺</button>` : ""}
       </header>
       <textarea class="cmdb" data-i="${i}" rows="${Math.min(16, b.b.split("\n").length + 1)}">${esc(b.b)}</textarea>
     </div>`).join("");
 
-  const save = (i, key, val) => {
+  const saveAll = (i, key, val) => {
     const def = CMD_BLOCKS[i];
     const cur = Object.assign({ t: def.t, b: def.b }, CMDEDIT[i] || {});
     cur[key] = val;
@@ -3267,16 +3376,33 @@ function renderCmdEditor(proj, handle){
     else CMDEDIT[i] = cur;
     saveCmdEdit();
   };
+  const save = (i, key, val) => mine
+    ? setCmdOwnBlock(proj, handle, i, key, val)
+    : saveAll(i, key, val);
+
   document.querySelectorAll("#cmdBody .cmdt").forEach(el =>
-    el.onchange = () => save(+el.dataset.i, "t", el.value));
+    el.onchange = () => { save(+el.dataset.i, "t", el.value); renderCmdEditor(proj, handle); });
   document.querySelectorAll("#cmdBody .cmdb").forEach(el =>
-    el.onchange = () => save(+el.dataset.i, "b", el.value));
+    el.onchange = () => { save(+el.dataset.i, "b", el.value); renderCmdEditor(proj, handle); });
   document.querySelectorAll("#cmdBody [data-reset]").forEach(b => b.onclick = () => {
-    delete CMDEDIT[+b.dataset.reset]; saveCmdEdit(); renderCmdEditor(proj, handle);
+    const i = +b.dataset.reset;
+    if (mine){ delete cmdOwn(proj, handle).blocks[i]; pruneCmdOwn(proj, handle); saveCmdOwn(); }
+    else { delete CMDEDIT[i]; saveCmdEdit(); }
+    renderCmdEditor(proj, handle);
+  });
+  document.querySelectorAll("#cmdBody .cmdscope button").forEach(b => b.onclick = () => {
+    CMD_SCOPE = b.dataset.scope; renderCmdEditor(proj, handle);
   });
   $("#cmdResetAll").onclick = () => {
-    if (!confirm("คืนข้อความทุกบล็อกเป็นต้นแบบ? ที่แก้ไว้จะหาย")) return;
-    CMDEDIT = {}; saveCmdEdit(); renderCmdEditor(proj, handle);
+    if (mine){
+      if (!confirm(`คืนข้อความของ ${normId(handle)} ให้เหมือนต้นแบบทั้งหมด? ที่แก้ไว้เฉพาะคนนี้จะหาย`)) return;
+      delete CMDOWN[cmdKey(proj, handle)];
+      saveCmdOwn();
+    } else {
+      if (!confirm("คืนข้อความต้นแบบทุกบล็อก? ที่แก้ไว้จะหาย (ของที่แก้รายคนยังอยู่)")) return;
+      CMDEDIT = {}; saveCmdEdit();
+    }
+    renderCmdEditor(proj, handle);
   };
   $("#cmdDone").onclick = () => { CMD_EDITING = false; openCmd(proj, handle); };
 }
@@ -3284,14 +3410,18 @@ function renderCmdEditor(proj, handle){
 function openCmd(proj, handle){
   const r = (COORD[proj] || []).find(x => normId(x.handle) === normId(handle));
   if (!r) return;
-  loadCmdLinks(); loadCmdEdit();
+  loadCmdLinks(); loadCmdEdit(); loadCmdOwn();
   $("#cmdPanel").classList.add("on");
   $("#cmdTitle").innerHTML = `Command · <span style="color:var(--accent)">${esc(r.handle)}</span>`;
   if (CMD_EDITING) return renderCmdEditor(proj, handle);
 
   const vals = cmdValues(r);
   const net = payOf(r.rate, r.paytype);
-  const blocks = cmdBlocks().map(bl => Object.assign({ t: bl.t }, fillBlock(bl.b, vals)));
+  const own = cmdOwnRead(proj, handle);
+  const nMine = Object.keys(own.blocks || {}).length;
+  const nLink = Object.keys(own.links || {}).length;
+  const blocks = cmdBlocksFor(proj, handle)
+    .map(bl => Object.assign({ t: bl.t, mine: bl.mine }, fillBlock(bl.b, vals)));
   const gaps = blocks.reduce((s, b) => s + b.missing, 0);
 
   $("#cmdBody").innerHTML =
@@ -3302,10 +3432,14 @@ function openCmd(proj, handle){
        จ่ายจริง ${net != null ? "฿" + net.toLocaleString("en-US",{minimumFractionDigits:2}) : "—"}<br>
        ${gaps ? `<span style="color:var(--lo)">ยังมีช่องว่าง ${gaps} จุด</span> — ที่ไฮไลต์แดงคือยังไม่มีข้อมูล เติมในตารางแล้วเปิดใหม่จะอัปเดตให้เอง`
               : `<span style="color:var(--hi)">ข้อมูลครบทุกช่อง</span>`}
-       <button class="cmdbtn" id="cmdSetLinks">ตั้งลิงก์ที่ใช้ร่วมกัน</button>
+       ${(nMine || nLink) ? `<br><span style="color:var(--accent)">เฉพาะคนนี้: ${
+         [nMine ? `ข้อความ ${nMine} บล็อก` : "", nLink ? `ลิงก์ ${nLink} ช่อง` : ""]
+         .filter(Boolean).join(" · ")}</span>` : ""}
+       <button class="cmdbtn" id="cmdSetLinks">ลิงก์เฉพาะคนนี้</button>
+       <button class="cmdbtn" id="cmdSetLinksAll">ลิงก์ที่ใช้ร่วมกัน</button>
        <button class="cmdbtn" id="cmdEditBtn">✎ แก้ข้อความ</button>
      </div>` +
-    blocks.map((b, i) => `<div class="cmdblk">
+    blocks.map((b, i) => `<div class="cmdblk${b.mine ? " edited" : ""}">
       <header><span class="no">${String(i+1).padStart(2,"0")}</span>${esc(b.t)}
         <button data-i="${i}">คัดลอก</button></header>
       <pre>${b.html}</pre></div>`).join("");
@@ -3317,9 +3451,20 @@ function openCmd(proj, handle){
     }).catch(() => { btn.textContent = "ก๊อปไม่ได้"; });
   });
 
+  // ลิงก์ของคนนี้เอง — เว้นว่าง = กลับไปใช้ตัวที่ใช้ร่วมกัน
   $("#cmdSetLinks").onclick = () => {
+    const cur = cmdOwnRead(proj, handle).links || {};
     for (const [k, label] of CMD_LINK_FIELDS){
-      const v = prompt(label, CMDLINKS[k] || "");
+      const v = prompt(`${label}\n(เฉพาะ ${normId(handle)} — เว้นว่างเพื่อใช้ตัวร่วม: ${
+        CMDLINKS[k] || "ยังไม่ตั้ง"})`, cur[k] != null ? cur[k] : "");
+      if (v === null) return;
+      setCmdOwnLink(proj, handle, k, v.trim());
+    }
+    openCmd(proj, handle);
+  };
+  $("#cmdSetLinksAll").onclick = () => {
+    for (const [k, label] of CMD_LINK_FIELDS){
+      const v = prompt(`${label}\n(ใช้กับทุกคนที่ไม่ได้ตั้งลิงก์ของตัวเอง)`, CMDLINKS[k] || "");
       if (v === null) return;
       CMDLINKS[k] = v.trim();
     }
@@ -4522,19 +4667,72 @@ function findProjects(text){
     g.proj === h.proj || (h.at >= g.at && h.at < g.at + g.len)));
 }
 
-function parseQuickLine(line){
+// ── ใคร ── หาชื่อที่มีอยู่จริงในข้อความ
+function readNames(text){
   const idx = handleIndex();
-  const bad = why => [{ line, ok:false, why, changes:{} }];
-
-  // ── ใคร ──
   const found = [];
   idx.forEach((entries, h) => {
-    if (new RegExp(`(?<![A-Za-z0-9._])${esc4re(h)}(?![A-Za-z0-9._])`, "i").test(line))
+    if (new RegExp(`(?<![A-Za-z0-9._])${esc4re(h)}(?![A-Za-z0-9._])`, "i").test(text))
       found.push({ h, entries });
   });
-  if (!found.length) return bad("ไม่เจอชื่อครีเอเตอร์ที่มีอยู่จริงในบรรทัดนี้");
   // ชื่อที่ยาวกว่ากินชื่อที่สั้นกว่า กันกรณี "ns.juice" ไปโดนจับพร้อม "ns.juice_"
-  const names = found.filter(a => !found.some(b => b !== a && b.h.includes(a.h)));
+  return found.filter(a => !found.some(b => b !== a && b.h.includes(a.h)));
+}
+
+// ── เปลี่ยนอะไร ── อ่านคำสั่งล้วนๆ ไม่ต้องมีชื่อคนในข้อความ
+// แยกออกมาเพื่อให้คำสั่งอยู่คนละบรรทัดกับรายชื่อได้ (วางรายชื่อยาวๆ แล้วสั่งทีเดียว)
+function readChanges(text){
+  const changes = {};
+  for (const k in QO_STATUS) if (text.includes(k)) changes.status = QO_STATUS[k];
+  for (const s of STATUSES)
+    if (s && (text.toLowerCase().includes(s.toLowerCase()) ||
+              (ST_TH[s] && text.includes(ST_TH[s])))) changes.status = s;
+  for (const t of PAYTYPES)
+    if (t.id && (text.includes(t.label) || (t.alias && t.alias.test(text)))) changes.paytype = t.id;
+  const km = text.match(/(?<![A-Za-z])(KOL|KOC)(?![A-Za-z])/i);
+  if (km) changes.kind = km[1].toUpperCase();
+  for (const sku of skuOptions()) if (text.includes(sku)) changes.sku = sku;
+  for (const spec of QO_FIELDS){
+    const mm = text.match(spec.re);
+    if (!mm || !mm[1]) continue;
+    const raw = String(mm[1]).trim();
+    if (!raw) continue;
+    changes[spec.f] = spec.num ? Number(raw.replace(/,/g, "")) : raw;
+  }
+  return changes;
+}
+
+// ── Command เฉพาะคนนี้ ── สั่งจากช่องคำสั่งได้ ไม่ต้องเปิดลิ้นชักทีละคน
+// `command 3: ข้อความ` = ทับข้อความบล็อก 3 · `ตะกร้า <url>` = ทับลิงก์เฉพาะคนนี้
+const CMD_LINK_RE = [
+  ["cart",     /(?:ตะกร้า|cart)\s*[:：=]?\s*(\S+)/i],
+  ["hashtag",  /(?:แฮชแท็ก|hashtag)\s*[:：=]\s*(.+?)\s*$/i],
+  ["timeline", /(?:ไทม์ไลน์|timeline)\s*[:：=]\s*(.+?)\s*$/i],
+  ["form",     /(?:ฟอร์ม|form)\s*[:：=]?\s*(https?:\/\/\S+)/i],
+  ["script",   /(?:สคริป[ต]?|script)\s*[:：=]?\s*(https?:\/\/\S+)/i],
+  ["docs",     /(?:เอกสาร|docs)\s*[:：=]?\s*(https?:\/\/\S+)/i],
+];
+function readCmdOps(text){
+  const ops = { blocks:{}, links:{} };
+  const mb = text.match(/(?:command|คอมมานด์|คอมมาน|ข้อความ)\s*(?:ที่\s*)?(\d{1,2})\s*[:：=]\s*([\s\S]+)$/i);
+  if (mb){
+    const i = Number(mb[1]) - 1;
+    if (i >= 0 && i < CMD_BLOCKS.length) ops.blocks[i] = mb[2].trim();
+    else ops.badBlock = mb[1];
+  }
+  for (const [k, re] of CMD_LINK_RE){
+    const m = text.match(re);
+    if (m && m[1]) ops.links[k] = m[1].trim();
+  }
+  return ops;
+}
+const cmdOpsEmpty = o => !Object.keys(o.blocks).length && !Object.keys(o.links).length;
+
+function parseQuickLine(line, extraNames){
+  const bad = why => [{ line, ok:false, why, changes:{} }];
+
+  const names = (extraNames && extraNames.length) ? extraNames : readNames(line);
+  if (!names.length) return bad("ไม่เจอชื่อครีเอเตอร์ที่มีอยู่จริงในบรรทัดนี้");
 
   // ── โปรเจกต์ + การย้าย ──
   const projs = findProjects(line);
@@ -4550,28 +4748,13 @@ function parseQuickLine(line){
   }
   if (moveWord && !dest) return bad("บอกว่าจะย้าย แต่ไม่เจอชื่อโปรเจกต์ปลายทางที่รู้จัก");
 
-  // ── เปลี่ยนอะไร ──
-  const changes = {};
-  for (const k in QO_STATUS) if (line.includes(k)) changes.status = QO_STATUS[k];
-  for (const s of STATUSES)
-    if (s && (line.toLowerCase().includes(s.toLowerCase()) ||
-              (ST_TH[s] && line.includes(ST_TH[s])))) changes.status = s;
-  for (const t of PAYTYPES)
-    if (t.id && (line.includes(t.label) ||
-        (t.id === "net" && /\bNET\b/.test(line)) ||
-        (t.id === "wht3" && /หัก\s*ณ\s*ที่จ่าย\s*3/.test(line)))) changes.paytype = t.id;
-  const km = line.match(/(?<![A-Za-z])(KOL|KOC)(?![A-Za-z])/i);
-  if (km) changes.kind = km[1].toUpperCase();
-  for (const sku of skuOptions()) if (line.includes(sku)) changes.sku = sku;
-  for (const spec of QO_FIELDS){
-    const mm = line.match(spec.re);
-    if (!mm || !mm[1]) continue;
-    const raw = String(mm[1]).trim();
-    if (!raw) continue;
-    changes[spec.f] = spec.num ? Number(raw.replace(/,/g, "")) : raw;
-  }
+  const changes = readChanges(line);
+  const cmdOps = readCmdOps(line);
+  if (cmdOps.badBlock) return bad(`ไม่มี Command บล็อกที่ ${cmdOps.badBlock} (มี 1–${CMD_BLOCKS.length})`);
+  // `command 3: ...` กินท้ายบรรทัดทั้งหมด อย่าให้ไปโดนอ่านเป็นโน้ต/วันโพสต์ซ้ำ
+  if (Object.keys(cmdOps.blocks).length){ delete changes.note; delete changes.postdate; delete changes.deadline; }
 
-  if (!Object.keys(changes).length && !dest)
+  if (!Object.keys(changes).length && !dest && cmdOpsEmpty(cmdOps))
     return bad(`เจอ ${names.map(n => n.h).join(", ")} แต่อ่านไม่ออกว่าจะให้แก้อะไร`);
 
   // ── จับคู่คนกับโปรเจกต์ ──
@@ -4591,12 +4774,71 @@ function parseQuickLine(line){
     const ch = Object.assign({}, changes);
     if (ch.kind === (row.kind || "").toUpperCase()) delete ch.kind;
     // ทุกอย่างที่สั่งตรงกับของเดิมอยู่แล้ว = ไม่มีอะไรให้ทำ บอกไปตรงๆ ดีกว่าขึ้นว่าสำเร็จ
-    if (!Object.keys(ch).length && !dest)
+    if (!Object.keys(ch).length && !dest && cmdOpsEmpty(cmdOps))
       { out.push({ line, ok:false, changes:{},
         why:`${n.h} เป็นแบบนั้นอยู่แล้ว ไม่มีอะไรเปลี่ยน` }); continue; }
     if ("rate" in ch) ch.net3 = payOf(ch.rate, ch.paytype ?? row.paytype);
-    out.push({ line, ok:true, id:n.h, proj, row, changes:ch, moveTo: dest || undefined });
+    out.push({ line, ok:true, id:n.h, proj, row, changes:ch, moveTo: dest || undefined,
+               cmd: cmdOpsEmpty(cmdOps) ? null : cmdOps });
   }
+  return out;
+}
+
+// ─── อ่านทั้งกล่อง ไม่ใช่ทีละบรรทัด ───
+// รายชื่อยาวๆ ตามด้วยคำสั่งบรรทัดเดียว = คำสั่งนั้นใช้กับทุกคนที่ค้างอยู่ข้างบน
+//   tangtangnpc
+//   onfireboyth
+//   ชำระ3%
+// บรรทัดว่าง = จบกลุ่ม เริ่มกลุ่มใหม่ · บรรทัดที่มีทั้งชื่อและคำสั่งทำงานจบในตัวเหมือนเดิม
+function parseCmdText(text){
+  const out = [];
+  let pending = [];      // ชื่อที่ยังไม่มีคำสั่ง
+  let pendingLines = [];
+
+  const flushUnused = () => {
+    if (pending.length)
+      out.push({ line: pendingLines.join(" · "), ok:false, changes:{},
+        why:`${pending.map(n => n.h).join(", ")} — วางชื่อไว้แต่ไม่มีบรรทัดคำสั่งตามมา` });
+    pending = []; pendingLines = [];
+  };
+
+  for (const raw of String(text).split(/\r?\n/)){
+    const line = raw.trim();
+    if (!line){ flushUnused(); continue; }
+
+    if (ADD_RE.test(line)){ flushUnused(); out.push(...parseAddLine(line)); continue; }
+
+    const names = readNames(line);
+    const ops = readCmdOps(line);
+    // badBlock ก็นับเป็นคำสั่ง จะได้ตกไปที่ parseQuickLine แล้วบอกว่าเลขบล็อกผิด
+    // ไม่ใช่ไปเข้าใจผิดว่าเป็นบรรทัดชื่อล้วน
+    const hasOrder = Object.keys(readChanges(line)).length > 0 ||
+                     !cmdOpsEmpty(ops) || !!ops.badBlock ||
+                     /ย้าย|move|->|→/i.test(line);
+
+    // ชื่อล้วน ไม่มีคำสั่ง → พักไว้ก่อน รอบรรทัดคำสั่ง
+    if (names.length && !hasOrder){ pending.push(...names); pendingLines.push(line); continue; }
+
+    // คำสั่งล้วน ไม่มีชื่อ → ใช้กับชื่อที่พักไว้
+    if (!names.length && hasOrder && pending.length){
+      out.push(...parseQuickLine(line, pending));
+      pending = []; pendingLines = [];
+      continue;
+    }
+
+    // มีทั้งชื่อและคำสั่งในบรรทัดเดียว → จบในตัว แต่ถ้ามีชื่อค้างอยู่ก็เหมาไปด้วย
+    if (names.length && hasOrder){
+      const all = pending.length
+        ? pending.concat(names.filter(n => !pending.some(p => p.h === n.h)))
+        : names;
+      out.push(...parseQuickLine(line, all));
+      pending = []; pendingLines = [];
+      continue;
+    }
+
+    out.push(...parseQuickLine(line));   // อ่านไม่ออก ให้ตัวเดิมบอกเหตุผล
+  }
+  flushUnused();
   return out;
 }
 
@@ -4639,13 +4881,19 @@ function parseAddLine(line){
       : { line, ok:true, add:true, id, proj, kind, changes:{} });
 }
 
-function parseCmdLine(line){
-  return ADD_RE.test(line) ? parseAddLine(line) : parseQuickLine(line);
+const CMD_LINK_TH = { cart:"ลิงก์ตะกร้า", hashtag:"Hashtag", timeline:"Timeline",
+                      form:"ฟอร์มเอกสาร", script:"ลิงก์สคริป", docs:"เอกสารร่วมงาน" };
+// สรุปว่าคำสั่งนี้ไปแตะ Command ของคนนี้ตรงไหนบ้าง
+function cmdOpsText(o){
+  return Object.keys(o.blocks).map(i =>
+      `Command บล็อก <b>${Number(i)+1}</b> (${esc(CMD_BLOCKS[i].t.replace(/^\d+\.\s*/, ""))})`)
+    .concat(Object.entries(o.links).map(([k, v]) =>
+      `${esc(CMD_LINK_TH[k] || k)}: <b>${esc(String(v).slice(0, 44))}</b>`))
+    .join(" · ");
 }
 
 $("#qoParse").onclick = () => {
-  QO = $("#qoText").value.split(/\r?\n/).map(s => s.trim()).filter(Boolean)
-        .flatMap(parseCmdLine);
+  QO = parseCmdText($("#qoText").value);
   const good = QO.filter(q => q.ok);
   $("#qoPreview").innerHTML = QO.map(q => !q.ok
     ? `<div class="qorow"><span class="no">✕</span><div>${esc(q.line)}<br>
@@ -4661,6 +4909,7 @@ $("#qoParse").onclick = () => {
         (q.moveTo ? [`<b style="color:var(--accent)">ย้ายไป ${esc(q.moveTo)}</b>`] : [])
         .concat(Object.entries(q.changes).map(([k, v]) =>
           `${esc(QO_LABEL[k] || k)}: <b>${esc(k === "paytype" ? payType(v).label : v)}</b>`))
+        .concat(q.cmd ? [cmdOpsText(q.cmd)] : [])
         .join(" · ")}</div></div>`).join("");
   const msg = $("#qoMsg");
   msg.className = "addmsg on " + (good.length ? "ok" : "err");
@@ -4670,7 +4919,8 @@ $("#qoParse").onclick = () => {
 };
 
 function applyQuickOrder(){
-  let n = 0, moved = 0, added = 0;
+  let n = 0, moved = 0, added = 0, cmds = 0;
+  loadCmdOwn();
   QO.filter(q => q.ok && q.add).forEach(q => {
     addToProject(q.id, q.proj, q.kind);
     added++;
@@ -4692,7 +4942,14 @@ function applyQuickOrder(){
     EDITS[k] = Object.assign({}, EDITS[k], q.changes,
                              q.moveTo ? { project: q.moveTo } : {},
                              "rate" in q.changes ? { rate_all: [] } : {});
-    n++;
+    // Command เก็บแยกจากข้อมูลแถว และผูกกับโปรเจกต์ปลายทางถ้าย้าย
+    if (q.cmd){
+      const proj = q.moveTo || q.proj;
+      for (const i in q.cmd.blocks) setCmdOwnBlock(proj, q.row.handle, +i, "b", q.cmd.blocks[i]);
+      for (const key in q.cmd.links) setCmdOwnLink(proj, q.row.handle, key, q.cmd.links[key]);
+      cmds++;
+    }
+    if (Object.keys(q.changes).length || q.moveTo) n++;
   });
   saveEdits(); markDirty(); renderProjTabs(); renderCoord(); fillProjSelect();
   $("#qoText").value = ""; growCmd(); $("#qoPreview").innerHTML = ""; QO = [];
@@ -4702,7 +4959,10 @@ function applyQuickOrder(){
     added ? `เพิ่มคนใหม่ <b>${added}</b> คน` : "",
     n ? `แก้แล้ว <b>${n}</b> รายการ` : "",
     moved ? `ย้ายข้ามโปรเจกต์ <b>${moved}</b> คน` : "",
-  ].filter(Boolean).join(" · ") + ` — จะขึ้นชีตในรอบซิงก์ถัดไป`;
+    cmds ? `ตั้ง Command เฉพาะราย <b>${cmds}</b> คน` : "",
+  ].filter(Boolean).join(" · ") +
+  (n || added || moved ? ` — จะขึ้นชีตในรอบซิงก์ถัดไป` : "") +
+  (cmds ? `<br><span style="color:var(--dim)">Command เก็บในเครื่องนี้เท่านั้น ไม่ได้ขึ้นชีต</span>` : "");
 }
 
 // ─── ช่องคำสั่ง: โตตามข้อความ + ปุ่มพับตัวช่วย ───
@@ -4768,6 +5028,7 @@ $("#hideLiked").checked = HIDE_LIKED;
 loadCrit();
 loadCart();
 loadEdits();
+loadCmdLinks(); loadCmdEdit(); loadCmdOwn();
 loadNewRows();
 shapeCoord(SEED_COORD);
 setInterval(() => syncCoord(false), SYNC_EVERY);
