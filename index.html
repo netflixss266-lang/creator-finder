@@ -175,6 +175,9 @@ body[data-view="coord"] #foldBtn,
 body[data-view="coord"] .poolstat,
 body[data-view="coord"] #addBtn,
 body[data-view="coord"] #cartBtn{display:none}
+/* ตั้งค่ามีทั้ง URL+token ที่เขียนชีตได้ ให้เข้าถึงได้จากหลัง Coordinator เท่านั้น
+   หน้าค้นหาผ่านประตูชั้นเดียว ส่วนหน้านี้ผ่านสองชั้น */
+body:not([data-view="coord"]) #gearBtn{display:none}
 
 /* ── Coordinate ── */
 #coordView{padding:20px 24px}
@@ -351,7 +354,7 @@ body[data-view="coord"] #cartBtn{display:none}
 /* ── ช่องเรท เน้นให้เห็นชัด ──
    ตัวเลขเป็นสีขาวสว่าง ไม่ใช้แดง เพราะแดงในหน้านี้แปลว่า "ผิด/ต้องแก้"
    ที่เน้นคือขีดแดงด้านซ้ายกับพื้นจางๆ แทน */
-.ctable td .mono[data-f="rate"]{color:#fff;font-weight:700;font-size:.86rem;
+.ctable td .mono[data-f="rate"]{color:#fff;font-weight:400;font-size:.86rem;
   border-color:var(--line);border-left:3px solid var(--accent);
   background:rgba(var(--accent-rgb),.08)}
 .ctable td .mono[data-f="rate"]:focus{border-color:var(--accent);
@@ -447,7 +450,10 @@ tr.dropover td{border-top:2px solid var(--accent)}
   font-family:'IBM Plex Mono',monospace;font-weight:600}
 .dash{color:var(--dim)}
 
-.ctable .mono{font-family:'IBM Plex Mono',monospace;text-align:right;white-space:nowrap}
+/* ตัวเลขเงินไม่ต้องหนา — ทั้งคอลัมน์เป็นเงินหมด ตัวหนาเลยไม่ได้เน้นอะไร มีแต่ทำให้ลายตา */
+.ctable .mono{font-family:'IBM Plex Mono',monospace;text-align:right;white-space:nowrap;
+  font-weight:400}
+.ctable td.mono b{font-weight:400}
 .ctable select,.ctable input{padding:4px 7px;font-size:.79rem;border-radius:6px}
 .ctable input.mono{text-align:right}
 .ctable .w-note input{min-width:150px}
@@ -480,6 +486,29 @@ tr.dropover td{border-top:2px solid var(--accent)}
 .modal-head{display:flex;align-items:center;justify-content:space-between;
   gap:12px;margin-bottom:4px}
 .modal-head h2{font-family:'Space Grotesk',sans-serif;font-size:1.05rem;font-weight:700}
+
+/* ── ตั้งค่าแบบเต็มจอ ──
+   เนื้อในยาว (รายการชีต + Apps Script + ความเป็นส่วนตัว) กล่อง 560px ทำให้ต้องเลื่อนตลอด
+   เต็มจอแล้วแบ่งสองคอลัมน์บนจอกว้าง เห็นทุกหัวข้อพร้อมกัน */
+.overlay.full{padding:0;align-items:stretch}
+.overlay.full .modal{max-width:none;border:0;border-radius:0;min-height:100%;
+  padding:0;display:flex;flex-direction:column;background:var(--bg)}
+.overlay.full .modal-head{position:sticky;top:0;z-index:2;margin:0;padding:16px 26px;
+  background:linear-gradient(180deg,var(--bg) 70%,rgba(11,11,11,.9));
+  border-bottom:1px solid var(--line)}
+.overlay.full .modal-head h2{font-family:'Bebas Neue','Space Grotesk',sans-serif;
+  font-size:1.55rem;font-weight:400;letter-spacing:.06em;color:var(--accent)}
+.overlay.full .modal-head .x{font-size:1.3rem;padding:6px 12px}
+.setbody{flex:1;padding:8px 26px 60px;max-width:1180px;width:100%;margin:0 auto}
+@media(min-width:900px){
+  .setbody{columns:2;column-gap:34px}
+  .setbody > .sect{break-inside:avoid;display:inline-block;width:100%}
+}
+.overlay.full .sect{background:var(--surface);border:1px solid var(--line);
+  border-radius:8px;padding:18px 20px;margin-top:16px}
+.overlay.full .sect:first-child{margin-top:16px}
+.overlay.full details.sect > summary h3,.overlay.full .sect > h3{font-size:.9rem;
+  text-transform:none;letter-spacing:0;color:var(--ink);font-weight:700}
 .x{background:none;border:0;color:var(--dim);font-size:1rem;padding:4px 8px;border-radius:6px}
 .x:hover{color:var(--ink);background:var(--surface2)}
 .sect{margin-top:20px;padding-top:18px;border-top:1px solid var(--line)}
@@ -714,13 +743,38 @@ main{padding:22px 24px;overflow-y:auto;max-height:calc(100vh - 62px)}
 .drawer.on .scrim{opacity:1}
 .drawer.on .panel{transform:none}
 .drawer .panel.wide{width:min(620px,96vw)}
-.cmdmeta{font-size:.78rem;color:var(--dim);margin-bottom:14px;line-height:1.6}
-.cmdmeta b{color:var(--mute)}
-.cmdblk{border:1px solid var(--line);border-radius:11px;margin-bottom:11px;
-  background:var(--surface2);overflow:hidden}
-.cmdblk > header{display:flex;align-items:center;gap:9px;padding:9px 12px;
-  border-bottom:1px solid var(--line);font-size:.8rem;font-weight:600;color:var(--mute)}
-.cmdblk > header .no{font-family:'IBM Plex Mono',monospace;color:var(--dim);flex:none}
+/* Command เต็มจอ — ข้อความยาว 14 บล็อก อ่านในลิ้นชัก 620px แล้วบรรทัดสั้นจนตาลาย */
+.drawer .panel.sheet{width:100vw;border-left:0;background:var(--bg)}
+.drawer .panel.sheet .drawer-body{max-width:1180px;width:100%;margin:0 auto;padding:18px 26px 60px}
+.drawer .panel.sheet .drawer-head{padding:14px 26px}
+@media(min-width:1000px){
+  .drawer .panel.sheet .cmdlist{columns:2;column-gap:22px}
+  .drawer .panel.sheet .cmdblk{break-inside:avoid;display:inline-block;width:100%}
+}
+.cmdmeta{font-size:.8rem;color:var(--mute);margin-bottom:18px;line-height:1.7}
+.cmdmeta b{color:var(--ink)}
+/* ชื่อครีเอเตอร์ต้องเห็นก่อนอย่างอื่น — เปิด Command ผิดคนแล้วส่งไปคือแก้ไม่ได้ */
+.cmdwho{display:flex;align-items:center;gap:13px;flex-wrap:wrap;
+  padding:16px 18px;margin-bottom:16px;border-radius:9px;background:var(--surface);
+  border:1px solid var(--line);border-left:4px solid var(--accent)}
+.cmdwho .nm{font-family:'Space Grotesk','IBM Plex Sans Thai',sans-serif;
+  font-size:1.6rem;font-weight:700;line-height:1.1;word-break:break-all}
+.cmdwho .tags{display:flex;gap:7px;flex-wrap:wrap;align-items:center}
+.cmdwho a.go{color:var(--accent);font-size:.82rem;font-weight:600}
+.cmdwho a.go:hover{text-decoration:underline}
+.cmdwho .facts{flex-basis:100%;font-size:.82rem;color:var(--mute);
+  border-top:1px solid var(--line);padding-top:11px;line-height:1.7}
+.cmdwho .facts b{color:var(--ink);font-family:'IBM Plex Mono',monospace;font-weight:500}
+.cmdblk{border:1px solid var(--line);border-radius:9px;margin-bottom:13px;
+  background:var(--surface);overflow:hidden}
+/* หัวข้อบล็อกต้องเจอได้จากการกวาดตา ไม่ใช่อ่านไล่ — ตัวใหญ่ ขาว มีเลขวงกลมแดงนำ */
+.cmdblk > header{display:flex;align-items:center;gap:11px;padding:12px 14px;
+  border-bottom:1px solid var(--line);font-size:1rem;font-weight:700;color:var(--ink);
+  background:var(--surface2);line-height:1.35}
+.cmdblk > header .no{flex:none;width:26px;height:26px;border-radius:50%;
+  display:inline-flex;align-items:center;justify-content:center;
+  font-family:'IBM Plex Mono',monospace;font-size:.76rem;font-weight:700;
+  background:var(--accent);color:var(--accent-ink)}
 .cmdblk > header button{margin-left:auto;background:none;border:1px solid var(--line);
   color:var(--mute);border-radius:6px;padding:4px 11px;font-size:.75rem;font-weight:600;flex:none}
 .cmdblk > header button:hover{border-color:var(--accent);color:var(--accent)}
@@ -759,7 +813,7 @@ main{padding:22px 24px;overflow-y:auto;max-height:calc(100vh - 62px)}
 .dfield label{display:block;font-size:.68rem;text-transform:uppercase;letter-spacing:.07em;
   color:var(--dim);margin-bottom:5px;font-weight:600}
 .dfield input,.dfield select{font-size:.86rem;padding:8px 10px;background:var(--surface2)}
-.dfield .ro{font-family:'IBM Plex Mono',monospace;font-size:.95rem;font-weight:700;
+.dfield .ro{font-family:'IBM Plex Mono',monospace;font-size:.95rem;font-weight:400;
   padding:8px 10px;border:1px dashed var(--line);border-radius:8px;color:var(--ink)}
 .dfield .ro small{display:block;font-family:inherit;font-weight:400;
   font-size:.7rem;color:var(--dim);margin-top:3px}
@@ -771,8 +825,15 @@ main{padding:22px 24px;overflow-y:auto;max-height:calc(100vh - 62px)}
 .dsku{display:flex;flex-wrap:wrap;gap:6px;align-items:center;position:relative;
   min-height:38px;padding:5px;background:var(--surface2);
   border:1px solid var(--line);border-radius:8px}
-.dclips{font-size:.78rem;color:var(--mute);line-height:1.8}
-.dclips .branch{color:var(--dim);font-family:'IBM Plex Mono',monospace;margin-right:6px}
+.dclips{font-size:.78rem;color:var(--mute)}
+.dclip{display:flex;align-items:center;gap:8px;padding:5px 0}
+.dclips .branch{color:var(--dim);font-family:'IBM Plex Mono',monospace;flex:none}
+.dclip .cn{flex:none;font-weight:600;color:var(--ink)}
+.dclip .cs{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.dclip select{flex:none;width:210px;font-size:.78rem;padding:5px 8px}
+/* สถานะรายคลิปในตาราง — ให้กว้างเท่าแถวหลัก จะได้ไม่เหลื่อมกัน */
+tr.subrow td.w-status select{width:230px}
+.ctable.lean tr.subrow td.w-status select{width:230px}
 
 .drawer-head{display:flex;align-items:center;justify-content:space-between;gap:12px;
   padding:17px 18px;border-bottom:1px solid var(--line);flex:none}
@@ -904,7 +965,7 @@ main{padding:22px 24px;overflow-y:auto;max-height:calc(100vh - 62px)}
       <div class="fbody">
         <div class="tabs" id="kindTabs" role="tablist"></div>
         <select id="sheetSel"></select>
-        <div class="hint">เพิ่ม/ลบลิงก์ได้ที่ปุ่ม <b>ตั้งค่า</b> มุมขวาบนเท่านั้น</div>
+        <div class="hint">เพิ่ม/ลบลิงก์ได้ที่ <b>Coordinator → ⚙ ตั้งค่า</b> เท่านั้น</div>
       </div>
     </details>
 
@@ -1152,7 +1213,7 @@ main{padding:22px 24px;overflow-y:auto;max-height:calc(100vh - 62px)}
 <!-- ═══ Command — ข้อความสำเร็จรูปสำหรับคุยกับครีเอเตอร์ ═══ -->
 <div class="drawer" id="cmdPanel">
   <div class="scrim" id="cmdScrim"></div>
-  <aside class="panel wide" role="dialog" aria-modal="true" aria-labelledby="cmdTitle">
+  <aside class="panel sheet" role="dialog" aria-modal="true" aria-labelledby="cmdTitle">
     <div class="drawer-head">
       <h2 id="cmdTitle">Command</h2>
       <button class="x" id="closeCmd" aria-label="ปิด">✕</button>
@@ -1247,13 +1308,14 @@ main{padding:22px 24px;overflow-y:auto;max-height:calc(100vh - 62px)}
 </div>
 
 <!-- ═══ ตั้งค่า ═══ -->
-<div class="overlay" id="settings" hidden>
+<div class="overlay full" id="settings" hidden>
   <div class="modal" role="dialog" aria-modal="true" aria-labelledby="setTitle">
     <div class="modal-head">
       <h2 id="setTitle">ตั้งค่าเว็บ</h2>
       <button class="x" id="closeSet" aria-label="ปิด">✕</button>
     </div>
 
+    <div class="setbody">
     <section class="sect">
       <h3>Google Sheet</h3>
       <p class="sect-sub">ลิงก์ทั้งหมดที่เลือกได้ในหน้าหลัก — เพิ่มหรือลบได้ที่นี่ที่เดียว</p>
@@ -1328,6 +1390,7 @@ main{padding:22px 24px;overflow-y:auto;max-height:calc(100vh - 62px)}
       <button class="run" id="wipeAll">ล้างข้อมูลทั้งหมดในเครื่องนี้</button>
       <div class="addmsg" id="wipeMsg"></div>
     </details>
+    </div>
   </div>
 </div>
 
@@ -1849,7 +1912,7 @@ async function run(opt){
   const url = currentSheetUrl();
   if (!url){
     $("#banner").style.display = "";
-    $("#banner").innerHTML = `ยังไม่มี Google Sheet — กด <b>⚙ ตั้งค่า</b> มุมขวาบนเพื่อเพิ่มลิงก์ก่อน`;
+    $("#banner").innerHTML = `ยังไม่มี Google Sheet — เพิ่มลิงก์ได้ที่ <b>Coordinator → ⚙ ตั้งค่า</b>`;
     return;
   }
 
@@ -2612,10 +2675,16 @@ function renderDetail(){
     </div>
 
     ${clips.length ? `<div class="dsect"><h3>แยกรายคลิป (${clips.length} คลิป)</h3>
-      <div class="dclips">${clips.map((c, k) => `<div>
+      <div class="dclips">${clips.map((c, k) => `<div class="dclip">
         <span class="branch">${k === clips.length-1 ? "└" : "├"}</span>
-        คลิป ${k+1} · ${esc(c.sku)} · <span class="st ${stClass(c.status)}">${
-          esc(ST_TH[c.status] || "—")}</span></div>`).join("")}</div></div>` : ""}
+        <span class="cn">คลิป ${k+1}</span>
+        <span class="cs">${esc(c.sku)}</span>
+        <select class="st-sel ${stClass(c.status)}" data-dclip="${k}">${STATUSES.map(s =>
+          `<option value="${esc(s)}" class="${stClass(s)}"${
+            s === (c.status || "") ? " selected" : ""}>${esc(ST_TH[s])}</option>`).join("")}</select>
+        </div>`).join("")}</div>
+      <div class="hint">คลิปแรกใช้ช่องสถานะด้านบน · คลิปที่ 2 เป็นต้นไปเก็บต่อท้ายโน้ต
+        เพื่อให้ขึ้นชีตได้โดยไม่ต้องเพิ่มคอลัมน์</div></div>` : ""}
 
     ${hist.length > 1 ? `<div class="dsect"><h3>เคยร่วมงาน ${hist.length} โปรเจกต์</h3>
       ${histTable(hist)}</div>` : ""}
@@ -2644,6 +2713,10 @@ function renderDetail(){
     PROJ = to;
     renderProjTabs(); renderCoord(); fillProjSelect(); renderDetail();
   };
+  body.querySelectorAll("[data-dclip]").forEach(sel => sel.onchange = () => {
+    setClipStatus(r, +sel.dataset.dclip, sel.value);
+    renderCoord(); renderDetail();
+  });
   body.querySelectorAll("[data-dskudel]").forEach(b => b.onclick = () => {
     setField(r, "sku", skuJoin(skuParts(r.sku).filter(v => v !== b.dataset.dskudel)));
     renderCoord(); renderDetail();
@@ -2905,6 +2978,12 @@ function renderCoord(){
   document.querySelectorAll("#coordBody [data-detail]").forEach(b =>
     b.onclick = () => openDetail(PROJ, +b.dataset.detail));
 
+  // สถานะรายคลิป — คลิปแรกลงช่อง Status ที่เหลือต่อท้ายโน้ต ดู setClipStatus
+  document.querySelectorAll("#coordBody [data-clip]").forEach(sel => sel.onchange = () => {
+    setClipStatus(COORD[PROJ][+sel.dataset.clip], +sel.dataset.k, sel.value);
+    renderCoord();
+  });
+
   // ลบคนออกจากโปรเจกต์ — ถามก่อนเสมอ กดพลาดแล้วเรียกคืนจากชีตได้แต่เสียเวลา
   document.querySelectorAll("#coordBody [data-del]").forEach(b => b.onclick = () => {
     const r = (COORD[PROJ] || [])[+b.dataset.del];
@@ -2990,19 +3069,49 @@ function moveRow(r, to){
 // งานที่รวมกันในช่อง SKU เช่น "Blush - Haelyn (40) + Eyeshadow - CP301 (10)"
 // = คนละคลิป แยกดูทีละคลิปได้ ตัวเลขวิดีโอก็หารตามคลิป
 const CLIP_SPLIT = /\s*\+\s*/;
+
+// ── สถานะรายคลิป ──
+// ชีตมีช่องสถานะช่องเดียวต่อคน แต่คนที่ทำหลายคลิปเดินคนละจังหวะกันได้
+// คลิปแรกใช้ช่อง Status ตามปกติ · คลิปที่ 2 เป็นต้นไปต่อท้ายโน้ตในรูปแบบที่ตอนนำเข้าใช้อยู่แล้ว
+// เก็บในโน้ตเพราะเป็นช่องเดียวที่เป็นข้อความอิสระ = ขึ้นชีตได้โดยไม่ต้องเพิ่มคอลัมน์
+const CLIP_NOTE_RE = /\s*สถานะอื่นในชีต:\s*(.*)$/;
+
+function clipStatusList(r, n){
+  const m = String(r.note || "").match(CLIP_NOTE_RE);
+  const more = m ? m[1].split(/\s*\/\s*/).map(s => s.trim()) : [];
+  const out = [r.status || ""];
+  for (let k = 1; k < n; k++){
+    const v = more[k - 1] || "";
+    out.push(v === "-" ? "" : v);   // "-" คือที่ว่างไว้ตอนเขียนกลับ ไม่ใช่สถานะจริง
+  }
+  return out;
+}
+
+function setClipStatus(r, k, value){
+  const n = clipsOf(r).length;
+  if (!n) return false;
+  if (k === 0) return setField(r, "status", value);
+  const list = clipStatusList(r, n);
+  list[k] = value;
+  const tail = list.slice(1);
+  const base = String(r.note || "").replace(CLIP_NOTE_RE, "").trim();
+  // ไม่เหลือสถานะรายคลิปเลย = ถอดหางออกจากโน้ต ไม่ทิ้งเศษไว้
+  const mark = tail.some(Boolean)
+    ? `สถานะอื่นในชีต: ${tail.map(s => s || "-").join(" / ")}` : "";
+  return setField(r, "note", [base, mark].filter(Boolean).join(" ").trim());
+}
+
 function clipsOf(r){
   const parts = String(r.sku || "").split(CLIP_SPLIT).map(s => s.trim()).filter(Boolean);
   if (parts.length < 2) return [];
-  // สถานะรายคลิปที่ติดมาในโน้ต ("สถานะอื่นในชีต: A / B") เอามาใส่คลิปที่ 2 เป็นต้นไป
-  const extra = (String(r.note || "").match(/สถานะอื่นในชีต:\s*(.+)$/) || [])[1];
-  const more = extra ? extra.split(/\s*\/\s*/).map(s => s.trim()).filter(Boolean) : [];
+  const st = clipStatusList(r, parts.length);
   const total = Number(r.videos) || parts.length;
   const each = Math.max(1, Math.round(total / parts.length));
   return parts.map((p, k) => ({
     sku: p, videos: each,
     code: (/feather/i.test(p) ? "F" : /eye/i.test(p) ? "E" : /blush/i.test(p) ? "B"
           : /lip/i.test(p) ? "L" : /contour/i.test(p) ? "C" : ""),
-    status: k === 0 ? (r.status || "") : (more[k - 1] || r.status || ""),
+    status: st[k],
   }));
 }
 
@@ -3019,7 +3128,11 @@ function subRows(r, i){
     <td class="vid"><span class="one">${c.videos}</span></td>
     <td class="opt"></td>
     <td class="w-job"><span class="tag job ${codeClass(c.code)}">${esc(codeLabel(c.code))}</span></td>
-    <td class="w-status"><span class="st ${stClass(c.status)}">${esc(ST_TH[c.status] || "—")}</span></td>
+    <td class="w-status"><select class="st-sel ${stClass(c.status)}"
+        data-clip="${i}" data-k="${k}"
+        title="สถานะของคลิปนี้เท่านั้น — คลิปอื่นไม่เปลี่ยนตาม">${
+      STATUSES.map(s => `<option value="${esc(s)}" class="${stClass(s)}"${
+        s === (c.status || "") ? " selected" : ""}>${esc(ST_TH[s])}</option>`).join("")}</select></td>
     <td></td><td></td><td></td>
     <td class="clipsku">${esc(c.sku)}</td>
     <td class="opt"></td><td class="opt"></td><td class="opt"></td><td class="opt"></td><td></td>
@@ -3084,7 +3197,7 @@ function coordRow(r, i){
       if (auto == null) return `<span class="dash">-</span>`;
       const t = payType(r.paytype);
       const cost = t.cost ? t.cost(Number(r.rate)) : null;
-      return `<b>฿${auto.toLocaleString("en-US",{minimumFractionDigits:2})}</b>` +
+      return `฿${auto.toLocaleString("en-US",{minimumFractionDigits:2})}` +
         (cost ? `<br><span style="color:var(--dim);font-size:.72rem"
            title="ต้นทุนบริษัทรวมภาษีที่ออกให้">บริษัทจ่าย ฿${
            (Math.round(cost*100)/100).toLocaleString("en-US",{minimumFractionDigits:2})}</span>` : "");
@@ -3390,7 +3503,7 @@ function renderCmdEditor(proj, handle){
        <button class="cmdbtn" id="cmdResetAll">${mine ? "คืนให้เหมือนต้นแบบทั้งหมด" : "คืนค่าต้นแบบทั้งหมด"}</button>
      </div>` +
     list.map((b, i) => `<div class="cmdblk${(mine ? b.mine : b.edited) ? " edited" : ""}">
-      <header><span class="no">${String(i+1).padStart(2,"0")}</span>
+      <header><span class="no">${i+1}</span>
         <input class="cmdt" data-i="${i}" value="${esc(b.t)}">
         ${(mine ? b.mine : b.edited)
           ? `<button data-reset="${i}" title="${mine ? "คืนบล็อกนี้ให้เหมือนต้นแบบ" : "คืนค่าบล็อกนี้"}">↺</button>` : ""}
@@ -3455,24 +3568,39 @@ function openCmd(proj, handle){
   const gaps = blocks.reduce((s, b) => s + b.missing, 0);
 
   $("#cmdBody").innerHTML =
-    `<div class="cmdmeta">
-       <b>${esc(proj)}</b> · ${esc(r.kind || "-")} · งาน ${esc(r.code || "-")}<br>
-       เรท ${r.rate != null ? "฿" + Number(r.rate).toLocaleString("en-US") : "—"} ·
-       ${r.paytype ? esc(payType(r.paytype).label) : "ยังไม่เลือกรูปแบบภาษี"} ·
-       จ่ายจริง ${net != null ? "฿" + net.toLocaleString("en-US",{minimumFractionDigits:2}) : "—"}<br>
+    `<div class="cmdwho">
+       <span class="nm">${esc(r.handle)}</span>
+       <div class="tags">
+         <span class="tag">${esc(proj)}</span>
+         <span class="tag">${esc(r.kind || "ยังไม่ระบุกลุ่ม")}</span>
+         <span class="tag job ${codeClass(r.code)}">${esc(codeLabel(r.code))}</span>
+         <span class="st ${stClass(r.status)}">${esc(ST_TH[r.status || ""] || "ยังไม่มีสถานะ")}</span>
+       </div>
+       <a class="go" href="https://www.tiktok.com/@${esc(r.handle)}"
+          target="_blank" rel="noopener noreferrer">TikTok ↗</a>
+       <div class="facts">
+         เรท <b>${r.rate != null ? "฿" + Number(r.rate).toLocaleString("en-US") : "—"}</b> ·
+         ${r.paytype ? esc(payType(r.paytype).label) : "ยังไม่เลือกรูปแบบภาษี"} ·
+         จ่ายจริง <b>${net != null ? "฿" + net.toLocaleString("en-US",{minimumFractionDigits:2}) : "—"}</b>
+         ${r.sku ? `<br>SKU ${esc(r.sku)}` : ""}
+       </div>
+     </div>
+     <div class="cmdmeta">
        ${gaps ? `<span style="color:var(--lo)">ยังมีช่องว่าง ${gaps} จุด</span> — ที่ไฮไลต์แดงคือยังไม่มีข้อมูล เติมในตารางแล้วเปิดใหม่จะอัปเดตให้เอง`
               : `<span style="color:var(--hi)">ข้อมูลครบทุกช่อง</span>`}
-       ${(nMine || nLink) ? `<br><span style="color:var(--accent)">เฉพาะคนนี้: ${
+       ${(nMine || nLink) ? ` · <span style="color:var(--accent)">เฉพาะคนนี้: ${
          [nMine ? `ข้อความ ${nMine} บล็อก` : "", nLink ? `ลิงก์ ${nLink} ช่อง` : ""]
          .filter(Boolean).join(" · ")}</span>` : ""}
+       <br>
        <button class="cmdbtn" id="cmdSetLinks">ลิงก์เฉพาะคนนี้</button>
        <button class="cmdbtn" id="cmdSetLinksAll">ลิงก์ที่ใช้ร่วมกัน</button>
        <button class="cmdbtn" id="cmdEditBtn">✎ แก้ข้อความ</button>
-     </div>` +
+     </div>
+     <div class="cmdlist">` +
     blocks.map((b, i) => `<div class="cmdblk${b.mine ? " edited" : ""}">
-      <header><span class="no">${String(i+1).padStart(2,"0")}</span>${esc(b.t)}
+      <header><span class="no">${i+1}</span>${esc(b.t.replace(/^\d+\.\s*/, ""))}
         <button data-i="${i}">คัดลอก</button></header>
-      <pre>${b.html}</pre></div>`).join("");
+      <pre>${b.html}</pre></div>`).join("") + `</div>`;
 
   document.querySelectorAll("#cmdBody .cmdblk header button").forEach(btn => btn.onclick = () => {
     navigator.clipboard.writeText(blocks[+btn.dataset.i].text).then(() => {
@@ -3957,7 +4085,7 @@ async function selectSheet(){
     $("#poolN").textContent = 0;
     $("#banner").innerHTML = `กลุ่ม <b>${esc(KIND)}</b> ยังไม่มี Google Sheet — ` +
       `<button class="export" id="fixSheets" style="padding:5px 12px;font-size:.8rem">` +
-      `คืนลิงก์ตั้งต้น (KOL + KOC)</button> หรือกด <b>⚙ ตั้งค่า</b> เพื่อเพิ่มเอง`;
+      `คืนลิงก์ตั้งต้น (KOL + KOC)</button> หรือเพิ่มเองที่ <b>Coordinator → ⚙ ตั้งค่า</b>`;
     $("#fixSheets").onclick = () => {
       SHEETS = DEFAULT_SHEETS.map(s => Object.assign({}, s));
       saveSheets(); renderKindTabs(); renderSheetSelect(); selectSheet();
