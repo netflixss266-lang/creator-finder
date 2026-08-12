@@ -2162,6 +2162,9 @@ let NEWROWS = [];
 let DIRTY = false;
 let SYNC_AT = 0;
 let SYNCING = false;
+// โปรเจกต์ที่สคริปต์หยุดไว้เพราะแถวจะหายเยอะผิดปกติ — รอคนยืนยันว่าตั้งใจลบจริง
+let NEED_FORCE = [];
+let FORCE_PROJ = new Set();
 
 function loadNewRows(){
   try { NEWROWS = JSON.parse(localStorage.getItem(LS_NEWROWS) || "[]") || []; } catch(e){}
@@ -2191,6 +2194,7 @@ async function syncCoord(manual){
   }
   SYNCING = true; updateSyncBar();
   const failed = [];
+  NEED_FORCE = [];
   for (const p of PROJECTS){
     const rows = COORD[p] || [];
     // โปรเจกต์ที่ว่างต้องส่งขึ้นไปด้วย ถ้าเมื่อตอนโหลดมันเคยมีคน = มีการลบเกิดขึ้น
@@ -2209,16 +2213,22 @@ async function syncCoord(manual){
       const res = await fetch(HOOK.url, { method:"POST",
         headers:{ "Content-Type":"text/plain;charset=utf-8" },
         body: JSON.stringify({ token: HOOK.token, action:"coordWrite",
-                               project: p, rows: payload }) });
+                               project: p, rows: payload,
+                               force: FORCE_PROJ.has(p) }) });
       const said = await res.json().catch(() => null);
-      if (said && said.ok === false) failed.push(`${p}: ${said.error}`);
+      if (said && said.ok === false){
+        failed.push(`${p}: ${said.error}`);
+        // สคริปต์หยุดไว้เพราะแถวหายเยอะผิดปกติ — ต้องให้คนยืนยันก่อน ไม่ใช่ retry เอง
+        if (said.needForce) NEED_FORCE.push({ proj: p, had: said.had, now: said.now });
+      }
     } catch(e){ failed.push(`${p}: ${e.message}`); }
   }
+  FORCE_PROJ.clear();
   SYNCING = false;
   SYNC_AT = Date.now();
   if (!failed.length) clearDirty();
   updateSyncBar(failed);
-  if (manual)
+  if (manual && !NEED_FORCE.length)
     alert(failed.length ? "ซิงก์ไม่ครบ:\n" + failed.join("\n")
                         : "ซิงก์ขึ้นชีตเรียบร้อย");
 }
@@ -2235,6 +2245,26 @@ function updateSyncBar(failed){
   if (!el) return;
   const when = SYNC_AT ? new Date(SYNC_AT).toLocaleTimeString("th-TH", {hour:"2-digit",minute:"2-digit"}) : "";
   if (SYNCING){ el.className = "syncbar busy"; el.textContent = "กำลังซิงก์ขึ้นชีต..."; return; }
+  // สคริปต์กันไว้ว่าแถวจะหายเยอะผิดปกติ — ให้คนดูตัวเลขก่อนแล้วค่อยตัดสินใจ
+  // เคสที่มันกันจริงๆ คือเว็บโหลดข้อมูลมาไม่ครบแล้วเผลอซิงก์ ของในชีตจะหายตาม
+  if (NEED_FORCE.length){
+    el.className = "syncbar bad";
+    el.innerHTML = `<b>ยังไม่ได้เขียนทับ</b> — ` + NEED_FORCE.map(f =>
+      `${esc(f.proj)}: ในชีตมี <b>${f.had}</b> คน แต่จะเขียนทับเหลือ <b>${f.now}</b> คน`).join(" · ") +
+      ` <button class="export" id="forceSync" style="margin-left:8px;padding:4px 12px">ยืนยันว่าลบจริง</button>
+        <button class="export ghost" id="cancelForce" style="padding:4px 12px">โหลดจากชีตใหม่</button>`;
+    $("#forceSync").onclick = () => {
+      if (!confirm("ยืนยันเขียนทับ? คนที่หายไปจะถูกลบออกจากชีตจริงๆ")) return;
+      NEED_FORCE.forEach(f => FORCE_PROJ.add(f.proj));
+      NEED_FORCE = [];
+      syncCoord(true);
+    };
+    $("#cancelForce").onclick = () => {
+      NEED_FORCE = [];
+      $("#coordReload").click();
+    };
+    return;
+  }
   if (failed && failed.length){
     el.className = "syncbar bad";
     el.textContent = "ซิงก์ไม่สำเร็จ: " + failed[0]; return;
