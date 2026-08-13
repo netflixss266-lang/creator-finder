@@ -1204,6 +1204,18 @@ tr.subrow td.w-status select{width:230px}
       <code>tangtangnpc ตะกร้า https://… hashtag: #ad</code><br>
       <span style="color:var(--dim)">ฟีดแบคยาวหลายบรรทัดให้กด <b>✉</b> ท้ายชื่อ แล้วกด
       <b>✎ Feedback</b> — มี 3 ช่องแยกตาม Draft 1/2/3</span><br>
+
+      <div style="margin-top:9px"><b>เอกสารรายคน</b> — พูดชื่อเอกสารแล้ววางลิงก์ ไม่ต้องติดกัน<br>
+      <code>ฝากใส่ Agreement ให้ tangtangnpc https://…</code><br>
+      <span style="color:var(--dim)">${["ตะกร้า","SG","Shooting Guide","Agreement/สัญญา",
+        "ลิงก์จ่ายเงิน","ฟอร์ม","เอกสารร่วมงาน","สคริป","Timeline","Hashtag"].join(" · ")}
+      — ใช้ใน Command ได้ด้วย เช่น {{sg}} {{agreement}}</span></div>
+
+      <div style="margin-top:9px"><b>บวก/ลบ · ล้าง · ก๊อป · ทุกคน</b><br>
+      <code>tangtangnpc เพิ่มเรท 500</code> — บวกจากเรทเดิม ไม่ใช่ตั้งเป็น 500<br>
+      <code>tangtangnpc ลบ SG</code>
+      <code>tangtangnpc ใช้เรทเดียวกับ onfireboyth</code><br>
+      <code>ทุกคนเป็น Already Posted</code> — ทุกแถวในโปรเจกต์ที่เปิดอยู่</div>
       <span style="color:var(--dim)">ตั้งได้: ตะกร้า · hashtag: · ไทม์ไลน์: · ฟอร์ม · สคริป · เอกสาร
       — ใช้กับกลุ่มรายชื่อได้เหมือนกัน · เก็บในเครื่องนี้เท่านั้น ไม่ขึ้นชีต</span></div>
 
@@ -3561,14 +3573,28 @@ Hashtag:📱
 
 // ลิงก์ที่ใช้ซ้ำทุกคน เก็บในเครื่อง ไม่ฝังลงหน้าเว็บสาธารณะ
 const LS_CMDLINKS = "cf_cmdlinks_v1";
+// ─── เอกสาร/ลิงก์รายคน ───
+// นิยามที่เดียว แล้วให้ทุกส่วนดึงไปใช้: ตัวอ่านคำสั่ง · ตัวแปรใน Command · ช่องแก้ลิงก์ · ป้ายไทย
+// เพิ่มเอกสารชนิดใหม่ = เติมบรรทัดเดียวตรงนี้ ไม่ต้องไล่แก้ 4 ที่
+// re = คำที่ทีมเรียกสิ่งนี้จริงๆ ทั้งไทยและอังกฤษ
+const DOCS = [
+  { k:"cart",      th:"ลิงก์ตะกร้า",       re:"ลิงก์ตะกร้า|ตะกร้า|shop\\s*link|cart" },
+  { k:"sg",        th:"SG",                re:"ลิงก์\\s*sg|sg" },
+  { k:"guide",     th:"Shooting Guide",    re:"shooting\\s*guide(?:line)?|คู่มือถ่าย|ไกด์ถ่าย" },
+  { k:"agreement", th:"Agreement / สัญญา", re:"creator\\s*agreement|agreement|สัญญาร่วมงาน|สัญญา" },
+  { k:"payment",   th:"ลิงก์จ่ายเงิน",     re:"payment\\s*link|payment|ลิงก์ชำระเงิน|ลิงก์จ่ายเงิน|ลิงก์โอนเงิน|ลิงก์จ่ายค่าตัว" },
+  { k:"form",      th:"ฟอร์มเอกสาร",       re:"google\\s*form|แบบฟอร์ม|ลิงก์ฟอร์ม|ฟอร์ม|form" },
+  { k:"docs",      th:"เอกสารร่วมงาน",     re:"collab(?:oration)?\\s*document|เอกสารร่วมงาน|ลิงก์เอกสารร่วมงาน|ไฟล์งาน|เอกสาร|docs?" },
+  { k:"script",    th:"ลิงก์สคริป",        re:"สคริป[ต]?|script" },
+  { k:"timeline",  th:"Timeline",          re:"ไทม์ไลน์|timeline",  text:true },
+  { k:"hashtag",   th:"Hashtag",           re:"แฮชแท็ก|hashtags?|แท็ก|tags?", tags:true },
+];
+const DOC_BY_KEY = Object.fromEntries(DOCS.map(d => [d.k, d]));
+
 const CMD_LINK_FIELDS = [
   ["docsKOL", "เอกสารสำคัญร่วมงาน — KOL"],
   ["docsKOC", "เอกสารสำคัญร่วมงาน — KOC"],
-  ["form", "ฟอร์มเอกสารหัก ณ ที่จ่าย (Lark)"],
-  ["cart", "ลิงก์ตะกร้า"],
-  ["hashtag", "Hashtag"],
-  ["timeline", "Timeline"],
-];
+].concat(DOCS.map(d => [d.k, d.th]));
 // เอกสารคนละใบระหว่าง KOL กับ KOC — เลือกตามช่องกลุ่มของแถวนั้น
 const CMD_DEFAULT_LINKS = {
   docsKOL: "https://drive.google.com/file/d/1wxrLaSr5vZB6BLrglanTvCBYSPIsu0Tv/view",
@@ -3627,21 +3653,25 @@ function cmdValues(r){
     sku: r.sku || "", rate: r.rate != null ? Number(r.rate).toLocaleString("en-US") : "",
     paytype: r.paytype ? payType(r.paytype).label.replace(/\s*\(.*\)$/, "") : "",
     net: net != null ? net.toLocaleString("en-US", {minimumFractionDigits:2}) : "",
-    brief: r.brief || "", script: own.script || r.script || "",
+    brief: r.brief || "",
     feedback1: fb(1), feedback2: fb(2), feedback3: fb(3),
     feedback: fb(1),                       // ชื่อเดิม เผื่อมีคนแก้ต้นแบบไว้เองแล้วยังใช้อยู่
+    // เอกสารทุกชนิดใน DOCS ใช้เป็นตัวแปรใน Command ได้หมด {{sg}} {{agreement}} ฯลฯ
+    ...Object.fromEntries(DOCS.map(d => [d.k, L(d.k)])),
+    script: own.script || r.script || L("script"),
+    // เอกสารร่วมงานมีค่าตั้งต้นแยก KOL/KOC ถ้าคนนี้ไม่ได้ตั้งของตัวเอง
     docs: own.docs != null ? own.docs
         : (((r.kind || "") === "KOC" ? CMDLINKS.docsKOC : CMDLINKS.docsKOL) || ""),
-    form: L("form"), cart: L("cart"), hashtag: L("hashtag"), timeline: L("timeline"),
   };
 }
 
-const CMD_GAP = { sku:"ยังไม่มี SKU", rate:"ยังไม่มีเรท", paytype:"ยังไม่เลือกรูปแบบภาษี",
-  net:"คิดไม่ได้ ต้องมีเรท+รูปแบบภาษี", brief:"ยังไม่มีลิงก์บรีฟ", script:"ยังไม่มีลิงก์สคริป",
-  feedback:"ยังไม่มีฟีดแบค", feedback1:"ยังไม่มีฟีดแบค Draft 1",
-  feedback2:"ยังไม่มีฟีดแบค Draft 2", feedback3:"ยังไม่มีฟีดแบค Draft 3",
-  docs:"ยังไม่มีลิงก์เอกสารของกลุ่มนี้", form:"ตั้งลิงก์ฟอร์มในตั้งค่า",
-  cart:"ตั้งลิงก์ตะกร้าในตั้งค่า", hashtag:"ตั้ง hashtag ในตั้งค่า", timeline:"ใส่ไทม์ไลน์เอง" };
+const CMD_GAP = Object.assign(
+  Object.fromEntries(DOCS.map(d => [d.k, "ยังไม่มี" + d.th])),
+  { sku:"ยังไม่มี SKU", rate:"ยังไม่มีเรท", paytype:"ยังไม่เลือกรูปแบบภาษี",
+    net:"คิดไม่ได้ ต้องมีเรท+รูปแบบภาษี", brief:"ยังไม่มีลิงก์บรีฟ",
+    feedback:"ยังไม่มีฟีดแบค", feedback1:"ยังไม่มีฟีดแบค Draft 1",
+    feedback2:"ยังไม่มีฟีดแบค Draft 2", feedback3:"ยังไม่มีฟีดแบค Draft 3",
+    docs:"ยังไม่มีลิงก์เอกสารของกลุ่มนี้" });
 
 // ─── ฟีดแบครายคน รายดราฟต์ ───
 const FB_ROUNDS = [1, 2, 3];
@@ -5039,7 +5069,8 @@ $("#ncBulkParse").onclick = () => {
 // ตั้งใจให้แคบและเดาน้อย: อ่านไม่ออกคือบอกว่าอ่านไม่ออก ไม่เดาแล้วแก้ผิดตัว
 // คำเรียกหลายแบบต่อหนึ่งช่อง และเครื่องหมายคั่นไม่บังคับ — ดู SEP/VERB ข้างบน
 const QO_FIELDS = [
-  { f:"rate",    re:/(?:เรท|ยอด(?:การ)?ชำระ|ค่าตัว|ค่าจ้าง|ค่าคลิป|จ่าย|rate|budget)\D{0,12}?([\d,]+)/i, num:true },
+  // คำอังกฤษต้องมีขอบคำ ไม่งั้น fee ไปโดนใน "feedback 1" แล้วอ่านเป็นเรท 1
+  { f:"rate",    re:/(?:เรท|ยอด(?:การ)?ชำระ|ค่าตัว|ค่าจ้าง|ค่าคลิป|ราคา|จ่าย|(?<![a-z])(?:rate|fee|budget)(?![a-z]))\D{0,12}?([\d,]+)/i, num:true },
   { f:"videos",  re:/(\d+)\s*(?:คลิป|วิดีโอ|วีดีโอ|ตัว|clips?|videos?)/i, num:true },
   { f:"note",    re:/(?:โน้ต|หมายเหตุ|note|remark)\s*[:：=]?\s*(.+?)$/i },
   { f:"postdate",re:/(?:วันโพสต์|โพสต์วันที่|ลงวันที่|ลงคลิปวันที่|post(?:ed)?\s*date)\s*[:：=]?\s*(.+?)$/i },
@@ -5116,6 +5147,51 @@ function readNames(text){
 
 // ── เปลี่ยนอะไร ── อ่านคำสั่งล้วนๆ ไม่ต้องมีชื่อคนในข้อความ
 // แยกออกมาเพื่อให้คำสั่งอยู่คนละบรรทัดกับรายชื่อได้ (วางรายชื่อยาวๆ แล้วสั่งทีเดียว)
+// ── เรทแบบบวก/ลบจากของเดิม ──
+// "เพิ่มเรท 500" ไม่ใช่ "ตั้งเรท 500" — เดิมอ่านเป็นตั้งค่า ทำให้เรท 10,000 กลายเป็น 500 เงียบๆ
+// คิดจริงตอนรู้ว่าเป็นแถวไหนแล้ว (ในหน้าตรวจจะเห็นตัวเลขสุดท้ายเลย)
+const RATE_WORD = "เรท|ค่าตัว|ค่าจ้าง|ราคา|(?<![a-z])(?:fee|rate)(?![a-z])";
+const RATE_DELTA_RE = [
+  [ 1, new RegExp("(?:ขอเพิ่ม|เพิ่ม|บวก|ขึ้น|up|\\+)\\s*(?:" + RATE_WORD + ")?\\D{0,4}?([\\d,]+)", "i")],
+  [-1, new RegExp("(?:ขอลด|ลด|หัก(?!\\s*ณ)|ลง|down|-)\\s*(?:" + RATE_WORD + ")?\\D{0,4}?([\\d,]+)", "i")],
+];
+function readRateDelta(text){
+  // ต้องพูดถึงเรทจริงๆ ไม่งั้น "เพิ่ม 2 คลิป" จะโดนอ่านเป็นเรท
+  // ยกเว้น "ขอเพิ่ม 500" ที่ไม่มีหน่วย — เลขหลักร้อยขึ้นไปไม่มีทางเป็นจำนวนคลิป
+  const bare = text.match(/(?:ขอ)?(เพิ่ม|ลด)\s*([\d,]+)\s*$/i);
+  if (bare && !/คลิป|วิดีโอ|วีดีโอ|ตัว|clips?|videos?/i.test(text)){
+    const n = Number(bare[2].replace(/,/g, ""));
+    if (isFinite(n) && n >= 100) return (bare[1] === "ลด" ? -1 : 1) * n;
+  }
+  if (!new RegExp(RATE_WORD, "i").test(text)) return null;
+  for (const [sign, re] of RATE_DELTA_RE){
+    const m = text.match(re);
+    if (m && m[1]){
+      const n = Number(m[1].replace(/,/g, ""));
+      if (isFinite(n) && n > 0) return sign * n;
+    }
+  }
+  return null;
+}
+
+// ── ก๊อปค่าจากครีเอเตอร์อีกคน ── "ใช้เรทเดียวกับ X" / "เอา SG ของ X"
+const COPY_RE = /(?:ใช้|เอา|ก๊อป|copy)\s*(.{0,24}?)\s*(?:เดียวกับ|ของ|จาก|same as|like)\s*(\S+)/i;
+function readCopy(text){
+  const m = text.match(COPY_RE);
+  if (!m) return null;
+  const what = m[1].replace(/ลิงก์|เหมือน/gi, "").trim();
+  const src = normId(m[2]);
+  if (!src) return null;
+  let field = null, doc = null;
+  if (/เรท|ค่าตัว|ราคา|rate/i.test(what)) field = "rate";
+  else if (/sku/i.test(what)) field = "sku";
+  else if (/สถานะ|status/i.test(what)) field = "status";
+  else if (/ภาษี|paytype/i.test(what)) field = "paytype";
+  else { const d = DOCS.find(x => new RegExp("^(?:" + x.re + ")$", "i").test(what)); if (d) doc = d.k; }
+  if (!field && !doc) return null;
+  return { src, field, doc };
+}
+
 function readChanges(text){
   const changes = {};
   // ขั้นที่ตรงยาวที่สุดชนะ กัน "Waiting Draft 1" โดน "Waiting Draft" ตัวสั้นกว่าแย่งไป
@@ -5145,22 +5221,41 @@ function readChanges(text){
 // `command 3: ข้อความ` = ทับข้อความบล็อก 3 · `ตะกร้า <url>` = ทับลิงก์เฉพาะคนนี้
 // เครื่องหมายคั่นเป็นตัวเลือก ไม่ใช่ข้อบังคับ — คนพิมพ์ "hashtag #a #b" บ่อยกว่า "hashtag: #a #b"
 // คำนำหน้าอย่าง เพิ่ม/ใส่/แก้/เปลี่ยน/ตั้ง กลืนทิ้งได้หมด ไม่ต้องแยกท่า
-const SEP = "\\s*(?:[:：=]|คือ|เป็น)?\\s*";
-const VERB = "(?:เพิ่ม|ใส่|แก้|เปลี่ยน|ตั้ง|update|set|add)?\\s*";
+const SEP = "\\s*(?:[:：=]|คือ|เป็น|ใหม่)?\\s*";
+// คำนำหน้าและคำสุภาพที่คนพิมพ์จริง — "ฝากใส่ SG ให้น้อง X หน่อย" ต้องอ่านได้เท่ากับ "SG"
+const VERB = "(?:ฝาก|ช่วย|ขอ|รบกวน|เอา)?\\s*(?:เพิ่ม|ใส่|แก้|เปลี่ยน|ตั้ง|แปะ|update|set|add|put)?\\s*" +
+             "(?:ลิงก์|link)?\\s*";
+const POLITE = /\b(?:หน่อย|ให้|ด้วย|นะ|ครับ|คะ|ค่ะ|จ้า|น้อง|พี่|อันนี้|นี้|ที)\b/gi;
 const rx = (word, val) => new RegExp(VERB + "(?:" + word + ")" + SEP + "(" + val + ")", "i");
 
-const CMD_LINK_RE = [
-  ["cart",     rx("ลิงก์ตะกร้า|ตะกร้า|cart", "https?:\\/\\/\\S+")],
-  ["form",     rx("ฟอร์ม|form",              "https?:\\/\\/\\S+")],
-  ["script",   rx("สคริป[ต]?|script",        "https?:\\/\\/\\S+")],
-  ["docs",     rx("เอกสาร|docs?",            "https?:\\/\\/\\S+")],
-  ["hashtag",  rx("แฮชแท็ก|hashtags?|แท็ก|tags?", "(?:#\\S+[\\s,]*)+")],
-  // ต้องปิดท้ายด้วย $ ไม่งั้น .+? แบบขี้เกียจจะคว้ามาตัวอักษรเดียวแล้วจบ
-  ["timeline", new RegExp(VERB + "(?:ไทม์ไลน์|timeline)" + SEP + "(.+?)\\s*$", "i")],
+// สร้างจาก DOCS ทั้งหมด — เอกสารชนิดใหม่ได้ตัวอ่านฟรีทันที
+// เรียงจากคำเฉพาะไปคำกว้าง ("ลิงก์ตะกร้า" ต้องชนะ "ตะกร้า", "เอกสารร่วมงาน" ชนะ "เอกสาร")
+const CMD_LINK_RE = DOCS.map(d => [d.k,
+  d.tags ? rx(d.re, "(?:#\\S+[\\s,]*)+")
+  // ปิดท้ายด้วย $ ไม่งั้น .+? แบบขี้เกียจจะคว้ามาตัวอักษรเดียวแล้วจบ
+  : d.text ? new RegExp(VERB + "(?:" + d.re + ")" + SEP + "(.+?)\\s*$", "i")
+  : rx(d.re, "https?:\\/\\/\\S+")]);
+
+// ล้างค่าออกจากช่อง — "ลบ SG" "เคลียร์ตะกร้า" "ล้างเรท"
+// ไม่ผูกกับต้นบรรทัด เพราะปกติมีชื่อคนนำหน้าอยู่แล้ว ("cenakims ลบ SG")
+// แต่ต้องติดกับชื่อช่อง ไม่งั้น "ลบ" ลอยๆ จะไปกวนคำสั่งลบครีเอเตอร์
+const CLEAR_VERB = "(?:ลบ|ล้าง|เคลียร์|เอาออก|clear|remove|reset|รีเซ็ต)";
+const clearRe = word => new RegExp(CLEAR_VERB + "\\s*(?:ลิงก์)?\\s*(?:" + word + ")\\s*$", "i");
+const CLEAR_DOC_RE = DOCS.map(d => [d.k, clearRe(d.re)]);
+const CLEAR_FIELD_RE = [
+  ["rate",    clearRe("เรท|ค่าตัว|ราคา|rate")],
+  ["sku",     clearRe("sku")],
+  ["note",    clearRe("โน้ต|หมายเหตุ|note")],
+  ["postdate",clearRe("วันโพสต์|postdate")],
+  ["brief",   clearRe("บรีฟ|brief")],
+  ["status",  clearRe("สถานะ|status")],
 ];
 
 function readCmdOps(text){
-  const ops = { blocks:{}, links:{} };
+  const ops = { blocks:{}, links:{}, clear:[] };
+  // "ลบ SG" / "ล้างตะกร้า" — ต้องเช็คก่อนตัวอ่านปกติ ไม่งั้น "ลบ" จะถูกมองว่าไม่มีความหมาย
+  for (const [k, re] of CLEAR_DOC_RE) if (re.test(text)) ops.clear.push(k);
+  if (ops.clear.length) return ops;
   // ฟีดแบคสั้นๆ สั่งจากช่องนี้ได้ ยาวๆ ให้ไปพิมพ์ในกล่อง ✎ Feedback
   const mf = text.match(/(?:feedback|ฟีดแบค|ฟีดแบก)\s*(?:draft\s*)?([123])\s*[:：=]?\s*([\s\S]+)$/i);
   if (mf && mf[2].trim()) ops.links[fbKey(+mf[1])] = mf[2].trim();
@@ -5173,6 +5268,22 @@ function readCmdOps(text){
   for (const [k, re] of CMD_LINK_RE){
     const m = text.match(re);
     if (m && m[1] && m[1].trim()) ops.links[k] = m[1].trim();
+  }
+
+  // ── ชื่อเอกสารกับลิงก์ไม่ได้อยู่ติดกันเสมอ ──
+  // "ฝากแปะ SG ให้ tangkwaqs https://..." — ระหว่างคำว่า SG กับลิงก์มีทั้งคำสุภาพและชื่อคน
+  // ถ้ายังไม่มีใครจับคู่ได้ แต่บรรทัดนี้เอ่ยชื่อเอกสารไว้และมีลิงก์ว่างอยู่ ก็จับคู่ให้
+  if (!Object.keys(ops.links).some(k => DOC_BY_KEY[k] && !DOC_BY_KEY[k].tags && !DOC_BY_KEY[k].text)){
+    const free = (text.match(/https?:\/\/\S+/g) || []).filter(u => !/tiktok\.com/i.test(u));
+    if (free.length === 1){
+      // คำที่เฉพาะเจาะจงกว่าชนะ วัดจากความยาวคำที่แมตช์จริง
+      let best = null;
+      DOCS.filter(d => !d.tags && !d.text).forEach(d => {
+        const mm = text.match(new RegExp("(?:" + d.re + ")", "i"));
+        if (mm && (!best || mm[0].length > best.len)) best = { k: d.k, len: mm[0].length };
+      });
+      if (best) ops.links[best.k] = free[0];
+    }
   }
 
   // ── เดาจากรูปร่างของสิ่งที่พิมพ์ เมื่อไม่มีคำนำหน้า ──
@@ -5194,10 +5305,12 @@ function readCmdOps(text){
   });
   return ops;
 }
-const cmdOpsEmpty = o => !Object.keys(o.blocks).length && !Object.keys(o.links).length;
+const cmdOpsEmpty = o => !Object.keys(o.blocks).length && !Object.keys(o.links).length
+                      && !(o.clear || []).length;
 
 function parseQuickLine(line, extraNames){
   const bad = why => [{ line, ok:false, why, changes:{} }];
+  const idxAll = handleIndex();
 
   const names = (extraNames && extraNames.length) ? extraNames : readNames(line);
   if (!names.length) return bad("ไม่เจอชื่อครีเอเตอร์ที่มีอยู่จริงในบรรทัดนี้");
@@ -5218,13 +5331,24 @@ function parseQuickLine(line, extraNames){
 
   const changes = readChanges(line);
   const cmdOps = readCmdOps(line);
+  const delta = readRateDelta(line);
+  const copy = readCopy(line);
+  // บวก/ลบเรท = ตั้งค่าใหม่ไม่ได้ ต้องรอรู้ว่าเป็นแถวไหนก่อน ลบค่าที่อ่านผิดออกไปก่อน
+  if (delta != null) delete changes.rate;
+  // ช่องล้างค่าของแถว (ไม่ใช่ของ Command)
+  const clearFields = CLEAR_FIELD_RE.filter(([, re]) => re.test(line)).map(([f]) => f);
   if (cmdOps.badBlock) return bad(`ไม่มี Command บล็อกที่ ${cmdOps.badBlock} (มี 1–${CMD_BLOCKS.length})`);
   // `command 3: ...` กินท้ายบรรทัดทั้งหมด อย่าให้ไปโดนอ่านเป็นโน้ต/วันโพสต์ซ้ำ
   if (Object.keys(cmdOps.blocks).length){ delete changes.note; delete changes.postdate; delete changes.deadline; }
 
-  if (!Object.keys(changes).length && !dest && cmdOpsEmpty(cmdOps)){
+  if (!Object.keys(changes).length && !dest && cmdOpsEmpty(cmdOps)
+      && delta == null && !copy && !clearFields.length){
     // บอกด้วยว่าเหลือคำอะไรที่อ่านไม่ออก จะได้รู้ว่าต้องพิมพ์ใหม่ตรงไหน
     // ไม่ใช่แค่ "อ่านไม่ออก" แล้วปล่อยให้เดาเอง
+    // มีลิงก์แต่ไม่ได้บอกว่าเป็นเอกสารอะไร — เป็นเคสที่เจอบ่อย บอกให้ตรงจุดดีกว่าบอกรวมๆ
+    if (/https?:\/\//i.test(line))
+      return bad(`มีลิงก์อยู่ แต่ไม่ได้บอกว่าเป็นเอกสารอะไร — ระบุด้วย เช่น ` +
+        DOCS.filter(d => !d.tags && !d.text).slice(0, 5).map(d => d.th).join(" · "));
     let left = line;
     names.forEach(n => { left = left.replace(new RegExp(esc4re(n.h), "gi"), " "); });
     findProjects(line).forEach(p => { left = left.replace(new RegExp(esc4re(p.proj), "gi"), " "); });
@@ -5234,9 +5358,14 @@ function parseQuickLine(line, extraNames){
       ` · กด "พิมพ์อะไรได้บ้าง" ดูคำที่ใช้ได้`);
   }
 
+  // คนที่ถูกก๊อปค่ามาเป็น "ต้นทาง" ไม่ใช่คนที่จะโดนแก้ — ต้องคัดออกจากรายชื่อเป้าหมาย
+  const targets = copy ? names.filter(n => n.h !== copy.src) : names;
+  if (copy && !targets.length)
+    return bad(`บอกให้ก๊อปค่าจาก ${copy.src} แต่ไม่ได้บอกว่าจะเอาไปให้ใคร`);
+
   // ── จับคู่คนกับโปรเจกต์ ──
   const out = [];
-  for (const n of names){
+  for (const n of targets){
     let hit = n.entries;
     if (filter) hit = hit.filter(e => e.proj === filter);
     if (!hit.length)
@@ -5250,13 +5379,63 @@ function parseQuickLine(line, extraNames){
       { out.push({ line, ok:false, changes:{}, why:`${n.h} อยู่ใน ${dest} อยู่แล้ว` }); continue; }
     const ch = Object.assign({}, changes);
     if (ch.kind === (row.kind || "").toUpperCase()) delete ch.kind;
+
+    // บวก/ลบจากเรทเดิมของแถวนี้ — ไม่มีเรทเดิมก็บวกไม่ได้ บอกไปตรงๆ
+    if (delta != null){
+      const base = Number(row.rate);
+      if (!isFinite(base) || base <= 0){
+        out.push({ line, ok:false, changes:{},
+          why:`${n.h} ยังไม่มีเรทเดิม เลย${delta > 0 ? "บวก" : "ลบ"}ให้ไม่ได้ — ใส่เรทเต็มจำนวนแทน` });
+        continue;
+      }
+      const next = base + delta;
+      if (next <= 0){
+        out.push({ line, ok:false, changes:{},
+          why:`ลดแล้วเรทของ ${n.h} จะเหลือ ${next.toLocaleString("en-US")} ซึ่งเป็นไปไม่ได้` });
+        continue;
+      }
+      ch.rate = next;
+      ch.rateFrom = base;                      // เก็บไว้โชว์ในหน้าตรวจ ไม่ได้เขียนลงแถว
+    }
+
+    // ก๊อปค่าจากอีกคน — ต้องหาเจอและต้องมีค่าจริง
+    let copyCmd = null;
+    if (copy){
+      const hits = (idxAll.get(copy.src) || []);
+      if (!hits.length){
+        out.push({ line, ok:false, changes:{}, why:`ไม่เจอ ${copy.src} ที่จะเอาค่ามา` }); continue;
+      }
+      const from = hits[0].row;
+      if (copy.field){
+        const v = from[copy.field];
+        if (v == null || v === ""){
+          out.push({ line, ok:false, changes:{},
+            why:`${copy.src} ยังไม่มี${QO_LABEL[copy.field] || copy.field} ให้ก๊อป` }); continue;
+        }
+        ch[copy.field] = v;
+      } else {
+        const v = (cmdOwnRead(hits[0].proj, from.handle).links || {})[copy.doc];
+        if (!v){
+          out.push({ line, ok:false, changes:{},
+            why:`${copy.src} ยังไม่มี${DOC_BY_KEY[copy.doc].th} ให้ก๊อป` }); continue;
+        }
+        copyCmd = { blocks:{}, links:{ [copy.doc]: v } };
+      }
+    }
+
+    clearFields.forEach(f => { ch[f] = (f === "rate" ? null : ""); });
+
+    const ops = copyCmd
+      ? { blocks:{}, links: Object.assign({}, cmdOps.links, copyCmd.links), clear: cmdOps.clear }
+      : cmdOps;
+
     // ทุกอย่างที่สั่งตรงกับของเดิมอยู่แล้ว = ไม่มีอะไรให้ทำ บอกไปตรงๆ ดีกว่าขึ้นว่าสำเร็จ
-    if (!Object.keys(ch).length && !dest && cmdOpsEmpty(cmdOps))
+    if (!Object.keys(ch).length && !dest && cmdOpsEmpty(ops))
       { out.push({ line, ok:false, changes:{},
         why:`${n.h} เป็นแบบนั้นอยู่แล้ว ไม่มีอะไรเปลี่ยน` }); continue; }
     if ("rate" in ch) ch.net3 = payOf(ch.rate, ch.paytype ?? row.paytype);
     out.push({ line, ok:true, id:n.h, proj, row, changes:ch, moveTo: dest || undefined,
-               cmd: cmdOpsEmpty(cmdOps) ? null : cmdOps });
+               cmd: cmdOpsEmpty(ops) ? null : ops });
   }
   return out;
 }
@@ -5279,6 +5458,14 @@ function parseCmdText(text){
       let left = pendingLines.join(" ");
       pending.forEach(n => { left = left.replace(new RegExp(esc4re(n.h), "gi"), " "); });
       const words = left.split(/[\s,·|]+/).filter(w => w.length > 1).slice(0, 6);
+      // มีลิงก์แต่ไม่บอกว่าเอกสารอะไร — เจอบ่อยพอที่จะบอกให้ตรงจุด
+      if (/https?:\/\//i.test(left)){
+        out.push({ line: pendingLines.join(" · "), ok:false, changes:{},
+          why:`มีลิงก์อยู่ แต่ไม่ได้บอกว่าเป็นเอกสารอะไร — ระบุด้วย เช่น ` +
+            DOCS.filter(d => !d.tags && !d.text).slice(0, 5).map(d => d.th).join(" · ") });
+        pending = []; pendingLines = [];
+        return;
+      }
       out.push({ line: pendingLines.join(" · "), ok:false, changes:{},
         why: words.length
           ? `อ่านไม่ออกว่าจะให้ ${pending.map(n => n.h).join(", ")} เปลี่ยนอะไร` +
@@ -5292,6 +5479,25 @@ function parseCmdText(text){
     const line = raw.trim();
     if (!line){ flushUnused(); continue; }
 
+    // "ทุกคน..." = ใช้กับทุกแถวในโปรเจกต์ที่พูดถึง (ไม่บอก = โปรเจกต์ที่เปิดอยู่)
+    // เป็นคำสั่งเดียวที่กระทบคนจำนวนมากในทีเดียว หน้าตรวจจะขึ้นทีละคนให้เห็นครบก่อน
+    // \b ใช้กับภาษาไทยไม่ได้ (มันดูจาก \w ซึ่งเป็น ASCII) ต้องเทียบตรงๆ
+    if (/ทุกคน|ทั้งหมด/.test(line) && !readNames(line).length ||
+        /^\s*(?:everyone|all)\b/i.test(line)){
+      flushUnused();
+      const p = (findProjects(line)[0] || {}).proj || PROJ;
+      const rows = COORD[p] || [];
+      if (!rows.length){ out.push({ line, ok:false, changes:{}, why:`${p} ยังไม่มีใครเลย` }); continue; }
+      const all = rows.map(r => ({ h: normId(r.handle), entries:[{ proj:p, row:r }] }));
+      const got = parseQuickLine(line, all);
+      // ถ้าทุกคนถูกปฏิเสธด้วยเหตุผลเดียวกัน ยุบเหลือบรรทัดเดียว ไม่ต้องขึ้น 26 บรรทัดเหมือนกันหมด
+      const bad1 = got.filter(g => !g.ok);
+      if (bad1.length === got.length && new Set(bad1.map(g => g.why)).size === 1)
+        out.push({ line, ok:false, changes:{}, why: bad1[0].why });
+      else out.push(...got);
+      continue;
+    }
+
     const admin = parseAdminLine(line);
     if (admin){ flushUnused(); out.push(...admin); continue; }
 
@@ -5301,8 +5507,11 @@ function parseCmdText(text){
     const ops = readCmdOps(line);
     // badBlock ก็นับเป็นคำสั่ง จะได้ตกไปที่ parseQuickLine แล้วบอกว่าเลขบล็อกผิด
     // ไม่ใช่ไปเข้าใจผิดว่าเป็นบรรทัดชื่อล้วน
+    // ทุกอย่างที่ parseQuickLine อ่านได้ ต้องนับตรงนี้ให้ครบ ไม่งั้นบรรทัดจะถูกมองว่ามีแต่ชื่อ
     const hasOrder = Object.keys(readChanges(line)).length > 0 ||
                      !cmdOpsEmpty(ops) || !!ops.badBlock ||
+                     readRateDelta(line) != null || !!readCopy(line) ||
+                     CLEAR_FIELD_RE.some(([, re]) => re.test(line)) ||
                      /ย้าย|move|->|→/i.test(line);
 
     // ชื่อล้วน ไม่มีคำสั่ง → พักไว้ก่อน รอบรรทัดคำสั่ง
@@ -5456,16 +5665,17 @@ function parseAdminLine(line){
   return null;
 }
 
-const CMD_LINK_TH = { cart:"ลิงก์ตะกร้า", hashtag:"Hashtag", timeline:"Timeline",
-                      form:"ฟอร์มเอกสาร", script:"ลิงก์สคริป", docs:"เอกสารร่วมงาน",
-                      feedback1:"Feedback Draft 1", feedback2:"Feedback Draft 2",
-                      feedback3:"Feedback Draft 3" };
+const CMD_LINK_TH = Object.assign(
+  Object.fromEntries(DOCS.map(d => [d.k, d.th])),
+  { feedback1:"Feedback Draft 1", feedback2:"Feedback Draft 2", feedback3:"Feedback Draft 3" });
 // สรุปว่าคำสั่งนี้ไปแตะ Command ของคนนี้ตรงไหนบ้าง
 function cmdOpsText(o){
   return Object.keys(o.blocks).map(i =>
       `Command บล็อก <b>${Number(i)+1}</b> (${esc(CMD_BLOCKS[i].t.replace(/^\d+\.\s*/, ""))})`)
     .concat(Object.entries(o.links).map(([k, v]) =>
       `${esc(CMD_LINK_TH[k] || k)}: <b>${esc(String(v).slice(0, 44))}</b>`))
+    .concat((o.clear || []).map(k =>
+      `<b style="color:var(--lo)">ล้าง ${esc(CMD_LINK_TH[k] || k)}</b>`))
     .join(" · ");
 }
 
@@ -5511,8 +5721,16 @@ $("#qoParse").onclick = async () => {
     : `<div class="qorow"><span class="ok">✓</span><div><b>${esc(q.id)}</b>${tag(q)}
         <span style="color:var(--dim)">${esc(q.proj)}</span><br>${
         (q.moveTo ? [`<b style="color:var(--accent)">ย้ายไป ${esc(q.moveTo)}</b>`] : [])
-        .concat(Object.entries(q.changes).map(([k, v]) =>
-          `${esc(QO_LABEL[k] || k)}: <b>${esc(k === "paytype" ? payType(v).label : v)}</b>`))
+        // net3 คิดจากเรท×ภาษีเสมอ ไม่ใช่สิ่งที่คนสั่ง เอาออกจากรายการที่โชว์
+        .concat(Object.entries(q.changes)
+          .filter(([k]) => k !== "rateFrom" && k !== "net3").map(([k, v]) =>
+          // เรทแบบบวก/ลบ ต้องเห็นทั้งค่าเดิมและค่าใหม่ ไม่งั้นตรวจไม่ได้ว่าบวกถูกไหม
+          k === "rate" && q.changes.rateFrom != null
+            ? `เรท: <b>${Number(q.changes.rateFrom).toLocaleString("en-US")} → ${
+                Number(v).toLocaleString("en-US")}</b>`
+            : `${esc(QO_LABEL[k] || k)}: <b>${
+                v === "" || v === null ? "(ล้างค่า)"
+                : esc(k === "paytype" ? payType(v).label : v)}</b>`))
         .concat(q.cmd ? [cmdOpsText(q.cmd)] : [])
         .join(" · ")}</div></div>`).join("");
   const msg = $("#qoMsg");
@@ -5531,8 +5749,10 @@ function applyQuickOrder(){
   });
   QO.filter(q => q.ok && !q.add && !q.admin).forEach(q => {
     const oldKey = ekey(q.row);
-    Object.assign(q.row, q.changes);
-    if ("rate" in q.changes) q.row.rate_all = [];
+    const ch = Object.assign({}, q.changes);
+    delete ch.rateFrom;                      // ใช้โชว์ในหน้าตรวจอย่างเดียว ไม่ใช่ค่าของแถว
+    Object.assign(q.row, ch);
+    if ("rate" in ch) q.row.rate_all = [];
     if (q.moveTo){
       // ย้ายข้ามโปรเจกต์ — ต้องถอดออกจากที่เดิมจริงๆ ไม่งั้นจะโผล่สองที่
       const from = COORD[q.proj], at = from.indexOf(q.row);
@@ -5543,17 +5763,18 @@ function applyQuickOrder(){
       moved++;
     }
     const k = ekey(q.row);
-    EDITS[k] = Object.assign({}, EDITS[k], q.changes,
+    EDITS[k] = Object.assign({}, EDITS[k], ch,
                              q.moveTo ? { project: q.moveTo } : {},
-                             "rate" in q.changes ? { rate_all: [] } : {});
+                             "rate" in ch ? { rate_all: [] } : {});
     // Command เก็บแยกจากข้อมูลแถว และผูกกับโปรเจกต์ปลายทางถ้าย้าย
     if (q.cmd){
       const proj = q.moveTo || q.proj;
       for (const i in q.cmd.blocks) setCmdOwnBlock(proj, q.row.handle, +i, "b", q.cmd.blocks[i]);
       for (const key in q.cmd.links) setCmdOwnLink(proj, q.row.handle, key, q.cmd.links[key]);
+      (q.cmd.clear || []).forEach(key => setCmdOwnLink(proj, q.row.handle, key, ""));
       cmds++;
     }
-    if (Object.keys(q.changes).length || q.moveTo) n++;
+    if (Object.keys(ch).length || q.moveTo) n++;
   });
 
   // ── คำสั่งแอดมิน ── ทำหลังแก้แถวเสร็จ เพราะบางตัว (ซิงก์/โหลดใหม่) กินของที่เพิ่งแก้
@@ -5656,8 +5877,7 @@ function setAiMsg(t, k){ const e = $("#aiMsg"); e.className = "addmsg on " + k; 
 // รายชื่อที่ AI ตอบกลับได้ — นอกลิสต์นี้ถือว่าไม่ถูกต้อง ตัดทิ้ง
 const AI_FIELDS = ["rate","videos","status","paytype","kind","sku","code",
                    "note","postdate","deadline","brief"];
-const AI_LINKS = ["hashtag","cart","timeline","form","script","docs",
-                  "feedback1","feedback2","feedback3"];
+const AI_LINKS = DOCS.map(d => d.k).concat("feedback1","feedback2","feedback3");
 
 function aiPrompt(lines){
   const handles = [...handleIndex().keys()].slice(0, 250);
