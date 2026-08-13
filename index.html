@@ -280,6 +280,40 @@ body:not([data-view="coord"]) #gearBtn{display:none}
 .linkish{background:none;border:0;color:var(--dim);font-family:inherit;font-size:.76rem;padding:2px 0}
 .linkish:hover{color:var(--accent)}
 .linkish.on{color:var(--accent)}
+/* ── กล่องเลือกรายชื่อ ── กดเลือกแทนการพิมพ์ชื่อทีละคน */
+.pickbox{margin:0 0 14px;background:var(--surface);border:1px solid var(--line);
+  border-left:3px solid var(--accent);border-radius:8px;padding:12px 14px}
+.pickbox[hidden]{display:none}
+.pickhead{display:flex;gap:9px;flex-wrap:wrap;align-items:center;margin-bottom:10px}
+.pickhead select{flex:none;width:auto;min-width:170px;font-size:.82rem;padding:7px 10px}
+.pickhead input{flex:1;min-width:170px;font-size:.82rem;padding:7px 10px}
+.pickhead .tabs{margin-bottom:0;flex:none;min-width:190px}
+.pickfilters{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px}
+.pickfilters button{background:var(--surface2);border:1px solid var(--line);color:var(--mute);
+  border-radius:999px;padding:4px 11px;font-size:.74rem;font-weight:600}
+.pickfilters button:hover{border-color:var(--accent);color:var(--accent)}
+.pickfilters button.on{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
+.picklist{display:flex;flex-wrap:wrap;gap:6px;max-height:210px;overflow-y:auto;
+  padding:3px;border:1px solid var(--line);border-radius:7px;background:var(--bg)}
+.picklist:empty::after{content:"ไม่มีใครตรงกับที่กรอง";color:var(--dim);font-size:.78rem;padding:10px}
+.pchip{display:inline-flex;align-items:center;gap:6px;background:var(--surface2);
+  border:1px solid var(--line);color:var(--mute);border-radius:7px;
+  padding:5px 10px;font-size:.79rem;user-select:none}
+.pchip:hover{border-color:var(--dim);color:var(--ink)}
+.pchip.on{background:var(--accent);color:var(--accent-ink);border-color:var(--accent);font-weight:600}
+.pchip .st{font-size:.64rem;padding:1px 6px;pointer-events:none}
+.pchip.on .st{background:rgba(0,0,0,.25);border-color:transparent;color:var(--accent-ink)}
+.pickfoot{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-top:10px}
+.pickfoot .chk{margin-top:0}
+.pickfoot .run{width:auto;padding:8px 18px;font-size:.84rem;margin-left:auto}
+.picksum{font-size:.78rem;color:var(--mute)}
+.picksum b{color:var(--accent)}
+.pickquick{display:flex;gap:6px;flex-wrap:wrap;margin-top:11px;
+  border-top:1px solid var(--line);padding-top:10px}
+.pickquick button{background:none;border:1px dashed var(--line);color:var(--dim);
+  border-radius:6px;padding:4px 10px;font-size:.74rem}
+.pickquick button:hover{border-color:var(--accent);color:var(--accent);border-style:solid}
+
 .cmdhelp,.cmdbulk{margin:0 0 14px;background:var(--surface);border:1px solid var(--line);
   border-radius:8px;padding:13px 15px;font-size:.78rem;color:var(--mute);line-height:1.75}
 #qoPreview:not(:empty){margin-bottom:12px}
@@ -450,7 +484,10 @@ tr.dropover td{border-top:2px solid var(--accent)}
 .job-in.j-c{color:#d0d5a8;border-color:rgba(208,213,168,.4)}
 
 /* ── ตัวกรองหัวตาราง ── */
-.ctable th.hasfilter{position:relative;padding-right:26px}
+/* ห้ามใส่ position:relative ตรงนี้ — มันทับ sticky ที่ตั้งไว้ให้หัวตาราง
+   ทำให้เฉพาะคอลัมน์ที่มีปุ่มกรองไม่ติดตอนเลื่อน หัวตารางเลยลงมาไม่ครบแถว
+   sticky เป็น positioned element อยู่แล้ว .fpop ที่เป็น absolute ยังยึดกับ th ได้ปกติ */
+.ctable th.hasfilter{padding-right:26px}
 .fbtn{position:absolute;right:5px;top:50%;transform:translateY(-50%);
   background:none;border:0;color:var(--dim);font-size:.6rem;padding:3px 4px;
   border-radius:4px;line-height:1}
@@ -463,8 +500,16 @@ tr.dropover td{border-top:2px solid var(--accent)}
   border-bottom:1px solid var(--line);font-size:.78rem;color:var(--ink);font-weight:600}
 .fpop .fhead button{margin-left:auto;background:none;border:1px solid var(--line);
   color:var(--mute);border-radius:5px;padding:2px 7px;font-size:.68rem;font-weight:600}
-.fpop .fhead button:last-child{margin-left:0}
+.fpop .fhead button:last-child{margin-left:auto}
 .fpop .fhead button:hover{border-color:var(--accent);color:var(--accent)}
+.fpop .fbar{display:flex;gap:6px;padding:8px 11px 0}
+.fpop .fbar button{flex:1;background:none;border:1px solid var(--line);color:var(--mute);
+  border-radius:5px;padding:4px 7px;font-size:.7rem;font-weight:600}
+.fpop .fbar button:hover{border-color:var(--accent);color:var(--accent)}
+.fpop .frange{display:flex;align-items:center;gap:7px}
+.fpop .frange input{text-align:center}
+.fpop .frange span{color:var(--dim);font-size:.78rem;flex:none}
+.fpop .flist label input[type=radio]{accent-color:var(--accent)}
 .fpop .flist{max-height:280px;overflow-y:auto;padding:7px 4px}
 .fpop label{display:flex;align-items:center;gap:8px;padding:5px 8px;border-radius:6px;
   font-size:.78rem;color:var(--mute);font-weight:400;cursor:pointer}
@@ -1204,9 +1249,30 @@ tr.subrow td.w-status select{width:230px}
         <button class="run" id="qoParse">ตรวจ</button>
       </div>
       <div class="cmdbar-foot">
+        <button class="linkish" id="pickToggle">☰ เลือกจากรายชื่อ</button>
         <button class="linkish" id="cmdHelpBtn">พิมพ์อะไรได้บ้าง</button>
         <button class="linkish" id="bulkToggle">⇥ ก๊อปจากชีตมาวางหลายคน</button>
       </div>
+    </div>
+
+    <!-- เลือกด้วยการกด แทนการพิมพ์ชื่อ — ชื่อที่เลือกจะถูกเติมลงช่องคำสั่งให้
+         ทำงานร่วมกับตัวพิมพ์ ไม่ได้แยกทาง คำสั่งท้ายบรรทัดยังพิมพ์เองเหมือนเดิม -->
+    <div class="pickbox" id="pickBox" hidden>
+      <div class="pickhead">
+        <select id="pickProj" title="เลือกโปรเจกต์"></select>
+        <input id="pickFind" placeholder="พิมพ์บางส่วนของชื่อเพื่อกรอง" autocomplete="off">
+        <div class="tabs sub" id="pickKind" role="tablist"></div>
+      </div>
+      <div class="pickfilters" id="pickFilters"></div>
+      <div class="picklist" id="pickList"></div>
+      <div class="pickfoot">
+        <label class="chk"><input type="checkbox" id="pickAll">
+          <span id="pickAllLabel">เลือกทั้งหมด</span></label>
+        <span class="picksum" id="pickSum"></span>
+        <button class="cmdbtn" id="pickClear">ล้างที่เลือก</button>
+        <button class="run" id="pickInsert">ใส่ในคำสั่ง</button>
+      </div>
+      <div class="pickquick" id="pickQuick"></div>
     </div>
 
     <div class="cmdhelp" id="cmdHelp" hidden>
@@ -3221,46 +3287,152 @@ $("#coordFind").addEventListener("input", e => renderCreatorCard(e.target.value.
 
 // ─── ตัวกรองหัวตาราง แบบ Excel ───
 // เก็บเป็นค่าที่ "ไม่เอา" ต่อคอลัมน์ เหมือน hiddenValues ของ Google Sheet
-let COLFILTER = {};
-const FILTERABLE = { kind:"กลุ่ม", code:"งาน", status:"สถานะ", paytype:"รูปแบบภาษี", sku:"SKU" };
+let COLFILTER = {};      // ค่าที่ "ไม่เอา" ต่อคอลัมน์ (แบบลิสต์)
+let COLTEXT = {};        // คำค้นต่อคอลัมน์ (แบบข้อความ)
+let COLNUM = {};         // ช่วงตัวเลขต่อคอลัมน์ { min, max, blank }
+
+// ทุกคอลัมน์กรองได้ แต่คนละแบบตามชนิดข้อมูล
+//   list = เลือกจากค่าที่มีอยู่จริง · text = พิมพ์ค้น + มีค่า/ว่าง · num = ช่วงตัวเลข
+const FILTERABLE = { handle:"ครีเอเตอร์", videos:"วิดีโอ", kind:"กลุ่ม", code:"งาน",
+  status:"สถานะ", rate:"เรท", paytype:"รูปแบบภาษี", net3:"จ่ายจริง", sku:"SKU",
+  postdate:"โพสต์", deadline:"กำหนดส่ง", brief:"บรีฟ", note:"โน้ต" };
+const FILTER_KIND = { handle:"text", brief:"text", note:"text",
+  postdate:"text", deadline:"text", rate:"num", net3:"num" };
+const fkind = f => FILTER_KIND[f] || "list";
+// ลำดับคอลัมน์ในหัวตาราง → ชื่อช่อง (0=ปุ่มลาก, 14=ปุ่มลบ ไม่มีตัวกรอง)
+const FILTER_COL = [[1,"handle"],[2,"videos"],[3,"kind"],[4,"code"],[5,"status"],
+  [6,"rate"],[7,"paytype"],[8,"net3"],[9,"sku"],[10,"postdate"],[11,"deadline"],
+  [12,"brief"],[13,"note"]];
 const filterText = (f, v) => f === "status" ? (ST_TH[v] || v || "—")
   : f === "paytype" ? payType(v).label
   : f === "code" ? (codeLabel(v) || "—") : (v || "—");
 
+// จ่ายจริงไม่ได้เก็บในแถว คิดจากเรท×ภาษี ต้องคิดตอนกรองด้วย ไม่งั้นกรองไม่ตรงกับที่เห็น
+const fval = (r, f) => f === "net3" ? (coOf(r.rate, r.paytype) ?? payOf(r.rate, r.paytype))
+                     : r[f];
+
 function passFilter(r){
-  return Object.keys(COLFILTER).every(f =>
-    !COLFILTER[f].length || !COLFILTER[f].includes(String(r[f] ?? "")));
+  for (const f in COLFILTER)
+    if (COLFILTER[f].length && COLFILTER[f].includes(String(fval(r, f) ?? ""))) return false;
+  for (const f in COLTEXT){
+    const q = COLTEXT[f];
+    const v = String(fval(r, f) ?? "").trim();
+    if (q.mode === "has" && !v) return false;
+    if (q.mode === "empty" && v) return false;
+    if (q.text && !v.toLowerCase().includes(q.text.toLowerCase())) return false;
+  }
+  for (const f in COLNUM){
+    const q = COLNUM[f];
+    const raw = fval(r, f);
+    const n = Number(raw);
+    const has = raw != null && raw !== "" && isFinite(n);
+    if (q.blank === "only") { if (has) return false; continue; }
+    if (q.blank === "hide" && !has) return false;
+    if (!has) continue;
+    if (q.min != null && n < q.min) return false;
+    if (q.max != null && n > q.max) return false;
+  }
+  return true;
 }
-function filterCount(){ return Object.values(COLFILTER).reduce((s,a) => s + a.length, 0); }
+function filterCount(){
+  return Object.values(COLFILTER).reduce((s,a) => s + a.length, 0)
+       + Object.keys(COLTEXT).length + Object.keys(COLNUM).length;
+}
+function clearFilters(){ COLFILTER = {}; COLTEXT = {}; COLNUM = {}; }
+const filterOn = f => (COLFILTER[f] || []).length || COLTEXT[f] || COLNUM[f];
 
 function openColFilter(field, th){
   document.querySelectorAll(".fpop").forEach(p => p.remove());
   const all = COORD[PROJ] || [];
-  const vals = [...new Set(all.map(r => String(r[field] ?? "")))]
-    .sort((a,b) => filterText(field,a).localeCompare(filterText(field,b),"th"));
-  const off = COLFILTER[field] || [];
+  const kind = fkind(field);
   const pop = document.createElement("div");
-  pop.className = "fpop";
-  pop.innerHTML =
-    `<div class="fhead">${esc(FILTERABLE[field])}
-       <button data-all="1">เลือกทั้งหมด</button>
-       <button data-none="1">ไม่เอาเลย</button></div>
-     <div class="flist">${vals.map(v => {
-       const n = all.filter(r => String(r[field] ?? "") === v).length;
-       return `<label><input type="checkbox" value="${esc(v)}"${off.includes(v)?"":" checked"}>
-         <span>${esc(filterText(field, v))}</span><i>${n}</i></label>`;
-     }).join("")}</div>`;
+  pop.className = "fpop" + (field === "sku" ? " skupop" : "");
+  const head = `<div class="fhead">${esc(FILTERABLE[field])}
+     <button data-clear="1">ล้างตัวกรองนี้</button></div>`;
+
+  if (kind === "list"){
+    const vals = [...new Set(all.map(r => String(fval(r, field) ?? "")))]
+      .sort((a,b) => filterText(field,a).localeCompare(filterText(field,b),"th"));
+    const off = COLFILTER[field] || [];
+    pop.innerHTML = head +
+      `<div class="fbar"><button data-all="1">เลือกทั้งหมด</button>
+         <button data-none="1">ไม่เอาเลย</button></div>
+       <div class="flist">${vals.map(v => {
+         const n = all.filter(r => String(fval(r, field) ?? "") === v).length;
+         return `<label><input type="checkbox" value="${esc(v)}"${off.includes(v)?"":" checked"}>
+           <span>${esc(filterText(field, v))}</span><i>${n}</i></label>`;
+       }).join("")}</div>`;
+  } else if (kind === "text"){
+    const q = COLTEXT[field] || {};
+    pop.innerHTML = head +
+      `<div class="fadd"><input class="ftext" placeholder="พิมพ์คำที่มีอยู่ในช่องนี้"
+         value="${esc(q.text || "")}"></div>
+       <div class="flist">${[["","ทั้งหมด"],["has","เฉพาะที่มีข้อมูล"],["empty","เฉพาะที่ยังว่าง"]]
+         .map(([m,label]) => `<label><input type="radio" name="fmode" value="${m}"${
+           (q.mode||"") === m ? " checked":""}><span>${label}</span></label>`).join("")}</div>`;
+  } else {
+    const q = COLNUM[field] || {};
+    pop.innerHTML = head +
+      `<div class="fadd frange">
+         <input class="fmin" inputmode="numeric" placeholder="ต่ำสุด" value="${q.min ?? ""}">
+         <span>—</span>
+         <input class="fmax" inputmode="numeric" placeholder="สูงสุด" value="${q.max ?? ""}">
+       </div>
+       <div class="flist">${[["","นับรวมช่องว่าง"],["hide","ตัดช่องว่างออก"],["only","เฉพาะที่ยังว่าง"]]
+         .map(([m,label]) => `<label><input type="radio" name="fblank" value="${m}"${
+           (q.blank||"") === m ? " checked":""}><span>${label}</span></label>`).join("")}</div>`;
+  }
   th.appendChild(pop);
-  const apply = () => {
-    COLFILTER[field] = [...pop.querySelectorAll("input:not(:checked)")].map(i => i.value);
+
+  const done = () => { renderCoord(); };
+  const applyList = () => {
+    COLFILTER[field] = [...pop.querySelectorAll(".flist input:not(:checked)")].map(i => i.value);
     if (!COLFILTER[field].length) delete COLFILTER[field];
+    done();
+  };
+  const applyText = () => {
+    const text = pop.querySelector(".ftext").value.trim();
+    const mode = (pop.querySelector("input[name=fmode]:checked") || {}).value || "";
+    if (!text && !mode) delete COLTEXT[field]; else COLTEXT[field] = { text, mode };
+    done();
+  };
+  const applyNum = () => {
+    const num = s => { const n = Number(String(s).replace(/,/g,"")); return isFinite(n) && s !== "" ? n : null; };
+    const min = num(pop.querySelector(".fmin").value.trim());
+    const max = num(pop.querySelector(".fmax").value.trim());
+    const blank = (pop.querySelector("input[name=fblank]:checked") || {}).value || "";
+    if (min == null && max == null && !blank) delete COLNUM[field];
+    else COLNUM[field] = { min, max, blank };
+    done();
+  };
+
+  if (kind === "list"){
+    pop.querySelectorAll(".flist input").forEach(i => i.onchange = applyList);
+    pop.querySelector("[data-all]").onclick = () => {
+      pop.querySelectorAll(".flist input").forEach(i => i.checked = true); applyList(); };
+    pop.querySelector("[data-none]").onclick = () => {
+      pop.querySelectorAll(".flist input").forEach(i => i.checked = false); applyList(); };
+  } else if (kind === "text"){
+    const box = pop.querySelector(".ftext");
+    // พิมพ์แล้วกรองเลย ไม่ต้องกด — แต่หน่วงไว้กันกรองรัวๆ ทุกตัวอักษร
+    let t = null;
+    box.oninput = () => { clearTimeout(t); t = setTimeout(applyText, 220); };
+    box.onkeydown = e => { if (e.key === "Enter"){ e.preventDefault(); applyText(); } };
+    pop.querySelectorAll("input[name=fmode]").forEach(i => i.onchange = applyText);
+    setTimeout(() => box.focus(), 0);
+  } else {
+    pop.querySelectorAll(".fmin,.fmax").forEach(el => {
+      el.onchange = applyNum;
+      el.onkeydown = e => { if (e.key === "Enter"){ e.preventDefault(); applyNum(); } };
+    });
+    pop.querySelectorAll("input[name=fblank]").forEach(i => i.onchange = applyNum);
+    setTimeout(() => pop.querySelector(".fmin").focus(), 0);
+  }
+  pop.querySelector("[data-clear]").onclick = () => {
+    delete COLFILTER[field]; delete COLTEXT[field]; delete COLNUM[field];
     renderCoord();
   };
-  pop.querySelectorAll(".flist input").forEach(i => i.onchange = apply);
-  pop.querySelector("[data-all]").onclick = () => {
-    pop.querySelectorAll(".flist input").forEach(i => i.checked = true); apply(); };
-  pop.querySelector("[data-none]").onclick = () => {
-    pop.querySelectorAll(".flist input").forEach(i => i.checked = false); apply(); };
+
   pop.onclick = e => e.stopPropagation();
   setTimeout(() => document.addEventListener("click", function close(){
     pop.remove(); document.removeEventListener("click", close);
@@ -3324,22 +3496,26 @@ function renderCoord(){
     </tr></thead><tbody>${rows.length
       ? rows.map(r => coordRow(r, all.indexOf(r))).join("")
       : `<tr><td colspan="15" style="text-align:center;color:var(--dim);padding:22px">
-          ไม่มีแถวที่ตรงกับตัวกรอง</td></tr>`
+          ไม่มีแถวที่ตรงกับตัวกรอง —
+          <button class="cmdbtn" id="clearAllF">ล้างตัวกรองทั้งหมด</button></td></tr>`
     }</tbody></table></div>`;
 
-  // ปุ่มกรองบนหัวตาราง
-  Object.keys(FILTERABLE).forEach(f => {
-    const th = [...document.querySelectorAll("#coordBody thead th")]
-      .find(x => x.textContent.trim() === FILTERABLE[f]);
+  // ปุ่มกรองบนหัวตาราง — จับคู่ด้วยลำดับคอลัมน์ ไม่ใช่ข้อความ
+  // (ข้อความซ้ำกันได้ และพอใส่ปุ่มลงไปแล้ว textContent ก็เปลี่ยน)
+  const heads = [...document.querySelectorAll("#coordBody thead th")];
+  FILTER_COL.forEach(([i, f]) => {
+    const th = heads[i];
     if (!th) return;
-    const on = (COLFILTER[f] || []).length;
     th.classList.add("hasfilter");
     th.insertAdjacentHTML("beforeend",
-      `<button class="fbtn${on?" on":""}" data-filter="${f}" title="กรอง${FILTERABLE[f]}">▼</button>`);
+      `<button class="fbtn${filterOn(f) ? " on" : ""}" data-filter="${f}"
+        title="กรอง${FILTERABLE[f]}">▼</button>`);
   });
   document.querySelectorAll("#coordBody [data-filter]").forEach(b => b.onclick = e => {
     e.stopPropagation(); openColFilter(b.dataset.filter, b.parentElement);
   });
+  const caf = $("#clearAllF");
+  if (caf) caf.onclick = () => { clearFilters(); renderCoord(); };
 
   document.querySelectorAll("#coordBody [data-cmd]").forEach(b =>
     b.onclick = () => openCmd(PROJ, b.dataset.cmd));
@@ -6021,7 +6197,7 @@ function applyQuickOrder(){
       }
       case "goto":    PROJ = q.proj; break;
       case "migrate": after = migrateStatuses; break;
-      case "filter":  COLFILTER = {}; break;
+      case "filter":  clearFilters(); break;
       case "cols":    LEAN = !LEAN;
         try { localStorage.setItem(LS_LEAN, LEAN ? "1" : "0"); } catch(e){} break;
       case "setting": after = openSettings; break;
@@ -6249,6 +6425,118 @@ $("#aiTest").onclick = async () => {
       hit ? "ok" : "busy");
   } catch(e){ setAiMsg("เรียกไม่สำเร็จ: " + esc(e.message), "err"); }
 };
+
+// ═══ กล่องเลือกรายชื่อ ═══
+// เป้าหมายคือพิมพ์ให้น้อยที่สุด: เลือกโปรเจกต์ → กรอง → กดชื่อ → กดคำสั่งด่วน
+// ชื่อที่เลือกถูกเติมลงช่องคำสั่งเดิม ไม่ได้แยกเป็นอีกระบบ คำสั่งที่ไม่มีปุ่มก็ยังพิมพ์ต่อท้ายได้
+let PICK = new Set();
+let PICK_PROJ = null;      // null = ใช้โปรเจกต์ที่เปิดอยู่
+let PICK_KIND = "all";
+let PICK_STATUS = null;    // กรองตามสถานะ
+
+const pickProj = () => PICK_PROJ || PROJ;
+
+function pickRows(){
+  const all = COORD[pickProj()] || [];
+  const q = ($("#pickFind").value || "").trim().toLowerCase();
+  return all.filter(r =>
+    (PICK_KIND === "all" || (r.kind || "") === PICK_KIND) &&
+    (!PICK_STATUS || (r.status || "") === PICK_STATUS) &&
+    (!q || normId(r.handle).includes(q)));
+}
+
+function renderPick(){
+  const box = $("#pickBox");
+  if (box.hidden) return;
+  $("#pickProj").innerHTML = PROJECTS.map(p =>
+    `<option value="${esc(p)}"${p === pickProj() ? " selected" : ""}>${esc(p)} (${
+      (COORD[p] || []).length})</option>`).join("");
+
+  const all = COORD[pickProj()] || [];
+  const n = k => all.filter(r => (r.kind || "") === k).length;
+  $("#pickKind").innerHTML = [["all","ทั้งหมด",all.length],["KOL","KOL",n("KOL")],["KOC","KOC",n("KOC")]]
+    .map(([id,label,c]) => `<button role="tab" data-pk="${id}" aria-selected="${id===PICK_KIND}"
+      >${label}<span class="n">${c}</span></button>`).join("");
+
+  // ปุ่มกรองสถานะ — โชว์เฉพาะสถานะที่มีคนอยู่จริง จะได้ไม่ยาว 19 ปุ่ม
+  const sts = [...new Set(all.map(r => r.status || ""))]
+    .sort((a,b) => (stageAt(a) < 0 ? 99 : stageAt(a)) - (stageAt(b) < 0 ? 99 : stageAt(b)));
+  $("#pickFilters").innerHTML = sts.map(s =>
+    `<button data-ps="${esc(s)}" class="${PICK_STATUS === s ? "on" : ""}"
+      >${esc(ST_TH[s] || "ยังไม่มีสถานะ")} <b>${all.filter(r => (r.status||"") === s).length}</b></button>`).join("");
+
+  const rows = pickRows();
+  $("#pickList").innerHTML = rows.map(r => {
+    const h = normId(r.handle);
+    return `<button class="pchip${PICK.has(h) ? " on" : ""}" data-ph="${esc(h)}"
+      >${esc(r.handle)}<span class="st ${stClass(r.status)}">${
+        esc(ST_TH[r.status || ""] || "—")}</span></button>`;
+  }).join("");
+
+  const shown = rows.map(r => normId(r.handle));
+  const allOn = shown.length && shown.every(h => PICK.has(h));
+  $("#pickAll").checked = !!allOn;
+  $("#pickAllLabel").textContent = `เลือกทั้งหมดที่เห็น (${shown.length})`;
+  $("#pickSum").innerHTML = PICK.size ? `เลือกไว้ <b>${PICK.size}</b> คน` : "ยังไม่ได้เลือกใคร";
+
+  // คำสั่งด่วน — กดแล้วต่อท้ายชื่อที่เลือกให้เลย ไม่ต้องพิมพ์
+  const stageBtns = STAGES.slice(0, 19).map(s => [s.v, s.v]);
+  $("#pickQuick").innerHTML = PICK.size
+    ? [`<span style="color:var(--dim);font-size:.74rem;align-self:center">สั่งเลย:</span>`]
+      .concat(stageBtns.map(([v,label]) => `<button data-pq="${esc(v)}">${esc(label)}</button>`))
+      .concat([`<button data-pq="ชำระ3%">ชำระ 3%</button>`,
+               `<button data-pq="NET">NET</button>`]).join("")
+    : `<span style="color:var(--dim);font-size:.74rem">เลือกชื่อก่อน แล้วปุ่มคำสั่งด่วนจะขึ้นตรงนี้</span>`;
+
+  document.querySelectorAll("#pickList [data-ph]").forEach(b => b.onclick = () => {
+    const h = b.dataset.ph;
+    PICK.has(h) ? PICK.delete(h) : PICK.add(h);
+    renderPick();
+  });
+  document.querySelectorAll("#pickKind [data-pk]").forEach(b => b.onclick = () => {
+    PICK_KIND = b.dataset.pk; renderPick();
+  });
+  document.querySelectorAll("#pickFilters [data-ps]").forEach(b => b.onclick = () => {
+    PICK_STATUS = PICK_STATUS === b.dataset.ps ? null : b.dataset.ps; renderPick();
+  });
+  document.querySelectorAll("#pickQuick [data-pq]").forEach(b => b.onclick = () => {
+    insertPick(b.dataset.pq);
+  });
+}
+
+// เติมชื่อที่เลือกลงช่องคำสั่ง — คนละบรรทัด แล้วปิดท้ายด้วยคำสั่ง (ถ้ามี)
+// ใช้รูปแบบกลุ่มที่ตัวอ่านรองรับอยู่แล้ว ไม่ต้องมีทางพิเศษ
+function insertPick(order){
+  if (!PICK.size) return;
+  const names = [...PICK];
+  const t = $("#qoText");
+  const body = names.join("\n") + (order ? "\n" + order : "");
+  t.value = (t.value.trim() ? t.value.replace(/\s*$/, "") + "\n\n" : "") + body;
+  growCmd();
+  if (order){
+    $("#qoParse").click();
+    PICK.clear(); renderPick();
+  } else {
+    t.focus();
+    t.setSelectionRange(t.value.length, t.value.length);
+  }
+}
+
+$("#pickToggle").onclick = () => {
+  const box = $("#pickBox");
+  box.hidden = !box.hidden;
+  $("#pickToggle").classList.toggle("on", !box.hidden);
+  if (!box.hidden){ PICK_PROJ = PROJ; renderPick(); $("#pickFind").focus(); }
+};
+$("#pickProj").onchange = e => { PICK_PROJ = e.target.value; PICK_STATUS = null; renderPick(); };
+$("#pickFind").addEventListener("input", renderPick);
+$("#pickAll").onchange = e => {
+  const shown = pickRows().map(r => normId(r.handle));
+  shown.forEach(h => e.target.checked ? PICK.add(h) : PICK.delete(h));
+  renderPick();
+};
+$("#pickClear").onclick = () => { PICK.clear(); renderPick(); };
+$("#pickInsert").onclick = () => insertPick("");
 
 // ─── ช่องคำสั่ง: โตตามข้อความ + ปุ่มพับตัวช่วย ───
 // วัดความสูงจริงของหัวเว็บกับแถบคำสั่ง แล้วบอก CSS ว่าให้ติดที่ตรงไหน
