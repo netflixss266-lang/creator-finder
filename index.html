@@ -242,7 +242,11 @@ body:not([data-view="coord"]) #gearBtn{display:none}
 /* ── ช่องคำสั่งช่องเดียว ──
    เพิ่มคนใหม่กับแก้ข้อมูลใช้ช่องเดียวกัน เพราะทั้งคู่คือ "พิมพ์ประโยคแล้วให้เว็บอ่าน"
    สูงแค่บรรทัดเดียวตอนยังไม่พิมพ์ ตารางจะได้ไม่ถูกดันตกจอ */
-.cmdbar{margin-bottom:14px}
+/* แถบพิมพ์ติดอยู่ใต้หัวเว็บตอนเลื่อนลง — สั่งงานได้โดยไม่ต้องเลื่อนกลับขึ้นไปข้างบน
+   ตัวเลขที่ใช้มาจาก --stick ที่วัดความสูงหัวเว็บจริงตอนรัน ไม่ใช่เลขตายตัว
+   เคยห่อไว้ในกล่อง .cmdbar ที่สูงเท่าตัวมันเอง แล้ว sticky ไม่ทำงานเลยเพราะไม่มีที่ให้เดิน */
+.cmdbar-stick{position:sticky;top:var(--stick,52px);z-index:26;
+  background:var(--bg);padding-bottom:9px;margin-bottom:5px}
 .cmdbar-in{display:flex;align-items:flex-start;gap:9px;
   background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:8px 8px 8px 13px;
   transition:border-color .13s}
@@ -256,8 +260,9 @@ body:not([data-view="coord"]) #gearBtn{display:none}
 .linkish{background:none;border:0;color:var(--dim);font-family:inherit;font-size:.76rem;padding:2px 0}
 .linkish:hover{color:var(--accent)}
 .linkish.on{color:var(--accent)}
-.cmdhelp,.cmdbulk{margin-top:10px;background:var(--surface);border:1px solid var(--line);
+.cmdhelp,.cmdbulk{margin:0 0 14px;background:var(--surface);border:1px solid var(--line);
   border-radius:8px;padding:13px 15px;font-size:.78rem;color:var(--mute);line-height:1.75}
+#qoPreview:not(:empty){margin-bottom:12px}
 .cmdhelp[hidden],.cmdbulk[hidden]{display:none}
 .cmdhelp code{background:var(--surface2);border-radius:4px;padding:2px 7px;
   font-size:.75rem;color:var(--ink);display:inline-block;margin:2px 0}
@@ -273,9 +278,13 @@ body:not([data-view="coord"]) #gearBtn{display:none}
 .qorow .no{color:var(--lo)}
 
 .ctable{width:100%;border-collapse:collapse;font-size:.82rem}
+/* หัวตารางตั้งให้ติดใต้แถบคำสั่ง ไม่ใช่ติดขอบจอ
+   หมายเหตุ: ตอนนี้มันยังไม่ติดจริง เพราะ .cwrap มี overflow-x:auto ซึ่งทำให้กลายเป็น
+   กล่องเลื่อนของตัวเอง หัวตารางเลยยึดกับกล่องนั้นแทนที่จะยึดกับจอ (เป็นแบบนี้มาแต่แรก)
+   จะให้ติดจริงต้องรื้อวิธีเลื่อนแนวนอน ซึ่งจะทำให้คอลัมน์ชื่อที่ตรึงไว้พังตาม */
 .ctable th{text-align:left;font-size:.68rem;text-transform:uppercase;letter-spacing:.07em;
   color:var(--dim);font-weight:600;padding:8px 9px;border-bottom:1px solid var(--line);
-  white-space:nowrap;position:sticky;top:0;background:var(--bg);z-index:1}
+  white-space:nowrap;position:sticky;top:var(--stick2,112px);background:var(--bg);z-index:1}
 .ctable td{padding:7px 9px;border-bottom:1px solid var(--line);vertical-align:middle}
 .ctable tr:hover td{background:var(--surface)}
 /* ช่องครีเอเตอร์ — บังคับให้สูงเท่าช่องที่มี input/select ในแถวเดียวกัน
@@ -806,6 +815,21 @@ main{padding:22px 24px;overflow-y:auto;max-height:calc(100vh - 62px)}
   border:1px solid rgba(var(--accent-rgb),.35);border-radius:4px;padding:1px 6px}
 .cmdscope{margin:0 0 10px}
 .cmdscope button{font-size:.76rem;padding:6px 8px}
+.cmdbtn.on{border-color:var(--accent);color:var(--accent);background:rgba(var(--accent-rgb),.1)}
+
+/* ── ฟีดแบครายคน ── ยาวหลายบรรทัด ต้องเป็นช่องพิมพ์จริง ไม่ใช่ prompt() */
+.fbbox{border:1px solid var(--line);border-left:3px solid var(--accent);border-radius:9px;
+  background:var(--surface);padding:15px 17px;margin-bottom:18px}
+.fbbox[hidden]{display:none}
+.fbhead{font-size:.84rem;color:var(--mute);margin-bottom:13px;line-height:1.6}
+.fbhead b{color:var(--ink)}
+.fbhead span{display:block;font-size:.76rem}
+.fbrow{margin-bottom:11px}
+.fbrow label{display:block;font-size:.7rem;text-transform:uppercase;letter-spacing:.07em;
+  color:var(--dim);font-weight:600;margin-bottom:5px}
+.fbrow textarea{background:var(--surface2);font-size:.82rem;line-height:1.6;min-height:80px}
+.fbfoot{display:flex;align-items:center;gap:12px;flex-wrap:wrap;
+  border-top:1px solid var(--line);padding-top:11px}
 .cmdblk .cmdt{flex:1;min-width:0;font-size:.8rem;font-weight:600;padding:4px 8px}
 .cmdblk .cmdb{width:100%;border:0;border-radius:0;background:var(--surface2);
   font-family:'IBM Plex Sans Thai',sans-serif;font-size:.82rem;line-height:1.65;
@@ -1137,16 +1161,21 @@ tr.subrow td.w-status select{width:230px}
 <section id="coordView">
   <!-- ช่องคำสั่งช่องเดียว — เพิ่มคนใหม่กับแก้ข้อมูลใช้ช่องเดียวกัน
        เมื่อก่อนเป็นสองกล่องใหญ่กางค้างไว้ กินจอทั้งหน้าก่อนจะเห็นตาราง -->
-  <div class="cmdbar">
-    <div class="cmdbar-in">
-      <span class="cmdbar-ic">⌘</span>
-      <textarea id="qoText" rows="1" spellcheck="false"
-        placeholder="สั่งงานทุกอย่างที่นี่ — «cenakims เรท 12000 ชำระ3%» · «เพิ่ม tangkwaqs เข้า RC2 KOL» · «ลบ xxx» · «ไปที่ RC2» · «ซิงก์» — พิมพ์ ช่วย เพื่อดูทั้งหมด"></textarea>
-      <button class="run" id="qoParse">ตรวจ</button>
-    </div>
-    <div class="cmdbar-foot">
-      <button class="linkish" id="cmdHelpBtn">พิมพ์อะไรได้บ้าง</button>
-      <button class="linkish" id="bulkToggle">⇥ ก๊อปจากชีตมาวางหลายคน</button>
+    <!-- ส่วนที่ติดหนึบตอนเลื่อน — เฉพาะแถวพิมพ์ ที่เหลือปล่อยให้เลื่อนหายไปตามปกติ
+         ไม่งั้นพอกางตัวช่วยหรือมีผลตรวจยาวๆ มันจะบังตารางทั้งจอ
+         ต้องเป็นลูกตรงของ #coordView — sticky เดินออกนอกกล่องแม่ไม่ได้
+         ถ้าห่อไว้ในกล่องที่สูงเท่าตัวมันเอง มันจะไม่มีที่ให้เลื่อนเลย -->
+    <div class="cmdbar-stick">
+      <div class="cmdbar-in">
+        <span class="cmdbar-ic">⌘</span>
+        <textarea id="qoText" rows="1" spellcheck="false"
+          placeholder="สั่งงานทุกอย่างที่นี่ — «cenakims เรท 12000 ชำระ3%» · «เพิ่ม tangkwaqs เข้า RC2 KOL» · «ลบ xxx» · «ไปที่ RC2» · «ซิงก์» — พิมพ์ ช่วย เพื่อดูทั้งหมด"></textarea>
+        <button class="run" id="qoParse">ตรวจ</button>
+      </div>
+      <div class="cmdbar-foot">
+        <button class="linkish" id="cmdHelpBtn">พิมพ์อะไรได้บ้าง</button>
+        <button class="linkish" id="bulkToggle">⇥ ก๊อปจากชีตมาวางหลายคน</button>
+      </div>
     </div>
 
     <div class="cmdhelp" id="cmdHelp" hidden>
@@ -1165,7 +1194,10 @@ tr.subrow td.w-status select{width:230px}
 
       <div class="helpsec"><b>ตั้ง Command เฉพาะคนนั้น</b> — ไม่กระทบข้อความของคนอื่น<br>
       <code>tangtangnpc command 3: สวัสดีครับ ...</code> — ทับข้อความบล็อกที่ 3<br>
+      <code>tangtangnpc feedback 1: แก้สีปากให้อ่อนลงค่ะ</code> — ฟีดแบคของคนนี้เท่านั้น<br>
       <code>tangtangnpc ตะกร้า https://… hashtag: #ad</code><br>
+      <span style="color:var(--dim)">ฟีดแบคยาวหลายบรรทัดให้กด <b>✉</b> ท้ายชื่อ แล้วกด
+      <b>✎ Feedback</b> — มี 3 ช่องแยกตาม Draft 1/2/3</span><br>
       <span style="color:var(--dim)">ตั้งได้: ตะกร้า · hashtag: · ไทม์ไลน์: · ฟอร์ม · สคริป · เอกสาร
       — ใช้กับกลุ่มรายชื่อได้เหมือนกัน · เก็บในเครื่องนี้เท่านั้น ไม่ขึ้นชีต</span></div>
 
@@ -1206,7 +1238,6 @@ tr.subrow td.w-status select{width:230px}
 
     <div id="qoPreview"></div>
     <div class="addmsg" id="qoMsg"></div>
-  </div>
 
   <div class="coord-head">
     <div class="tabs sub" id="projTabs" role="tablist"></div>
@@ -3442,19 +3473,19 @@ const CMD_BLOCKS = [
 `แอดมินขออนุญาตส่ง Feedback Draft#1 นะครับ😀
 📌📌
 
-{{feedback}}` },
+{{feedback1}}` },
 
   { t:"11. Feedback Draft #2", b:
 `แอดมินขออนุญาตส่ง Feedback Draft#2 นะครับ😀
 📌📌
 
-{{feedback}}` },
+{{feedback2}}` },
 
   { t:"12. Feedback Draft #3", b:
 `แอดมินขออนุญาตส่ง Feedback Draft#3 นะครับ😀
 📌📌
 
-{{feedback}}` },
+{{feedback3}}` },
 
   { t:"13. Hashtag + Link ตะกร้า", b:
 `แอดมินขออนุญาตอัปเดต Hashtag และ Linkตะกร้า สำหรับโพสต์นะครับ🛒
@@ -3551,11 +3582,16 @@ function cmdValues(r){
   const net = payOf(r.rate, r.paytype);
   const own = cmdOwnRead(r.project, r.handle).links || {};
   const L = k => (own[k] != null ? own[k] : CMDLINKS[k]) || "";
+  // ฟีดแบคเป็นของใครของมันเสมอ ไม่มีตัวกลาง — แต่ละ Draft ก็คนละข้อความ
+  // (เดิมทั้ง 3 Draft ใช้ตัวแปรเดียวกัน แก้ Draft 2 แล้ว Draft 1 เปลี่ยนตาม)
+  const fb = n => own["feedback" + n] || "";
   return {
     sku: r.sku || "", rate: r.rate != null ? Number(r.rate).toLocaleString("en-US") : "",
     paytype: r.paytype ? payType(r.paytype).label.replace(/\s*\(.*\)$/, "") : "",
     net: net != null ? net.toLocaleString("en-US", {minimumFractionDigits:2}) : "",
-    brief: r.brief || "", script: own.script || r.script || "", feedback: own.feedback || "",
+    brief: r.brief || "", script: own.script || r.script || "",
+    feedback1: fb(1), feedback2: fb(2), feedback3: fb(3),
+    feedback: fb(1),                       // ชื่อเดิม เผื่อมีคนแก้ต้นแบบไว้เองแล้วยังใช้อยู่
     docs: own.docs != null ? own.docs
         : (((r.kind || "") === "KOC" ? CMDLINKS.docsKOC : CMDLINKS.docsKOL) || ""),
     form: L("form"), cart: L("cart"), hashtag: L("hashtag"), timeline: L("timeline"),
@@ -3564,8 +3600,18 @@ function cmdValues(r){
 
 const CMD_GAP = { sku:"ยังไม่มี SKU", rate:"ยังไม่มีเรท", paytype:"ยังไม่เลือกรูปแบบภาษี",
   net:"คิดไม่ได้ ต้องมีเรท+รูปแบบภาษี", brief:"ยังไม่มีลิงก์บรีฟ", script:"ยังไม่มีลิงก์สคริป",
-  feedback:"พิมพ์ฟีดแบคเอง", docs:"ยังไม่มีลิงก์เอกสารของกลุ่มนี้", form:"ตั้งลิงก์ฟอร์มในตั้งค่า",
+  feedback:"ยังไม่มีฟีดแบค", feedback1:"ยังไม่มีฟีดแบค Draft 1",
+  feedback2:"ยังไม่มีฟีดแบค Draft 2", feedback3:"ยังไม่มีฟีดแบค Draft 3",
+  docs:"ยังไม่มีลิงก์เอกสารของกลุ่มนี้", form:"ตั้งลิงก์ฟอร์มในตั้งค่า",
   cart:"ตั้งลิงก์ตะกร้าในตั้งค่า", hashtag:"ตั้ง hashtag ในตั้งค่า", timeline:"ใส่ไทม์ไลน์เอง" };
+
+// ─── ฟีดแบครายคน รายดราฟต์ ───
+const FB_ROUNDS = [1, 2, 3];
+const fbKey = n => "feedback" + n;
+function fbCount(proj, handle){
+  const own = cmdOwnRead(proj, handle).links || {};
+  return FB_ROUNDS.filter(n => (own[fbKey(n)] || "").trim()).length;
+}
 
 // คืน 2 แบบ: ข้อความจริงไว้ก๊อป กับ HTML ที่ไฮไลต์ให้เห็นว่าตรงไหนยังว่าง
 function fillBlock(body, vals){
@@ -3711,7 +3757,9 @@ function openCmd(proj, handle){
   const net = payOf(r.rate, r.paytype);
   const own = cmdOwnRead(proj, handle);
   const nMine = Object.keys(own.blocks || {}).length;
-  const nLink = Object.keys(own.links || {}).length;
+  const nFb = fbCount(proj, handle);
+  // นับเฉพาะลิงก์จริง ไม่รวมฟีดแบคที่นับแยกไว้แล้ว
+  const nLink = Object.keys(own.links || {}).filter(k => !/^feedback\d$/.test(k)).length;
   const blocks = cmdBlocksFor(proj, handle)
     .map(bl => Object.assign({ t: bl.t, mine: bl.mine }, fillBlock(bl.b, vals)));
   const gaps = blocks.reduce((s, b) => s + b.missing, 0);
@@ -3737,13 +3785,29 @@ function openCmd(proj, handle){
      <div class="cmdmeta">
        ${gaps ? `<span style="color:var(--lo)">ยังมีช่องว่าง ${gaps} จุด</span> — ที่ไฮไลต์แดงคือยังไม่มีข้อมูล เติมในตารางแล้วเปิดใหม่จะอัปเดตให้เอง`
               : `<span style="color:var(--hi)">ข้อมูลครบทุกช่อง</span>`}
-       ${(nMine || nLink) ? ` · <span style="color:var(--accent)">เฉพาะคนนี้: ${
-         [nMine ? `ข้อความ ${nMine} บล็อก` : "", nLink ? `ลิงก์ ${nLink} ช่อง` : ""]
+       ${(nMine || nLink || nFb) ? ` · <span style="color:var(--accent)">เฉพาะคนนี้: ${
+         [nMine ? `ข้อความ ${nMine} บล็อก` : "", nLink ? `ลิงก์ ${nLink} ช่อง` : "",
+          nFb ? `Feedback ${nFb} Draft` : ""]
          .filter(Boolean).join(" · ")}</span>` : ""}
        <br>
+       <button class="cmdbtn" id="cmdFbBtn">✎ Feedback${nFb ? ` (${nFb}/3)` : ""}</button>
        <button class="cmdbtn" id="cmdSetLinks">ลิงก์เฉพาะคนนี้</button>
        <button class="cmdbtn" id="cmdSetLinksAll">ลิงก์ที่ใช้ร่วมกัน</button>
        <button class="cmdbtn" id="cmdEditBtn">✎ แก้ข้อความ</button>
+     </div>
+     <div class="fbbox" id="fbBox" hidden>
+       <div class="fbhead">Feedback ของ <b>${esc(r.handle)}</b> — คนละชุดกับครีเอเตอร์คนอื่น
+         <span style="color:var(--dim)">วางข้อความที่แบรนด์ส่งมาได้เลย ขึ้นบรรทัดใหม่ได้</span></div>
+       ${FB_ROUNDS.map(n => `<div class="fbrow">
+         <label>Draft #${n}</label>
+         <textarea data-fb="${n}" rows="4"
+           placeholder="ฟีดแบคของ Draft ${n} — ว่างไว้ก็ได้ถ้ายังไม่ถึงรอบนี้">${
+           esc(cmdOwnRead(proj, handle).links[fbKey(n)] || "")}</textarea>
+       </div>`).join("")}
+       <div class="fbfoot">
+         <button class="cmdbtn" id="fbClear">ล้างทั้ง 3 Draft</button>
+         <span style="color:var(--dim);font-size:.74rem">บันทึกเองเมื่อคลิกออกจากช่อง</span>
+       </div>
      </div>
      <div class="cmdlist">` +
     blocks.map((b, i) => `<div class="cmdblk${b.mine ? " edited" : ""}">
@@ -3757,6 +3821,26 @@ function openCmd(proj, handle){
       setTimeout(() => { btn.textContent = "คัดลอก"; btn.classList.remove("done"); }, 1600);
     }).catch(() => { btn.textContent = "ก๊อปไม่ได้"; });
   });
+
+  // ฟีดแบค — ยาวและหลายบรรทัด ใช้ prompt() ไม่ไหว ต้องเป็นช่องพิมพ์จริง
+  $("#cmdFbBtn").onclick = () => {
+    const box = $("#fbBox");
+    box.hidden = !box.hidden;
+    $("#cmdFbBtn").classList.toggle("on", !box.hidden);
+    if (!box.hidden) box.querySelector("textarea").focus();
+  };
+  $("#fbBox").querySelectorAll("[data-fb]").forEach(ta => ta.onchange = () => {
+    setCmdOwnLink(proj, handle, fbKey(+ta.dataset.fb), ta.value.trim());
+    renderCoord();                      // จุดหน้าปุ่ม ✉ ในตารางจะได้อัปเดตตาม
+    const keep = $("#fbBox").hidden;
+    openCmd(proj, handle);
+    if (!keep) $("#cmdFbBtn").click();   // เปิดค้างไว้ให้พิมพ์ Draft ถัดไปต่อ
+  });
+  $("#fbClear").onclick = () => {
+    if (!confirm(`ล้าง Feedback ทั้ง 3 Draft ของ ${normId(handle)}?`)) return;
+    FB_ROUNDS.forEach(n => setCmdOwnLink(proj, handle, fbKey(n), ""));
+    renderCoord(); openCmd(proj, handle);
+  };
 
   // ลิงก์ของคนนี้เอง — เว้นว่าง = กลับไปใช้ตัวที่ใช้ร่วมกัน
   $("#cmdSetLinks").onclick = () => {
@@ -3951,6 +4035,7 @@ async function setView(v){
     await loadCoordData();
     renderProjTabs(); renderCoord(); fillProjSelect(); updateSyncBar();
   }
+  if (v === "coord") measureStick();
   if (v === "home") homeCounts();
 }
 
@@ -5029,6 +5114,9 @@ const CMD_LINK_RE = [
 ];
 function readCmdOps(text){
   const ops = { blocks:{}, links:{} };
+  // ฟีดแบคสั้นๆ สั่งจากช่องนี้ได้ ยาวๆ ให้ไปพิมพ์ในกล่อง ✎ Feedback
+  const mf = text.match(/(?:feedback|ฟีดแบค|ฟีดแบก)\s*(?:draft\s*)?([123])\s*[:：=]\s*([\s\S]+)$/i);
+  if (mf) ops.links[fbKey(+mf[1])] = mf[2].trim();
   const mb = text.match(/(?:command|คอมมานด์|คอมมาน|ข้อความ)\s*(?:ที่\s*)?(\d{1,2})\s*[:：=]\s*([\s\S]+)$/i);
   if (mb){
     const i = Number(mb[1]) - 1;
@@ -5272,7 +5360,9 @@ function parseAdminLine(line){
 }
 
 const CMD_LINK_TH = { cart:"ลิงก์ตะกร้า", hashtag:"Hashtag", timeline:"Timeline",
-                      form:"ฟอร์มเอกสาร", script:"ลิงก์สคริป", docs:"เอกสารร่วมงาน" };
+                      form:"ฟอร์มเอกสาร", script:"ลิงก์สคริป", docs:"เอกสารร่วมงาน",
+                      feedback1:"Feedback Draft 1", feedback2:"Feedback Draft 2",
+                      feedback3:"Feedback Draft 3" };
 // สรุปว่าคำสั่งนี้ไปแตะ Command ของคนนี้ตรงไหนบ้าง
 function cmdOpsText(o){
   return Object.keys(o.blocks).map(i =>
@@ -5403,12 +5493,25 @@ function applyQuickOrder(){
 }
 
 // ─── ช่องคำสั่ง: โตตามข้อความ + ปุ่มพับตัวช่วย ───
+// วัดความสูงจริงของหัวเว็บกับแถบคำสั่ง แล้วบอก CSS ว่าให้ติดที่ตรงไหน
+// ช่องพิมพ์โตได้ตามจำนวนบรรทัด เลขตายตัวเลยใช้ไม่ได้ หัวตารางจะโดนบัง
+function measureStick(){
+  const h = document.querySelector("header");
+  const s = document.querySelector(".cmdbar-stick");
+  if (!h || !s) return;
+  const top = Math.round(h.getBoundingClientRect().height);
+  document.documentElement.style.setProperty("--stick", top + "px");
+  document.documentElement.style.setProperty("--stick2",
+    (top + Math.round(s.getBoundingClientRect().height)) + "px");
+}
 function growCmd(){
   const t = $("#qoText");
   t.style.height = "auto";
   t.style.height = Math.min(t.scrollHeight, 210) + "px";
+  measureStick();
 }
 $("#qoText").addEventListener("input", growCmd);
+addEventListener("resize", measureStick);
 // Enter = ตรวจ, Shift+Enter = ขึ้นบรรทัดใหม่ (หลายคำสั่งพร้อมกัน)
 $("#qoText").addEventListener("keydown", e => {
   if (e.key === "Enter" && !e.shiftKey){ e.preventDefault(); $("#qoParse").click(); }
