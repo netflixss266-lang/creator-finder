@@ -1246,10 +1246,15 @@ tr.subrow td.w-status select{width:230px}
       <span style="color:var(--dim)">ตั้งได้: ตะกร้า · hashtag: · ไทม์ไลน์: · ฟอร์ม · สคริป · เอกสาร
       — ใช้กับกลุ่มรายชื่อได้เหมือนกัน · เก็บในเครื่องนี้เท่านั้น ไม่ขึ้นชีต</span></div>
 
-      <div class="helpsec"><b>เพิ่มคนใหม่พร้อมข้อมูลในบรรทัดเดียว</b><br>
+      <div class="helpsec"><b>เพิ่มคนใหม่เข้าโปรเจกต์</b> — พูดได้หลายแบบ<br>
       <code>เพิ่ม tangkwaqs เข้า RC2 KOL เรท 5000 รอ Draft 1</code><br>
-      <span style="color:var(--dim)">ใส่เรท · ภาษี · สถานะ · SKU · จำนวนคลิป · โน้ต ได้เลย
-      ไม่ต้องเพิ่มก่อนแล้วค่อยกลับมาแก้ · ไม่บอกโปรเจกต์ = ลงโปรเจกต์ที่เปิดอยู่</span></div>
+      <code>tangkwaqs เข้า RC2</code>
+      <code>ดึง tangkwaqs เข้า RC2</code>
+      <code>ลงชื่อ tangkwaqs ใน RC2</code><br>
+      <span style="color:var(--dim)">คำที่ใช้ได้: เพิ่ม · เพิ่มชื่อ · ใส่ · ใส่ชื่อ · เอา · ดึง · รับ ·
+      ลง · ลงชื่อ · บรรจุ · จอง · สร้าง · add · new · + — หรือไม่ใส่คำกริยาเลยก็ได้ถ้าบอกโปรเจกต์<br>
+      ใส่เรท · ภาษี · สถานะ · SKU · จำนวนคลิป · โน้ต มาพร้อมกันได้เลย
+      · ไม่บอกโปรเจกต์ = ลงโปรเจกต์ที่เปิดอยู่ · วางหลายคนทีเดียวใช้ปุ่ม ⇥ ด้านล่าง</span></div>
 
       <div class="helpsec"><b>สั่งงานหน้านี้ทั้งหมดจากช่องนี้</b> — ทุกคำสั่งผ่านหน้าตรวจก่อนเสมอ<br>
       <code>ลบ cenakims</code>
@@ -5502,9 +5507,14 @@ function parseQuickLine(line, extraNames){
   }
   if (moveWord && !dest) return bad("บอกว่าจะย้าย แต่ไม่เจอชื่อโปรเจกต์ปลายทางที่รู้จัก");
 
-  const changes = readChanges(line);
+  // ชื่อครีเอเตอร์มีตัวเลขได้ ("052.be", "remind555") — ต้องเอาออกก่อนอ่านค่าที่เป็นตัวเลข
+  // ไม่งั้น "เพิ่มเรท 052.be 500" จะอ่านเลขจากชื่อ แล้วบวกไป 52 แทนที่จะเป็น 500
+  let noNames = line;
+  names.forEach(n => { noNames = noNames.replace(new RegExp(esc4re(n.h), "gi"), " "); });
+
+  const changes = readChanges(noNames);
   const cmdOps = readCmdOps(line);
-  const delta = readRateDelta(line);
+  const delta = readRateDelta(noNames);
   const copy = readCopy(line);
   // บวก/ลบเรท = ตั้งค่าใหม่ไม่ได้ ต้องรอรู้ว่าเป็นแถวไหนก่อน ลบค่าที่อ่านผิดออกไปก่อน
   if (delta != null) delete changes.rate;
@@ -5674,7 +5684,7 @@ function parseCmdText(text){
     const admin = parseAdminLine(line);
     if (admin){ flushUnused(); out.push(...admin); continue; }
 
-    if (ADD_RE.test(line)){ flushUnused(); out.push(...parseAddLine(line)); continue; }
+    if (looksLikeAdd(line)){ flushUnused(); out.push(...parseAddLine(line)); continue; }
 
     const names = readNames(line);
     const ops = readCmdOps(line);
@@ -5723,10 +5733,36 @@ let QO = [];
 // ─── บรรทัดที่ขึ้นต้นว่า "เพิ่ม" = คนใหม่ ไม่ใช่การแก้ของเดิม ───
 // แยกทางกันตั้งแต่ต้นบรรทัด เพราะ parseQuickLine ตั้งใจให้ปฏิเสธชื่อที่ยังไม่มีในระบบ
 // ถ้าไม่แยก การเพิ่มคนใหม่จะโดนตอบว่า "ไม่เจอชื่อครีเอเตอร์"
-const ADD_RE = /^\s*(?:\+|เพิ่ม|add)\s+/i;
+// คำที่แปลว่า "เอาคนนี้เข้าโปรเจกต์" — ทีมพูดได้หลายแบบมาก
+// ระวัง: ใส่/เอา ใช้กับเอกสารด้วย ("ใส่ SG ให้ X <ลิงก์>") ตัวแยกอยู่ใน looksLikeAdd()
+const ADD_VERBS = "เพิ่ม|เพิ่มชื่อ|เพิ่มครีเอเตอร์|ใส่ชื่อ|ใส่|เอาเข้า|เอา|ดึง|ดึงเข้า|รับ|รับเข้า|" +
+                  "ลงชื่อ|ลง|บรรจุ|จอง|สร้าง|ขึ้นชื่อ|เปิดงานให้|new|add|insert|put|create";
+const POLITE_PRE = "(?:ฝาก|ช่วย|ขอ|รบกวน)?\\s*";
+const ADD_RE = new RegExp("^\\s*" + POLITE_PRE + "(?:\\+|(?:" + ADD_VERBS + ")(?=\\s|$))", "i");
+// "tangkwaqs เข้า RC2" — ไม่มีคำกริยานำหน้าเลย แต่ชี้ปลายทางชัด
+const INTO_RE = /(?:เข้า|ลงใน|ลง|ไปที่|ไป|into|to)\s*$|(?:เข้า|ลงใน|ลง|ไปที่|ไป|into|to)\s+/i;
+
+// บรรทัดนี้เป็นการเพิ่มคนใหม่จริงไหม — แยกจากคำสั่งแก้ของเดิมที่ใช้คำเดียวกัน
+// "ใส่ SG ให้ tangkwaqs <ลิงก์>" ขึ้นต้นด้วย "ใส่" เหมือนกัน แต่เป็นการแก้เอกสารของคนที่มีอยู่แล้ว
+function looksLikeAdd(line){
+  const known = readNames(line);
+  const ops = readCmdOps(line);
+  const hasEdit = !cmdOpsEmpty(ops) || Object.keys(readChanges(line)).length > 0 ||
+                  readRateDelta(line) != null || !!readCopy(line);
+  // เอ่ยถึงคนที่มีอยู่แล้ว และมีคำสั่งแก้อะไรสักอย่าง = ไม่ใช่การเพิ่ม
+  if (known.length && hasEdit) return false;
+  if (ADD_RE.test(line)) return true;
+  // ไม่มีคำกริยา แต่ชี้โปรเจกต์ปลายทาง และชื่อที่พูดถึงยังไม่มีในระบบ
+  if (!known.length && INTO_RE.test(line) && findProjects(line).length &&
+      !/ย้าย|move|->|→/i.test(line)) return true;
+  return false;
+}
 function parseAddLine(line){
   const bad = why => [{ line, ok:false, add:true, why, changes:{} }];
-  const rest = line.replace(ADD_RE, "");
+  // ตัดคำกริยานำหน้าออก รวมถึงคำสุภาพที่ตามมาติดๆ ("ฝากเพิ่มชื่อ ... ให้หน่อย")
+  // ต้องบังคับให้มีช่องว่างหลังคำกริยา ไม่งั้น "new" จะไปกินหัวชื่อ "newone21" เหลือ "one21"
+  const rest = line.replace(
+    new RegExp("^\\s*" + POLITE_PRE + "(?:\\+\\s*|(?:" + ADD_VERBS + ")(?:\\s+|$))", "i"), "");
 
   const projs = findProjects(rest);
   const proj = projs.length ? projs[0].proj : PROJ;
@@ -5752,7 +5788,9 @@ function parseAddLine(line){
     if (t.alias) left = left.replace(new RegExp(t.alias.source, "gi"), " ");
   });
   left = left.replace(/(?<![A-Za-z])(KOL|KOC)(?![A-Za-z])/gi, " ")
-             .replace(/\b(?:เข้า|ไป|ที่|ใน|into|to|in)\b/gi, " ")
+             // \b ใช้กับไทยไม่ได้ ต้องเทียบตรงๆ · คำเชื่อมกับคำสุภาพตัดทิ้งให้หมด
+             .replace(/เข้าไปใน|เข้าไป|เข้า|ลงใน|ลงไป|ลง|ไปที่|ไป|ที่|ใน|ให้หน่อย|ให้ที|ให้|หน่อย|ด้วย|นะ|ครับ|คะ|ค่ะ|จ้า|น้อง|พี่|คน|ชื่อ|รายชื่อ|ครีเอเตอร์|โปรเจกต์|โปรเจ็กต์|งาน|แคมเปญ/gi, " ")
+             .replace(/\b(?:into|to|in|for|the|project|campaign)\b/gi, " ")
              .replace(/https?:\/\/\S*?tiktok\.com\/@?/gi, " ");
   // ชื่อ TikTok มีตัวอักษรเสมอ — เงื่อนไขนี้กันตัวเลขล้วนที่หลุดมาจากช่องอื่น
   const ids = [...new Set(left.split(/[\s,·|]+/)
