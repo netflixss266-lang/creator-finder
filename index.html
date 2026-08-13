@@ -830,6 +830,9 @@ main{padding:22px 24px;overflow-y:auto;max-height:calc(100vh - 62px)}
   padding:8px 10px;border:1px dashed var(--line);border-radius:8px;color:var(--ink)}
 .dfield .ro small{display:block;font-family:inherit;font-weight:400;
   font-size:.7rem;color:var(--dim);margin-top:3px}
+/* NET — ยอดบริษัทจ่ายเป็นตัวหลัก ยอดที่ครีเอเตอร์ได้ห้อยไว้ข้างล่าง */
+.ctable td.mono .co{color:var(--accent);font-weight:500}
+.ctable td.mono .sub{color:var(--dim);font-size:.7rem}
 .dsect{margin-top:20px;padding-top:16px;border-top:1px solid var(--line)}
 .dsect > h3{font-size:.68rem;text-transform:uppercase;letter-spacing:.08em;
   color:var(--dim);font-weight:600;margin-bottom:11px}
@@ -1138,7 +1141,7 @@ tr.subrow td.w-status select{width:230px}
     <div class="cmdbar-in">
       <span class="cmdbar-ic">⌘</span>
       <textarea id="qoText" rows="1" spellcheck="false"
-        placeholder="สั่งงานที่นี่ — วางรายชื่อหลายคนแล้วสั่งบรรทัดสุดท้ายทีเดียวก็ได้ · «cenakims เรท 12000 ชำระ3%» · «เพิ่ม tangkwaqs เข้า RC2 KOL»"></textarea>
+        placeholder="สั่งงานทุกอย่างที่นี่ — «cenakims เรท 12000 ชำระ3%» · «เพิ่ม tangkwaqs เข้า RC2 KOL» · «ลบ xxx» · «ไปที่ RC2» · «ซิงก์» — พิมพ์ ช่วย เพื่อดูทั้งหมด"></textarea>
       <button class="run" id="qoParse">ตรวจ</button>
     </div>
     <div class="cmdbar-foot">
@@ -1165,6 +1168,25 @@ tr.subrow td.w-status select{width:230px}
       <code>tangtangnpc ตะกร้า https://… hashtag: #ad</code><br>
       <span style="color:var(--dim)">ตั้งได้: ตะกร้า · hashtag: · ไทม์ไลน์: · ฟอร์ม · สคริป · เอกสาร
       — ใช้กับกลุ่มรายชื่อได้เหมือนกัน · เก็บในเครื่องนี้เท่านั้น ไม่ขึ้นชีต</span></div>
+
+      <div class="helpsec"><b>เพิ่มคนใหม่พร้อมข้อมูลในบรรทัดเดียว</b><br>
+      <code>เพิ่ม tangkwaqs เข้า RC2 KOL เรท 5000 รอ Draft 1</code><br>
+      <span style="color:var(--dim)">ใส่เรท · ภาษี · สถานะ · SKU · จำนวนคลิป · โน้ต ได้เลย
+      ไม่ต้องเพิ่มก่อนแล้วค่อยกลับมาแก้ · ไม่บอกโปรเจกต์ = ลงโปรเจกต์ที่เปิดอยู่</span></div>
+
+      <div class="helpsec"><b>สั่งงานหน้านี้ทั้งหมดจากช่องนี้</b> — ทุกคำสั่งผ่านหน้าตรวจก่อนเสมอ<br>
+      <code>ลบ cenakims</code>
+      <code>ไปที่ RC2</code>
+      <code>ซิงก์</code>
+      <code>โหลดใหม่</code><br>
+      <code>ส่งออก</code>
+      <code>ตั้งค่า</code>
+      <code>แปลงสถานะ</code>
+      <code>ล้างตัวกรอง</code>
+      <code>ทุกคอลัมน์</code>
+      <code>ช่วย</code><br>
+      <span style="color:var(--dim)">ลบหลายคนพร้อมกันได้ · ชื่อซ้ำหลายโปรเจกต์ต้องบอกโปรเจกต์ด้วย
+      · การลบถามยืนยันอีกครั้งพร้อมรายชื่อ</span></div>
     </div>
 
     <div class="cmdbulk" id="bulkFold" hidden>
@@ -2239,6 +2261,27 @@ const PAY_CLASS = { "":"p-none", wht3:"p-wht", corp:"p-wht", pers:"p-wht",
 const payClass = id => PAY_CLASS[id || ""] || "p-none";
 
 // คืน null ถ้าคำนวณไม่ได้ ดีกว่าโชว์เลขที่ไม่มีที่มา
+// ยอดที่บริษัทจ่ายออกไปจริง — ต่างจากยอดที่ครีเอเตอร์ได้เฉพาะแบบ NET
+// NET = ครีเอเตอร์รับเต็มตามเรท ภาษี 3% เราออกให้ ต้นทุนจึงเป็น rate/0.97
+function coOf(rate, type){
+  const t = payType(type);
+  const n = Number(rate);
+  if (!t.cost || !isFinite(n) || n <= 0) return null;
+  return Math.round(t.cost(n) * 100) / 100;
+}
+const baht = v => "฿" + v.toLocaleString("en-US", { minimumFractionDigits: 2 });
+
+// ช่อง "จ่ายจริง" — แบบ NET เอายอดบริษัทจ่ายขึ้นเป็นตัวหลัก
+// เพราะเป็นเงินที่ไหลออกจากบริษัทจริง ส่วนยอดที่ครีเอเตอร์ได้ = เรทเป๊ะๆ อ่านจากช่องข้างๆ ได้อยู่แล้ว
+function payCellHTML(r){
+  const net = payOf(r.rate, r.paytype);
+  if (net == null) return `<span class="dash">-</span>`;
+  const co = coOf(r.rate, r.paytype);
+  if (co == null) return baht(net);
+  return `<span class="co" title="เงินที่บริษัทจ่ายออกจริง รวมภาษี 3% ที่เราออกให้">${baht(co)}</span>` +
+    `<br><span class="sub" title="ยอดที่ครีเอเตอร์ได้รับ">ครีเอเตอร์ได้ ${baht(net)}</span>`;
+}
+
 function payOf(rate, type){
   const t = payType(type);
   const n = Number(rate);
@@ -2713,7 +2756,7 @@ function renderDetail(){
 
   const auto = payOf(r.rate, r.paytype);
   const t = payType(r.paytype);
-  const cost = (auto != null && t.cost) ? t.cost(Number(r.rate)) : null;
+  const cost = coOf(r.rate, r.paytype);
   const clips = clipsOf(r);
   const hist = creatorHistory(r.handle);
 
@@ -2751,11 +2794,10 @@ function renderDetail(){
           `<option value="${p.id}"${p.id === (r.paytype||"") ? " selected" : ""}>${
             esc(p.label)}</option>`).join("")}</select></div>
 
-      <div class="dfield wide2"><label>จ่ายจริง — คิดให้จากเรท × รูปแบบภาษี</label>
+      <div class="dfield wide2"><label>${cost ? "บริษัทจ่ายจริง" : "จ่ายจริง"} — คิดให้จากเรท × รูปแบบภาษี</label>
         <div class="ro">${auto == null ? `<span class="dash">ยังคิดไม่ได้</span>`
-          : "฿" + auto.toLocaleString("en-US",{minimumFractionDigits:2})}${
-          cost ? `<small>บริษัทจ่ายจริงรวมภาษีที่ออกให้ ฿${
-            (Math.round(cost*100)/100).toLocaleString("en-US",{minimumFractionDigits:2})}</small>` : ""}</div></div>
+          : cost ? baht(cost) : baht(auto)}${
+          cost ? `<small>ครีเอเตอร์ได้รับ ${baht(auto)} — ภาษี 3% เราออกให้</small>` : ""}</div></div>
 
       <div class="dfield wide2"><label>SKU — ใส่ได้หลายอัน</label>
         <div class="dsku" id="dSku">${skuParts(r.sku).map(p =>
@@ -3308,16 +3350,7 @@ function coordRow(r, i){
         `<option value="${p.id}"${p.id === (r.paytype||"") ? " selected" : ""}>${
           esc(p.id ? p.label : (isKOC ? "—  (KOC ไม่คิดเงิน)" : p.label))}</option>`).join("")}</select>
     </div></td>
-    <td class="mono">${(() => {
-      const auto = payOf(r.rate, r.paytype);
-      if (auto == null) return `<span class="dash">-</span>`;
-      const t = payType(r.paytype);
-      const cost = t.cost ? t.cost(Number(r.rate)) : null;
-      return `฿${auto.toLocaleString("en-US",{minimumFractionDigits:2})}` +
-        (cost ? `<br><span style="color:var(--dim);font-size:.72rem"
-           title="ต้นทุนบริษัทรวมภาษีที่ออกให้">บริษัทจ่าย ฿${
-           (Math.round(cost*100)/100).toLocaleString("en-US",{minimumFractionDigits:2})}</span>` : "");
-    })()}</td>
+    <td class="mono">${payCellHTML(r)}</td>
     <td class="w-sku">${skuCell(r, i)}</td>
     <td class="opt"><input data-i="${i}" data-f="postdate" value="${esc(r.postdate || "")}"
         placeholder="-" style="width:100px"></td>
@@ -3769,11 +3802,11 @@ $("#cmdScrim").onclick = () => $("#cmdPanel").classList.remove("on");
 // สิ่งที่มันกันได้จริง: คนเดินมาเจอจอที่เปิดค้างไว้ / คนที่บังเอิญเจอ URL
 // สิ่งที่มันกันไม่ได้: คนที่ตั้งใจจะเอาข้อมูล — ตัวที่กันคนพวกนั้นคือชีตที่ปิด + token
 // เก็บเป็น PBKDF2 hash ไม่ใช่รหัสตัวจริง จะได้ไม่เอารหัสไปแปะไว้ให้คนอ่าน
-const GATES = {"site":{"s":"iFDWL51EFjL36dl7POx7Gg==","h":"tB2UqgIe3xcP6veZzo2kS07oXIDjFfl3iWvmEAx7Gzw="},"coord":{"s":"iK8VtLxYhuVN5UbkiqrvmA==","h":"+xxJgP79K8wq1j8dxpWTfZnnAJMpJ8I+GbE4h7bCeag="}};
+const GATES = {"site":{"s":"436z7tnu7UitzNDe6iLyoA==","h":"pKsflTxpW4Eg9aLRiyXvVBG56XutM6hzv0JLHEDJeTU="},"coord":{"s":"z3g0CKrdGkKycgtebTsEBA==","h":"7wNoJIcNNVgBaL+sPvSf1QA0rmHNtMZBg0XDLXQ8wTs="}};
 const GATE_ITER = 250000;
 const GATE_LABEL = { site: ["ใส่รหัสเพื่อเข้าใช้งาน", "Creator Finder — เครื่องมือภายในทีม"],
-                     coord: ["หน้า Coordinator", "ในนี้มีเรทและเงื่อนไขการจ่ายของครีเอเตอร์ ใช้รหัสคนละตัวกับหน้าแรก"] };
-const GATE_PIN = { site: 6 };     // ประตูไหนใช้ช่องตัวเลขแยกช่อง และกี่หลัก
+                     coord: ["หน้า Coordinator", "ใส่รหัส 6 หลักของหน้านี้ — คนละตัวกับรหัสเข้าเว็บ"] };
+const GATE_PIN = { site: 6, coord: 6 };   // ประตูไหนใช้ช่องตัวเลขแยกช่อง และกี่หลัก
 
 const b64 = s => Uint8Array.from(atob(s), c => c.charCodeAt(0));
 
@@ -4803,10 +4836,14 @@ function blankRow(id, proj, kind){
     sku:"", postdate:"", deadline:"", brief:"", note:"", rate_all:[] };
 }
 
-function addToProject(id, proj, kind){
-  (COORD[proj] = COORD[proj] || []).push(blankRow(id, proj, kind));
+function addToProject(id, proj, kind, changes){
+  const row = blankRow(id, proj, kind);
+  (COORD[proj] = COORD[proj] || []).push(row);
   NEWROWS.push({ project: proj, handle: id });
   saveNewRows(); markDirty();
+  // ใส่ข้อมูลที่มากับคำสั่งเดียวกันได้เลย ไม่ต้องเพิ่มก่อนแล้วค่อยกลับมาแก้
+  if (changes) for (const f in changes) setField(row, f, changes[f]);
+  return row;
 }
 
 // ─── วางหลายคนจากชีต ───
@@ -5084,6 +5121,9 @@ function parseCmdText(text){
     const line = raw.trim();
     if (!line){ flushUnused(); continue; }
 
+    const admin = parseAdminLine(line);
+    if (admin){ flushUnused(); out.push(...admin); continue; }
+
     if (ADD_RE.test(line)){ flushUnused(); out.push(...parseAddLine(line)); continue; }
 
     const names = readNames(line);
@@ -5140,15 +5180,31 @@ function parseAddLine(line){
   const km = rest.match(/(?<![A-Za-z])(KOL|KOC)(?![A-Za-z])/i);
   const kind = km ? km[1].toUpperCase() : "";
 
-  // ตัดคำที่เป็นโปรเจกต์/กลุ่ม/คำเชื่อมออกก่อน ที่เหลือคือชื่อคน
+  // ใส่ข้อมูลอื่นมาพร้อมกันได้เลย ไม่ต้องเพิ่มก่อนแล้วค่อยกลับมาแก้อีกรอบ
+  const changes = readChanges(rest);
+  delete changes.kind;                       // กลุ่มอ่านแยกไว้แล้วข้างบน
+
+  // ตัดทุกอย่างที่อ่านออกแล้วทิ้ง เหลือไว้แต่ชื่อคน
+  // ไม่งั้นเลขอย่าง "เรท 5000" จะถูกนับเป็นชื่อครีเอเตอร์
   let left = rest;
   projs.forEach(p => { left = left.slice(0, p.at) + " ".repeat(p.len) + left.slice(p.at + p.len); });
+  QO_FIELDS.forEach(spec => { left = left.replace(spec.re, " "); });
+  STAGES.forEach(s => {
+    left = left.replace(new RegExp(esc4re(s.v), "gi"), " ");
+    if (s.a) left = left.replace(new RegExp(s.a.source, "gi"), " ");
+  });
+  PAYTYPES.forEach(t => {
+    if (!t.id) return;
+    left = left.split(t.label).join(" ");
+    if (t.alias) left = left.replace(new RegExp(t.alias.source, "gi"), " ");
+  });
   left = left.replace(/(?<![A-Za-z])(KOL|KOC)(?![A-Za-z])/gi, " ")
              .replace(/\b(?:เข้า|ไป|ที่|ใน|into|to|in)\b/gi, " ")
              .replace(/https?:\/\/\S*?tiktok\.com\/@?/gi, " ");
+  // ชื่อ TikTok มีตัวอักษรเสมอ — เงื่อนไขนี้กันตัวเลขล้วนที่หลุดมาจากช่องอื่น
   const ids = [...new Set(left.split(/[\s,·|]+/)
     .map(s => normId(s.replace(/[^\w.@_-]+$/g, "")))
-    .filter(s => s && /[a-z0-9]/i.test(s) && s.length > 1))];
+    .filter(s => s && /[a-z]/i.test(s) && s.length > 1))];
 
   if (!ids.length) return bad("อ่านชื่อครีเอเตอร์ในบรรทัดนี้ไม่ออก");
   if (!projs.length && !PROJ) return bad("ไม่รู้ว่าจะเพิ่มเข้าโปรเจกต์ไหน");
@@ -5156,7 +5212,63 @@ function parseAddLine(line){
   return ids.map(id =>
     (COORD[proj] || []).some(r => normId(r.handle) === id)
       ? { line, ok:false, add:true, why:`${id} อยู่ใน ${proj} อยู่แล้ว`, changes:{} }
-      : { line, ok:true, add:true, id, proj, kind, changes:{} });
+      : { line, ok:true, add:true, id, proj, kind, changes });
+}
+
+// ─── คำสั่งระดับแอดมิน ───
+// ช่องนี้เป็นทางเดียวที่ใช้สั่งงานทุกอย่างในหน้านี้ ไม่ต้องไล่หาปุ่ม
+// ทุกคำสั่งผ่านหน้าตรวจก่อนเสมอ ไม่มีอะไรทำงานทันทีที่พิมพ์
+const ADMIN_CMDS = [
+  { k:"del",    re:/^(?:ลบ|delete|del|remove)\s+(.+)$/i,           label:"ลบออกจากโปรเจกต์" },
+  { k:"goto",   re:/^(?:ไปที่|ไป|เปิด|go|open)\s+(.+)$/i,           label:"เปิดโปรเจกต์" },
+  { k:"sync",   re:/^(?:ซิงก์|ซิงค์|sync)$/i,                       label:"ส่งขึ้นชีตเดี๋ยวนี้" },
+  { k:"reload", re:/^(?:โหลดใหม่|โหลด|reload|refresh)$/i,           label:"โหลดจากชีตใหม่ (ทิ้งที่ยังไม่ซิงก์)" },
+  { k:"export", re:/^(?:ส่งออก|export)$/i,                          label:"ดาวน์โหลด CSV ของโปรเจกต์นี้" },
+  { k:"setting",re:/^(?:ตั้งค่า|settings?)$/i,                      label:"เปิดหน้าตั้งค่า" },
+  { k:"migrate",re:/^(?:แปลงสถานะ|migrate)$/i,                      label:"แปลงสถานะชุดเก่าเป็นชุดใหม่" },
+  { k:"filter", re:/^(?:ล้างตัวกรอง|clear\s*filters?)$/i,           label:"ล้างตัวกรองหัวตาราง" },
+  { k:"cols",   re:/^(?:ทุกคอลัมน์|คอลัมน์หลัก|columns?)$/i,        label:"สลับโหมดคอลัมน์" },
+  { k:"help",   re:/^(?:ช่วย|help|\?)$/i,                           label:"เปิดคู่มือคำสั่ง" },
+];
+
+function parseAdminLine(line){
+  for (const c of ADMIN_CMDS){
+    const m = line.match(c.re);
+    if (!m) continue;
+    const arg = (m[1] || "").trim();
+
+    if (c.k === "del"){
+      const names = readNames(arg);
+      if (!names.length) return [{ line, ok:false, changes:{},
+        why:`ไม่เจอชื่อครีเอเตอร์ที่มีอยู่จริงหลังคำว่าลบ` }];
+      const wantProj = (findProjects(line)[0] || {}).proj || null;
+      return names.map(n => {
+        let hit = n.entries;
+        if (wantProj) hit = hit.filter(e => e.proj === wantProj);
+        if (!hit.length) return { line, ok:false, changes:{}, why:`${n.h} ไม่อยู่ใน ${wantProj}` };
+        if (hit.length > 1) return { line, ok:false, changes:{},
+          why:`${n.h} อยู่ใน ${hit.map(e => e.proj).join(" และ ")} — ระบุโปรเจกต์ด้วย` };
+        return { line, ok:true, admin:"del", id:n.h, proj:hit[0].proj, row:hit[0].row,
+                 changes:{}, note:c.label };
+      });
+    }
+
+    if (c.k === "goto"){
+      const p = (findProjects(arg)[0] || {}).proj || matchProject(arg);
+      if (!p) return [{ line, ok:false, changes:{}, why:`ไม่รู้จักโปรเจกต์ "${arg}"` }];
+      return [{ line, ok:true, admin:"goto", proj:p, changes:{}, note:c.label }];
+    }
+
+    if (c.k === "migrate"){
+      const n = PROJECTS.reduce((s, p) => s + (COORD[p] || [])
+        .filter(r => STATUS_MIGRATE[r.status]).length, 0);
+      if (!n) return [{ line, ok:false, changes:{}, why:"ไม่มีแถวไหนใช้สถานะชุดเก่าแล้ว" }];
+      return [{ line, ok:true, admin:"migrate", changes:{}, note:`${c.label} (${n} แถว)` }];
+    }
+
+    return [{ line, ok:true, admin:c.k, changes:{}, note:c.label }];
+  }
+  return null;
 }
 
 const CMD_LINK_TH = { cart:"ลิงก์ตะกร้า", hashtag:"Hashtag", timeline:"Timeline",
@@ -5176,12 +5288,20 @@ $("#qoParse").onclick = () => {
   $("#qoPreview").innerHTML = QO.map(q => !q.ok
     ? `<div class="qorow"><span class="no">✕</span><div>${esc(q.line)}<br>
         <span class="no">${esc(q.why)}</span></div></div>`
+    : q.admin
+    ? `<div class="qorow"><span class="ok">⚙</span><div><b>${esc(q.note)}</b>${
+        q.id ? ` — <b style="color:var(--lo)">${esc(q.id)}</b>
+          <span style="color:var(--dim)">${esc(q.proj)}</span>` :
+        q.proj ? ` — <b style="color:var(--accent)">${esc(q.proj)}</b>` : ""}</div></div>`
     : q.add
     ? `<div class="qorow"><span class="ok">✓</span><div><b>${esc(q.id)}</b>
-        <span style="color:var(--dim)">คนใหม่</span><br>
-        เข้า <b style="color:var(--accent)">${esc(q.proj)}</b>${
-        q.kind ? ` · กลุ่ม <b>${esc(q.kind)}</b>` : ""}
-        <span style="color:var(--dim)"> — ข้อมูลอื่นเว้นไว้</span></div></div>`
+        <span style="color:var(--dim)">คนใหม่</span><br>${
+        [`เข้า <b style="color:var(--accent)">${esc(q.proj)}</b>`]
+        .concat(q.kind ? [`กลุ่ม <b>${esc(q.kind)}</b>`] : [])
+        .concat(Object.entries(q.changes).map(([k, v]) =>
+          `${esc(QO_LABEL[k] || k)}: <b>${esc(k === "paytype" ? payType(v).label : v)}</b>`))
+        .join(" · ")}${Object.keys(q.changes).length ? ""
+          : `<span style="color:var(--dim)"> — ข้อมูลอื่นเว้นไว้</span>`}</div></div>`
     : `<div class="qorow"><span class="ok">✓</span><div><b>${esc(q.id)}</b>
         <span style="color:var(--dim)">${esc(q.proj)}</span><br>${
         (q.moveTo ? [`<b style="color:var(--accent)">ย้ายไป ${esc(q.moveTo)}</b>`] : [])
@@ -5197,13 +5317,13 @@ $("#qoParse").onclick = () => {
 };
 
 function applyQuickOrder(){
-  let n = 0, moved = 0, added = 0, cmds = 0;
+  let n = 0, moved = 0, added = 0, cmds = 0, acts = 0, deleted = 0;
   loadCmdOwn();
   QO.filter(q => q.ok && q.add).forEach(q => {
-    addToProject(q.id, q.proj, q.kind);
+    addToProject(q.id, q.proj, q.kind, q.changes);
     added++;
   });
-  QO.filter(q => q.ok && !q.add).forEach(q => {
+  QO.filter(q => q.ok && !q.add && !q.admin).forEach(q => {
     const oldKey = ekey(q.row);
     Object.assign(q.row, q.changes);
     if ("rate" in q.changes) q.row.rate_all = [];
@@ -5229,18 +5349,57 @@ function applyQuickOrder(){
     }
     if (Object.keys(q.changes).length || q.moveTo) n++;
   });
+
+  // ── คำสั่งแอดมิน ── ทำหลังแก้แถวเสร็จ เพราะบางตัว (ซิงก์/โหลดใหม่) กินของที่เพิ่งแก้
+  const admins = QO.filter(q => q.ok && q.admin);
+  const dels = admins.filter(q => q.admin === "del");
+  if (dels.length){
+    const names = dels.map(q => `${q.id} (${q.proj})`).join("\n");
+    if (confirm(`ลบ ${dels.length} คนออกจากโปรเจกต์?\n\n${names}\n\nจะหายจากชีตด้วยตอนซิงก์รอบถัดไป`)){
+      dels.forEach(q => {
+        const list = COORD[q.proj] || [], at = list.indexOf(q.row);
+        if (at >= 0) list.splice(at, 1);
+        delete EDITS[ekey(q.row)];
+        deleted++;
+      });
+      saveEdits(); markDirty();
+    }
+  }
+
+  let after = null;
+  admins.filter(q => q.admin !== "del").forEach(q => {
+    acts++;
+    switch (q.admin){
+      case "goto":    PROJ = q.proj; break;
+      case "migrate": after = migrateStatuses; break;
+      case "filter":  COLFILTER = {}; break;
+      case "cols":    LEAN = !LEAN;
+        try { localStorage.setItem(LS_LEAN, LEAN ? "1" : "0"); } catch(e){} break;
+      case "setting": after = openSettings; break;
+      case "export":  after = () => $("#coordExport").click(); break;
+      case "reload":  after = () => $("#coordReload").click(); break;
+      case "sync":    after = () => syncCoord(true); break;
+      case "help":    after = () => { $("#cmdHelp").hidden = false;
+                                      $("#cmdHelpBtn").classList.add("on"); }; break;
+    }
+  });
+
   saveEdits(); markDirty(); renderProjTabs(); renderCoord(); fillProjSelect();
   $("#qoText").value = ""; growCmd(); $("#qoPreview").innerHTML = ""; QO = [];
   const msg = $("#qoMsg");
   msg.className = "addmsg on ok";
-  msg.innerHTML = [
+  const parts = [
     added ? `เพิ่มคนใหม่ <b>${added}</b> คน` : "",
     n ? `แก้แล้ว <b>${n}</b> รายการ` : "",
     moved ? `ย้ายข้ามโปรเจกต์ <b>${moved}</b> คน` : "",
+    deleted ? `ลบ <b>${deleted}</b> คน` : "",
     cmds ? `ตั้ง Command เฉพาะราย <b>${cmds}</b> คน` : "",
-  ].filter(Boolean).join(" · ") +
-  (n || added || moved ? ` — จะขึ้นชีตในรอบซิงก์ถัดไป` : "") +
-  (cmds ? `<br><span style="color:var(--dim)">Command เก็บในเครื่องนี้เท่านั้น ไม่ได้ขึ้นชีต</span>` : "");
+    acts ? `สั่งงาน <b>${acts}</b> อย่าง` : "",
+  ].filter(Boolean);
+  msg.innerHTML = (parts.length ? parts.join(" · ") : "ไม่มีอะไรเปลี่ยน") +
+    (n || added || moved || deleted ? ` — จะขึ้นชีตในรอบซิงก์ถัดไป` : "") +
+    (cmds ? `<br><span style="color:var(--dim)">Command เก็บในเครื่องนี้เท่านั้น ไม่ได้ขึ้นชีต</span>` : "");
+  if (after) after();
 }
 
 // ─── ช่องคำสั่ง: โตตามข้อความ + ปุ่มพับตัวช่วย ───
