@@ -276,6 +276,10 @@ body:not([data-view="coord"]) #gearBtn{display:none}
 .qorow:last-child{border-bottom:0}
 .qorow .ok{color:var(--hi)}
 .qorow .no{color:var(--lo)}
+/* บอกว่าบรรทัดนี้ AI เป็นคนอ่าน ไม่ใช่กฎ — จะได้ตรวจตาก่อนกดใช้ */
+.aitag{display:inline-block;margin-left:7px;padding:1px 6px;border-radius:4px;
+  font-size:.64rem;font-weight:700;letter-spacing:.06em;vertical-align:middle;
+  color:var(--info);border:1px solid rgba(var(--info-rgb),.45);background:rgba(var(--info-rgb),.12)}
 
 .ctable{width:100%;border-collapse:collapse;font-size:.82rem}
 /* หัวตารางตั้งให้ติดใต้แถบคำสั่ง ไม่ใช่ติดขอบจอ
@@ -1447,6 +1451,37 @@ tr.subrow td.w-status select{width:230px}
       </div>
       <button class="run" id="hookTest">บันทึกแล้วทดสอบ</button>
       <div class="addmsg" id="hookMsg"></div>
+    </details>
+
+    <details class="sect">
+      <summary><h3>AI ช่วยอ่านคำสั่ง</h3></summary>
+      <p class="sect-sub">
+        ปกติช่องคำสั่งอ่านด้วยกฎในเบราว์เซอร์ ฟรีและทันที — เปิดอันนี้แล้ว
+        <b>เฉพาะบรรทัดที่กฎอ่านไม่ออก</b> จะถูกส่งไปให้ Claude ช่วยตีความ
+        บรรทัดที่อ่านออกอยู่แล้วไม่ถูกส่ง ไม่เสียเงิน
+      </p>
+      <label class="chk"><input type="checkbox" id="aiOn">
+        <span><b style="color:var(--accent)">เปิดใช้ AI ช่วยอ่าน</b> —
+        ผลที่ได้ยังต้องผ่านหน้าตรวจก่อนเสมอ ไม่มีอะไรถูกแก้เอง</span></label>
+      <div class="field" style="margin-top:13px">
+        <label>Anthropic API Key</label>
+        <input id="aiKey" type="password" placeholder="sk-ant-..."
+               autocomplete="off" spellcheck="false">
+        <div class="hint">
+          <b style="color:var(--lo)">คีย์นี้เรียกเก็บเงินจากบัญชีคุณ</b> —
+          ใครได้ไปก็ใช้ยิงเงินคุณได้ ออกคีย์แยกสำหรับงานนี้แล้วตั้งลิมิตไว้จะปลอดภัยกว่า
+        </div>
+        <label class="chk"><input type="checkbox" id="aiKeep">
+          จำคีย์ไว้ในเบราว์เซอร์เครื่องนี้ — <b>ไม่ติ๊ก = ปิดแท็บแล้วต้องใส่ใหม่</b></label>
+        <div class="hint" style="margin-top:9px">
+          <b>สิ่งที่ถูกส่งออกไป:</b> ข้อความในบรรทัดนั้น + รายชื่อครีเอเตอร์ในระบบ
+          + รายชื่อโปรเจกต์/สถานะ/รูปแบบภาษี เพื่อให้ตอบเป็นค่าที่ใช้ได้จริง<br>
+          <span style="color:var(--dim)">เรท ยอดจ่าย และข้อมูลแถวอื่นไม่ถูกส่ง
+          · ส่งไปที่ api.anthropic.com โดยตรงจากเบราว์เซอร์ ไม่ผ่านเซิร์ฟเวอร์ของเรา</span>
+        </div>
+      </div>
+      <button class="run" id="aiTest">บันทึกแล้วทดสอบ</button>
+      <div class="addmsg" id="aiMsg"></div>
     </details>
 
     <details class="sect">
@@ -5434,11 +5469,30 @@ function cmdOpsText(o){
     .join(" · ");
 }
 
-$("#qoParse").onclick = () => {
+$("#qoParse").onclick = async () => {
   QO = parseCmdText($("#qoText").value);
+
+  // กฎอ่านไม่ออกบางบรรทัด และเปิด AI ไว้ → ส่งเฉพาะบรรทัดพวกนั้นไปให้ช่วยอ่าน
+  // บรรทัดที่อ่านออกแล้วไม่ถูกส่ง ไม่มีค่าใช้จ่ายถ้ากฎเอาอยู่
+  const stuck = [...new Set(QO.filter(q => !q.ok && q.line).map(q => q.line))];
+  if (aiReady() && stuck.length){
+    const btn = $("#qoParse");
+    btn.disabled = true; btn.textContent = "AI อ่าน...";
+    try {
+      const fixed = aiToQO(await aiParse(stuck), stuck);
+      // เอาผลของ AI ไปแทนบรรทัดที่กฎอ่านไม่ออก บรรทัดที่กฎอ่านออกแล้วไม่แตะ
+      const touched = new Set(fixed.map(f => f.line));
+      QO = QO.filter(q => q.ok || !touched.has(q.line)).concat(fixed);
+    } catch(e){
+      QO.push({ line:"", ok:false, changes:{}, why:`เรียก AI ไม่สำเร็จ: ${e.message}` });
+    }
+    btn.disabled = false; btn.textContent = "ตรวจ";
+  }
+
   const good = QO.filter(q => q.ok);
+  const tag = q => q.ai ? `<span class="aitag" title="อ่านโดย AI ไม่ใช่กฎในเบราว์เซอร์">AI</span>` : "";
   $("#qoPreview").innerHTML = QO.map(q => !q.ok
-    ? `<div class="qorow"><span class="no">✕</span><div>${esc(q.line)}<br>
+    ? `<div class="qorow"><span class="no">✕</span><div>${esc(q.line)}${tag(q)}<br>
         <span class="no">${esc(q.why)}</span></div></div>`
     : q.admin
     ? `<div class="qorow"><span class="ok">⚙</span><div><b>${esc(q.note)}</b>${
@@ -5446,7 +5500,7 @@ $("#qoParse").onclick = () => {
           <span style="color:var(--dim)">${esc(q.proj)}</span>` :
         q.proj ? ` — <b style="color:var(--accent)">${esc(q.proj)}</b>` : ""}</div></div>`
     : q.add
-    ? `<div class="qorow"><span class="ok">✓</span><div><b>${esc(q.id)}</b>
+    ? `<div class="qorow"><span class="ok">✓</span><div><b>${esc(q.id)}</b>${tag(q)}
         <span style="color:var(--dim)">คนใหม่</span><br>${
         [`เข้า <b style="color:var(--accent)">${esc(q.proj)}</b>`]
         .concat(q.kind ? [`กลุ่ม <b>${esc(q.kind)}</b>`] : [])
@@ -5454,7 +5508,7 @@ $("#qoParse").onclick = () => {
           `${esc(QO_LABEL[k] || k)}: <b>${esc(k === "paytype" ? payType(v).label : v)}</b>`))
         .join(" · ")}${Object.keys(q.changes).length ? ""
           : `<span style="color:var(--dim)"> — ข้อมูลอื่นเว้นไว้</span>`}</div></div>`
-    : `<div class="qorow"><span class="ok">✓</span><div><b>${esc(q.id)}</b>
+    : `<div class="qorow"><span class="ok">✓</span><div><b>${esc(q.id)}</b>${tag(q)}
         <span style="color:var(--dim)">${esc(q.proj)}</span><br>${
         (q.moveTo ? [`<b style="color:var(--accent)">ย้ายไป ${esc(q.moveTo)}</b>`] : [])
         .concat(Object.entries(q.changes).map(([k, v]) =>
@@ -5565,6 +5619,206 @@ function applyQuickOrder(){
   if (after) after();
 }
 
+// ═══ AI ช่วยอ่านคำสั่ง ═══
+// ใช้เป็นตัวสำรอง ไม่ใช่ตัวหลัก — กฎในเบราว์เซอร์อ่านก่อนเสมอ ฟรีและทันที
+// เหลือเฉพาะบรรทัดที่อ่านไม่ออกถึงจะส่งออกไป ปกติแล้วคือไม่ส่งเลย
+// ที่ AI ตอบกลับมาถือเป็นข้อมูลจากภายนอก ต้องตรวจทุกค่าก่อนใช้ ไม่เชื่อรูปแบบที่ส่งมา
+const LS_AI = "cf_ai_v1";
+const SS_AIKEY = "cf_ai_key";
+let AI = { on: false, key: "" };
+
+function loadAI(){
+  let saved = {};
+  try { saved = JSON.parse(localStorage.getItem(LS_AI) || "{}") || {}; } catch(e){}
+  let sess = "";
+  try { sess = sessionStorage.getItem(SS_AIKEY) || ""; } catch(e){}
+  AI.on = !!saved.on;
+  AI.key = saved.key || sess || "";
+  $("#aiOn").checked = AI.on;
+  $("#aiKey").value = AI.key;
+  $("#aiKeep").checked = !!saved.key;
+}
+function saveAI(){
+  AI.on = $("#aiOn").checked;
+  AI.key = $("#aiKey").value.trim();
+  const keep = $("#aiKeep").checked;
+  try {
+    localStorage.setItem(LS_AI, JSON.stringify(keep ? { on: AI.on, key: AI.key } : { on: AI.on }));
+    if (keep) sessionStorage.removeItem(SS_AIKEY);
+    else if (AI.key) sessionStorage.setItem(SS_AIKEY, AI.key);
+  } catch(e){}
+}
+const aiReady = () => AI.on && !!AI.key;
+
+function setAiMsg(t, k){ const e = $("#aiMsg"); e.className = "addmsg on " + k; e.innerHTML = t; }
+["aiOn","aiKey","aiKeep"].forEach(id => $("#"+id).addEventListener("change", saveAI));
+
+// รายชื่อที่ AI ตอบกลับได้ — นอกลิสต์นี้ถือว่าไม่ถูกต้อง ตัดทิ้ง
+const AI_FIELDS = ["rate","videos","status","paytype","kind","sku","code",
+                   "note","postdate","deadline","brief"];
+const AI_LINKS = ["hashtag","cart","timeline","form","script","docs",
+                  "feedback1","feedback2","feedback3"];
+
+function aiPrompt(lines){
+  const handles = [...handleIndex().keys()].slice(0, 250);
+  return `คุณเป็นตัวแปลคำสั่งของทีมคุมงาน KOL ภาษาไทย แปลงประโยคเป็น JSON
+
+ครีเอเตอร์ที่มีอยู่จริง (ชื่อต้องตรงจากลิสต์นี้เท่านั้น):
+${handles.join(", ")}
+
+โปรเจกต์: ${PROJECTS.join(" | ")}
+สถานะที่ใช้ได้: ${STAGES.map(s => s.v).join(" | ")}
+รูปแบบภาษี (ใช้ค่า id): ${PAYTYPES.filter(p => p.id).map(p => p.id + "=" + p.label).join(" | ")}
+โปรเจกต์ที่เปิดอยู่ตอนนี้: ${PROJ}
+
+ช่องข้อมูลที่แก้ได้: ${AI_FIELDS.join(", ")}
+ช่องของ Command: ${AI_LINKS.join(", ")}
+
+ตอบเป็น JSON array อย่างเดียว ห้ามมีข้อความอื่น บรรทัดละ 1 อ็อบเจกต์:
+[{"i":0,"handles":["ชื่อ"],"project":null,"add":false,"moveTo":null,
+  "set":{},"links":{},"why":""}]
+
+กติกา:
+- i = ลำดับบรรทัด (เริ่ม 0)
+- handles = ชื่อที่ถูกพูดถึง ต้องมาจากลิสต์ข้างบนเป๊ะๆ ถ้าเป็นการเพิ่มคนใหม่ให้ add=true แล้วใส่ชื่อใหม่ได้
+- project = โปรเจกต์ที่ระบุในประโยค ถ้าไม่ได้ระบุใส่ null
+- moveTo = โปรเจกต์ปลายทางถ้าเป็นการย้าย ไม่ใช่ก็ null
+- set = ค่าที่จะเปลี่ยน ใช้ชื่อช่องตามที่ให้ไว้ ตัวเลขเป็น number
+- links = ค่าของ Command เช่น hashtag, ตะกร้า, ฟีดแบค
+- ถ้าอ่านไม่ออกจริงๆ ให้ handles เป็น [] แล้วเขียนเหตุผลสั้นๆ ใน why
+- อย่าเดาค่าที่ไม่ได้อยู่ในประโยค ช่องไหนไม่ได้พูดถึงก็ไม่ต้องใส่
+
+บรรทัด:
+${lines.map((l, i) => `${i}. ${l}`).join("\n")}`;
+}
+
+async function aiParse(lines){
+  const r = await fetch("https://api.anthropic.com/v1/messages", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "x-api-key": AI.key,
+      "anthropic-version": "2023-06-01",
+      "anthropic-dangerous-direct-browser-access": "true",
+    },
+    body: JSON.stringify({
+      model: "claude-haiku-4-5-20251001",
+      max_tokens: 2000,
+      messages: [{ role: "user", content: aiPrompt(lines) }],
+    }),
+  });
+  if (!r.ok){
+    const detail = await r.text().catch(() => "");
+    throw new Error(`API ${r.status}` + (r.status === 401 ? " — คีย์ไม่ถูกต้อง"
+      : r.status === 429 ? " — เรียกถี่เกินไป รอสักครู่"
+      : detail ? " — " + detail.slice(0, 120) : ""));
+  }
+  const data = await r.json();
+  const block = (data.content || []).find(b => b.type === "text");
+  if (!block) throw new Error("ไม่ได้คำตอบเป็นข้อความ");
+  let out;
+  try { out = JSON.parse(block.text.trim().replace(/^```json|^```|```$/gm, "").trim()); }
+  catch(e){ throw new Error("ตอบกลับมาไม่ใช่ JSON"); }
+  if (!Array.isArray(out)) throw new Error("ตอบกลับมาไม่ใช่ array");
+  return out;
+}
+
+// แปลงคำตอบของ AI เป็นรายการแบบเดียวกับที่กฎปกติสร้าง แล้วตรวจทุกค่า
+// ค่าไหนไม่อยู่ในลิสต์ที่อนุญาต ตัดทิ้งเงียบๆ ดีกว่าปล่อยให้ไปเขียนทับข้อมูลจริง
+function aiToQO(raw, lines){
+  const idx = handleIndex();
+  const stageSet = new Set(STAGES.map(s => s.v));
+  const paySet = new Set(PAYTYPES.filter(p => p.id).map(p => p.id));
+  const res = [];
+
+  raw.forEach(o => {
+    const line = lines[o && o.i] != null ? lines[o.i] : (lines[0] || "");
+    const why = String((o && o.why) || "").slice(0, 160);
+    const names = Array.isArray(o && o.handles) ? o.handles.map(normId).filter(Boolean) : [];
+    if (!names.length)
+      return res.push({ line, ok:false, ai:true, changes:{},
+        why: why || "AI ก็อ่านไม่ออกว่าจะให้แก้อะไร" });
+
+    const proj = PROJECTS.includes(o.project) ? o.project : null;
+    const moveTo = PROJECTS.includes(o.moveTo) ? o.moveTo : null;
+
+    const set = {}, src = (o && o.set) || {};
+    AI_FIELDS.forEach(f => {
+      if (!(f in src) || src[f] == null || src[f] === "") return;
+      const v = src[f];
+      if (f === "rate" || f === "videos"){
+        const n = Number(String(v).replace(/,/g, ""));
+        if (isFinite(n) && n >= 0) set[f] = n;
+      } else if (f === "status"){ if (stageSet.has(v)) set[f] = v; }
+      else if (f === "paytype"){ if (paySet.has(v)) set[f] = v; }
+      else if (f === "kind"){ const k = String(v).toUpperCase();
+        if (k === "KOL" || k === "KOC") set[f] = k; }
+      else set[f] = String(v).slice(0, 500);
+    });
+
+    const links = {}, ls = (o && o.links) || {};
+    AI_LINKS.forEach(k => {
+      if (!(k in ls) || ls[k] == null || ls[k] === "") return;
+      const v = String(ls[k]).slice(0, 2000);
+      // ช่องที่ควรเป็นลิงก์ ต้องเป็นลิงก์จริง ไม่ใช่คำบรรยาย
+      if (["cart","form","script","docs"].includes(k) && !safeLinkUrl(v)) return;
+      links[k] = v;
+    });
+
+    const cmd = Object.keys(links).length ? { blocks:{}, links } : null;
+    if (!Object.keys(set).length && !moveTo && !cmd && !o.add)
+      return res.push({ line, ok:false, ai:true, changes:{},
+        why: why || "AI อ่านชื่อได้แต่ไม่เจอว่าจะให้เปลี่ยนอะไร" });
+
+    names.forEach(h => {
+      // เพิ่มคนใหม่ — ชื่อต้องยังไม่มีในโปรเจกต์นั้น
+      if (o.add && !idx.has(h)){
+        const p = proj || PROJ;
+        if ((COORD[p] || []).some(r => normId(r.handle) === h))
+          return res.push({ line, ok:false, ai:true, changes:{}, why:`${h} อยู่ใน ${p} อยู่แล้ว` });
+        return res.push({ line, ok:true, ai:true, add:true, id:h, proj:p,
+          kind:set.kind || "", changes: Object.assign({}, set, { kind: undefined }) });
+      }
+      let hit = idx.get(h) || [];
+      if (proj) hit = hit.filter(e => e.proj === proj);
+      if (!hit.length)
+        return res.push({ line, ok:false, ai:true, changes:{},
+          why:`ไม่เจอ ${h}${proj ? " ใน " + proj : ""} ในระบบ` });
+      if (hit.length > 1)
+        return res.push({ line, ok:false, ai:true, changes:{},
+          why:`${h} อยู่ใน ${hit.map(e => e.proj).join(" และ ")} — ระบุโปรเจกต์ด้วย` });
+      const { proj: p, row } = hit[0];
+      const ch = Object.assign({}, set);
+      delete ch.kind;
+      if (set.kind && set.kind !== (row.kind || "").toUpperCase()) ch.kind = set.kind;
+      if ("rate" in ch) ch.net3 = payOf(ch.rate, ch.paytype ?? row.paytype);
+      res.push({ line, ok:true, ai:true, id:h, proj:p, row, changes:ch,
+                 moveTo: moveTo && moveTo !== p ? moveTo : undefined, cmd });
+    });
+  });
+  return res;
+}
+
+$("#aiTest").onclick = async () => {
+  saveAI();
+  if (!AI.key) return setAiMsg("ใส่ API key ก่อน", "err");
+  if (!AI.on) return setAiMsg("ติ๊ก “เปิดใช้ AI ช่วยอ่าน” ด้วย ไม่งั้นจะไม่ถูกเรียกใช้", "err");
+  setAiMsg("กำลังทดสอบ...", "busy");
+  const who = [...handleIndex().keys()][0];
+  if (!who) return setAiMsg("ยังไม่มีครีเอเตอร์ในระบบให้ลอง — โหลดข้อมูลก่อน", "err");
+  try {
+    const got = aiToQO(await aiParse([`${who} เปลี่ยนเรทเป็นหนึ่งหมื่นสองพัน`]),
+                       [`${who} เปลี่ยนเรทเป็นหนึ่งหมื่นสองพัน`]);
+    const hit = got.find(g => g.ok);
+    setAiMsg(hit
+      ? `ใช้ได้ — ลองสั่ง “เปลี่ยนเรทเป็นหนึ่งหมื่นสองพัน” แล้วอ่านออกเป็น
+         <b>เรท ${hit.changes.rate != null ? Number(hit.changes.rate).toLocaleString("en-US") : "?"}</b>
+         (ยังไม่ได้แก้อะไรจริง อันนี้แค่ทดสอบ)`
+      : `ต่อ API ได้ แต่ตีความประโยคทดสอบไม่ออก: ${esc((got[0] || {}).why || "")}`,
+      hit ? "ok" : "busy");
+  } catch(e){ setAiMsg("เรียกไม่สำเร็จ: " + esc(e.message), "err"); }
+};
+
 // ─── ช่องคำสั่ง: โตตามข้อความ + ปุ่มพับตัวช่วย ───
 // วัดความสูงจริงของหัวเว็บกับแถบคำสั่ง แล้วบอก CSS ว่าให้ติดที่ตรงไหน
 // ช่องพิมพ์โตได้ตามจำนวนบรรทัด เลขตายตัวเลยใช้ไม่ได้ หัวตารางจะโดนบัง
@@ -5659,6 +5913,7 @@ askGate("site").then(async () => {
 refreshExclude();
 refreshLiked();
 loadHook();
+loadAI();
 initFolds();
 
 SHEETS = loadSheets();
