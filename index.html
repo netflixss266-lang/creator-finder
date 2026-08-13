@@ -191,6 +191,26 @@ body:not([data-view="coord"]) #gearBtn{display:none}
 .coord-sum span{font-size:.78rem;color:var(--mute);background:var(--surface);
   border:1px solid var(--line);border-radius:7px;padding:5px 11px;cursor:help}
 .coord-sum b{font-family:'IBM Plex Mono',monospace}
+/* แท็บโปรเจกต์ที่ปิดงานแล้ว + ปุ่มจัดการ */
+.tabs button.isdone{color:var(--dim)}
+.tabs button.isdone[aria-selected="true"]{color:var(--accent-ink);opacity:.85}
+.ghosttab{flex:none!important;background:none;border:1px dashed var(--line);color:var(--dim);
+  border-radius:6px;padding:6px 11px;font-size:.76rem;font-weight:600}
+.ghosttab:hover{border-color:var(--accent);color:var(--accent)}
+.warnmark{display:inline-block;width:14px;height:14px;line-height:14px;text-align:center;
+  margin-left:5px;border-radius:50%;font-size:.62rem;font-weight:700;
+  background:var(--warn);color:#000}
+/* รายการโปรเจกต์ในหน้าจัดการ */
+.prow{display:flex;align-items:center;gap:10px;padding:10px 12px;margin-bottom:7px;
+  background:var(--surface2);border:1px solid var(--line);border-radius:9px}
+.prow.done .nm{color:var(--dim);text-decoration:line-through}
+.prow .nm{flex:1;min-width:0;font-size:.88rem;font-weight:600}
+.prow .cnt{flex:none;font-size:.74rem;color:var(--dim);font-family:'IBM Plex Mono',monospace}
+.prow .cmdbtn{margin-left:0}
+.prow .cmdbtn.del:hover{border-color:var(--lo);color:var(--lo)}
+.prow.add{background:none;border-style:dashed}
+.prow.add input{flex:1;font-size:.84rem}
+
 .coordbar{display:flex;gap:12px;align-items:center;flex-wrap:wrap;margin-bottom:13px}
 .coordbar .kindseg{margin-bottom:0;flex:none;min-width:230px}
 .coordbar .colseg{margin-bottom:0;flex:none;min-width:184px}
@@ -282,13 +302,14 @@ body:not([data-view="coord"]) #gearBtn{display:none}
   color:var(--info);border:1px solid rgba(var(--info-rgb),.45);background:rgba(var(--info-rgb),.12)}
 
 .ctable{width:100%;border-collapse:collapse;font-size:.82rem}
-/* หัวตารางตั้งให้ติดใต้แถบคำสั่ง ไม่ใช่ติดขอบจอ
-   หมายเหตุ: ตอนนี้มันยังไม่ติดจริง เพราะ .cwrap มี overflow-x:auto ซึ่งทำให้กลายเป็น
-   กล่องเลื่อนของตัวเอง หัวตารางเลยยึดกับกล่องนั้นแทนที่จะยึดกับจอ (เป็นแบบนี้มาแต่แรก)
-   จะให้ติดจริงต้องรื้อวิธีเลื่อนแนวนอน ซึ่งจะทำให้คอลัมน์ชื่อที่ตรึงไว้พังตาม */
+/* หัวตารางติดอยู่กับที่ตอนเลื่อนดูแถวล่างๆ
+   .cwrap มี overflow-x:auto อยู่แล้ว = เป็นกล่องเลื่อนของตัวเอง หัวตารางจึงยึดกับกล่องนั้น
+   ไม่ใช่ยึดกับจอ ทางแก้คือทำให้กล่องนั้นเลื่อนแนวตั้งเองด้วย แล้วตรึงกล่องไว้ใต้แถบคำสั่ง
+   (เอา overflow-x ออกไม่ได้ เพราะคอลัมน์ชื่อที่ตรึงไว้ทางซ้ายอาศัยมันอยู่) */
 .ctable th{text-align:left;font-size:.68rem;text-transform:uppercase;letter-spacing:.07em;
   color:var(--dim);font-weight:600;padding:8px 9px;border-bottom:1px solid var(--line);
-  white-space:nowrap;position:sticky;top:var(--stick2,112px);background:var(--bg);z-index:1}
+  white-space:nowrap;position:sticky;top:0;background:var(--bg);z-index:4;
+  box-shadow:0 1px 0 var(--line)}
 .ctable td{padding:7px 9px;border-bottom:1px solid var(--line);vertical-align:middle}
 .ctable tr:hover td{background:var(--surface)}
 /* ช่องครีเอเตอร์ — บังคับให้สูงเท่าช่องที่มี input/select ในแถวเดียวกัน
@@ -484,8 +505,14 @@ tr.dropover td{border-top:2px solid var(--accent)}
 .ctable input.mono{text-align:right}
 .ctable .w-note input{min-width:150px}
 .ctable td.warn{color:var(--lo)}
-.cwrap{overflow-x:auto;border:1px solid var(--line);border-radius:11px;
-  background:var(--surface);padding:0 4px}
+/* ตรึงกล่องตารางไว้ใต้แถบคำสั่ง แล้วให้แถวเลื่อนอยู่ข้างในกล่อง
+   ผลคือ แถบคำสั่ง → หัวตาราง → คอลัมน์ชื่อ อยู่กับที่หมด เหลือแต่ข้อมูลที่เลื่อน */
+.cwrap{overflow:auto;border:1px solid var(--line);border-radius:11px;
+  background:var(--surface);padding:0 4px;
+  position:sticky;top:var(--stick2,160px);
+  max-height:calc(100vh - var(--stick2,160px) - 22px);min-height:220px}
+/* มุมซ้ายบน (ปุ่มลาก + ชื่อ) ต้องอยู่เหนือทั้งหัวตารางและคอลัมน์ที่ตรึง ไม่งั้นแถวจะลอดออกมา */
+.ctable thead th:nth-child(1),.ctable thead th:nth-child(2){z-index:6}
 .st{font-size:.72rem;border-radius:999px;padding:2px 9px;white-space:nowrap;
   border:1px solid var(--line);color:var(--mute)}
 .st.briefed{color:var(--mute)}
@@ -1241,15 +1268,21 @@ tr.subrow td.w-status select{width:230px}
     </div>
 
     <div class="cmdbulk" id="bulkFold" hidden>
-      <p class="sect-sub">บรรทัดละคน คั่นด้วย Tab — อ่านให้: ID · สินค้า/SKU · จำนวนวิดีโอ · สถานะ<br>
-        <code style="font-size:.72rem;color:var(--mute)">cenakims&#9;Blush - Lekui (20)&#9;1&#9;Already Post</code>
+      <p class="sect-sub">
+        <b>วางรายชื่อยาวๆ ทีเดียว</b> — บรรทัดละคน ใส่แค่ชื่อก็พอ<br>
+        <code style="font-size:.72rem;color:var(--mute)">tangtangnpc&#10;onfireboyth&#10;growupwithfah</code><br>
+        มีข้อมูลเพิ่มก็คั่นด้วย Tab ได้ — อ่านให้: ID · สินค้า/SKU · จำนวนวิดีโอ · สถานะ<br>
+        <code style="font-size:.72rem;color:var(--mute)">cenakims&#9;Blush - Lekui (20)&#9;1&#9;Already Post</code><br>
+        <span style="color:var(--dim)">วางลิงก์ TikTok เต็มๆ หรือมี @ นำหน้าก็ได้ ตัดให้เอง
+        · คนที่มีอยู่แล้วในโปรเจกต์นั้นจะถูกข้าม ไม่เพิ่มซ้ำ</span>
       </p>
       <div class="cgrid" style="margin-bottom:10px">
         <div><label>ลงโปรเจกต์</label><select id="ncProj"></select></div>
         <div><label>กลุ่ม</label>
           <select id="ncKind"><option>KOL</option><option>KOC</option></select></div>
       </div>
-      <textarea id="ncBulk" style="min-height:110px" placeholder="วางที่นี่ แล้วกดตรวจ"></textarea>
+      <textarea id="ncBulk" style="min-height:130px"
+        placeholder="วางรายชื่อที่นี่ บรรทัดละคน แล้วกดตรวจ"></textarea>
       <button class="run" id="ncBulkParse" style="margin-top:10px">ตรวจก่อนเพิ่ม</button>
       <div id="ncBulkPreview"></div>
       <div class="addmsg" id="ncBulkMsg"></div>
@@ -1282,6 +1315,17 @@ tr.subrow td.w-status select{width:230px}
 
   <div id="coordBody"></div>
 </section>
+
+<!-- ═══ จัดการโปรเจกต์ — เพิ่ม / ปิดงาน / เรียงใหม่ ═══ -->
+<div class="overlay" id="projPanel" hidden>
+  <div class="modal" role="dialog" aria-modal="true" aria-labelledby="projTitle">
+    <div class="modal-head">
+      <h2 id="projTitle">โปรเจกต์</h2>
+      <button class="x" id="closeProj" aria-label="ปิด">✕</button>
+    </div>
+    <div id="projBody"></div>
+  </div>
+</div>
 
 <!-- ═══ รายละเอียดครีเอเตอร์ — ทุกช่องอยู่ในแนวตั้ง ไม่ต้องเลื่อนตารางไปขวา ═══ -->
 <div class="drawer" id="detailPanel">
@@ -2255,8 +2299,40 @@ const SEED_COORD = [];   // ไม่ฝังข้อมูลงานลง�
 // อ่านไม่ได้ (เน็ตหลุด/ชีตถูกปิด) ค่อยถอยไปใช้ชุดที่ฝังมากับหน้าเว็บ
 const COORD_URL = BOOK + "33859969";
 const LS_COORD = "cf_coord_v1";       // เก็บเฉพาะที่แก้เอง ทับข้อมูลจากชีต
-const PROJECTS = ["Red Chamber Phase 1", "Red Chamber Phase 2",
-                  "OBSBOT-KOL", "OBSBOT-KOC", "TikTok Live"];
+// ─── รายการโปรเจกต์ ───
+// เก็บในเครื่อง เพิ่ม/ปิดงานได้เอง — PROJECTS คือชื่อทั้งหมด (ทั้งที่ทำอยู่และที่ปิดแล้ว)
+// เพราะโค้ดที่เหลือใช้มันตัดสินว่า "ชื่อนี้เป็นโปรเจกต์ที่รู้จักไหม" งานที่ปิดแล้วก็ยังต้องรู้จัก
+const LS_PROJ = "cf_projects_v1";
+const DEFAULT_PROJECTS = ["Red Chamber Phase 1", "Red Chamber Phase 2",
+                          "OBSBOT-KOL", "OBSBOT-KOC", "TikTok Live"];
+let PROJ_LIST = DEFAULT_PROJECTS.map(name => ({ name, done: false }));
+let PROJECTS = PROJ_LIST.map(p => p.name);
+
+function loadProjects(){
+  try {
+    const saved = JSON.parse(localStorage.getItem(LS_PROJ) || "null");
+    if (Array.isArray(saved) && saved.length && saved.every(p => p && typeof p.name === "string"))
+      PROJ_LIST = saved.map(p => ({ name: p.name, done: !!p.done }));
+  } catch(e){}
+  syncProjects();
+}
+function saveProjects(){
+  try { localStorage.setItem(LS_PROJ, JSON.stringify(PROJ_LIST)); } catch(e){}
+  syncProjects();
+}
+function syncProjects(){
+  PROJECTS = PROJ_LIST.map(p => p.name);
+  PROJ_LIST.forEach(p => { if (!COORD[p.name]) COORD[p.name] = []; });
+  if (!PROJECTS.includes(PROJ)) PROJ = activeProjects()[0] || PROJECTS[0];
+}
+const activeProjects = () => PROJ_LIST.filter(p => !p.done).map(p => p.name);
+const doneProjects   = () => PROJ_LIST.filter(p => p.done).map(p => p.name);
+const projMeta = name => PROJ_LIST.find(p => p.name === name);
+
+// แท็บที่ Apps Script ยอมรับ — ของใหม่ที่เพิ่มเองจะยังซิงก์ไม่ได้จนกว่าจะไปเติมในสคริปต์
+// เตือนตรงจุดดีกว่าปล่อยให้กดซิงก์แล้วขึ้น error ที่อ่านไม่ออก
+const SCRIPT_KNOWN = DEFAULT_PROJECTS.slice();
+const needsScript = name => !SCRIPT_KNOWN.includes(name);
 // สถานะตามที่ทีมใช้จริงในชีต — ของเก่ายังอยู่ท้ายลิสต์ไว้ไม่ให้ค่าเดิมหาย
 // ─── ขั้นตอนงาน เรียงตามลำดับที่งานเดินจริง ───
 // ลำดับในนี้มีความหมาย ไม่ใช่แค่ลำดับในเมนู — ใช้ตัดสินว่าขั้นไหน "ผ่านมาแล้ว"
@@ -2483,6 +2559,12 @@ async function syncCoord(manual){
     // โปรเจกต์ที่ว่างต้องส่งขึ้นไปด้วย ถ้าเมื่อตอนโหลดมันเคยมีคน = มีการลบเกิดขึ้น
     // แต่ถ้าว่างมาตั้งแต่แรกก็ไม่ต้องยุ่ง กันกรณีโหลดชีตไม่สำเร็จแล้วเผลอล้างทิ้ง
     if (!rows.length && !(LOADED_COUNT[p] > 0)) continue;
+    // Apps Script มีรายชื่อโปรเจกต์ของตัวเอง ส่งชื่อที่มันไม่รู้จักไปก็โดนตีกลับ
+    // บอกให้ตรงว่าต้องไปเติมที่ไหน ดีกว่าโชว์ error ดิบจากสคริปต์
+    if (needsScript(p)){
+      failed.push(`${p}: ยังไม่มีในสคริปต์ — เติมชื่อนี้ใน COORD_PROJECTS แล้ว deploy ใหม่ก่อน`);
+      continue;
+    }
     const payload = rows.map(r => ({
       handle: r.handle, link: r.link || `https://www.tiktok.com/@${r.handle}`,
       kind: r.kind || "", code: r.code || "", status: r.status || "",
@@ -2660,13 +2742,87 @@ async function loadCoordData(force){
   }
 }
 
+let SHOW_DONE = false;   // กางงานที่ปิดแล้วอยู่ไหม
+
 function renderProjTabs(){
-  $("#projTabs").innerHTML = PROJECTS.map(p =>
-    `<button role="tab" data-p="${esc(p)}" aria-selected="${p === PROJ}">${esc(p)}<span
-      class="n">${(COORD[p] || []).length}</span></button>`).join("");
-  document.querySelectorAll("#projTabs button").forEach(b => b.onclick = () => {
+  const done = doneProjects();
+  // งานที่ปิดแล้วยังเปิดดูได้ แต่ไม่ต้องมาเบียดแท็บของงานที่ยังทำอยู่ทุกวัน
+  const show = activeProjects().concat(SHOW_DONE || done.includes(PROJ) ? done : []);
+  const tab = p => `<button role="tab" data-p="${esc(p)}" aria-selected="${p === PROJ}"
+      class="${projMeta(p) && projMeta(p).done ? "isdone" : ""}"
+      title="${needsScript(p) ? "โปรเจกต์ที่เพิ่มเอง — ต้องเติมชื่อนี้ใน Apps Script ก่อนถึงจะซิงก์ได้" : ""}"
+    >${projMeta(p) && projMeta(p).done ? "✓ " : ""}${esc(p)}${
+      needsScript(p) ? `<span class="warnmark" title="ยังซิงก์ไม่ได้">!</span>` : ""}<span
+      class="n">${(COORD[p] || []).length}</span></button>`;
+  $("#projTabs").innerHTML = show.map(tab).join("") +
+    (done.length && !SHOW_DONE && !done.includes(PROJ)
+      ? `<button class="ghosttab" data-showdone="1">เสร็จแล้ว ${done.length}</button>` : "") +
+    (SHOW_DONE ? `<button class="ghosttab" data-showdone="0">ซ่อนที่เสร็จแล้ว</button>` : "") +
+    `<button class="ghosttab" data-manageproj="1" title="เพิ่ม / ปิดงาน / ลบโปรเจกต์">⚙</button>`;
+
+  document.querySelectorAll("#projTabs [data-p]").forEach(b => b.onclick = () => {
     PROJ = b.dataset.p; renderProjTabs(); renderCoord();
   });
+  document.querySelectorAll("#projTabs [data-showdone]").forEach(b => b.onclick = () => {
+    SHOW_DONE = b.dataset.showdone === "1"; renderProjTabs();
+  });
+  const mg = $("#projTabs [data-manageproj]");
+  if (mg) mg.onclick = openProjManager;
+}
+
+// ─── จัดการโปรเจกต์ ───
+function openProjManager(){
+  const body = $("#projBody");
+  body.innerHTML = PROJ_LIST.map((p, i) => `<div class="prow${p.done ? " done" : ""}">
+      <span class="nm">${esc(p.name)}${needsScript(p.name)
+        ? `<span class="warnmark" title="ยังไม่มีในสคริปต์">!</span>` : ""}</span>
+      <span class="cnt">${(COORD[p.name] || []).length} คน</span>
+      <button class="cmdbtn" data-toggle="${i}">${p.done ? "กลับมาทำต่อ" : "ปิดงาน"}</button>
+      <button class="cmdbtn" data-up="${i}"${i ? "" : " disabled"}>↑</button>
+      <button class="cmdbtn del" data-drop="${i}">ลบ</button>
+    </div>`).join("") +
+    `<div class="prow add">
+       <input id="newProjName" placeholder="ชื่อโปรเจกต์ใหม่ — ต้องตรงกับชื่อแท็บในชีต">
+       <button class="cmdbtn" id="addProj">เพิ่ม</button>
+     </div>
+     <p class="sect-sub" style="margin-top:14px">
+       โปรเจกต์ที่เพิ่มเองจะมีเครื่องหมาย <span class="warnmark">!</span> —
+       ใช้ในเว็บได้ทันที แต่<b>ยังซิงก์ขึ้นชีตไม่ได้</b> จนกว่าจะเติมชื่อนี้ลงใน
+       <code>COORD_PROJECTS</code> ของ Apps Script แล้ว deploy ใหม่<br>
+       <span style="color:var(--dim)">ปิดงานแล้วแท็บจะถูกพับเก็บ ข้อมูลยังอยู่ครบ
+       · ลบโปรเจกต์ = ลบเฉพาะในเว็บ แท็บในชีตไม่ถูกแตะ</span>
+     </p>`;
+  $("#projPanel").hidden = false;
+
+  body.querySelectorAll("[data-toggle]").forEach(b => b.onclick = () => {
+    const p = PROJ_LIST[+b.dataset.toggle];
+    p.done = !p.done;
+    saveProjects(); renderProjTabs(); renderCoord(); openProjManager();
+  });
+  body.querySelectorAll("[data-up]").forEach(b => b.onclick = () => {
+    const i = +b.dataset.up;
+    PROJ_LIST.splice(i - 1, 0, PROJ_LIST.splice(i, 1)[0]);
+    saveProjects(); renderProjTabs(); openProjManager();
+  });
+  body.querySelectorAll("[data-drop]").forEach(b => b.onclick = () => {
+    const p = PROJ_LIST[+b.dataset.drop];
+    const n = (COORD[p.name] || []).length;
+    if (!confirm(`เอา "${p.name}" ออกจากรายการ?` +
+      (n ? `\n\nมีครีเอเตอร์อยู่ ${n} คน — ข้อมูลจะหายจากหน้านี้` : "") +
+      `\nแท็บในชีตไม่ถูกแตะ เพิ่มชื่อกลับมาใหม่ก็เห็นเหมือนเดิม`)) return;
+    PROJ_LIST.splice(+b.dataset.drop, 1);
+    if (!PROJ_LIST.length) PROJ_LIST = DEFAULT_PROJECTS.map(name => ({ name, done:false }));
+    saveProjects(); renderProjTabs(); renderCoord(); fillProjSelect(); openProjManager();
+  });
+  $("#addProj").onclick = () => {
+    const name = $("#newProjName").value.trim();
+    if (!name) return;
+    if (PROJECTS.includes(name)) return alert(`มี "${name}" อยู่แล้ว`);
+    PROJ_LIST.push({ name, done:false });
+    COORD[name] = [];
+    saveProjects(); renderProjTabs(); fillProjSelect(); openProjManager();
+  };
+  $("#newProjName").onkeydown = e => { if (e.key === "Enter") $("#addProj").click(); };
 }
 
 // ตัวย่อในช่องงาน — เก็บตัวย่อไว้เหมือนเดิม แต่โชว์ชื่อเต็มให้อ่านออก
@@ -4920,11 +5076,14 @@ $("#resetSheets").onclick = () => {
 
 $("#gearBtn").onclick = openSettings;
 $("#closeSet").onclick = closeSettings;
+$("#closeProj").onclick = () => { $("#projPanel").hidden = true; };
+$("#projPanel").onclick = e => { if (e.target.id === "projPanel") $("#projPanel").hidden = true; };
 $("#addSheet").onclick = addSheet;
 $("#settings").onclick = e => { if (e.target.id === "settings") closeSettings(); };
 document.addEventListener("keydown", e => {
   if (e.key !== "Escape") return;
-  if ($("#detailPanel").classList.contains("on")) closeDetail();
+  if (!$("#projPanel").hidden) $("#projPanel").hidden = true;
+  else if ($("#detailPanel").classList.contains("on")) closeDetail();
   else if ($("#cmdPanel").classList.contains("on")) $("#cmdPanel").classList.remove("on");
   else if ($("#cart").classList.contains("on")) closeCart();
   else if (!$("#addPanel").hidden) $("#addPanel").hidden = true;
@@ -4978,7 +5137,8 @@ $("#coordExport").onclick = () => {
 // ─── เพิ่มครีเอเตอร์เข้าโปรเจกต์ (Coordinate เท่านั้น ไม่ยุ่งกับ pool) ───
 function fillProjSelect(){
   $("#ncProj").innerHTML = PROJECTS.map(p =>
-    `<option value="${esc(p)}"${p === PROJ ? " selected" : ""}>${esc(p)}</option>`).join("");
+    `<option value="${esc(p)}"${p === PROJ ? " selected" : ""}>${
+      projMeta(p) && projMeta(p).done ? "✓ " : ""}${esc(p)}</option>`).join("");
 }
 
 // แถวเปล่าของคนใหม่ — ที่เหลือเว้นไว้ เติมในตารางหรือในลิ้นชักรายละเอียดทีหลัง
@@ -5004,14 +5164,26 @@ function addToProject(id, proj, kind, changes){
 // แถวที่ไม่มี ID = สินค้าเพิ่มของคนบรรทัดบน (ชีตทีมเขียนแบบนั้น)
 let NCBULK = [];
 
+// รับได้ทั้งรายชื่อเปล่าๆ บรรทัดละคน และแบบคั่น Tab ที่มีสินค้า/จำนวน/สถานะต่อท้าย
+// ชื่อจะมี @ นำหน้า หรือเป็นลิงก์ TikTok เต็มๆ ก็ได้ ตัดให้เหลือแต่ชื่อเอง
+const stripHandle = s => String(s || "").trim()
+  .replace(/^https?:\/\/(?:www\.)?tiktok\.com\/@?/i, "")
+  .replace(/[/?#].*$/, "")
+  .replace(/^@/, "")
+  .trim();
+
 function parseNcBulk(text){
   const out = [];
   let cur = null;
-  for (const line of String(text).split(/\r?\n/)){
+  for (const raw of String(text).split(/\r?\n/)){
+    const line = raw.replace(/^\s*[-•*\d.)\s]+(?=[@A-Za-z])/, "");   // ตัดหัวข้อแบบ list ออก
     if (!line.trim()) continue;
-    const c = line.split(/\t+|\s{3,}/).map(s => s.trim());
-    const [id, prod, vid, prog] = [c[0]||"", c[1]||"", c[2]||"", c[3]||""];
-    if (id && /^@?[A-Za-z0-9._]{2,30}$/.test(id)){
+    const c = line.split(/\t+|\s{3,}|\s*,\s*/).map(s => s.trim());
+    const [id0, prod, vid, prog] = [c[0]||"", c[1]||"", c[2]||"", c[3]||""];
+    const id = stripHandle(id0);
+    if (id && /^[A-Za-z0-9._]{2,30}$/.test(id)){
+      // ชื่อซ้ำในกล่องเดียวกัน — วางลิสต์ยาวๆ มักมีซ้ำ ข้ามไปเงียบๆ ดีกว่าเพิ่มสองแถว
+      if (out.some(o => o.handle === normId(id))){ cur = null; continue; }
       cur = { handle: normId(id), products: [], videos: null, status: prog, why: "" };
       out.push(cur);
       const n = parseInt(vid, 10);
@@ -5020,6 +5192,7 @@ function parseNcBulk(text){
       out.push({ handle:"", why:`อ่านไม่ออก: ${line.trim().slice(0,40)}` });
       continue;
     }
+    if (!cur) continue;
     if (prod) prod.split(",").forEach(p => p.trim() && cur.products.push(p.trim()));
     if (!id && vid){ const n = parseInt(vid,10); if (isFinite(n)) cur.videos = (cur.videos||0)+n; }
   }
@@ -6112,6 +6285,7 @@ SEEN = lsLoadSet(LS_SEEN);
 LIKED = lsLoadSet(LS_LIKED);
 try { HIDE_LIKED = !!localStorage.getItem(LS_HIDELIKED); } catch(e){}
 $("#hideLiked").checked = HIDE_LIKED;
+loadProjects();
 loadCrit();
 loadCart();
 loadEdits();
