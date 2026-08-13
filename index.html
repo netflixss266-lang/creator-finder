@@ -1180,6 +1180,8 @@ tr.subrow td.w-status select{width:230px}
 
     <div class="cmdhelp" id="cmdHelp" hidden>
       อ่านจากทั้งบรรทัด ไม่สนลำดับคำ ชื่อครีเอเตอร์เทียบกับรายชื่อที่มีอยู่จริง<br>
+      <span style="color:var(--dim)">เครื่องหมาย : = ไม่บังคับ · คำนำหน้าอย่าง เพิ่ม/ใส่/แก้/เปลี่ยน/ตั้ง
+      ใส่หรือไม่ใส่ก็ได้ · พิมพ์ #tag มาเฉยๆ ก็รู้ว่าเป็น hashtag</span><br>
       <code>cenakims เรท 12000 ชำระ3% โพสต์แล้ว</code><br>
       <code>เพิ่ม tangkwaqs เข้า RC2 KOL</code> — คนใหม่ ข้อมูลอื่นเว้นไว้เติมทีหลัง<br>
       <code>ย้าย 052.be ไป Red Chamber 2</code><br>
@@ -1216,7 +1218,8 @@ tr.subrow td.w-status select{width:230px}
       <code>แปลงสถานะ</code>
       <code>ล้างตัวกรอง</code>
       <code>ทุกคอลัมน์</code>
-      <code>ช่วย</code><br>
+      <code>ช่วย</code>
+      <code>เคลียร์ feedback 1</code><br>
       <span style="color:var(--dim)">ลบหลายคนพร้อมกันได้ · ชื่อซ้ำหลายโปรเจกต์ต้องบอกโปรเจกต์ด้วย
       · การลบถามยืนยันอีกครั้งพร้อมรายชื่อ</span></div>
     </div>
@@ -4999,13 +5002,14 @@ $("#ncBulkParse").onclick = () => {
 
 // ─── Quick Order ───
 // ตั้งใจให้แคบและเดาน้อย: อ่านไม่ออกคือบอกว่าอ่านไม่ออก ไม่เดาแล้วแก้ผิดตัว
+// คำเรียกหลายแบบต่อหนึ่งช่อง และเครื่องหมายคั่นไม่บังคับ — ดู SEP/VERB ข้างบน
 const QO_FIELDS = [
-  { f:"rate",    re:/(?:เรท|ยอด(?:การ)?ชำระ|ค่าตัว|ค่าจ้าง|จ่าย|rate)\D{0,12}?([\d,]+)/i, num:true },
-  { f:"videos",  re:/(\d+)\s*(?:คลิป|วิดีโอ|วีดีโอ|clips?|videos?)/i, num:true },
-  { f:"note",    re:/(?:โน้ต|หมายเหตุ|note)\s*[:：]\s*(.+?)$/i },
-  { f:"postdate",re:/(?:วันโพสต์|โพสต์วันที่|ลงวันที่|post(?:ed)?\s*date)\s*[:：]?\s*(.+?)$/i },
-  { f:"deadline",re:/(?:กำหนดส่ง|เดดไลน์|deadline|ไม่เกินวันที่)\s*[:：]?\s*(.+?)$/i },
-  { f:"code",    re:/(?:งาน|code)\s*[:：]?\s*([A-Za-z](?:\s*\+\s*[A-Za-z])*)\b/i },
+  { f:"rate",    re:/(?:เรท|ยอด(?:การ)?ชำระ|ค่าตัว|ค่าจ้าง|ค่าคลิป|จ่าย|rate|budget)\D{0,12}?([\d,]+)/i, num:true },
+  { f:"videos",  re:/(\d+)\s*(?:คลิป|วิดีโอ|วีดีโอ|ตัว|clips?|videos?)/i, num:true },
+  { f:"note",    re:/(?:โน้ต|หมายเหตุ|note|remark)\s*[:：=]?\s*(.+?)$/i },
+  { f:"postdate",re:/(?:วันโพสต์|โพสต์วันที่|ลงวันที่|ลงคลิปวันที่|post(?:ed)?\s*date)\s*[:：=]?\s*(.+?)$/i },
+  { f:"deadline",re:/(?:กำหนดส่ง|เดดไลน์|ส่งงานวันที่|deadline|ไม่เกินวันที่)\s*[:：=]?\s*(.+?)$/i },
+  { f:"code",    re:/(?:งาน|code)\s*[:：=]?\s*([A-Za-z](?:\s*\+\s*[A-Za-z])*)\b/i },
   { f:"brief",   re:/(https?:\/\/\S*canva\S*|https?:\/\/\S*(?:brief|drive|docs)\S*)/i },
 ];
 // คำสั่งที่พิมพ์ในช่องคำสั่ง เทียบกับ alias ของแต่ละขั้นใน STAGES โดยตรง
@@ -5104,19 +5108,27 @@ function readChanges(text){
 
 // ── Command เฉพาะคนนี้ ── สั่งจากช่องคำสั่งได้ ไม่ต้องเปิดลิ้นชักทีละคน
 // `command 3: ข้อความ` = ทับข้อความบล็อก 3 · `ตะกร้า <url>` = ทับลิงก์เฉพาะคนนี้
+// เครื่องหมายคั่นเป็นตัวเลือก ไม่ใช่ข้อบังคับ — คนพิมพ์ "hashtag #a #b" บ่อยกว่า "hashtag: #a #b"
+// คำนำหน้าอย่าง เพิ่ม/ใส่/แก้/เปลี่ยน/ตั้ง กลืนทิ้งได้หมด ไม่ต้องแยกท่า
+const SEP = "\\s*(?:[:：=]|คือ|เป็น)?\\s*";
+const VERB = "(?:เพิ่ม|ใส่|แก้|เปลี่ยน|ตั้ง|update|set|add)?\\s*";
+const rx = (word, val) => new RegExp(VERB + "(?:" + word + ")" + SEP + "(" + val + ")", "i");
+
 const CMD_LINK_RE = [
-  ["cart",     /(?:ตะกร้า|cart)\s*[:：=]?\s*(\S+)/i],
-  ["hashtag",  /(?:แฮชแท็ก|hashtag)\s*[:：=]\s*(.+?)\s*$/i],
-  ["timeline", /(?:ไทม์ไลน์|timeline)\s*[:：=]\s*(.+?)\s*$/i],
-  ["form",     /(?:ฟอร์ม|form)\s*[:：=]?\s*(https?:\/\/\S+)/i],
-  ["script",   /(?:สคริป[ต]?|script)\s*[:：=]?\s*(https?:\/\/\S+)/i],
-  ["docs",     /(?:เอกสาร|docs)\s*[:：=]?\s*(https?:\/\/\S+)/i],
+  ["cart",     rx("ลิงก์ตะกร้า|ตะกร้า|cart", "https?:\\/\\/\\S+")],
+  ["form",     rx("ฟอร์ม|form",              "https?:\\/\\/\\S+")],
+  ["script",   rx("สคริป[ต]?|script",        "https?:\\/\\/\\S+")],
+  ["docs",     rx("เอกสาร|docs?",            "https?:\\/\\/\\S+")],
+  ["hashtag",  rx("แฮชแท็ก|hashtags?|แท็ก|tags?", "(?:#\\S+[\\s,]*)+")],
+  // ต้องปิดท้ายด้วย $ ไม่งั้น .+? แบบขี้เกียจจะคว้ามาตัวอักษรเดียวแล้วจบ
+  ["timeline", new RegExp(VERB + "(?:ไทม์ไลน์|timeline)" + SEP + "(.+?)\\s*$", "i")],
 ];
+
 function readCmdOps(text){
   const ops = { blocks:{}, links:{} };
   // ฟีดแบคสั้นๆ สั่งจากช่องนี้ได้ ยาวๆ ให้ไปพิมพ์ในกล่อง ✎ Feedback
-  const mf = text.match(/(?:feedback|ฟีดแบค|ฟีดแบก)\s*(?:draft\s*)?([123])\s*[:：=]\s*([\s\S]+)$/i);
-  if (mf) ops.links[fbKey(+mf[1])] = mf[2].trim();
+  const mf = text.match(/(?:feedback|ฟีดแบค|ฟีดแบก)\s*(?:draft\s*)?([123])\s*[:：=]?\s*([\s\S]+)$/i);
+  if (mf && mf[2].trim()) ops.links[fbKey(+mf[1])] = mf[2].trim();
   const mb = text.match(/(?:command|คอมมานด์|คอมมาน|ข้อความ)\s*(?:ที่\s*)?(\d{1,2})\s*[:：=]\s*([\s\S]+)$/i);
   if (mb){
     const i = Number(mb[1]) - 1;
@@ -5125,8 +5137,26 @@ function readCmdOps(text){
   }
   for (const [k, re] of CMD_LINK_RE){
     const m = text.match(re);
-    if (m && m[1]) ops.links[k] = m[1].trim();
+    if (m && m[1] && m[1].trim()) ops.links[k] = m[1].trim();
   }
+
+  // ── เดาจากรูปร่างของสิ่งที่พิมพ์ เมื่อไม่มีคำนำหน้า ──
+  // พิมพ์ #tag มาเฉยๆ ก็รู้ว่าเป็น hashtag ไม่ต้องบอกว่า hashtag
+  // เว้นตอนที่บรรทัดนั้นเป็นการวางข้อความยาว (โน้ต/ฟีดแบค/Command) เพราะ # ในนั้นเป็นเนื้อความ
+  const isProse = Object.keys(ops.blocks).length ||
+                  Object.keys(ops.links).some(k => /^feedback\d$/.test(k)) ||
+                  /(?:โน้ต|หมายเหตุ|note)\s*[:：]/i.test(text);
+  if (!ops.links.hashtag && !isProse){
+    const tags = text.match(/#[^\s#]+/g);
+    if (tags && tags.length) ops.links.hashtag = tags.join(" ");
+  }
+  // ลิงก์ที่ยังไม่มีใครจอง — แยกตามโดเมนที่รู้จัก ที่เหลือไม่เดา
+  const claimed = Object.values(ops.links).join(" ");
+  (text.match(/https?:\/\/\S+/g) || []).forEach(u => {
+    if (claimed.includes(u)) return;
+    if (/tiktok\.com/i.test(u)) return;                       // ลิงก์โปรไฟล์ ไม่ใช่ค่าที่จะตั้ง
+    if (/shop|cart|tokopedia|lazada|shopee/i.test(u) && !ops.links.cart) ops.links.cart = u;
+  });
   return ops;
 }
 const cmdOpsEmpty = o => !Object.keys(o.blocks).length && !Object.keys(o.links).length;
@@ -5157,8 +5187,17 @@ function parseQuickLine(line, extraNames){
   // `command 3: ...` กินท้ายบรรทัดทั้งหมด อย่าให้ไปโดนอ่านเป็นโน้ต/วันโพสต์ซ้ำ
   if (Object.keys(cmdOps.blocks).length){ delete changes.note; delete changes.postdate; delete changes.deadline; }
 
-  if (!Object.keys(changes).length && !dest && cmdOpsEmpty(cmdOps))
-    return bad(`เจอ ${names.map(n => n.h).join(", ")} แต่อ่านไม่ออกว่าจะให้แก้อะไร`);
+  if (!Object.keys(changes).length && !dest && cmdOpsEmpty(cmdOps)){
+    // บอกด้วยว่าเหลือคำอะไรที่อ่านไม่ออก จะได้รู้ว่าต้องพิมพ์ใหม่ตรงไหน
+    // ไม่ใช่แค่ "อ่านไม่ออก" แล้วปล่อยให้เดาเอง
+    let left = line;
+    names.forEach(n => { left = left.replace(new RegExp(esc4re(n.h), "gi"), " "); });
+    findProjects(line).forEach(p => { left = left.replace(new RegExp(esc4re(p.proj), "gi"), " "); });
+    const words = left.split(/[\s,·|]+/).filter(w => w.length > 1).slice(0, 6);
+    return bad(`เจอ ${names.map(n => n.h).join(", ")} แต่อ่านไม่ออกว่าจะให้แก้อะไร` +
+      (words.length ? ` — ไม่รู้จัก: ${words.join(" ")}` : "") +
+      ` · กด "พิมพ์อะไรได้บ้าง" ดูคำที่ใช้ได้`);
+  }
 
   // ── จับคู่คนกับโปรเจกต์ ──
   const out = [];
@@ -5199,9 +5238,18 @@ function parseCmdText(text){
   let pendingLines = [];
 
   const flushUnused = () => {
-    if (pending.length)
+    if (pending.length){
+      // ถ้าในบรรทัดมีคำอื่นนอกจากชื่อ แปลว่าเขาสั่งอะไรอยู่แต่เราอ่านไม่ออก
+      // บอกไปเลยว่าคำไหน ดีกว่าบอกว่า "ไม่มีบรรทัดคำสั่งตามมา" ซึ่งไม่ตรงกับที่เขาทำ
+      let left = pendingLines.join(" ");
+      pending.forEach(n => { left = left.replace(new RegExp(esc4re(n.h), "gi"), " "); });
+      const words = left.split(/[\s,·|]+/).filter(w => w.length > 1).slice(0, 6);
       out.push({ line: pendingLines.join(" · "), ok:false, changes:{},
-        why:`${pending.map(n => n.h).join(", ")} — วางชื่อไว้แต่ไม่มีบรรทัดคำสั่งตามมา` });
+        why: words.length
+          ? `อ่านไม่ออกว่าจะให้ ${pending.map(n => n.h).join(", ")} เปลี่ยนอะไร` +
+            ` — ไม่รู้จัก: ${words.join(" ")} · กด "พิมพ์อะไรได้บ้าง" ดูคำที่ใช้ได้`
+          : `${pending.map(n => n.h).join(", ")} — วางชื่อไว้แต่ไม่มีบรรทัดคำสั่งตามมา` });
+    }
     pending = []; pendingLines = [];
   };
 
@@ -5317,6 +5365,9 @@ const ADMIN_CMDS = [
   { k:"filter", re:/^(?:ล้างตัวกรอง|clear\s*filters?)$/i,           label:"ล้างตัวกรองหัวตาราง" },
   { k:"cols",   re:/^(?:ทุกคอลัมน์|คอลัมน์หลัก|columns?)$/i,        label:"สลับโหมดคอลัมน์" },
   { k:"help",   re:/^(?:ช่วย|help|\?)$/i,                           label:"เปิดคู่มือคำสั่ง" },
+  // ล้างฟีดแบคทีเดียวทุกคน — ฟีดแบครอบเก่าค้างไว้แล้วส่งซ้ำคือเรื่องใหญ่กว่าพิมพ์ใหม่
+  { k:"fbclear",re:/^(?:ล้าง|เคลียร์|clear)\s*(?:feedback|ฟีดแบค|ฟีดแบก)\s*(?:draft\s*)?([123]|ทั้งหมด|all)?\s*$/i,
+    label:"ล้าง Feedback ของทุกคน" },
 ];
 
 function parseAdminLine(line){
@@ -5345,6 +5396,17 @@ function parseAdminLine(line){
       const p = (findProjects(arg)[0] || {}).proj || matchProject(arg);
       if (!p) return [{ line, ok:false, changes:{}, why:`ไม่รู้จักโปรเจกต์ "${arg}"` }];
       return [{ line, ok:true, admin:"goto", proj:p, changes:{}, note:c.label }];
+    }
+
+    if (c.k === "fbclear"){
+      const which = /^[123]$/.test(arg) ? [Number(arg)] : FB_ROUNDS;
+      let n = 0;
+      Object.values(CMDOWN).forEach(o =>
+        which.forEach(r => { if ((o.links || {})[fbKey(r)]) n++; }));
+      if (!n) return [{ line, ok:false, changes:{},
+        why:`ไม่มีใครมี Feedback ${which.length === 1 ? "Draft " + which[0] : ""}อยู่แล้ว` }];
+      return [{ line, ok:true, admin:"fbclear", rounds:which, changes:{},
+        note:`ล้าง Feedback ${which.length === 1 ? "Draft " + which[0] : "ทั้ง 3 Draft"} ของทุกคน (${n} ช่อง)` }];
     }
 
     if (c.k === "migrate"){
@@ -5460,6 +5522,17 @@ function applyQuickOrder(){
   admins.filter(q => q.admin !== "del").forEach(q => {
     acts++;
     switch (q.admin){
+      case "fbclear": {
+        // เดินทุกคนที่มีข้อมูลของตัวเอง ไม่ใช่แค่โปรเจกต์ที่เปิดอยู่
+        Object.keys(CMDOWN).forEach(key => {
+          const o = CMDOWN[key];
+          q.rounds.forEach(r => { if (o.links) delete o.links[fbKey(r)]; });
+          if (!Object.keys(o.blocks || {}).length && !Object.keys(o.links || {}).length)
+            delete CMDOWN[key];
+        });
+        saveCmdOwn();
+        break;
+      }
       case "goto":    PROJ = q.proj; break;
       case "migrate": after = migrateStatuses; break;
       case "filter":  COLFILTER = {}; break;
