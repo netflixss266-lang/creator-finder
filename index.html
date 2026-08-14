@@ -78,6 +78,37 @@ header{display:flex;align-items:center;gap:18px;position:sticky;top:0;z-index:40
   bottom:0;height:2px;border-radius:2px;background:var(--accent)}
 body[data-view="home"] .nav{display:none}
 .hgroup{display:flex;align-items:center;gap:8px;margin-left:auto;flex-wrap:wrap}
+
+/* ── จอแคบ ──
+   หัวเว็บที่ขึ้นบรรทัดใหม่กินความสูงเป็นสองเท่า แล้วไปดันตารางตกจอ
+   ตัดของที่ยังเดาได้จากบริบทออกก่อน: ชื่อรอง · ป้ายบอกที่มาข้อมูล · คำบนปุ่ม */
+@media(max-width:900px){
+  header{padding:9px 14px;gap:10px}
+  .nav button{padding:6px 9px;font-size:.84rem}
+  .hgroup{gap:5px}
+  .gear{padding:6px 9px}
+  .srcchip{display:none}
+  #coordView{padding:14px}
+  .coord-head,.coordbar{gap:9px}
+}
+/* แคบมาก — เหลือแต่ไอคอน ข้อความบนปุ่มตัดทิ้ง */
+@media(max-width:620px){
+  .brand h1{font-size:1.2rem}
+  .gear .lbl{display:none}
+  .cmdbar-in{flex-wrap:wrap}
+  .cmdbar-in .run{width:100%}
+  .pickhead select,.pickhead input,.pickhead .tabs{min-width:0;width:100%;flex:1 1 100%}
+  /* แท็บโปรเจกต์ต้องขึ้นบรรทัดใหม่ได้ ไม่งั้นดันหน้าเว็บกว้างเกินจอ
+     (flex:1 อย่างเดียวไม่พอ เพราะปุ่มมีความกว้างขั้นต่ำจากตัวหนังสือข้างใน) */
+  .tabs{flex-wrap:wrap}
+  .tabs button{flex:1 1 auto;min-width:0}
+  .coord-head .tabs{min-width:0;flex:1 1 100%}
+  .coord-sum{max-width:100%}
+  .coord-sum span{max-width:100%;white-space:normal}
+  .coordbar .kindseg,.coordbar .colseg,.coordbar input{min-width:0;flex:1 1 100%}
+  .headact{width:100%}
+  .headact .export{flex:1 1 auto}
+}
 .poolstat{font-family:'IBM Plex Mono',monospace;font-size:.8rem;color:var(--mute);
   background:var(--surface);border:1px solid var(--line);border-radius:999px;padding:6px 14px}
 .poolstat b{color:var(--accent)}
@@ -224,7 +255,7 @@ body:not([data-view="coord"]) #gearBtn{display:none}
    ของที่ซ่อนไม่ได้หายไปไหน กด ⤢ ท้ายชื่อดูและแก้ได้ครบในลิ้นชัก
    คอลัมน์กลุ่มซ้ำกับปุ่ม KOL/KOC ที่อยู่เหนือตารางอยู่แล้ว เลยซ่อนด้วย */
 .ctable.lean th.opt,.ctable.lean td.opt{display:none}
-.ctable.lean .who{width:13.4em;max-width:13.4em}
+.ctable.lean .who{width:14.8em;max-width:14.8em}
 .ctable.lean th.w-sku,.ctable.lean td.w-sku{min-width:11.3em}
 .ctable.lean th.w-job,.ctable.lean td.w-job{min-width:5.6em}
 .ctable.lean td.w-job input{width:5em}
@@ -368,10 +399,16 @@ body:not([data-view="coord"]) #gearBtn{display:none}
 .ctable tr:hover td{background:var(--surface)}
 /* ช่องครีเอเตอร์ — บังคับให้สูงเท่าช่องที่มี input/select ในแถวเดียวกัน
    ไม่งั้นชื่อจะลอยไม่ตรงกับของช่องอื่น เพราะ input มี padding ของตัวเอง */
-.ctable .who{font-weight:600;white-space:nowrap;width:15.5em;max-width:15.5em}
+.ctable .who{font-weight:600;white-space:nowrap;width:15em;max-width:15em}
 /* ความสูงต้องเท่ากับ input/select ในแถวเดียวกัน ไม่งั้นชื่อลอยสูงกว่าเพื่อน */
 .ctable .who .wrapper{display:flex;align-items:center;gap:.35em;min-height:var(--rowh,2.6em)}
-.ctable .who .nm{overflow:hidden;text-overflow:ellipsis;flex:1;min-width:0;line-height:1.4}
+/* ชื่อครีเอเตอร์คือสิ่งที่ต้องอ่านออกก่อนอย่างอื่นในแถว — ใหญ่กว่าช่องอื่นและหนากว่า
+   ดูเป็นข้อความธรรมดาจนกว่าจะชี้ ถึงจะเห็นว่าแก้ได้ ไม่ให้ตารางดูเป็นฟอร์มทั้งแผง */
+.ctable .who .nm{overflow:hidden;text-overflow:ellipsis;flex:1;min-width:0;line-height:1.4;
+  font-size:1.02rem;font-weight:700;color:var(--ink)}
+.ctable .who input.nm{background:none;border:1px solid transparent;padding:.3em .4em}
+.ctable .who input.nm:hover{border-color:var(--line);background:var(--surface2)}
+.ctable .who input.nm:focus{border-color:var(--accent);background:var(--surface2)}
 /* ปุ่มท้ายชื่อเป็นไอคอนล้วน — ช่องนี้แคบ คำว่า "Command" กินที่จนชื่อคนถูกตัด */
 .icobtn{flex:none;background:none;border:1px solid transparent;color:var(--mute);
   border-radius:5px;padding:.3em .45em;font-size:1.05rem;line-height:1.2}
@@ -484,8 +521,8 @@ tr.subrow .clipsku{font-size:.78rem;color:var(--mute)}
 .ctable th.w-job,.ctable td.w-job{min-width:6.6em}
 .ctable td.w-job input{width:5.9em;text-align:center;font-weight:600;
   font-family:'IBM Plex Mono',monospace}
-.ctable th.w-status,.ctable td.w-status{min-width:15em}
-.ctable td.w-status select{width:14.6em}
+.ctable th.w-status,.ctable td.w-status{min-width:13.4em}
+.ctable td.w-status select{width:13em}
 .ctable td.w-brief{white-space:nowrap}
 .ctable th.w-del,.ctable td.w-del{width:38px;text-align:center}
 .delrow{background:none;border:1px solid transparent;color:var(--dim);
@@ -493,7 +530,7 @@ tr.subrow .clipsku{font-size:.78rem;color:var(--mute)}
 .delrow:hover{border-color:var(--lo);color:var(--lo);background:rgba(var(--lo-rgb),.1)}
 .ctable .who .go{color:var(--dim);flex:none;padding:0 2px}
 .ctable .who .go:hover{color:var(--accent)}
-.ctable .who input.nm{flex:1;min-width:0;font-weight:600}
+.ctable .who input.nm{flex:1;min-width:0;font-weight:700}
 tr.dragging{opacity:.4}
 tr.dropover td{border-top:2px solid var(--accent)}
 /* สีของงานตอนเป็นช่องกรอก */
@@ -575,7 +612,11 @@ tr.dropover td{border-top:2px solid var(--accent)}
 .cwrap{overflow:auto;border:1px solid var(--line);border-radius:11px;
   background:var(--surface);padding:0 4px;
   position:sticky;top:var(--stick2,160px);
-  max-height:calc(100vh - var(--stick2,160px) - 22px);min-height:220px}
+  max-height:calc(100vh - var(--stick2,160px) - 22px);min-height:14em}
+/* จอเตี้ยเกินกว่าจะแบ่งที่ให้ตาราง — เลิกตรึง ปล่อยให้หน้าเลื่อนไปตามปกติ
+   ตรึงต่อไปจะได้ตารางสูงไม่กี่บรรทัดซึ่งใช้งานยากกว่าเลื่อนทั้งหน้า */
+.shortscreen .cwrap{position:static;max-height:none}
+.shortscreen .cmdbar-stick{position:static}
 /* มุมซ้ายบน (ปุ่มลาก + ชื่อ) ต้องอยู่เหนือทั้งหัวตารางและคอลัมน์ที่ตรึง ไม่งั้นแถวจะลอดออกมา */
 .ctable thead th:nth-child(1),.ctable thead th:nth-child(2){z-index:6}
 .st{font-size:.79rem;border-radius:999px;padding:2px 9px;white-space:nowrap;
@@ -1057,14 +1098,14 @@ tr.subrow td.w-status select{width:14.6em}
   </nav>
   <div class="hgroup">
     <button class="gear" id="foldBtn" aria-expanded="true"
-            title="พับ/กางแถบตัวกรอง">◧ แถบตัวกรอง</button>
+            title="พับ/กางแถบตัวกรอง">◧<span class="lbl"> แถบตัวกรอง</span></button>
     <div class="poolstat">pool: <b id="poolN">0</b> คน</div>
     <div class="srcchip" id="srcChip" title="ตอนนี้เว็บอ่านชีตด้วยวิธีไหน"></div>
-    <button class="gear accent" id="addBtn" aria-haspopup="dialog">+ เพิ่มครีเอเตอร์</button>
-    <button class="gear" id="gearBtn" aria-haspopup="dialog">⚙ ตั้งค่า</button>
-    <button class="gear" id="syncBtn" hidden title="ส่งที่แก้ขึ้นชีตเดี๋ยวนี้">⇧ ซิงก์</button>
+    <button class="gear accent" id="addBtn" aria-haspopup="dialog">+<span class="lbl"> เพิ่มครีเอเตอร์</span></button>
+    <button class="gear" id="gearBtn" aria-haspopup="dialog">⚙<span class="lbl"> ตั้งค่า</span></button>
+    <button class="gear" id="syncBtn" hidden title="ส่งที่แก้ขึ้นชีตเดี๋ยวนี้">⇧<span class="lbl"> ซิงก์</span></button>
     <button class="gear uibtn" id="uiBtn" title="ขนาดตัวอักษรทั้งเว็บ — กดเพื่อสลับ">A</button>
-    <button class="gear" id="lockBtn" title="ล็อกหน้าจอ ต้องใส่รหัสใหม่">🔒 ล็อก</button>
+    <button class="gear" id="lockBtn" title="ล็อกหน้าจอ ต้องใส่รหัสใหม่">🔒<span class="lbl"> ล็อก</span></button>
     <button class="gear cartbtn empty" id="cartBtn" aria-haspopup="dialog"
             title="ครีเอเตอร์ที่หยิบไว้">🛒 ตะกร้า <span class="n" id="cartN">0</span></button>
   </div>
@@ -3576,6 +3617,12 @@ function renderCoord(){
     inp.oninput = () => formatRateInput(inp);  // ใส่จุลภาคให้ระหว่างพิมพ์
   });
 
+  // ช่องชื่อก็เหมือนกัน — คลิกทีเดียวคลุมทั้งชื่อ พิมพ์ทับได้เลย
+  document.querySelectorAll('#coordBody input.nm').forEach(inp => {
+    inp.onfocus = () => inp.select();
+    inp.onmouseup = e => e.preventDefault();
+  });
+
   document.querySelectorAll("#coordBody [data-f]").forEach(el => {
     el.onchange = () => {
       setField(COORD[PROJ][+el.dataset.i], el.dataset.f, el.value);
@@ -4072,6 +4119,31 @@ let CMDEDIT = {};
 let CMD_EDITING = false;
 function loadCmdEdit(){
   try { CMDEDIT = JSON.parse(localStorage.getItem(LS_CMDEDIT) || "{}") || {}; } catch(e){}
+  repairFeedbackBlocks();
+}
+
+// ─── ซ่อมบล็อกฟีดแบคที่ตัวแปรหาย ───
+// เคยมีการวางข้อความฟีดแบคจริงทับลงไปในต้นแบบ ทำให้ {{feedback1}} หายไปทั้งบล็อก
+// ผลคือครีเอเตอร์ทุกคนได้ฟีดแบคก้อนเดียวกัน และไม่มีที่ให้เติมของแต่ละคนอีก
+// ตรวจให้แคบที่สุด: เฉพาะบล็อกที่ "ต้นแบบเดิมมีตัวแปร แต่ของที่แก้ไว้ไม่มี" เท่านั้น
+// เจอเมื่อไหร่ก็ถอดของที่แก้ทิ้ง ให้ต้นแบบกลับมา — ข้อความที่วางไว้ไม่ได้ถูกเอาไปใช้ต่อ
+// เพราะมันเป็นฟีดแบคของคนคนเดียว ไม่ใช่ข้อความกลางที่ทุกคนควรได้
+function repairFeedbackBlocks(){
+  let fixed = 0;
+  CMD_BLOCKS.forEach((def, i) => {
+    const vars = (def.b.match(/\{\{feedback\d\}\}/g) || []);
+    if (!vars.length) return;
+    const cur = CMDEDIT[i];
+    if (!cur || cur.b == null) return;
+    if (vars.every(v => cur.b.includes(v))) return;   // ยังมีตัวแปรครบ ไม่ต้องยุ่ง
+    delete CMDEDIT[i];
+    fixed++;
+  });
+  if (fixed){
+    saveCmdEdit();
+    console.info(`[Creator Finder] คืนข้อความต้นแบบบล็อกฟีดแบค ${fixed} บล็อก — ตัวแปร {{feedbackN}} หายไป`);
+  }
+  return fixed;
 }
 function saveCmdEdit(){
   try { localStorage.setItem(LS_CMDEDIT, JSON.stringify(CMDEDIT)); } catch(e){}
@@ -4154,9 +4226,24 @@ function renderCmdEditor(proj, handle){
     else CMDEDIT[i] = cur;
     saveCmdEdit();
   };
-  const save = (i, key, val) => mine
-    ? setCmdOwnBlock(proj, handle, i, key, val)
-    : saveAll(i, key, val);
+  const save = (i, key, val) => {
+    // กันพลาดซ้ำรอยเดิม — ลบ {{feedbackN}} ออกจากต้นแบบ = ทุกคนได้ข้อความก้อนเดียวกัน
+    // และไม่เหลือที่ให้เติมฟีดแบครายคนอีกเลย
+    if (key === "b" && !mine){
+      const need = (CMD_BLOCKS[i].b.match(/\{\{feedback\d\}\}/g) || []);
+      const lost = need.filter(v => !val.includes(v));
+      if (lost.length && !confirm(
+        `ข้อความนี้ไม่มี ${lost.join(" ")} แล้ว\n\n` +
+        `ต้นแบบใช้กับครีเอเตอร์ทุกคน — ถ้าตัวแปรหาย ทุกคนจะได้ข้อความเดียวกันหมด\n` +
+        `และไม่มีที่ให้เติมฟีดแบคของแต่ละคนอีก\n\n` +
+        `ถ้าจะใส่ฟีดแบคให้คนใดคนหนึ่ง ให้กด "เฉพาะ ${normId(handle)}" ด้านบน\n` +
+        `หรือปุ่ม ✎ Feedback แทน\n\nยืนยันว่าจะแก้ต้นแบบจริงๆ?`)){
+        renderCmdEditor(proj, handle);
+        return false;
+      }
+    }
+    return mine ? setCmdOwnBlock(proj, handle, i, key, val) : saveAll(i, key, val);
+  };
 
   document.querySelectorAll("#cmdBody .cmdt").forEach(el =>
     el.onchange = () => { save(+el.dataset.i, "t", el.value); renderCmdEditor(proj, handle); });
@@ -6977,10 +7064,43 @@ function measureStick(){
   const s = document.querySelector(".cmdbar-stick");
   if (!h || !s) return;
   const top = Math.round(h.getBoundingClientRect().height);
-  document.documentElement.style.setProperty("--stick", top + "px");
-  document.documentElement.style.setProperty("--stick2",
-    (top + Math.round(s.getBoundingClientRect().height)) + "px");
+  const bar = Math.round(s.getBoundingClientRect().height);
+  const de = document.documentElement;
+  de.style.setProperty("--stick", top + "px");
+  de.style.setProperty("--stick2", (top + bar) + "px");
+  // จอเตี้ยๆ (พับจอ/แนวนอนบนมือถือ) ที่ตรึงไว้กินจนไม่เหลือที่ให้ตาราง
+  // ปล่อยให้เลื่อนไปตามปกติดีกว่าเหลือตารางสูง 100px
+  de.classList.toggle("shortscreen", innerHeight - top - bar < 260);
 }
+// หัวเว็บสูงไม่เท่ากันตามความกว้างจอ (ปุ่มขึ้นบรรทัดใหม่) และช่องคำสั่งโตตามข้อความ
+// วัดครั้งเดียวตอนโหลดไม่พอ ต้องตามดูตลอด ไม่งั้นตารางจะยาวเลยจอไปหลายร้อย px
+// ต้องวัด "หลัง" เลย์เอาต์นิ่งแล้ว — ตัววัดที่ยิงพร้อมกับตอนจอกำลังเปลี่ยนจะอ่านค่าเก่า
+let stickT = null;
+function scheduleStick(){
+  requestAnimationFrame(measureStick);
+  clearTimeout(stickT);
+  stickT = setTimeout(measureStick, 150);
+}
+if (window.ResizeObserver){
+  const ro = new ResizeObserver(scheduleStick);
+  ["header", ".cmdbar-stick", "#coordView"].forEach(s => {
+    const el = document.querySelector(s);
+    if (el) ro.observe(el);
+  });
+}
+// พับจอ / หมุนจอ / แป้นพิมพ์บนมือถือโผล่ — visualViewport จับได้ ส่วน resize ปกติจับไม่ครบ
+if (window.visualViewport) visualViewport.addEventListener("resize", scheduleStick);
+addEventListener("orientationchange", scheduleStick);
+// กันเหนียว: บางเบราว์เซอร์/บางวิธีเปลี่ยนขนาดจอไม่ยิง event ให้เลย แล้วค่าจะค้าง
+// ทำให้ตารางยาวเลยจอหรือหัวตารางลอยผิดที่ ตรวจเบาๆ ทุกวินาที เขียนเฉพาะตอนค่าเปลี่ยนจริง
+setInterval(() => {
+  const h = document.querySelector("header"), s = document.querySelector(".cmdbar-stick");
+  if (!h || !s || document.body.dataset.view !== "coord") return;
+  const want = Math.round(h.getBoundingClientRect().height);
+  const now = parseInt(getComputedStyle(document.documentElement)
+    .getPropertyValue("--stick"), 10);
+  if (want !== now) measureStick();
+}, 1000);
 function growCmd(){
   const t = $("#qoText");
   t.style.height = "auto";
@@ -6988,7 +7108,7 @@ function growCmd(){
   measureStick();
 }
 $("#qoText").addEventListener("input", growCmd);
-addEventListener("resize", measureStick);
+addEventListener("resize", scheduleStick);
 // Enter = ตรวจ, Shift+Enter = ขึ้นบรรทัดใหม่ (หลายคำสั่งพร้อมกัน)
 $("#qoText").addEventListener("keydown", e => {
   if (e.key === "Enter" && !e.shiftKey){ e.preventDefault(); $("#qoParse").click(); }
