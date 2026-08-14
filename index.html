@@ -321,6 +321,18 @@ body:not([data-view="coord"]) #gearBtn{display:none}
 .cmdhelp code{background:var(--surface2);border-radius:4px;padding:2px 7px;
   font-size:.75rem;color:var(--ink);display:inline-block;margin:2px 0}
 .cmdhelp .helpsec{margin-top:11px;padding-top:10px;border-top:1px solid var(--line)}
+/* คู่มือแบ่งเป็นกลุ่ม — 39 คำสั่ง ถ้าเรียงยาวเป็นพืดจะหาไม่เจอ */
+.hgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:18px 26px}
+.hcol h4{font-size:.72rem;text-transform:uppercase;letter-spacing:.08em;color:var(--accent);
+  font-weight:700;margin-bottom:9px;padding-bottom:6px;border-bottom:1px solid var(--line)}
+.hcol p{margin:0 0 9px;line-height:1.8}
+.hlist{display:flex;flex-direction:column;gap:3px;margin-bottom:9px}
+.hrow{display:flex;align-items:baseline;gap:9px;flex-wrap:wrap;line-height:1.7}
+.hrow code{flex:none;min-width:82px;margin:0}
+.hrow .hth{color:var(--ink);font-size:.78rem}
+.hrow .hex{flex-basis:100%;color:var(--dim);font-size:.72rem;padding-left:91px;
+  font-family:'IBM Plex Mono',monospace}
+@media(max-width:520px){.hrow .hex{padding-left:0}}
 .cgrid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
 @media(max-width:520px){.cgrid{grid-template-columns:1fr}}
 .cgrid label{display:block;font-size:.72rem;text-transform:uppercase;letter-spacing:.06em;
@@ -881,14 +893,34 @@ main{padding:22px 24px;overflow-y:auto;max-height:calc(100vh - 62px)}
   font-size:.82rem;line-height:1.65;white-space:pre-wrap;word-break:break-word;
   color:var(--ink);max-height:340px;overflow-y:auto}
 .cmdblk pre .fill{color:var(--accent);font-weight:600}
+/* ตัวแดง = ยังไม่มีข้อมูล กดได้ เติมตรงนั้นเลย */
 .cmdblk pre .gap{color:var(--lo);background:rgba(var(--lo-rgb),.1);
-  border-radius:4px;padding:0 4px}
+  border:1px dashed rgba(var(--lo-rgb),.5);border-radius:4px;padding:0 5px;
+  font:inherit;cursor:pointer}
+.cmdblk pre .gap:hover{background:rgba(var(--lo-rgb),.22);color:#fff}
+/* แถบสรุปช่องว่างบนหัว Command */
+.gapbar{display:flex;gap:7px;flex-wrap:wrap;align-items:center;
+  padding:11px 14px;margin-bottom:16px;border-radius:9px;
+  background:rgba(var(--lo-rgb),.07);border:1px solid rgba(var(--lo-rgb),.28)}
+.gapbar .lab{font-size:.78rem;color:var(--lo);font-weight:600;margin-right:3px}
+.gapbar button{background:var(--surface2);border:1px solid rgba(var(--lo-rgb),.4);
+  color:var(--ink);border-radius:6px;padding:4px 11px;font-size:.76rem;font-weight:600}
+.gapbar button:hover{border-color:var(--lo);background:rgba(var(--lo-rgb),.16)}
+.gapbar.ok{background:rgba(var(--hi-rgb),.07);border-color:rgba(var(--hi-rgb),.28)}
+.gapbar.ok .lab{color:var(--hi)}
 .cmdbtn{background:var(--surface2);border:1px solid var(--line);color:var(--dim);
   border-radius:6px;padding:2px 8px;font-size:.72rem;font-weight:600;margin-left:7px}
 .cmdbtn:hover{border-color:var(--accent);color:var(--accent)}
 .cmdblk.edited{border-color:rgba(var(--accent-rgb),.4)}
 .cmdblk.edited > header::before{content:"แก้แล้ว";font-size:.66rem;color:var(--accent);
   border:1px solid rgba(var(--accent-rgb),.35);border-radius:4px;padding:1px 6px}
+/* ช่องสั่งงานเฉพาะคนนี้ ในหน้า Command */
+.cmdqo{display:flex;align-items:center;gap:9px;margin:14px 0 0;
+  background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:7px 7px 7px 13px}
+.cmdqo:focus-within{border-color:var(--accent)}
+.cmdqo input{flex:1;min-width:0;background:none;border:0;padding:7px 0;font-size:.85rem}
+.cmdqo input:focus{outline:none}
+.cmdqo .run{flex:none;width:auto;padding:8px 18px;font-size:.84rem}
 .cmdscope{margin:0 0 10px}
 .cmdscope button{font-size:.76rem;padding:6px 8px}
 .cmdbtn.on{border-color:var(--accent);color:var(--accent);background:rgba(var(--accent-rgb),.1)}
@@ -1276,66 +1308,55 @@ tr.subrow td.w-status select{width:230px}
     </div>
 
     <div class="cmdhelp" id="cmdHelp" hidden>
-      อ่านจากทั้งบรรทัด ไม่สนลำดับคำ ชื่อครีเอเตอร์เทียบกับรายชื่อที่มีอยู่จริง<br>
-      <span style="color:var(--dim)">เครื่องหมาย : = ไม่บังคับ · คำนำหน้าอย่าง เพิ่ม/ใส่/แก้/เปลี่ยน/ตั้ง
-      ใส่หรือไม่ใส่ก็ได้ · พิมพ์ #tag มาเฉยๆ ก็รู้ว่าเป็น hashtag</span><br>
-      <code>cenakims เรท 12000 ชำระ3% โพสต์แล้ว</code><br>
-      <code>เพิ่ม tangkwaqs เข้า RC2 KOL</code> — คนใหม่ ข้อมูลอื่นเว้นไว้เติมทีหลัง<br>
-      <code>ย้าย 052.be ไป Red Chamber 2</code><br>
-      <span style="color:var(--dim)">แก้ได้: เรท · ภาษี · สถานะ · จำนวนคลิป · SKU · งาน · โน้ต: ·
-      วันโพสต์ · กำหนดส่ง · ลิงก์บรีฟ · KOL/KOC · ย้ายโปรเจกต์ —
-      ชื่อซ้ำหลายโปรเจกต์ต้องบอกโปรเจกต์ด้วย</span>
+      <div class="hgrid">
+        <div class="hcol">
+          <h4>วิธีสั่ง</h4>
+          <p>รูปแบบเดียวกันหมด — <code>/คำสั่ง ชื่อ : ค่า</code><br>
+          ชื่อใส่หลายคนได้ (เว้นวรรค) · ใส่ <code>*</code> = ทุกคนในโปรเจกต์<br>
+          <b>ไม่ใส่ชื่อก็ได้</b> ถ้าบรรทัดข้างบนเป็นรายชื่อ หรือกดเลือกจาก <b>☰ เลือกจากรายชื่อ</b><br>
+          <span style="color:var(--dim)">พิมพ์เป็นประโยคธรรมดาแบบเดิมก็ยังได้ ไม่ได้บังคับใช้ /</span></p>
+          <p><code>/rate cenakims : 12000</code><br>
+             <code>/rate cenakims : +500</code> — บวกจากเรทเดิม<br>
+             <code>/status cenakims tangkwaqs : รอ Draft 2</code> — หลายคนพร้อมกัน<br>
+             <code>/status * : Already Posted</code> — ทุกคนในโปรเจกต์</p>
+        </div>
 
-      <div class="helpsec"><b>วางรายชื่อเป็นกลุ่มแล้วสั่งทีเดียว</b> —
-      บรรทัดที่มีแต่ชื่อจะรอไว้ พอเจอบรรทัดคำสั่งก็ใช้กับทุกคนที่รออยู่<br>
-      <code>tangtangnpc<br>onfireboyth<br>growupwithfah<br>ชำระ3%</code><br>
-      <span style="color:var(--dim)">เว้นบรรทัดว่าง = จบกลุ่ม เริ่มกลุ่มใหม่</span></div>
+        <div class="hcol">
+          <h4>ข้อมูลในตาราง</h4>
+          <div id="helpRow" class="hlist"></div>
+        </div>
 
-      <div class="helpsec"><b>ตั้ง Command เฉพาะคนนั้น</b> — ไม่กระทบข้อความของคนอื่น<br>
-      <code>tangtangnpc command 3: สวัสดีครับ ...</code> — ทับข้อความบล็อกที่ 3<br>
-      <code>tangtangnpc feedback 1: แก้สีปากให้อ่อนลงค่ะ</code> — ฟีดแบคของคนนี้เท่านั้น<br>
-      <code>tangtangnpc ตะกร้า https://… hashtag: #ad</code><br>
-      <span style="color:var(--dim)">ฟีดแบคยาวหลายบรรทัดให้กด <b>✉</b> ท้ายชื่อ แล้วกด
-      <b>✎ Feedback</b> — มี 3 ช่องแยกตาม Draft 1/2/3</span><br>
+        <div class="hcol">
+          <h4>เอกสาร / ลิงก์ ของแต่ละคน</h4>
+          <div id="helpDoc" class="hlist"></div>
+          <p style="color:var(--dim)">ใช้ใน Command ได้ด้วย เช่น <code>{{sg}}</code> <code>{{agreement}}</code><br>
+          เก็บในเครื่องนี้เท่านั้น ไม่ขึ้นชีต</p>
+        </div>
 
-      <div style="margin-top:9px"><b>เอกสารรายคน</b> — พูดชื่อเอกสารแล้ววางลิงก์ ไม่ต้องติดกัน<br>
-      <code>ฝากใส่ Agreement ให้ tangtangnpc https://…</code><br>
-      <span style="color:var(--dim)">${["ตะกร้า","SG","Shooting Guide","Agreement/สัญญา",
-        "ลิงก์จ่ายเงิน","ฟอร์ม","เอกสารร่วมงาน","สคริป","Timeline","Hashtag"].join(" · ")}
-      — ใช้ใน Command ได้ด้วย เช่น {{sg}} {{agreement}}</span></div>
+        <div class="hcol">
+          <h4>Feedback</h4>
+          <div id="helpFb" class="hlist"></div>
+          <p style="color:var(--dim)">ยาวหลายบรรทัดให้กด <b>✉</b> ท้ายชื่อ แล้วกด <b>✎ Feedback</b><br>
+          ในหน้า Command มีช่องสั่งงานของคนนั้นอยู่ในตัว ไม่ต้องพิมพ์ชื่อ</p>
+        </div>
 
-      <div style="margin-top:9px"><b>บวก/ลบ · ล้าง · ก๊อป · ทุกคน</b><br>
-      <code>tangtangnpc เพิ่มเรท 500</code> — บวกจากเรทเดิม ไม่ใช่ตั้งเป็น 500<br>
-      <code>tangtangnpc ลบ SG</code>
-      <code>tangtangnpc ใช้เรทเดียวกับ onfireboyth</code><br>
-      <code>ทุกคนเป็น Already Posted</code> — ทุกแถวในโปรเจกต์ที่เปิดอยู่</div>
-      <span style="color:var(--dim)">ตั้งได้: ตะกร้า · hashtag: · ไทม์ไลน์: · ฟอร์ม · สคริป · เอกสาร
-      — ใช้กับกลุ่มรายชื่อได้เหมือนกัน · เก็บในเครื่องนี้เท่านั้น ไม่ขึ้นชีต</span></div>
+        <div class="hcol">
+          <h4>จัดการรายชื่อ</h4>
+          <div id="helpAct" class="hlist"></div>
+        </div>
 
-      <div class="helpsec"><b>เพิ่มคนใหม่เข้าโปรเจกต์</b> — พูดได้หลายแบบ<br>
-      <code>เพิ่ม tangkwaqs เข้า RC2 KOL เรท 5000 รอ Draft 1</code><br>
-      <code>tangkwaqs เข้า RC2</code>
-      <code>ดึง tangkwaqs เข้า RC2</code>
-      <code>ลงชื่อ tangkwaqs ใน RC2</code><br>
-      <span style="color:var(--dim)">คำที่ใช้ได้: เพิ่ม · เพิ่มชื่อ · ใส่ · ใส่ชื่อ · เอา · ดึง · รับ ·
-      ลง · ลงชื่อ · บรรจุ · จอง · สร้าง · add · new · + — หรือไม่ใส่คำกริยาเลยก็ได้ถ้าบอกโปรเจกต์<br>
-      ใส่เรท · ภาษี · สถานะ · SKU · จำนวนคลิป · โน้ต มาพร้อมกันได้เลย
-      · ไม่บอกโปรเจกต์ = ลงโปรเจกต์ที่เปิดอยู่ · วางหลายคนทีเดียวใช้ปุ่ม ⇥ ด้านล่าง</span></div>
-
-      <div class="helpsec"><b>สั่งงานหน้านี้ทั้งหมดจากช่องนี้</b> — ทุกคำสั่งผ่านหน้าตรวจก่อนเสมอ<br>
-      <code>ลบ cenakims</code>
-      <code>ไปที่ RC2</code>
-      <code>ซิงก์</code>
-      <code>โหลดใหม่</code><br>
-      <code>ส่งออก</code>
-      <code>ตั้งค่า</code>
-      <code>แปลงสถานะ</code>
-      <code>ล้างตัวกรอง</code>
-      <code>ทุกคอลัมน์</code>
-      <code>ช่วย</code>
-      <code>เคลียร์ feedback 1</code><br>
-      <span style="color:var(--dim)">ลบหลายคนพร้อมกันได้ · ชื่อซ้ำหลายโปรเจกต์ต้องบอกโปรเจกต์ด้วย
-      · การลบถามยืนยันอีกครั้งพร้อมรายชื่อ</span></div>
+        <div class="hcol">
+          <h4>พิมพ์เป็นประโยคก็ได้</h4>
+          <p>เครื่องหมาย <code>:</code> ไม่บังคับ · คำนำหน้า (เพิ่ม/ใส่/แก้/เปลี่ยน/ตั้ง/ฝาก/ช่วย) ใส่หรือไม่ใส่ก็ได้<br>
+          <code>cenakims เรท 12000 ชำระ3% โพสต์แล้ว</code><br>
+          <code>ฝากใส่ Agreement ให้ cenakims https://…</code><br>
+          <code>ย้าย cenakims ไป Red Chamber 2</code><br>
+          <code>tangkwaqs เข้า RC2 KOL</code></p>
+          <p><b>วางรายชื่อเป็นกลุ่มแล้วสั่งทีเดียว</b><br>
+          <code>tangtangnpc<br>onfireboyth<br>/status : Already Posted</code><br>
+          <span style="color:var(--dim)">บรรทัดที่มีแต่ชื่อจะรอไว้ · เว้นบรรทัดว่าง = จบกลุ่ม</span></p>
+        </div>
+      </div>
     </div>
 
     <div class="cmdbulk" id="bulkFold" hidden>
@@ -3923,6 +3944,7 @@ const DOCS = [
   { k:"form",      th:"ฟอร์มเอกสาร",       re:"google\\s*form|แบบฟอร์ม|ลิงก์ฟอร์ม|ฟอร์ม|form" },
   { k:"docs",      th:"เอกสารร่วมงาน",     re:"collab(?:oration)?\\s*document|เอกสารร่วมงาน|ลิงก์เอกสารร่วมงาน|ไฟล์งาน|เอกสาร|docs?" },
   { k:"script",    th:"ลิงก์สคริป",        re:"สคริป[ต]?|script" },
+  { k:"sign",      th:"ใบรับเงิน",         re:"ใบรับเงิน|acknowledgement|receipt|sign" },
   { k:"timeline",  th:"Timeline",          re:"ไทม์ไลน์|timeline",  text:true },
   { k:"hashtag",   th:"Hashtag",           re:"แฮชแท็ก|hashtags?|แท็ก|tags?", tags:true },
 ];
@@ -4022,12 +4044,16 @@ function fbCount(proj, handle){
 function fillBlock(body, vals){
   let missing = 0;
   const text = body.replace(/\{\{(\w+)\}\}/g, (_, k) => vals[k] || `…..${CMD_GAP[k] || k}…..`);
+  const gaps = [];
   const html = esc(body).replace(/\{\{(\w+)\}\}/g, (_, k) => {
     if (vals[k]) return `<span class="fill">${esc(vals[k])}</span>`;
     missing++;
-    return `<span class="gap">…..${esc(CMD_GAP[k] || k)}…..</span>`;
+    if (!gaps.includes(k)) gaps.push(k);
+    // กดที่ตัวแดงเพื่อเติมค่าตรงนั้นเลย ไม่ต้องไปหาว่าช่องนี้อยู่ตรงไหนของตาราง
+    return `<button class="gap" data-gap="${esc(k)}"
+      title="กดเพื่อเติม${esc(CMD_GAP[k] || k)}">…..${esc(CMD_GAP[k] || k)}…..</button>`;
   });
-  return { text, html, missing };
+  return { text, html, missing, gaps };
 }
 
 // ─── แก้ข้อความ Command เองได้ ───
@@ -4168,6 +4194,9 @@ function openCmd(proj, handle){
   const blocks = cmdBlocksFor(proj, handle)
     .map(bl => Object.assign({ t: bl.t, mine: bl.mine }, fillBlock(bl.b, vals)));
   const gaps = blocks.reduce((s, b) => s + b.missing, 0);
+  // ช่องว่างแต่ละชนิด (ไม่นับซ้ำ) — เอาไปทำปุ่มเติมบนหัว
+  const gapKeys = [...new Set(blocks.flatMap(b => b.gaps || []))]
+    .filter(k => k !== "net");                    // จ่ายจริงคิดเอง เติมตรงๆ ไม่ได้
 
   $("#cmdBody").innerHTML =
     `<div class="cmdwho">
@@ -4187,9 +4216,15 @@ function openCmd(proj, handle){
          ${r.sku ? `<br>SKU ${esc(r.sku)}` : ""}
        </div>
      </div>
+     <div class="gapbar${gapKeys.length ? "" : " ok"}">
+       <span class="lab">${gapKeys.length
+         ? `ยังว่าง ${gapKeys.length} ช่อง — กดเติมได้เลย`
+         : "ข้อมูลครบทุกช่อง"}</span>
+       ${gapKeys.map(k => `<button data-gap="${esc(k)}">${esc(CMD_GAP[k] || k)}</button>`).join("")}
+     </div>
      <div class="cmdmeta">
-       ${gaps ? `<span style="color:var(--lo)">ยังมีช่องว่าง ${gaps} จุด</span> — ที่ไฮไลต์แดงคือยังไม่มีข้อมูล เติมในตารางแล้วเปิดใหม่จะอัปเดตให้เอง`
-              : `<span style="color:var(--hi)">ข้อมูลครบทุกช่อง</span>`}
+       ${gaps ? `<span style="color:var(--lo)">ตัวหนังสือสีแดงในข้อความคือช่องที่ยังว่าง</span> — กดที่ตัวแดงหรือปุ่มข้างบนเพื่อเติมตรงนั้นเลย`
+              : `<span style="color:var(--hi)">พร้อมส่งทุกบล็อก</span>`}
        ${(nMine || nLink || nFb) ? ` · <span style="color:var(--accent)">เฉพาะคนนี้: ${
          [nMine ? `ข้อความ ${nMine} บล็อก` : "", nLink ? `ลิงก์ ${nLink} ช่อง` : "",
           nFb ? `Feedback ${nFb} Draft` : ""]
@@ -4200,6 +4235,14 @@ function openCmd(proj, handle){
        <button class="cmdbtn" id="cmdSetLinksAll">ลิงก์ที่ใช้ร่วมกัน</button>
        <button class="cmdbtn" id="cmdEditBtn">✎ แก้ข้อความ</button>
      </div>
+     <!-- สั่งงานเฉพาะคนนี้ได้จากตรงนี้ ไม่ต้องปิดหน้าไปพิมพ์ชื่อใหม่ที่ช่องคำสั่งหลัก -->
+     <div class="cmdqo">
+       <span class="cmdbar-ic">⌘</span>
+       <input id="cmdQO" placeholder="/rate 12000  ·  /status รอ Draft 2  ·  /sg https://…  — ไม่ต้องพิมพ์ชื่อ"
+              autocomplete="off" spellcheck="false">
+       <button class="run" id="cmdQOGo">ใช้</button>
+     </div>
+     <div class="addmsg" id="cmdQOMsg"></div>
      <div class="fbbox" id="fbBox" hidden>
        <div class="fbhead">Feedback ของ <b>${esc(r.handle)}</b> — คนละชุดกับครีเอเตอร์คนอื่น
          <span style="color:var(--dim)">วางข้อความที่แบรนด์ส่งมาได้เลย ขึ้นบรรทัดใหม่ได้</span></div>
@@ -4226,6 +4269,75 @@ function openCmd(proj, handle){
       setTimeout(() => { btn.textContent = "คัดลอก"; btn.classList.remove("done"); }, 1600);
     }).catch(() => { btn.textContent = "ก๊อปไม่ได้"; });
   });
+
+  // ── เติมช่องว่างจากตรงที่เห็น ──
+  // ค่าอยู่คนละที่กัน: บางอันเป็นข้อมูลแถว บางอันเป็นเอกสารรายคน บางอันเป็นฟีดแบค
+  // ปุ่มเดียวกันหมด ผู้ใช้ไม่ต้องรู้ว่าอันไหนเก็บที่ไหน
+  const ROW_GAP = { rate:"rate", sku:"sku", paytype:"paytype", brief:"brief" };
+  function fillGap(k){
+    const r2 = (COORD[proj] || []).find(x => normId(x.handle) === normId(handle));
+    if (!r2) return;
+    if (/^feedback\d?$/.test(k)){
+      $("#cmdFbBtn").click();
+      const n = k.replace("feedback", "") || "1";
+      const ta = $(`#fbBox [data-fb="${n}"]`);
+      if (ta) ta.focus();
+      return;
+    }
+    if (k === "paytype"){
+      const pick = prompt(`รูปแบบภาษีของ ${normId(handle)}\n` +
+        PAYTYPES.filter(t => t.id).map((t,i) => `${i+1}. ${t.label}`).join("\n") +
+        `\n\nพิมพ์เลข 1-6`, "");
+      if (pick == null) return;
+      const t = PAYTYPES.filter(x => x.id)[Number(pick) - 1];
+      if (!t) return alert("เลือกไม่ถูก");
+      setField(r2, "paytype", t.id);
+    } else if (ROW_GAP[k]){
+      const cur = r2[ROW_GAP[k]] ?? "";
+      const v = prompt(`${CMD_GAP[k]} ของ ${normId(handle)}`, cur === null ? "" : String(cur));
+      if (v == null) return;
+      setField(r2, ROW_GAP[k], v.trim());
+    } else {
+      // ที่เหลือคือเอกสาร/ลิงก์รายคน
+      const cur = (cmdOwnRead(proj, handle).links || {})[k] || CMDLINKS[k] || "";
+      const v = prompt(`${DOC_BY_KEY[k] ? DOC_BY_KEY[k].th : k} ของ ${normId(handle)}\n` +
+        `(เว้นว่าง = ใช้ค่าที่ตั้งร่วมกันไว้)`, cur);
+      if (v == null) return;
+      setCmdOwnLink(proj, handle, k, v.trim());
+    }
+    renderCoord();
+    openCmd(proj, handle);
+  }
+  $("#cmdBody").querySelectorAll("[data-gap]").forEach(b =>
+    b.onclick = () => fillGap(b.dataset.gap));
+
+  // ── Quick Order เฉพาะคนนี้ ──
+  // เติมชื่อให้อัตโนมัติ แล้วส่งเข้าตัวอ่านตัวเดียวกับช่องคำสั่งหลัก ไม่มีทางลัดพิเศษ
+  const runCmdQO = () => {
+    const raw = $("#cmdQO").value.trim();
+    const msg = $("#cmdQOMsg");
+    if (!raw) return;
+    const withName = raw.startsWith("/")
+      ? raw.replace(/^(\/\w+)\s*:?\s*/, (mm, c) => `${c} ${normId(handle)} : `).replace(/\s*:\s*$/, "")
+      : `${normId(handle)} ${raw}`;
+    const got = parseCmdText(withName);
+    const good = got.filter(g => g.ok);
+    if (!good.length){
+      msg.className = "addmsg on err";
+      msg.textContent = (got[0] && got[0].why) || "อ่านคำสั่งไม่ออก";
+      return;
+    }
+    QO = got; applyQuickOrder();
+    $("#cmdQO").value = "";
+    msg.className = "addmsg on ok";
+    msg.textContent = "ทำแล้ว — ข้อความข้างล่างอัปเดตตามให้แล้ว";
+    renderCoord();
+    openCmd(proj, handle);
+    setTimeout(() => { const e = $("#cmdQOMsg"); if (e){ e.className = "addmsg on ok";
+      e.textContent = "ทำแล้ว — ข้อความข้างล่างอัปเดตตามให้แล้ว"; } }, 0);
+  };
+  $("#cmdQOGo").onclick = runCmdQO;
+  $("#cmdQO").onkeydown = e => { if (e.key === "Enter"){ e.preventDefault(); runCmdQO(); } };
 
   // ฟีดแบค — ยาวและหลายบรรทัด ใช้ prompt() ไม่ไหว ต้องเป็นช่องพิมพ์จริง
   $("#cmdFbBtn").onclick = () => {
@@ -5838,6 +5950,12 @@ function parseCmdText(text){
     const line = raw.trim();
     if (!line){ flushUnused(); continue; }
 
+    // /slash มาก่อนทุกอย่าง — ชัดเจนที่สุด ไม่ต้องเดา
+    if (SLASH_RE.test(line)){
+      const got = parseSlashLine(line, pending);
+      if (got){ pending = []; pendingLines = []; out.push(...got); continue; }
+    }
+
     // "ทุกคน..." = ใช้กับทุกแถวในโปรเจกต์ที่พูดถึง (ไม่บอก = โปรเจกต์ที่เปิดอยู่)
     // เป็นคำสั่งเดียวที่กระทบคนจำนวนมากในทีเดียว หน้าตรวจจะขึ้นทีละคนให้เห็นครบก่อน
     // \b ใช้กับภาษาไทยไม่ได้ (มันดูจาก \w ซึ่งเป็น ASCII) ต้องเทียบตรงๆ
@@ -5982,6 +6100,87 @@ function parseAddLine(line){
       : { line, ok:true, add:true, id, proj, kind, changes });
 }
 
+// ═══ คำสั่งแบบ /slash ═══
+// รูปแบบเดียวกันหมด:  /คำสั่ง ชื่อ : ค่า
+// ชื่อใส่หลายคนได้ (เว้นวรรคหรือจุลภาค) · ใส่ * = ทุกคนในโปรเจกต์
+// ไม่ใส่ชื่อเลยก็ได้ ถ้าบรรทัดข้างบนเป็นรายชื่อ (หรือกดเลือกจากกล่องรายชื่อมา)
+// อันนี้เป็นทางลัดที่ชัดเจน ไม่ได้แทนการพิมพ์อิสระ — ตัวอ่านเดิมยังทำงานเหมือนเดิม
+const SLASH_ROW = [
+  { c:"rate",   f:"rate",     th:"เรท",          val:"num",   ex:"/rate cenakims : 12000  หรือ  : +500" },
+  { c:"video",  f:"videos",   th:"จำนวนคลิป",     val:"num",   ex:"/video cenakims : 2" },
+  { c:"status", f:"status",   th:"สถานะ",         val:"stage", ex:"/status cenakims : รอ Draft 2" },
+  { c:"pay",    f:"paytype",  th:"รูปแบบภาษี",    val:"pay",   ex:"/pay cenakims : ชำระ3%" },
+  { c:"kind",   f:"kind",     th:"กลุ่ม",         val:"kind",  ex:"/kind cenakims : KOC" },
+  { c:"sku",    f:"sku",      th:"SKU",           ex:"/sku cenakims : Blush - Haelyn (40)" },
+  { c:"job",    f:"code",     th:"งาน",           ex:"/job cenakims : B+E" },
+  { c:"note",   f:"note",     th:"โน้ต",          ex:"/note cenakims : ทักไลน์แล้ว" },
+  { c:"post",   f:"postdate", th:"วันโพสต์",      ex:"/post cenakims : 28 ส.ค." },
+  { c:"due",    f:"deadline", th:"กำหนดส่ง",      ex:"/due cenakims : 25 ส.ค." },
+  { c:"brief",  f:"brief",    th:"ลิงก์บรีฟ",     ex:"/brief cenakims : https://…" },
+];
+// เอกสารรายคนสร้างจาก DOCS ตรงๆ เพิ่มเอกสารใหม่ = ได้คำสั่ง /ชื่อนั้น ฟรี
+const SLASH_DOC = DOCS.map(d => ({ c:d.k, doc:d.k, th:d.th, ex:`/${d.k} cenakims : ` +
+  (d.tags ? "#tag1 #tag2" : d.text ? "20-25 ส.ค." : "https://…") }));
+const SLASH_FB = FB_ROUNDS.map(n => ({ c:"fb"+n, doc:fbKey(n), th:`Feedback Draft ${n}`,
+  ex:`/fb${n} cenakims : ข้อความฟีดแบค` }));
+
+const SLASH_FIELD = SLASH_ROW.concat(SLASH_DOC, SLASH_FB);
+const SLASH_BY = Object.fromEntries(SLASH_FIELD.map(s => [s.c, s]));
+// คำย่อที่พิมพ์กันจริง
+const SLASH_ALIAS = { r:"rate", s:"status", v:"video", p:"pay", n:"note", fb:"fb1",
+  tag:"hashtag", hash:"hashtag", doc:"docs", ag:"agreement", pm:"payment", gd:"guide" };
+
+const SLASH_ACT = [
+  { c:"add",    th:"เพิ่มคนใหม่",        ex:"/add newguy : RC2 KOL" },
+  { c:"del",    th:"ลบออกจากโปรเจกต์",   ex:"/del cenakims" },
+  { c:"move",   th:"ย้ายโปรเจกต์",       ex:"/move cenakims : RC2" },
+  { c:"copy",   th:"ก๊อปค่าจากอีกคน",     ex:"/copy cenakims : tangkwaqs rate" },
+  { c:"clear",  th:"ล้างค่า",            ex:"/clear cenakims : sg" },
+  { c:"cmd",    th:"ทับข้อความ Command",  ex:"/cmd10 cenakims : ข้อความใหม่" },
+  { c:"reset",  th:"คืนค่าต้นแบบ",        ex:"/reset fb1   ·   /reset cmd10   ·   /reset all" },
+  { c:"goto",   th:"เปิดโปรเจกต์",        ex:"/goto RC2" },
+  { c:"sync",   th:"ส่งขึ้นชีต",          ex:"/sync" },
+  { c:"reload", th:"โหลดจากชีตใหม่",      ex:"/reload" },
+  { c:"export", th:"ดาวน์โหลด CSV",       ex:"/export" },
+  { c:"settings",th:"เปิดตั้งค่า",        ex:"/settings" },
+  { c:"filter", th:"ล้างตัวกรอง",         ex:"/filter" },
+  { c:"cols",   th:"สลับโหมดคอลัมน์",     ex:"/cols" },
+  { c:"help",   th:"เปิดคู่มือ",          ex:"/help" },
+];
+
+const slashName = w => SLASH_ALIAS[w] || w;
+
+// อ่านค่าตามชนิดที่คำสั่งนั้นต้องการ — คืน {v} ถ้าได้ หรือ {err} ถ้าไม่ได้
+function slashValue(spec, raw){
+  const s = String(raw || "").trim();
+  if (!s) return { err:"ยังไม่ได้ใส่ค่าหลังเครื่องหมาย :" };
+  if (spec.val === "num"){
+    const m = s.match(/^([+-])?\s*([\d,]+)$/);
+    if (!m) return { err:`"${s}" ไม่ใช่ตัวเลข` };
+    const n = Number(m[2].replace(/,/g, ""));
+    if (!isFinite(n)) return { err:`"${s}" ไม่ใช่ตัวเลข` };
+    return m[1] ? { delta: m[1] === "-" ? -n : n } : { v:n };
+  }
+  if (spec.val === "stage"){
+    const hit = STAGES.find(x => x.v.toLowerCase() === s.toLowerCase()) ||
+                STAGES.find(x => s.toLowerCase().includes(x.v.toLowerCase())) ||
+                STAGES.find(x => x.a && x.a.test(s));
+    return hit ? { v: hit.v }
+      : { err:`ไม่รู้จักสถานะ "${s}" — ดูรายชื่อได้ที่ปุ่มกรองสถานะบนหัวตาราง` };
+  }
+  if (spec.val === "pay"){
+    const hit = PAYTYPES.find(t => t.id && (t.id === s || t.label === s ||
+                                            (t.alias && t.alias.test(s))));
+    return hit ? { v: hit.id }
+      : { err:`ไม่รู้จักรูปแบบภาษี "${s}" — ใช้ ชำระ3% / NET / นิติบุคคล จด VAT ฯลฯ` };
+  }
+  if (spec.val === "kind"){
+    const k = s.toUpperCase();
+    return (k === "KOL" || k === "KOC") ? { v:k } : { err:`กลุ่มต้องเป็น KOL หรือ KOC` };
+  }
+  return { v:s };
+}
+
 // ─── คำสั่งระดับแอดมิน ───
 // ช่องนี้เป็นทางเดียวที่ใช้สั่งงานทุกอย่างในหน้านี้ ไม่ต้องไล่หาปุ่ม
 // ทุกคำสั่งผ่านหน้าตรวจก่อนเสมอ ไม่มีอะไรทำงานทันทีที่พิมพ์
@@ -6000,6 +6199,200 @@ const ADMIN_CMDS = [
   { k:"fbclear",re:/^(?:ล้าง|เคลียร์|clear)\s*(?:feedback|ฟีดแบค|ฟีดแบก)\s*(?:draft\s*)?([123]|ทั้งหมด|all)?\s*$/i,
     label:"ล้าง Feedback ของทุกคน" },
 ];
+
+// หาแถวจากชื่อ — ใช้ร่วมกันระหว่าง /slash กับตัวอ่านอิสระ
+// คืน {hits:[{proj,row,h}]} หรือ {errs:[...]} ต่อชื่อที่หาไม่ได้
+function resolveTargets(names, projFilter, line){
+  const idx = handleIndex();
+  const hits = [], errs = [];
+  names.forEach(h => {
+    let e = idx.get(h) || [];
+    if (projFilter) e = e.filter(x => x.proj === projFilter);
+    if (!e.length) return errs.push({ line, ok:false, changes:{},
+      why:`ไม่เจอ ${h}${projFilter ? " ใน " + projFilter : " ในระบบ"}` });
+    if (e.length > 1) return errs.push({ line, ok:false, changes:{},
+      why:`${h} อยู่ใน ${e.map(x => x.proj).join(" และ ")} — ระบุโปรเจกต์ด้วย` });
+    hits.push({ proj: e[0].proj, row: e[0].row, h });
+  });
+  return { hits, errs };
+}
+
+const SLASH_RE = /^\s*\/([a-z]+)(\d*)\s*/i;
+
+function parseSlashLine(line, pending){
+  const m = line.match(SLASH_RE);
+  if (!m) return null;
+  const word = slashName(m[1].toLowerCase());
+  const num = m[2];
+  const rest = line.slice(m[0].length);
+  const bad = why => [{ line, ok:false, changes:{}, why }];
+
+  // แยก "ชื่อ : ค่า" ที่เครื่องหมาย : ตัวแรก
+  const at = rest.indexOf(":");
+  const at2 = rest.indexOf("：");
+  const cut = at < 0 ? at2 : at2 < 0 ? at : Math.min(at, at2);
+  let whoRaw = (cut < 0 ? rest : rest.slice(0, cut)).trim();
+  const value = cut < 0 ? "" : rest.slice(cut + 1).trim();
+
+  // ── คำสั่งที่ไม่ต้องมีชื่อ ──
+  const plain = { sync:"sync", reload:"reload", export:"export", settings:"setting",
+                  setting:"setting", filter:"filter", cols:"cols", help:"help",
+                  migrate:"migrate" }[word];
+  if (plain){
+    const act = ADMIN_CMDS.find(a => a.k === plain);
+    if (plain === "migrate"){
+      const n = PROJECTS.reduce((s, p) => s + (COORD[p] || [])
+        .filter(r => STATUS_MIGRATE[r.status]).length, 0);
+      if (!n) return bad("ไม่มีแถวไหนใช้สถานะชุดเก่าแล้ว");
+      return [{ line, ok:true, admin:"migrate", changes:{}, note:`${act.label} (${n} แถว)` }];
+    }
+    return [{ line, ok:true, admin:plain, changes:{}, note:act.label }];
+  }
+  if (word === "goto"){
+    const p = (findProjects(whoRaw + " " + value)[0] || {}).proj || matchProject(whoRaw || value);
+    if (!p) return bad(`ไม่รู้จักโปรเจกต์ "${(whoRaw || value).trim()}"`);
+    return [{ line, ok:true, admin:"goto", proj:p, changes:{}, note:"เปิดโปรเจกต์" }];
+  }
+  if (word === "reset"){
+    const what = (whoRaw + " " + value).trim().toLowerCase();
+    const mf = what.match(/^fb\s*([123])$/) || what.match(/^feedback\s*([123])$/);
+    if (mf) return [{ line, ok:true, admin:"fbclear", rounds:[Number(mf[1])], changes:{},
+      note:`ล้าง Feedback Draft ${mf[1]} ของทุกคน` }];
+    if (/^fb|^feedback/.test(what))
+      return [{ line, ok:true, admin:"fbclear", rounds:FB_ROUNDS, changes:{},
+        note:"ล้าง Feedback ทั้ง 3 Draft ของทุกคน" }];
+    const mc = what.match(/^cmd\s*(\d{1,2})$/);
+    if (mc){
+      const i = Number(mc[1]) - 1;
+      if (i < 0 || i >= CMD_BLOCKS.length) return bad(`ไม่มี Command บล็อกที่ ${mc[1]}`);
+      if (!CMDEDIT[i]) return bad(`Command บล็อก ${mc[1]} เป็นต้นแบบอยู่แล้ว ไม่ได้ถูกแก้`);
+      return [{ line, ok:true, admin:"resetcmd", block:i, changes:{},
+        note:`คืนข้อความต้นแบบบล็อก ${mc[1]} (${CMD_BLOCKS[i].t.replace(/^\d+\.\s*/,"")})` }];
+    }
+    if (what === "all" || what === "ทั้งหมด"){
+      const n = Object.keys(CMDEDIT).length;
+      if (!n) return bad("ข้อความต้นแบบยังไม่ได้ถูกแก้เลย");
+      return [{ line, ok:true, admin:"resetcmd", block:"all", changes:{},
+        note:`คืนข้อความต้นแบบทั้งหมด (${n} บล็อก)` }];
+    }
+    return bad(`/reset ใช้ได้กับ: fb1 · fb2 · fb3 · fb · cmd1–cmd${CMD_BLOCKS.length} · all`);
+  }
+
+  // ── ที่เหลือต้องมีเป้าหมาย ──
+  const spec = SLASH_BY[word] || (word === "cmd" ? { c:"cmd" } : null);
+  const isAct = ["add","del","move","copy","clear"].includes(word);
+  if (!spec && !isAct)
+    return bad(`ไม่รู้จักคำสั่ง /${m[1]} — พิมพ์ /help เพื่อดูทั้งหมด`);
+
+  // ชื่อ: จากในบรรทัด หรือจากบรรทัดข้างบนที่พักไว้
+  let star = false;
+  whoRaw = whoRaw.replace(/[,·|]+/g, " ").trim();
+  if (/^(\*|all|ทุกคน)$/i.test(whoRaw)){ star = true; whoRaw = ""; }
+  let names = whoRaw ? whoRaw.split(/\s+/).map(normId).filter(Boolean) : [];
+  if (!names.length && !star && pending && pending.length) names = pending.map(p => p.h);
+  if (star) names = (COORD[PROJ] || []).map(r => normId(r.handle));
+  if (!names.length)
+    return bad(`/${word} ต้องบอกชื่อด้วย — เช่น /${word} cenakims : ค่า · หรือใส่ * แทนทุกคนในโปรเจกต์`);
+
+  // ── เพิ่มคนใหม่ ──
+  if (word === "add"){
+    const proj = (findProjects(value)[0] || {}).proj || PROJ;
+    const km = value.match(/(?<![A-Za-z])(KOL|KOC)(?![A-Za-z])/i);
+    return names.map(h => (COORD[proj] || []).some(r => normId(r.handle) === h)
+      ? { line, ok:false, add:true, changes:{}, why:`${h} อยู่ใน ${proj} อยู่แล้ว` }
+      : { line, ok:true, add:true, id:h, proj, kind: km ? km[1].toUpperCase() : "", changes:{} });
+  }
+
+  // * = ทุกคนในโปรเจกต์ที่เปิดอยู่ ต้องล็อกโปรเจกต์ด้วย
+  // ไม่งั้นคนที่ชื่อซ้ำสองโปรเจกต์จะโดนถามว่า "ระบุโปรเจกต์ด้วย" ทั้งที่ระบุอยู่แล้ว
+  const projFilter = star ? PROJ : ((findProjects(whoRaw)[0] || {}).proj || null);
+  const { hits, errs } = resolveTargets(names, projFilter, line);
+  const out = errs.slice();
+
+  if (word === "del"){
+    hits.forEach(t => out.push({ line, ok:true, admin:"del", id:t.h, proj:t.proj, row:t.row,
+      changes:{}, note:"ลบออกจากโปรเจกต์" }));
+    return out;
+  }
+  if (word === "move"){
+    const to = (findProjects(value)[0] || {}).proj || matchProject(value);
+    if (!to) return bad(`ไม่รู้จักโปรเจกต์ปลายทาง "${value}"`);
+    hits.forEach(t => t.proj === to
+      ? out.push({ line, ok:false, changes:{}, why:`${t.h} อยู่ใน ${to} อยู่แล้ว` })
+      : out.push({ line, ok:true, id:t.h, proj:t.proj, row:t.row, changes:{}, moveTo:to }));
+    return out;
+  }
+  if (word === "clear"){
+    const key = slashName(value.trim().toLowerCase());
+    const d = SLASH_BY[key];
+    if (!d) return bad(`ล้างอะไร? เช่น /clear ${names[0]} : sg  ·  : rate  ·  : note`);
+    hits.forEach(t => out.push(d.doc
+      ? { line, ok:true, id:t.h, proj:t.proj, row:t.row, changes:{},
+          cmd:{ blocks:{}, links:{}, clear:[d.doc] } }
+      : { line, ok:true, id:t.h, proj:t.proj, row:t.row,
+          changes:{ [d.f]: d.f === "rate" || d.f === "videos" ? null : "" } }));
+    return out;
+  }
+  if (word === "copy"){
+    const parts = value.trim().split(/\s+/);
+    const src = normId(parts[0] || "");
+    const key = slashName((parts[1] || "rate").toLowerCase());
+    const d = SLASH_BY[key];
+    if (!src || !d) return bad(`/copy ${names[0]} : <ชื่อต้นทาง> <อะไร> — เช่น : tangkwaqs rate`);
+    const from = resolveTargets([src], null, line);
+    if (!from.hits.length) return from.errs.length ? from.errs : bad(`ไม่เจอ ${src}`);
+    const s = from.hits[0];
+    const val = d.doc ? (cmdOwnRead(s.proj, s.row.handle).links || {})[d.doc] : s.row[d.f];
+    if (val == null || val === "") return bad(`${src} ยังไม่มี${d.th} ให้ก๊อป`);
+    hits.forEach(t => out.push(d.doc
+      ? { line, ok:true, id:t.h, proj:t.proj, row:t.row, changes:{},
+          cmd:{ blocks:{}, links:{ [d.doc]: val }, clear:[] } }
+      : { line, ok:true, id:t.h, proj:t.proj, row:t.row, changes:{ [d.f]: val } }));
+    return out;
+  }
+
+  // ── ทับข้อความ Command บล็อกที่ N ──
+  if (word === "cmd"){
+    const i = Number(num) - 1;
+    if (!num || i < 0 || i >= CMD_BLOCKS.length)
+      return bad(`ระบุเลขบล็อกด้วย เช่น /cmd10 — มี 1–${CMD_BLOCKS.length}`);
+    if (!value) return bad("ยังไม่ได้ใส่ข้อความหลังเครื่องหมาย :");
+    hits.forEach(t => out.push({ line, ok:true, id:t.h, proj:t.proj, row:t.row, changes:{},
+      cmd:{ blocks:{ [i]: value }, links:{}, clear:[] } }));
+    return out;
+  }
+
+  // ── ตั้งค่าช่องเดียว ──
+  const got = slashValue(spec, value);
+  if (got.err) return bad(got.err);
+  hits.forEach(t => {
+    if (spec.doc){
+      out.push({ line, ok:true, id:t.h, proj:t.proj, row:t.row, changes:{},
+        cmd:{ blocks:{}, links:{ [spec.doc]: got.v }, clear:[] } });
+      return;
+    }
+    const ch = {};
+    if (got.delta != null){
+      const base = Number(t.row.rate);
+      if (spec.f !== "rate") return out.push({ line, ok:false, changes:{},
+        why:`+/- ใช้ได้กับ /rate เท่านั้น` });
+      if (!isFinite(base) || base <= 0) return out.push({ line, ok:false, changes:{},
+        why:`${t.h} ยังไม่มีเรทเดิม เลยบวก/ลบให้ไม่ได้` });
+      const next = base + got.delta;
+      if (next <= 0) return out.push({ line, ok:false, changes:{},
+        why:`ลดแล้วเรทของ ${t.h} จะเหลือ ${next.toLocaleString("en-US")}` });
+      ch.rate = next; ch.rateFrom = base;
+    } else {
+      ch[spec.f] = got.v;
+    }
+    if (spec.f === "kind" && ch.kind === (t.row.kind || "").toUpperCase())
+      return out.push({ line, ok:false, changes:{}, why:`${t.h} เป็น ${ch.kind} อยู่แล้ว` });
+    if ("rate" in ch) ch.net3 = payOf(ch.rate, ch.paytype ?? t.row.paytype);
+    if (spec.f === "paytype") ch.net3 = payOf(t.row.rate, got.v);
+    out.push({ line, ok:true, id:t.h, proj:t.proj, row:t.row, changes:ch });
+  });
+  return out;
+}
 
 function parseAdminLine(line){
   for (const c of ADMIN_CMDS){
@@ -6193,6 +6586,12 @@ function applyQuickOrder(){
             delete CMDOWN[key];
         });
         saveCmdOwn();
+        break;
+      }
+      case "resetcmd": {
+        loadCmdEdit();
+        if (q.block === "all") CMDEDIT = {}; else delete CMDEDIT[q.block];
+        saveCmdEdit();
         break;
       }
       case "goto":    PROJ = q.proj; break;
@@ -6480,12 +6879,14 @@ function renderPick(){
   $("#pickSum").innerHTML = PICK.size ? `เลือกไว้ <b>${PICK.size}</b> คน` : "ยังไม่ได้เลือกใคร";
 
   // คำสั่งด่วน — กดแล้วต่อท้ายชื่อที่เลือกให้เลย ไม่ต้องพิมพ์
-  const stageBtns = STAGES.slice(0, 19).map(s => [s.v, s.v]);
   $("#pickQuick").innerHTML = PICK.size
     ? [`<span style="color:var(--dim);font-size:.74rem;align-self:center">สั่งเลย:</span>`]
-      .concat(stageBtns.map(([v,label]) => `<button data-pq="${esc(v)}">${esc(label)}</button>`))
-      .concat([`<button data-pq="ชำระ3%">ชำระ 3%</button>`,
-               `<button data-pq="NET">NET</button>`]).join("")
+      .concat(STAGES.map(s => `<button data-pq="/status : ${esc(s.v)}">${esc(s.v)}</button>`))
+      .concat(PAYTYPES.filter(t => t.id).map(t =>
+        `<button data-pq="/pay : ${esc(t.id)}">${esc(t.label.replace(/\s*\(.*/, ""))}</button>`))
+      .concat([`<button data-pq="/kind : KOL">→ KOL</button>`,
+               `<button data-pq="/kind : KOC">→ KOC</button>`,
+               `<button data-pq="/del">🗑 ลบออกจากโปรเจกต์</button>`]).join("")
     : `<span style="color:var(--dim);font-size:.74rem">เลือกชื่อก่อน แล้วปุ่มคำสั่งด่วนจะขึ้นตรงนี้</span>`;
 
   document.querySelectorAll("#pickList [data-ph]").forEach(b => b.onclick = () => {
@@ -6510,7 +6911,10 @@ function insertPick(order){
   if (!PICK.size) return;
   const names = [...PICK];
   const t = $("#qoText");
-  const body = names.join("\n") + (order ? "\n" + order : "");
+  // คำสั่งด่วนเป็น /slash ที่เว้นชื่อไว้ — เติมชื่อที่เลือกลงไปให้ตรงกลาง
+  const body = order && order.startsWith("/")
+    ? order.replace(/^(\/\w+)\s*:?\s*/, (mm, c) => `${c} ${names.join(" ")} : `).replace(/\s*:\s*$/, "")
+    : names.join("\n") + (order ? "\n" + order : "");
   t.value = (t.value.trim() ? t.value.replace(/\s*$/, "") + "\n\n" : "") + body;
   growCmd();
   if (order){
@@ -6562,11 +6966,23 @@ addEventListener("resize", measureStick);
 $("#qoText").addEventListener("keydown", e => {
   if (e.key === "Enter" && !e.shiftKey){ e.preventDefault(); $("#qoParse").click(); }
 });
+// คู่มือสร้างจากทะเบียนคำสั่งจริง — เพิ่มคำสั่งใหม่แล้วคู่มืออัปเดตตามเอง ไม่มีทางลืมแก้
+function renderHelp(){
+  const row = (s, showEx) => `<div class="hrow"><code>/${s.c}</code>
+    <span class="hth">${esc(s.th)}</span>${
+    showEx && s.ex ? `<span class="hex">${esc(s.ex)}</span>` : ""}</div>`;
+  $("#helpRow").innerHTML = SLASH_ROW.map(s => row(s, true)).join("");
+  $("#helpDoc").innerHTML = SLASH_DOC.map(s => row(s, false)).join("");
+  $("#helpFb").innerHTML  = SLASH_FB.map(s => row(s, true)).join("");
+  $("#helpAct").innerHTML = SLASH_ACT.map(s => row(s, true)).join("");
+}
+
 const toggleFold = (btn, box) => $(btn).onclick = () => {
   $(box).hidden = !$(box).hidden;
   $(btn).classList.toggle("on", !$(box).hidden);
 };
 toggleFold("#cmdHelpBtn", "#cmdHelp");
+renderHelp();
 toggleFold("#bulkToggle", "#bulkFold");
 
 document.querySelectorAll(".hcard,.nav button").forEach(b =>
