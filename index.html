@@ -312,24 +312,65 @@ body:not([data-view="coord"]) #gearBtn{display:none}
   border:0;padding:7px 0;font-size:.88rem;line-height:1.5;resize:none}
 .cmdbar-in textarea:focus{outline:none}
 .cmdbar-in .run{flex:none;width:auto;padding:9px 22px;font-size:.86rem}
-.cmdbar-foot{display:flex;gap:16px;padding:7px 3px 0}
-.linkish{background:none;border:0;color:var(--mute);font-family:inherit;font-size:.86rem;
-  font-weight:600;padding:.3em 0}
+.cmdbar-foot{display:flex;gap:9px;flex-wrap:wrap;padding:7px 3px 0}
+.linkish{background:none;border:1px solid transparent;color:var(--mute);font-family:inherit;
+  font-size:.86rem;font-weight:600;padding:.3em .7em;border-radius:999px}
 .linkish:hover{color:var(--accent)}
-.linkish.on{color:var(--accent)}
+/* กล่องไหนกางอยู่ต้องเห็นจากปุ่มได้ทันที ไม่ใช่แค่เปลี่ยนสีตัวอักษรจางๆ */
+.linkish.on{color:var(--accent-ink);background:var(--accent);border-color:var(--accent)}
+.linkish.on::after{content:" ▲";font-size:.7em}
+/* ผลคำสั่งติดอยู่ในแถบที่ตรึงไว้ — ยาวแค่ไหนก็ห้ามดันตารางตกจอ */
+.cmdbar-stick #qoMsg{margin-top:8px;max-height:6.2em;overflow:auto}
+
+/* ── ตัวช่วยเติมคำสั่ง ── พิมพ์ / แล้วขึ้นรายการที่ใช้บ่อยก่อน */
+.cmdbar-wrap{position:relative}
+.qosug{position:absolute;left:0;right:0;top:calc(100% + 5px);z-index:40;
+  background:var(--surface);border:1px solid var(--accent);border-radius:9px;
+  box-shadow:0 14px 34px rgba(0,0,0,.5);padding:5px;max-height:min(46vh,340px);overflow:auto}
+.qosug[hidden]{display:none}
+.qosug .sughead{font-size:.74rem;color:var(--dim);padding:5px 9px 6px;
+  border-bottom:1px solid var(--line);margin-bottom:4px}
+.qosug button{display:flex;width:100%;align-items:baseline;gap:10px;text-align:left;
+  background:none;border:0;border-radius:6px;padding:7px 9px;color:var(--mute);
+  font-family:inherit;font-size:.84rem}
+.qosug button code{flex:none;min-width:6.4em;color:var(--ink);font-weight:700;
+  font-family:'IBM Plex Mono',monospace}
+.qosug button .sugth{flex:none}
+.qosug button .sugex{flex:1;min-width:0;text-align:right;color:var(--dim);font-size:.78rem;
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.qosug button .hot{color:var(--accent)}
+.qosug button:hover,.qosug button.sel{background:rgba(var(--accent-rgb),.16);color:var(--ink)}
+.qosug button.sel code{color:var(--accent)}
+@media(max-width:620px){.qosug button .sugex{display:none}}
 /* ── กล่องเลือกรายชื่อ ── กดเลือกแทนการพิมพ์ชื่อทีละคน */
+/* กล่องนี้ต้องไม่กินจอทั้งหน้า — ยาวเกินก็เลื่อนในกล่อง ตารางจะได้ยังเห็นอยู่ */
 .pickbox{margin:0 0 14px;background:var(--surface);border:1px solid var(--line);
-  border-left:3px solid var(--accent);border-radius:8px;padding:12px 14px}
+  border-left:3px solid var(--accent);border-radius:8px;padding:12px 14px;
+  max-height:min(72vh,640px);overflow:auto}
 .pickbox[hidden]{display:none}
 .pickhead{display:flex;gap:9px;flex-wrap:wrap;align-items:center;margin-bottom:10px}
 .pickhead select{flex:none;width:auto;min-width:170px;font-size:.82rem;padding:7px 10px}
 .pickhead input{flex:1;min-width:170px;font-size:.82rem;padding:7px 10px}
 .pickhead .tabs{margin-bottom:0;flex:none;min-width:190px}
-.pickfilters{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px}
-.pickfilters button{background:var(--surface2);border:1px solid var(--line);color:var(--mute);
+.pickfilters{margin-bottom:10px}
+.pickfilters .pfoldb{display:flex;gap:6px;flex-wrap:wrap;padding-top:8px}
+.pickfilters button[data-ps]{background:var(--surface2);border:1px solid var(--line);color:var(--mute);
   border-radius:999px;padding:4px 11px;font-size:.8rem;font-weight:600}
-.pickfilters button:hover{border-color:var(--accent);color:var(--accent)}
-.pickfilters button.on{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
+.pickfilters button[data-ps]:hover{border-color:var(--accent);color:var(--accent)}
+.pickfilters button[data-ps].on{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
+/* ── กล่องพับได้ ── ปุ่มคำสั่งด่วนมี 28 อัน เรียงเป็นพืดแล้วหาไม่เจอ */
+.pfold{border:1px solid var(--line);border-radius:8px;background:var(--bg);
+  margin-bottom:7px;overflow:hidden}
+.pfold.open{border-color:rgba(var(--accent-rgb),.4)}
+.pfoldh{display:flex;align-items:center;gap:8px;width:100%;text-align:left;
+  background:var(--surface2);border:0;color:var(--ink);font-family:inherit;
+  font-size:.83rem;font-weight:700;padding:9px 12px;min-height:36px}
+.pfoldh:hover{color:var(--accent)}
+.pfoldh .car{display:inline-block;color:var(--accent);transition:transform .15s;flex:none}
+.pfold.open .pfoldh .car{transform:rotate(90deg)}
+.pfoldh .sub{margin-left:auto;font-weight:400;font-size:.78rem;color:var(--dim)}
+.pfoldb{display:flex;gap:6px;flex-wrap:wrap;padding:9px 10px;max-height:34vh;overflow:auto}
+.pfoldb[hidden]{display:none}
 .picklist{display:flex;flex-wrap:wrap;gap:6px;max-height:210px;overflow-y:auto;
   padding:3px;border:1px solid var(--line);border-radius:7px;background:var(--bg)}
 .picklist:empty::after{content:"ไม่มีใครตรงกับที่กรอง";color:var(--dim);font-size:.78rem;padding:10px}
@@ -345,14 +386,16 @@ body:not([data-view="coord"]) #gearBtn{display:none}
 .pickfoot .run{width:auto;padding:8px 18px;font-size:.84rem;margin-left:auto}
 .picksum{font-size:.78rem;color:var(--mute)}
 .picksum b{color:var(--accent)}
-.pickquick{display:flex;gap:6px;flex-wrap:wrap;margin-top:11px;
-  border-top:1px solid var(--line);padding-top:10px}
-.pickquick button{background:none;border:1px dashed var(--line);color:var(--dim);
-  border-radius:6px;padding:4px 10px;font-size:.8rem}
-.pickquick button:hover{border-color:var(--accent);color:var(--accent);border-style:solid}
+.pickquick{margin-top:11px;border-top:1px solid var(--line);padding-top:10px}
+.pickquick button[data-pq]{background:none;border:1px dashed var(--line);color:var(--mute);
+  border-radius:6px;padding:5px 11px;font-size:.8rem}
+.pickquick button[data-pq]:hover{border-color:var(--accent);color:var(--accent);border-style:solid}
 
+/* คู่มือ 40 คำสั่งสูงร่วมสองพัน px — ปล่อยไว้แล้วกางทีตารางหายไปจากจอเลย
+   ให้เลื่อนอยู่ในกล่องแทน จะได้ยังเห็นว่ากำลังทำงานกับตารางไหนอยู่ */
 .cmdhelp,.cmdbulk{margin:0 0 14px;background:var(--surface);border:1px solid var(--line);
-  border-radius:8px;padding:13px 15px;font-size:.78rem;color:var(--mute);line-height:1.75}
+  border-radius:8px;padding:13px 15px;font-size:.78rem;color:var(--mute);line-height:1.75;
+  max-height:min(72vh,640px);overflow:auto}
 #qoPreview:not(:empty){margin-bottom:12px}
 .cmdhelp[hidden],.cmdbulk[hidden]{display:none}
 .cmdhelp code{background:var(--surface2);border-radius:4px;padding:2px 7px;
@@ -364,12 +407,20 @@ body:not([data-view="coord"]) #gearBtn{display:none}
   font-weight:700;margin-bottom:9px;padding-bottom:6px;border-bottom:1px solid var(--line)}
 .hcol p{margin:0 0 9px;line-height:1.8}
 .hlist{display:flex;flex-direction:column;gap:3px;margin-bottom:9px}
-.hrow{display:flex;align-items:baseline;gap:9px;flex-wrap:wrap;line-height:1.7}
+/* ทุกบรรทัดในคู่มือเป็นปุ่ม — กดแล้วคำสั่งไปโผล่ในช่องพิมพ์ ไม่ต้องอ่านแล้วพิมพ์ตาม */
+.hrow{display:flex;align-items:baseline;gap:9px;flex-wrap:wrap;line-height:1.7;
+  width:100%;text-align:left;background:none;border:1px solid transparent;
+  border-radius:7px;padding:3px 7px;margin-left:-7px;color:inherit;font-family:inherit;
+  font-size:inherit}
+.hrow:hover{background:rgba(var(--accent-rgb),.1);border-color:rgba(var(--accent-rgb),.45)}
+.hrow:hover code{color:var(--accent)}
 .hrow code{flex:none;min-width:82px;margin:0}
 .hrow .hth{color:var(--ink);font-size:.78rem}
 .hrow .hex{flex-basis:100%;color:var(--dim);font-size:.79rem;padding-left:91px;
   font-family:'IBM Plex Mono',monospace}
 @media(max-width:520px){.hrow .hex{padding-left:0}}
+.cmdhelp code.clickable{cursor:pointer;border:1px solid transparent}
+.cmdhelp code.clickable:hover{border-color:var(--accent);color:var(--accent)}
 .cgrid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
 @media(max-width:520px){.cgrid{grid-template-columns:1fr}}
 .cgrid label{display:block;font-size:.79rem;text-transform:uppercase;letter-spacing:.06em;
@@ -930,7 +981,8 @@ main{padding:22px 24px;overflow-y:auto;max-height:calc(100vh - 62px)}
 .cmdblk > header{display:flex;align-items:center;gap:11px;padding:12px 14px;
   border-bottom:1px solid var(--line);font-size:1rem;font-weight:700;color:var(--ink);
   background:var(--surface2);line-height:1.35}
-.cmdblk > header .no{flex:none;width:26px;height:26px;border-radius:50%;
+/* เลขบล็อกยืดได้ เพราะบล็อกที่แยกรายคลิปเขียนว่า 13.2 ไม่ใช่ 13 */
+.cmdblk > header .no{flex:none;min-width:26px;height:26px;padding:0 7px;border-radius:999px;
   display:inline-flex;align-items:center;justify-content:center;
   font-family:'IBM Plex Mono',monospace;font-size:.76rem;font-weight:700;
   background:var(--accent);color:var(--accent-ink)}
@@ -960,6 +1012,15 @@ main{padding:22px 24px;overflow-y:auto;max-height:calc(100vh - 62px)}
 .cmdbtn{background:var(--surface2);border:1px solid var(--line);color:var(--dim);
   border-radius:6px;padding:2px 8px;font-size:.79rem;font-weight:600;margin-left:7px}
 .cmdbtn:hover{border-color:var(--accent);color:var(--accent)}
+/* ── บล็อกที่ส่งไปแล้ว ── ยังอ่านได้ ยังก๊อปได้ แต่ตาไม่ต้องไปหยุดที่มันอีก */
+.cmdblk.sent{opacity:.5;border-style:dashed}
+.cmdblk.sent:hover,.cmdblk.sent:focus-within{opacity:1}
+.cmdblk.sent > header{background:var(--bg)}
+.cmdblk.sent > header .no{background:var(--surface2);color:var(--dim)}
+.cmdblk > header .mark{margin-left:auto;font-size:.78rem;white-space:nowrap}
+.cmdblk > header .mark + button{margin-left:9px}
+.cmdblk.sent > header .mark{border-color:var(--hi);color:var(--hi)}
+.cmdblk > header .no i{font-style:normal;font-size:.78em;opacity:.75}
 .cmdblk.edited{border-color:rgba(var(--accent-rgb),.4)}
 .cmdblk.edited > header::before{content:"แก้แล้ว";font-size:.8rem;color:var(--accent);
   border:1px solid rgba(var(--accent-rgb),.35);border-radius:4px;padding:1px 6px}
@@ -1034,7 +1095,20 @@ tr.subrow td.w-status select{width:14.6em}
 
 .drawer-head{display:flex;align-items:center;justify-content:space-between;gap:12px;
   padding:17px 18px;border-bottom:1px solid var(--line);flex:none}
-.drawer-head h2{font-family:'Space Grotesk',sans-serif;font-size:1.02rem;font-weight:700}
+.drawer-head h2{font-family:'Space Grotesk',sans-serif;font-size:1.02rem;font-weight:700;
+  flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+/* ── เดินไปคนก่อนหน้า/ถัดไป ── อยู่ซ้ายมือของหัวข้อ กดรัวได้ด้วยลูกศรบนแป้นพิมพ์ */
+.cmdnav{display:flex;align-items:center;gap:2px;flex:none}
+.cmdnav:empty{display:none}
+.cmdnav button{width:2em;height:2em;min-width:32px;min-height:32px;
+  background:var(--surface2);border:1px solid var(--line);color:var(--ink);
+  border-radius:7px;font-size:1.15rem;line-height:1;display:flex;
+  align-items:center;justify-content:center}
+.cmdnav button:hover:not(:disabled){border-color:var(--accent);color:var(--accent)}
+.cmdnav button:disabled{opacity:.3}
+.cmdnav .pos{font-family:'IBM Plex Mono',monospace;font-size:.76rem;color:var(--dim);
+  padding:0 6px;white-space:nowrap}
+.cmdnav .pos i{font-style:normal;opacity:.5;padding:0 1px}
 .drawer-head .n{color:var(--accent)}
 .drawer-body{flex:1;overflow-y:auto;padding:14px 18px}
 .drawer-foot{flex:none;padding:14px 18px;border-top:1px solid var(--line);
@@ -1324,18 +1398,26 @@ tr.subrow td.w-status select{width:14.6em}
          ต้องเป็นลูกตรงของ #coordView — sticky เดินออกนอกกล่องแม่ไม่ได้
          ถ้าห่อไว้ในกล่องที่สูงเท่าตัวมันเอง มันจะไม่มีที่ให้เลื่อนเลย -->
     <div class="cmdbar-stick">
-      <div class="cmdbar-in">
-        <span class="cmdbar-ic">⌘</span>
-        <textarea id="qoText" rows="1" spellcheck="false"
-          placeholder="สั่งงานทุกอย่างที่นี่ — «cenakims เรท 12000 ชำระ3%» · «เพิ่ม tangkwaqs เข้า RC2 KOL» · «ลบ xxx» · «ไปที่ RC2» · «ซิงก์» — พิมพ์ ช่วย เพื่อดูทั้งหมด"></textarea>
-        <button class="run" id="qoParse">ตรวจ</button>
+      <!-- ตัวช่วยเติมคำสั่งลอยอยู่ใต้ช่องพิมพ์ ต้องมีกล่อง relative ครอบไว้ -->
+      <div class="cmdbar-wrap">
+        <div class="cmdbar-in">
+          <span class="cmdbar-ic">⌘</span>
+          <textarea id="qoText" rows="1" spellcheck="false"
+            placeholder="สั่งงานทุกอย่างที่นี่ — พิมพ์ / เพื่อดูคำสั่ง · «cenakims เรท 12000 ชำระ3%» · «เพิ่ม tangkwaqs เข้า RC2 KOL» · «ลบ xxx» · «ไปที่ RC2» · «ซิงก์»"></textarea>
+          <button class="run" id="qoParse">ตรวจ</button>
+        </div>
+        <div class="qosug" id="qoSug" hidden></div>
       </div>
       <div class="cmdbar-foot">
         <button class="linkish" id="pickToggle">☰ เลือกจากรายชื่อ</button>
         <button class="linkish" id="cmdHelpBtn">พิมพ์อะไรได้บ้าง</button>
         <button class="linkish" id="bulkToggle">⇥ ก๊อปจากชีตมาวางหลายคน</button>
       </div>
+      <!-- ผลของคำสั่งอยู่ติดช่องพิมพ์ เห็นทันทีว่าทำงานหรือไม่
+           เดิมอยู่ล่างสุดใต้กล่องตัวช่วยทั้งสามอัน กางตัวช่วยทีก็หายไปจากจอ -->
+      <div class="addmsg" id="qoMsg"></div>
     </div>
+    <div id="qoPreview"></div>
 
     <!-- เลือกด้วยการกด แทนการพิมพ์ชื่อ — ชื่อที่เลือกจะถูกเติมลงช่องคำสั่งให้
          ทำงานร่วมกับตัวพิมพ์ ไม่ได้แยกทาง คำสั่งท้ายบรรทัดยังพิมพ์เองเหมือนเดิม -->
@@ -1381,6 +1463,11 @@ tr.subrow td.w-status select{width:14.6em}
           <div id="helpDoc" class="hlist"></div>
           <p style="color:var(--dim)">ใช้ใน Command ได้ด้วย เช่น <code>{{sg}}</code> <code>{{agreement}}</code><br>
           เก็บในเครื่องนี้เท่านั้น ไม่ขึ้นชีต</p>
+          <p><b>คนทำหลายคลิป — ต่อเลขคลิปท้ายคำสั่ง</b><br>
+          <code>/cart2 cenakims : https://…</code> — ตะกร้าของคลิป 2<br>
+          <code>/hashtag2 cenakims : #tag</code><br>
+          <span style="color:var(--dim)">คลิปแรกใช้คำสั่งเดิมไม่ต้องใส่เลข · ใส่ “จำนวนวิดีโอ” ในตารางเป็น 2
+          แล้วบล็อกตะกร้า/แฮชแท็กใน Command จะแยกเป็น 2 ชุดให้เอง</span></p>
         </div>
 
         <div class="hcol">
@@ -1429,9 +1516,6 @@ tr.subrow td.w-status select{width:14.6em}
       <div id="ncBulkPreview"></div>
       <div class="addmsg" id="ncBulkMsg"></div>
     </div>
-
-    <div id="qoPreview"></div>
-    <div class="addmsg" id="qoMsg"></div>
 
   <div class="coord-head">
     <div class="tabs sub" id="projTabs" role="tablist"></div>
@@ -1486,6 +1570,8 @@ tr.subrow td.w-status select{width:14.6em}
   <div class="scrim" id="cmdScrim"></div>
   <aside class="panel sheet" role="dialog" aria-modal="true" aria-labelledby="cmdTitle">
     <div class="drawer-head">
+      <!-- เดินดู Command ทีละคนได้จากตรงนี้ ไม่ต้องปิดหน้าแล้วไปกดในตารางใหม่ทุกครั้ง -->
+      <div class="cmdnav" id="cmdNav"></div>
       <h2 id="cmdTitle">Command</h2>
       <button class="x" id="closeCmd" aria-label="ปิด">✕</button>
     </div>
@@ -3894,6 +3980,8 @@ const CMD_BLOCKS = [
   { t:"5. ส่งคู่มือการถ่ายทำ", b:
 `ขออนุญาตส่งคู่มือการถ่ายทำนะครับ🙏 หากมีข้อสงสัยเพิ่มเติมตรงไหนสามารถสอบถามแอดมินได้เลยครับ🩷
 
+📦สำหรับแบรนด์: Red Chamber ({{sku}})
+
 📖คู่มือการถ่ายทำ :
 {{brief}}
 
@@ -3951,7 +4039,8 @@ const CMD_BLOCKS = [
 
 {{feedback3}}` },
 
-  { t:"13. Hashtag + Link ตะกร้า", b:
+  // clip:true = ครีเอเตอร์ทำหลายคลิปได้บล็อกนี้คนละชุดต่อคลิป ({{cart}} ของคลิป 2 = {{cart2}})
+  { t:"13. Hashtag + Link ตะกร้า", clip:true, b:
 `แอดมินขออนุญาตอัปเดต Hashtag และ Linkตะกร้า สำหรับโพสต์นะครับ🛒
 
 Link ตะกร้า:📦🛒
@@ -3970,7 +4059,52 @@ Hashtag:📱
 
 ขอบคุณครับ🙏` },
 
-  { t:"14. ฟอร์มเอกสาร + ใบรับเงิน", b:
+  // ฟอร์มกับใบรับเงินเป็นคนละขั้นตอนและคนละเวลา — ฟอร์มกรอกครั้งเดียวตอนเริ่ม
+  // ใบรับเงินเซ็นตอนจะเบิกจ่าย รวมไว้ก้อนเดียวแล้วส่งซ้ำทั้งก้อนทุกครั้ง
+  { t:"14. ฟอร์มเอกสารหัก ณ ที่จ่าย", b:
+`สวัสดีครับ😊
+แอดมินรบกวนครีเอเตอร์กรอกข้อมูลสำหรับออกเอกสารหัก ณ ที่จ่าย และเอกสารอื่น ๆ ประกอบการทำจ่ายในลิ้งด้านล่างนี้นะค้าบ (กรอกเพียงครั้งเดียว✅)
+
+📦สำหรับแบรนด์: Red Chamber ({{sku}}) 🧴
+📌ฟอร์ม :
+{{form}}
+
+📢หากกรอกเสร็จแล้วรบกวนแคปให้แอดมินด้วยนะครับ` },
+
+  { t:"15. ใบรับเงิน Acknowledgement of Receipt", b:
+`แอดมินขออนุญาตส่งใบรับเงิน Acknowledgement of Receipt เพื่อทำการเบิกจ่ายนะครับ😊
+
+📦สำหรับแบรนด์: Red Chamber ({{sku}})
+🧾ใบรับเงิน :
+{{sign}}
+
+📌รบกวนครีเอเตอร์ตรวจสอบความถูกต้องของชื่อ-นามสกุล และยอดเงิน ก่อนเซ็นด้วยนะครับ
+💵ยอดที่จะได้รับ: {{net}} บาท ({{paytype}})
+
+📢เซ็นเรียบร้อยแล้วรบกวนส่งกลับให้แอดมินด้วยนะค้าบ🙏` },
+];
+
+// ─── ต้นแบบรุ่นก่อนหน้า ───
+// ที่แก้ไว้เองต้องเคารพเสมอ แต่ "สำเนาที่เหมือนต้นแบบเก่าเป๊ะทุกตัวอักษร" ไม่ใช่ของที่แก้เอง
+// มันคือร่องรอยจากตอนกดแก้แล้วกดกลับ พอเราปรับต้นแบบทีหลังคนพวกนั้นจะไม่ได้ของใหม่
+// เทียบแบบตรงตัวอักษรเท่านั้น ใครแก้ไปแม้แต่ช่องว่างเดียวก็ไม่โดนแตะ
+const LEGACY_BODIES = {
+  4: [{ t:"5. ส่งคู่มือการถ่ายทำ", b:
+`ขออนุญาตส่งคู่มือการถ่ายทำนะครับ🙏 หากมีข้อสงสัยเพิ่มเติมตรงไหนสามารถสอบถามแอดมินได้เลยครับ🩷
+
+📖คู่มือการถ่ายทำ :
+{{brief}}
+
+‼️รบกวนเน้น ตัวสินค้าให้เด่นกว่า เมคอัพอื่นบนหน้า‼️
+
+✅ “จุดขาย” สามารถเลือกนำเสนอ ไม่ต้องนำเสนอทั้งหมด
+✅ รบกวนครีเอเตอร์โฟกัส “สิ่งที่ต้องทำ/ห้ามทำในวิดีโอ (Slide 15/16)” ‼️เน้นเป็นพิเศษ‼️
+
+📌📌รบกวนครีเอเตอร์อ่านรายละเอียดและข้อกำหนดในการถ่ายทำให้ชัดเจนนะครับ เพื่อหลีกเลี่ยงการแก้ไขงานให้ภายหลัง😊🙏
+
+📢เอกสารสำคัญสำหรับร่วมงาน:
+{{docs}}` }],
+  13: [{ t:"14. ฟอร์มเอกสาร + ใบรับเงิน", b:
 `สวัสดีครับ😊
 แอดมินรบกวนครีเอเตอร์กรอกข้อมูลสำหรับออกเอกสารหัก ณ ที่จ่าย และเอกสารอื่น ๆ ประกอบการทำจ่ายในลิ้งด้านล่างนี้นะค้าบ (กรอกเพียงครั้งเดียว✅)
 
@@ -3982,8 +4116,11 @@ Hashtag:📱
 
 รบกวนครีเอเตอร์ตรวจสอบความถูกต้องก่อนเซ็นใบรับเงิน Acknowledgement of Receipt เพื่อทำการเบิกจ่ายนะครับ😊
 
-{{sign}}` },
-];
+{{sign}}` }],
+};
+// ของที่แก้ไว้ตรงกับต้นแบบรุ่นเก่าเป๊ะไหม (ทั้งข้อความและหัวข้อ)
+const isLegacyCopy = (i, cur) => (LEGACY_BODIES[i] || []).some(o =>
+  cur.b === o.b && (cur.t == null || cur.t === o.t || cur.t === CMD_BLOCKS[i].t));
 
 // ลิงก์ที่ใช้ซ้ำทุกคน เก็บในเครื่อง ไม่ฝังลงหน้าเว็บสาธารณะ
 const LS_CMDLINKS = "cf_cmdlinks_v1";
@@ -4005,6 +4142,16 @@ const DOCS = [
   { k:"hashtag",   th:"Hashtag",           re:"แฮชแท็ก|hashtags?|แท็ก|tags?", tags:true },
 ];
 const DOC_BY_KEY = Object.fromEntries(DOCS.map(d => [d.k, d]));
+// แยกคีย์รายคลิปกลับเป็นชนิดเอกสาร + เลขคลิป — "cart2" → {d:cart, n:2}
+function docSplit(k){
+  if (DOC_BY_KEY[k]) return { d: DOC_BY_KEY[k], n:0 };
+  const m = String(k).match(/^([a-z]+)(\d+)$/i);
+  return (m && DOC_BY_KEY[m[1]]) ? { d: DOC_BY_KEY[m[1]], n: Number(m[2]) } : null;
+}
+function docLabel(k){
+  const s = docSplit(k);
+  return s ? s.d.th + (s.n ? ` (คลิป ${s.n})` : "") : k;
+}
 
 const CMD_LINK_FIELDS = [
   ["docsKOL", "เอกสารสำคัญร่วมงาน — KOL"],
@@ -4037,30 +4184,84 @@ const cmdKey = (proj, handle) => `${proj}|${normId(handle)}`;
 
 function loadCmdOwn(){
   try { CMDOWN = JSON.parse(localStorage.getItem(LS_CMDOWN) || "{}") || {}; } catch(e){}
+  dropLegacyOwn();
+}
+// สำเนาต้นแบบรุ่นเก่าที่ค้างอยู่รายคน — ถอดออกให้ได้ต้นแบบรุ่นใหม่ (ดู LEGACY_BODIES)
+function dropLegacyOwn(){
+  let n = 0, dirty = false;
+  for (const key in CMDOWN){
+    const blocks = (CMDOWN[key] || {}).blocks || {};
+    for (const i in blocks){
+      if (!blocks[i] || blocks[i].b == null || !isLegacyCopy(i, blocks[i])) continue;
+      delete blocks[i]; n++; dirty = true;
+    }
+  }
+  if (dirty){
+    for (const key in CMDOWN){
+      const o = CMDOWN[key] || {};
+      if (!Object.keys(o.blocks || {}).length && !Object.keys(o.links || {}).length
+          && !Object.keys(o.sent || {}).length) delete CMDOWN[key];
+    }
+    saveCmdOwn();
+    console.info(`[Creator Finder] ถอดสำเนาต้นแบบรุ่นเก่าออก ${n} บล็อก — ได้ข้อความรุ่นใหม่แทน`);
+  }
 }
 function saveCmdOwn(){
   try { localStorage.setItem(LS_CMDOWN, JSON.stringify(CMDOWN)); } catch(e){}
 }
 function cmdOwn(proj, handle){
   const k = cmdKey(proj, handle);
-  return CMDOWN[k] || (CMDOWN[k] = { blocks:{}, links:{} });
+  const o = CMDOWN[k] || (CMDOWN[k] = { blocks:{}, links:{}, sent:{} });
+  if (!o.sent) o.sent = {};                 // ของที่บันทึกไว้ก่อนมีปุ่ม "ส่งแล้ว"
+  return o;
 }
 // อ่านอย่างเดียว ไม่สร้างช่องเปล่าทิ้งไว้ใน localStorage
 function cmdOwnRead(proj, handle){
-  return CMDOWN[cmdKey(proj, handle)] || { blocks:{}, links:{} };
+  const o = CMDOWN[cmdKey(proj, handle)];
+  return o ? { blocks:o.blocks || {}, links:o.links || {}, sent:o.sent || {} }
+           : { blocks:{}, links:{}, sent:{} };
 }
 // ลบทิ้งถ้าไม่เหลืออะไรที่ต่างจากต้นแบบ จะได้ไม่มีขยะค้าง
 function pruneCmdOwn(proj, handle){
   const k = cmdKey(proj, handle), o = CMDOWN[k];
   if (!o) return;
-  if (!Object.keys(o.blocks || {}).length && !Object.keys(o.links || {}).length)
+  if (!Object.keys(o.blocks || {}).length && !Object.keys(o.links || {}).length
+      && !Object.keys(o.sent || {}).length)
     delete CMDOWN[k];
 }
+
+// ─── บล็อกไหนส่งไปแล้ว ───
+// 15 บล็อกส่งคนละวัน คนละรอบ พอกลับมาเปิดอีกทีจำไม่ได้ว่าค้างที่ไหน
+// เก็บรายคน เพราะแต่ละคนเดินคนละจังหวะ · คลิป 2 นับแยกจากคลิป 1
+const sentKey = (i, clip) => clip > 1 ? `${i}:${clip}` : String(i);
+const isSent = (proj, handle, i, clip) =>
+  !!cmdOwnRead(proj, handle).sent[sentKey(i, clip)];
+function toggleSent(proj, handle, i, clip){
+  const own = cmdOwn(proj, handle), k = sentKey(i, clip);
+  if (own.sent[k]) delete own.sent[k]; else own.sent[k] = Date.now();
+  pruneCmdOwn(proj, handle); saveCmdOwn();
+}
+
+// ครีเอเตอร์ทำกี่คลิป — ใช้ตัดสินว่าต้องแยกเอกสาร/ข้อความเป็นชุดต่อคลิปไหม
+// จำกัดที่ 6 กันคนพิมพ์เลขหลุดแล้วได้ Command 200 บล็อก
+const clipCount = r => Math.min(6, Math.max(1, Number(r && r.videos) || 1));
 
 function cmdValues(r){
   const net = payOf(r.rate, r.paytype);
   const own = cmdOwnRead(r.project, r.handle).links || {};
   const L = k => (own[k] != null ? own[k] : CMDLINKS[k]) || "";
+  // ─── ค่าแยกรายคลิป ───
+  // คนทำ 2 คลิปต้องมีตะกร้า/แฮชแท็กคนละชุด แต่คลิปแรกยังใช้ช่องเดิมอยู่
+  // ไม่งั้นคนที่ทำคลิปเดียว (ส่วนใหญ่) จะต้องมากรอกช่อง "คลิป 1" ใหม่หมดโดยไม่มีเหตุผล
+  const clips = clipCount(r);
+  const perClip = {};
+  DOCS.forEach(d => {
+    for (let n = 1; n <= clips; n++){
+      const k = d.k + n;
+      perClip[k] = own[k] != null ? own[k]
+                 : n === 1 ? L(d.k) : (CMDLINKS[k] || "");
+    }
+  });
   // ฟีดแบคเป็นของใครของมันเสมอ ไม่มีตัวกลาง — แต่ละ Draft ก็คนละข้อความ
   // (เดิมทั้ง 3 Draft ใช้ตัวแปรเดียวกัน แก้ Draft 2 แล้ว Draft 1 เปลี่ยนตาม)
   const fb = n => own["feedback" + n] || "";
@@ -4073,6 +4274,8 @@ function cmdValues(r){
     feedback: fb(1),                       // ชื่อเดิม เผื่อมีคนแก้ต้นแบบไว้เองแล้วยังใช้อยู่
     // เอกสารทุกชนิดใน DOCS ใช้เป็นตัวแปรใน Command ได้หมด {{sg}} {{agreement}} ฯลฯ
     ...Object.fromEntries(DOCS.map(d => [d.k, L(d.k)])),
+    ...perClip,
+    clips,
     script: own.script || r.script || L("script"),
     // เอกสารร่วมงานมีค่าตั้งต้นแยก KOL/KOC ถ้าคนนี้ไม่ได้ตั้งของตัวเอง
     docs: own.docs != null ? own.docs
@@ -4088,6 +4291,14 @@ const CMD_GAP = Object.assign(
     feedback2:"ยังไม่มีฟีดแบค Draft 2", feedback3:"ยังไม่มีฟีดแบค Draft 3",
     docs:"ยังไม่มีลิงก์เอกสารของกลุ่มนี้" });
 
+// ป้ายของช่องว่าง — รวมช่องรายคลิปที่สร้างขึ้นตอนรัน ({{cart2}} = ตะกร้าของคลิป 2)
+// ไม่เอาไปยัดใน CMD_GAP เพราะรายการตัวแปรในหน้าแก้ข้อความจะยาวขึ้นเป็นสิบเท่าโดยไม่จำเป็น
+function gapLabel(k){
+  if (CMD_GAP[k]) return CMD_GAP[k];
+  const s = docSplit(k);
+  return s ? `ยังไม่มี${s.d.th}${s.n ? ` คลิป ${s.n}` : ""}` : k;
+}
+
 // ─── ฟีดแบครายคน รายดราฟต์ ───
 const FB_ROUNDS = [1, 2, 3];
 const fbKey = n => "feedback" + n;
@@ -4097,17 +4308,22 @@ function fbCount(proj, handle){
 }
 
 // คืน 2 แบบ: ข้อความจริงไว้ก๊อป กับ HTML ที่ไฮไลต์ให้เห็นว่าตรงไหนยังว่าง
-function fillBlock(body, vals){
+// clip = บล็อกนี้เป็นของคลิปที่เท่าไหร่ (>1 = เอกสารในบล็อกนี้อ่านจากช่องของคลิปนั้น)
+function fillBlock(body, vals, clip){
   let missing = 0;
-  const text = body.replace(/\{\{(\w+)\}\}/g, (_, k) => vals[k] || `…..${CMD_GAP[k] || k}…..`);
+  // เฉพาะเอกสารเท่านั้นที่แยกรายคลิป — เรท/SKU/รูปแบบภาษี เป็นของทั้งงาน ไม่ใช่ของคลิป
+  const key = k => (clip > 1 && DOC_BY_KEY[k]) ? k + clip : k;
+  const text = body.replace(/\{\{(\w+)\}\}/g, (_, k) =>
+    vals[key(k)] || `…..${gapLabel(key(k))}…..`);
   const gaps = [];
   const html = esc(body).replace(/\{\{(\w+)\}\}/g, (_, k) => {
-    if (vals[k]) return `<span class="fill">${esc(vals[k])}</span>`;
+    const g = key(k);
+    if (vals[g]) return `<span class="fill">${esc(vals[g])}</span>`;
     missing++;
-    if (!gaps.includes(k)) gaps.push(k);
+    if (!gaps.includes(g)) gaps.push(g);
     // กดที่ตัวแดงเพื่อเติมค่าตรงนั้นเลย ไม่ต้องไปหาว่าช่องนี้อยู่ตรงไหนของตาราง
-    return `<button class="gap" data-gap="${esc(k)}"
-      title="กดเพื่อเติม${esc(CMD_GAP[k] || k)}">…..${esc(CMD_GAP[k] || k)}…..</button>`;
+    return `<button class="gap" data-gap="${esc(g)}"
+      title="กดเพื่อเติม${esc(gapLabel(g))}">…..${esc(gapLabel(g))}…..</button>`;
   });
   return { text, html, missing, gaps };
 }
@@ -4120,6 +4336,14 @@ let CMD_EDITING = false;
 function loadCmdEdit(){
   try { CMDEDIT = JSON.parse(localStorage.getItem(LS_CMDEDIT) || "{}") || {}; } catch(e){}
   repairFeedbackBlocks();
+  let n = 0;
+  for (const i in LEGACY_BODIES){
+    const cur = CMDEDIT[i];
+    if (!cur || cur.b == null || !isLegacyCopy(i, cur)) continue;
+    delete CMDEDIT[i]; n++;
+  }
+  if (n){ saveCmdEdit();
+    console.info(`[Creator Finder] ต้นแบบกลาง ${n} บล็อกเป็นสำเนารุ่นเก่า — คืนเป็นรุ่นใหม่`); }
 }
 
 // ─── ซ่อมบล็อกฟีดแบคที่ตัวแปรหาย ───
@@ -4152,7 +4376,7 @@ function saveCmdEdit(){
 const cmdBlocks = () => CMD_BLOCKS.map((b, i) =>
   ({ t: (CMDEDIT[i] && CMDEDIT[i].t) || b.t,
      b: (CMDEDIT[i] && CMDEDIT[i].b != null) ? CMDEDIT[i].b : b.b,
-     edited: !!CMDEDIT[i] }));
+     clip: !!b.clip, edited: !!CMDEDIT[i] }));
 
 // ข้อความจริงของครีเอเตอร์คนหนึ่ง — ทับต้นแบบด้วยของตัวเองถ้ามี
 function cmdBlocksFor(proj, handle){
@@ -4161,7 +4385,7 @@ function cmdBlocksFor(proj, handle){
     const o = own[i];
     return { t: (o && o.t) || b.t,
              b: (o && o.b != null) ? o.b : b.b,
-             edited: b.edited, mine: !!o };
+             clip: b.clip, edited: b.edited, mine: !!o };
   });
 }
 
@@ -4188,6 +4412,8 @@ function setCmdOwnLink(proj, handle, key, val){
 
 // "mine" = แก้เฉพาะคนนี้ (ค่าตั้งต้น) · "all" = แก้ต้นแบบที่ทุกคนใช้
 let CMD_SCOPE = "mine";
+// ตัวเดินไปคนก่อนหน้า/ถัดไป — ตั้งใหม่ทุกครั้งที่เปิด Command (null = ไม่มีที่ให้ไป)
+let CMD_STEP = null;
 
 function renderCmdEditor(proj, handle){
   const mine = CMD_SCOPE === "mine";
@@ -4272,24 +4498,70 @@ function renderCmdEditor(proj, handle){
   $("#cmdDone").onclick = () => { CMD_EDITING = false; openCmd(proj, handle); };
 }
 
+// ─── รายชื่อที่ลูกศร ‹ › เดินไปมา ───
+// ถ้าเปิดจากโปรเจกต์ที่กำลังดูอยู่ ให้เดินตามลำดับ "ที่เห็นในตาราง" (กรอง+กลุ่มเดียวกัน)
+// ไม่ใช่ลำดับดิบทั้งโปรเจกต์ ไม่งั้นกดลูกศรแล้วเด้งไปคนที่ตัวกรองซ่อนไว้
+function cmdNavList(proj){
+  const all = COORD[proj] || [];
+  if (proj !== PROJ) return all;
+  return (KINDSEG === "all" ? all : all.filter(r => (r.kind || "") === KINDSEG))
+           .filter(passFilter);
+}
+
 function openCmd(proj, handle){
   const r = (COORD[proj] || []).find(x => normId(x.handle) === normId(handle));
   if (!r) return;
   loadCmdLinks(); loadCmdEdit(); loadCmdOwn();
   $("#cmdPanel").classList.add("on");
-  $("#cmdTitle").innerHTML = `Command · <span style="color:var(--accent)">${esc(r.handle)}</span>`;
+
+  // ── ลูกศรไปคนก่อนหน้า / คนถัดไป ──
+  const nav = cmdNavList(proj);
+  let at = nav.findIndex(x => normId(x.handle) === normId(handle));
+  if (at < 0){ nav.length = 0; at = -1; }        // ตัวกรองซ่อนคนนี้ไว้ — ไม่ต้องมีลูกศร
+  const step = d => {
+    const t = nav[at + d];
+    if (t) openCmd(proj, t.handle);
+  };
+  $("#cmdTitle").innerHTML =
+    `Command · <span style="color:var(--accent)">${esc(r.handle)}</span>`;
+  $("#cmdNav").innerHTML = nav.length > 1
+    ? `<button id="cmdPrev" ${at <= 0 ? "disabled" : ""}
+         title="คนก่อนหน้า${at > 0 ? " — " + esc(nav[at-1].handle) : ""} (←)">‹</button>
+       <span class="pos">${at + 1}<i>/</i>${nav.length}</span>
+       <button id="cmdNext" ${at >= nav.length - 1 ? "disabled" : ""}
+         title="คนถัดไป${at < nav.length-1 ? " — " + esc(nav[at+1].handle) : ""} (→)">›</button>`
+    : "";
+  if (nav.length > 1){
+    $("#cmdPrev").onclick = () => step(-1);
+    $("#cmdNext").onclick = () => step(1);
+  }
+  CMD_STEP = nav.length > 1 ? step : null;
   if (CMD_EDITING) return renderCmdEditor(proj, handle);
 
   const vals = cmdValues(r);
   const net = payOf(r.rate, r.paytype);
   const own = cmdOwnRead(proj, handle);
+  const clips = clipCount(r);
   const nMine = Object.keys(own.blocks || {}).length;
   const nFb = fbCount(proj, handle);
   // นับเฉพาะลิงก์จริง ไม่รวมฟีดแบคที่นับแยกไว้แล้ว
   const nLink = Object.keys(own.links || {}).filter(k => !/^feedback\d$/.test(k)).length;
-  const blocks = cmdBlocksFor(proj, handle)
-    .map(bl => Object.assign({ t: bl.t, mine: bl.mine }, fillBlock(bl.b, vals)));
-  const gaps = blocks.reduce((s, b) => s + b.missing, 0);
+  // บล็อกที่ทำเครื่องหมาย clip ไว้ ถ้าคนนี้ทำหลายคลิปจะแตกเป็นชุดละคลิป
+  // เอกสารในบล็อกนั้นอ่านจากช่องของคลิปนั้นเอง — {{cart}} ของคลิป 2 คือ {{cart2}}
+  const blocks = [];
+  const clipDocs = new Set();          // เอกสารชนิดไหนบ้างที่ต้องมีชุดของคลิป 2, 3, …
+  cmdBlocksFor(proj, handle).forEach((bl, i) => {
+    if (bl.clip) (bl.b.match(/\{\{(\w+)\}\}/g) || [])
+      .map(v => v.slice(2, -2)).filter(k => DOC_BY_KEY[k]).forEach(k => clipDocs.add(k));
+    // 0 = บล็อกเดียวไม่แยกคลิป · 1..n = ชุดของคลิปที่ n
+    const rounds = (bl.clip && clips > 1) ? Array.from({length:clips}, (_, x) => x + 1) : [0];
+    rounds.forEach(n => blocks.push(Object.assign(
+      { t: bl.t + (n ? ` — คลิป ${n}` : ""), mine: bl.mine, i, clip:n,
+        sent: isSent(proj, handle, i, n) },
+      fillBlock(bl.b, vals, n))));
+  });
+  const nSent = blocks.filter(b => b.sent).length;
+  const gaps = blocks.reduce((s, b) => s + (b.sent ? 0 : b.missing), 0);
   // ช่องว่างแต่ละชนิด (ไม่นับซ้ำ) — เอาไปทำปุ่มเติมบนหัว
   const gapKeys = [...new Set(blocks.flatMap(b => b.gaps || []))]
     .filter(k => k !== "net");                    // จ่ายจริงคิดเอง เติมตรงๆ ไม่ได้
@@ -4316,11 +4588,14 @@ function openCmd(proj, handle){
        <span class="lab">${gapKeys.length
          ? `ยังว่าง ${gapKeys.length} ช่อง — กดเติมได้เลย`
          : "ข้อมูลครบทุกช่อง"}</span>
-       ${gapKeys.map(k => `<button data-gap="${esc(k)}">${esc(CMD_GAP[k] || k)}</button>`).join("")}
+       ${gapKeys.map(k => `<button data-gap="${esc(k)}">${esc(gapLabel(k))}</button>`).join("")}
      </div>
      <div class="cmdmeta">
        ${gaps ? `<span style="color:var(--lo)">ตัวหนังสือสีแดงในข้อความคือช่องที่ยังว่าง</span> — กดที่ตัวแดงหรือปุ่มข้างบนเพื่อเติมตรงนั้นเลย`
               : `<span style="color:var(--hi)">พร้อมส่งทุกบล็อก</span>`}
+       ${clips > 1 ? ` · <span style="color:var(--warn)">ทำ ${clips} คลิป — บล็อกตะกร้า/แฮชแท็กแยกเป็น ${clips} ชุด</span>` : ""}
+       <span id="cmdSentN">${nSent
+         ? ` · <span style="color:var(--hi)">ส่งแล้ว ${nSent}/${blocks.length} บล็อก</span>` : ""}</span>
        ${(nMine || nLink || nFb) ? ` · <span style="color:var(--accent)">เฉพาะคนนี้: ${
          [nMine ? `ข้อความ ${nMine} บล็อก` : "", nLink ? `ลิงก์ ${nLink} ช่อง` : "",
           nFb ? `Feedback ${nFb} Draft` : ""]
@@ -4330,6 +4605,8 @@ function openCmd(proj, handle){
        <button class="cmdbtn" id="cmdSetLinks">ลิงก์เฉพาะคนนี้</button>
        <button class="cmdbtn" id="cmdSetLinksAll">ลิงก์ที่ใช้ร่วมกัน</button>
        <button class="cmdbtn" id="cmdEditBtn">✎ แก้ข้อความ</button>
+       <button class="cmdbtn" id="cmdUnsent" ${nSent ? "" : "hidden"}
+         >↺ ล้างเครื่องหมายส่งแล้ว (${nSent})</button>
      </div>
      <!-- สั่งงานเฉพาะคนนี้ได้จากตรงนี้ ไม่ต้องปิดหน้าไปพิมพ์ชื่อใหม่ที่ช่องคำสั่งหลัก -->
      <div class="cmdqo">
@@ -4354,17 +4631,41 @@ function openCmd(proj, handle){
        </div>
      </div>
      <div class="cmdlist">` +
-    blocks.map((b, i) => `<div class="cmdblk${b.mine ? " edited" : ""}">
-      <header><span class="no">${i+1}</span>${esc(b.t.replace(/^\d+\.\s*/, ""))}
-        <button data-i="${i}">คัดลอก</button></header>
+    blocks.map((b, j) => `<div class="cmdblk${b.mine ? " edited" : ""}${b.sent ? " sent" : ""}">
+      <header><span class="no">${b.i + 1}${b.clip ? `<i>.${b.clip}</i>` : ""}</span>${
+        esc(b.t.replace(/^\d+\.\s*/, ""))}
+        <button class="mark" data-sent="${j}"
+          title="${b.sent ? "ยังไม่ได้ส่ง — กดเพื่อเอาเครื่องหมายออก" : "ทำเครื่องหมายว่าส่งบล็อกนี้ให้ " + esc(normId(handle)) + " แล้ว"}"
+          >${b.sent ? "✓ ส่งแล้ว" : "ส่งแล้ว"}</button>
+        <button data-copy="${j}">คัดลอก</button></header>
       <pre>${b.html}</pre></div>`).join("") + `</div>`;
 
-  document.querySelectorAll("#cmdBody .cmdblk header button").forEach(btn => btn.onclick = () => {
-    navigator.clipboard.writeText(blocks[+btn.dataset.i].text).then(() => {
+  document.querySelectorAll("#cmdBody [data-copy]").forEach(btn => btn.onclick = () => {
+    navigator.clipboard.writeText(blocks[+btn.dataset.copy].text).then(() => {
       btn.textContent = "คัดลอกแล้ว ✓"; btn.classList.add("done");
       setTimeout(() => { btn.textContent = "คัดลอก"; btn.classList.remove("done"); }, 1600);
     }).catch(() => { btn.textContent = "ก๊อปไม่ได้"; });
   });
+  // ── ส่งแล้ว/ยังไม่ส่ง ── สลับที่ตัวบล็อกทันที ไม่ต้องวาดหน้าใหม่ทั้งหน้า
+  // (วาดใหม่แล้วจอจะเด้งกลับไปบนสุด ทั้งที่กำลังไล่อ่านบล็อกที่ 12 อยู่)
+  document.querySelectorAll("#cmdBody [data-sent]").forEach(btn => btn.onclick = () => {
+    const b = blocks[+btn.dataset.sent];
+    toggleSent(proj, handle, b.i, b.clip);
+    b.sent = !b.sent;
+    btn.closest(".cmdblk").classList.toggle("sent", b.sent);
+    btn.textContent = b.sent ? "✓ ส่งแล้ว" : "ส่งแล้ว";
+    const n = blocks.filter(x => x.sent).length;
+    $("#cmdUnsent").textContent = `↺ ล้างเครื่องหมายส่งแล้ว (${n})`;
+    $("#cmdUnsent").hidden = !n;
+    $("#cmdSentN").innerHTML = n
+      ? ` · <span style="color:var(--hi)">ส่งแล้ว ${n}/${blocks.length} บล็อก</span>` : "";
+  });
+  const unsent = $("#cmdUnsent");
+  if (unsent) unsent.onclick = () => {
+    if (!confirm(`เอาเครื่องหมาย "ส่งแล้ว" ของ ${normId(handle)} ออกทั้งหมด?`)) return;
+    cmdOwn(proj, handle).sent = {};
+    pruneCmdOwn(proj, handle); saveCmdOwn(); openCmd(proj, handle);
+  };
 
   // ── เติมช่องว่างจากตรงที่เห็น ──
   // ค่าอยู่คนละที่กัน: บางอันเป็นข้อมูลแถว บางอันเป็นเอกสารรายคน บางอันเป็นฟีดแบค
@@ -4394,9 +4695,9 @@ function openCmd(proj, handle){
       if (v == null) return;
       setField(r2, ROW_GAP[k], v.trim());
     } else {
-      // ที่เหลือคือเอกสาร/ลิงก์รายคน
+      // ที่เหลือคือเอกสาร/ลิงก์รายคน — รวมช่องรายคลิป (cart2, hashtag2 …)
       const cur = (cmdOwnRead(proj, handle).links || {})[k] || CMDLINKS[k] || "";
-      const v = prompt(`${DOC_BY_KEY[k] ? DOC_BY_KEY[k].th : k} ของ ${normId(handle)}\n` +
+      const v = prompt(`${docLabel(k)} ของ ${normId(handle)}\n` +
         `(เว้นว่าง = ใช้ค่าที่ตั้งร่วมกันไว้)`, cur);
       if (v == null) return;
       setCmdOwnLink(proj, handle, k, v.trim());
@@ -4456,9 +4757,14 @@ function openCmd(proj, handle){
   };
 
   // ลิงก์ของคนนี้เอง — เว้นว่าง = กลับไปใช้ตัวที่ใช้ร่วมกัน
+  // คนทำหลายคลิปได้ช่องของคลิป 2 ขึ้นไปต่อท้าย จะได้ไม่ต้องไปกดจากตัวแดงทีละอัน
   $("#cmdSetLinks").onclick = () => {
     const cur = cmdOwnRead(proj, handle).links || {};
-    for (const [k, label] of CMD_LINK_FIELDS){
+    const fields = CMD_LINK_FIELDS.concat(clips > 1
+      ? [...clipDocs].flatMap(k => Array.from({length: clips - 1},
+          (_, x) => [k + (x + 2), `${DOC_BY_KEY[k].th} (คลิป ${x + 2})`]))
+      : []);
+    for (const [k, label] of fields){
       const v = prompt(`${label}\n(เฉพาะ ${normId(handle)} — เว้นว่างเพื่อใช้ตัวร่วม: ${
         CMDLINKS[k] || "ยังไม่ตั้ง"})`, cur[k] != null ? cur[k] : "");
       if (v === null) return;
@@ -4492,6 +4798,18 @@ $("#lockBtn").onclick = async () => {
 
 $("#closeCmd").onclick = () => $("#cmdPanel").classList.remove("on");
 $("#cmdScrim").onclick = () => $("#cmdPanel").classList.remove("on");
+
+// ← → เดินดู Command ทีละคน — แต่ต้องไม่แย่งลูกศรไปจากช่องพิมพ์
+document.addEventListener("keydown", e => {
+  if (e.key !== "ArrowLeft" && e.key !== "ArrowRight") return;
+  if (e.metaKey || e.ctrlKey || e.altKey) return;
+  if (!CMD_STEP || !$("#cmdPanel").classList.contains("on")) return;
+  const t = e.target;
+  if (t && (t.tagName === "INPUT" || t.tagName === "TEXTAREA" ||
+            t.tagName === "SELECT" || t.isContentEditable)) return;
+  e.preventDefault();
+  CMD_STEP(e.key === "ArrowLeft" ? -1 : 1);
+});
 
 // ═══ ประตูรหัส ═══
 // อ่านให้ชัด: นี่คือ "ม่าน" ไม่ใช่ "กุญแจ"
@@ -6263,6 +6581,9 @@ const SLASH_ACT = [
 ];
 
 const slashName = w => SLASH_ALIAS[w] || w;
+// รู้จักทั้งคำสั่งในทะเบียน และช่องเอกสารรายคลิปที่สร้างตอนรัน (cart2, hashtag3 …)
+const specOf = key => SLASH_BY[key] ||
+  (docSplit(key) && docSplit(key).n > 1 ? { c:key, doc:key, th: docLabel(key) } : null);
 
 // อ่านค่าตามชนิดที่คำสั่งนั้นต้องการ — คืน {v} ถ้าได้ หรือ {err} ถ้าไม่ได้
 function slashValue(spec, raw){
@@ -6336,8 +6657,11 @@ const SLASH_RE = /^\s*\/([a-z]+)(\d*)\s*/i;
 function parseSlashLine(line, pending){
   const m = line.match(SLASH_RE);
   if (!m) return null;
-  const word = slashName(m[1].toLowerCase());
-  const num = m[2];
+  // ตัวเลขท้ายคำสั่งมีสองความหมาย: เป็นส่วนหนึ่งของชื่อคำสั่ง (/fb2) หรือเป็นเลขคลิป (/cart2)
+  // ลองอ่านทั้งก้อนก่อนเสมอ ไม่งั้น /fb2 จะกลายเป็น /fb (=Draft 1) แล้วเลข 2 หายไปเฉยๆ
+  const whole = (m[1] + m[2]).toLowerCase();
+  const word = SLASH_BY[whole] ? whole : slashName(m[1].toLowerCase());
+  const num = SLASH_BY[whole] ? "" : m[2];
   const rest = line.slice(m[0].length);
   const bad = why => [{ line, ok:false, changes:{}, why }];
 
@@ -6393,10 +6717,17 @@ function parseSlashLine(line, pending){
   }
 
   // ── ที่เหลือต้องมีเป้าหมาย ──
-  const spec = SLASH_BY[word] || (word === "cmd" ? { c:"cmd" } : null);
+  let spec = SLASH_BY[word] || (word === "cmd" ? { c:"cmd" } : null);
   const isAct = ["add","del","move","copy","clear"].includes(word);
   if (!spec && !isAct)
     return bad(`ไม่รู้จักคำสั่ง /${m[1]} — พิมพ์ /help เพื่อดูทั้งหมด`);
+  // /cart2 · /hashtag2 = เอกสารของคลิปที่ 2 (คลิป 1 ยังใช้ช่องเดิม ไม่มีเลขต่อท้าย)
+  if (num && spec && spec.doc && DOC_BY_KEY[spec.doc]){
+    const n = Number(num);
+    if (n > 6) return bad(`/${spec.doc}${num} — รองรับถึงคลิปที่ 6 เท่านั้น`);
+    if (n > 1) spec = Object.assign({}, spec, { doc: spec.doc + n,
+                                                th: `${spec.th} (คลิป ${n})` });
+  }
 
   // ชื่อ: จากในบรรทัด หรือจากบรรทัดข้างบนที่พักไว้
   let star = false;
@@ -6438,7 +6769,7 @@ function parseSlashLine(line, pending){
   }
   if (word === "clear"){
     const key = slashName(value.trim().toLowerCase());
-    const d = SLASH_BY[key];
+    const d = specOf(key);
     if (!d) return bad(`ล้างอะไร? เช่น /clear ${names[0]} : sg  ·  : rate  ·  : note`);
     hits.forEach(t => out.push(d.doc
       ? { line, ok:true, id:t.h, proj:t.proj, row:t.row, changes:{},
@@ -6451,7 +6782,7 @@ function parseSlashLine(line, pending){
     const parts = value.trim().split(/\s+/);
     const src = normId(parts[0] || "");
     const key = slashName((parts[1] || "rate").toLowerCase());
-    const d = SLASH_BY[key];
+    const d = specOf(key);
     if (!src || !d) return bad(`/copy ${names[0]} : <ชื่อต้นทาง> <อะไร> — เช่น : tangkwaqs rate`);
     const from = resolveTargets([src], null, line);
     if (!from.hits.length) return from.errs.length ? from.errs : bad(`ไม่เจอ ${src}`);
@@ -6574,6 +6905,10 @@ function cmdOpsText(o){
 }
 
 $("#qoParse").onclick = async () => {
+  hideSug();
+  // จำว่าใช้คำสั่งไหนบ่อย เพื่อเรียงตัวช่วยเติมให้ตรงกับการใช้งานจริงของเครื่องนี้
+  ($("#qoText").value.match(/^\s*\/([a-z]+\d*)/gim) || [])
+    .forEach(w => bumpUse(w.trim().slice(1).toLowerCase()));
   QO = parseCmdText($("#qoText").value);
 
   // กฎอ่านไม่ออกบางบรรทัด และเปิด AI ไว้ → ส่งเฉพาะบรรทัดพวกนั้นไปให้ช่วยอ่าน
@@ -6632,6 +6967,7 @@ $("#qoParse").onclick = async () => {
   msg.innerHTML = `อ่านได้ ${good.length}/${QO.length} คำสั่ง` +
     (good.length ? ` <button class="export" id="qoApply" style="margin-left:8px;padding:4px 12px">ใช้ ${good.length} คำสั่งนี้</button>` : "");
   if ($("#qoApply")) $("#qoApply").onclick = applyQuickOrder;
+  scheduleStick();          // แถบผลอยู่ในส่วนที่ตรึงไว้ ความสูงเปลี่ยน = ที่ตั้งหัวตารางเปลี่ยน
 };
 
 function applyQuickOrder(){
@@ -6737,6 +7073,7 @@ function applyQuickOrder(){
   msg.innerHTML = (parts.length ? parts.join(" · ") : "ไม่มีอะไรเปลี่ยน") +
     (n || added || moved || deleted ? ` — จะขึ้นชีตในรอบซิงก์ถัดไป` : "") +
     (cmds ? `<br><span style="color:var(--dim)">Command เก็บในเครื่องนี้เท่านั้น ไม่ได้ขึ้นชีต</span>` : "");
+  scheduleStick();
   if (after) after();
 }
 
@@ -6946,8 +7283,24 @@ let PICK = new Set();
 let PICK_PROJ = null;      // null = ใช้โปรเจกต์ที่เปิดอยู่
 let PICK_KIND = "all";
 let PICK_STATUS = null;    // กรองตามสถานะ
+// กลุ่มไหนกางอยู่ — จำไว้ในเครื่อง เพราะแต่ละคนใช้คนละกลุ่มเป็นประจำ
+const LS_PICKOPEN = "cf_pickopen_v1";
+let PICK_OPEN = { qstage:true };
+try { PICK_OPEN = Object.assign(PICK_OPEN,
+  JSON.parse(localStorage.getItem(LS_PICKOPEN) || "{}")); } catch(e){}
 
 const pickProj = () => PICK_PROJ || PROJ;
+
+// กล่องพับได้ — หัวข้อกดได้ ข้างในเป็นปุ่มชุดหนึ่ง
+// force = บังคับกางเพราะมีของที่กำลังใช้อยู่ข้างใน (เช่นตัวกรองที่ติดอยู่)
+function fold(id, title, sub, body, force){
+  const open = force || PICK_OPEN[id];
+  return `<div class="pfold${open ? " open" : ""}">
+    <button class="pfoldh" data-fold="${esc(id)}" aria-expanded="${!!open}"
+      ><span class="car">▸</span>${esc(title)}<span class="sub">${sub}</span></button>
+    <div class="pfoldb"${open ? "" : " hidden"}>${body}</div>
+  </div>`;
+}
 
 function pickRows(){
   const all = COORD[pickProj()] || [];
@@ -6972,11 +7325,15 @@ function renderPick(){
       >${label}<span class="n">${c}</span></button>`).join("");
 
   // ปุ่มกรองสถานะ — โชว์เฉพาะสถานะที่มีคนอยู่จริง จะได้ไม่ยาว 19 ปุ่ม
+  // และพับเก็บได้ เพราะส่วนใหญ่เปิดกล่องนี้มาเพื่อกดชื่อ ไม่ได้มากรอง
   const sts = [...new Set(all.map(r => r.status || ""))]
     .sort((a,b) => (stageAt(a) < 0 ? 99 : stageAt(a)) - (stageAt(b) < 0 ? 99 : stageAt(b)));
-  $("#pickFilters").innerHTML = sts.map(s =>
-    `<button data-ps="${esc(s)}" class="${PICK_STATUS === s ? "on" : ""}"
-      >${esc(ST_TH[s] || "ยังไม่มีสถานะ")} <b>${all.filter(r => (r.status||"") === s).length}</b></button>`).join("");
+  $("#pickFilters").innerHTML = fold("filters",
+    `กรองตามสถานะ`,
+    PICK_STATUS ? esc(ST_TH[PICK_STATUS] || "ยังไม่มีสถานะ") : `${sts.length} สถานะ`,
+    sts.map(s => `<button data-ps="${esc(s)}" class="${PICK_STATUS === s ? "on" : ""}"
+      >${esc(ST_TH[s] || "ยังไม่มีสถานะ")} <b>${all.filter(r => (r.status||"") === s).length}</b></button>`).join(""),
+    !!PICK_STATUS);
 
   const rows = pickRows();
   $("#pickList").innerHTML = rows.map(r => {
@@ -6993,16 +7350,25 @@ function renderPick(){
   $("#pickSum").innerHTML = PICK.size ? `เลือกไว้ <b>${PICK.size}</b> คน` : "ยังไม่ได้เลือกใคร";
 
   // คำสั่งด่วน — กดแล้วต่อท้ายชื่อที่เลือกให้เลย ไม่ต้องพิมพ์
+  // 28 ปุ่มเรียงเป็นพืดคือที่มาของความรก แบ่งกลุ่มแล้วพับเก็บ เปิดค้างเฉพาะกลุ่มที่ใช้
   $("#pickQuick").innerHTML = PICK.size
-    ? [`<span style="color:var(--dim);font-size:.8rem;align-self:center">สั่งเลย:</span>`]
-      .concat(STAGES.map(s => `<button data-pq="/status : ${esc(s.v)}">${esc(s.v)}</button>`))
-      .concat(PAYTYPES.filter(t => t.id).map(t =>
-        `<button data-pq="/pay : ${esc(t.id)}">${esc(t.label.replace(/\s*\(.*/, ""))}</button>`))
-      .concat([`<button data-pq="/kind : KOL">→ KOL</button>`,
-               `<button data-pq="/kind : KOC">→ KOC</button>`,
-               `<button data-pq="/del">🗑 ลบออกจากโปรเจกต์</button>`]).join("")
+    ? fold("qstage", "เปลี่ยนสถานะ", `${STAGES.length} ขั้น`,
+        STAGES.map(s => `<button data-pq="/status : ${esc(s.v)}">${esc(ST_TH[s.v] || s.v)}</button>`).join(""), false)
+      + fold("qpay", "รูปแบบภาษี", `${PAYTYPES.filter(t=>t.id).length} แบบ`,
+        PAYTYPES.filter(t => t.id).map(t =>
+          `<button data-pq="/pay : ${esc(t.id)}">${esc(t.label.replace(/\s*\(.*/, ""))}</button>`).join(""), false)
+      + fold("qmisc", "อื่นๆ", "กลุ่ม · ย้าย · ลบ",
+        [`<button data-pq="/kind : KOL">→ KOL</button>`,
+         `<button data-pq="/kind : KOC">→ KOC</button>`,
+         `<button data-pq="/move : ">→ ย้ายโปรเจกต์…</button>`,
+         `<button data-pq="/del">🗑 ลบออกจากโปรเจกต์</button>`].join(""), false)
     : `<span style="color:var(--dim);font-size:.8rem">เลือกชื่อก่อน แล้วปุ่มคำสั่งด่วนจะขึ้นตรงนี้</span>`;
 
+  document.querySelectorAll("#pickBox [data-fold]").forEach(b => b.onclick = () => {
+    PICK_OPEN[b.dataset.fold] = !PICK_OPEN[b.dataset.fold];
+    try { localStorage.setItem(LS_PICKOPEN, JSON.stringify(PICK_OPEN)); } catch(e){}
+    renderPick();
+  });
   document.querySelectorAll("#pickList [data-ph]").forEach(b => b.onclick = () => {
     const h = b.dataset.ph;
     PICK.has(h) ? PICK.delete(h) : PICK.add(h);
@@ -7017,6 +7383,7 @@ function renderPick(){
   document.querySelectorAll("#pickQuick [data-pq]").forEach(b => b.onclick = () => {
     insertPick(b.dataset.pq);
   });
+  scheduleStick();
 }
 
 // เติมชื่อที่เลือกลงช่องคำสั่ง — คนละบรรทัด แล้วปิดท้ายด้วยคำสั่ง (ถ้ามี)
@@ -7025,13 +7392,16 @@ function insertPick(order){
   if (!PICK.size) return;
   const names = [...PICK];
   const t = $("#qoText");
+  // ปุ่มที่ลงท้ายด้วย ":" คือปุ่มที่ยังไม่รู้ค่า (เช่น /move) — ใส่ให้แล้วรอพิมพ์ต่อ
+  const wantsValue = !!order && /:\s*$/.test(order);
   // คำสั่งด่วนเป็น /slash ที่เว้นชื่อไว้ — เติมชื่อที่เลือกลงไปให้ตรงกลาง
   const body = order && order.startsWith("/")
-    ? order.replace(/^(\/\w+)\s*:?\s*/, (mm, c) => `${c} ${names.join(" ")} : `).replace(/\s*:\s*$/, "")
+    ? order.replace(/^(\/\w+)\s*:?\s*/, (mm, c) => `${c} ${names.join(" ")} : `)
+        .replace(wantsValue ? /$/ : /\s*:\s*$/, "")
     : names.join("\n") + (order ? "\n" + order : "");
   t.value = (t.value.trim() ? t.value.replace(/\s*$/, "") + "\n\n" : "") + body;
   growCmd();
-  if (order){
+  if (order && !wantsValue){
     $("#qoParse").click();
     PICK.clear(); renderPick();
   } else {
@@ -7041,10 +7411,21 @@ function insertPick(order){
 }
 
 $("#pickToggle").onclick = () => {
-  const box = $("#pickBox");
-  box.hidden = !box.hidden;
-  $("#pickToggle").classList.toggle("on", !box.hidden);
-  if (!box.hidden){ PICK_PROJ = PROJ; renderPick(); $("#pickFind").focus(); }
+  const box = $("#pickBox"), opening = box.hidden;
+  if (opening) ["#cmdHelp", "#bulkFold"].forEach(o => {
+    if ($(o).hidden) return;
+    $(o).hidden = true;
+    document.querySelectorAll(".cmdbar-foot .linkish").forEach(x => {
+      if (x.dataset.fold === o) x.classList.remove("on");
+    });
+  });
+  box.hidden = !opening;
+  $("#pickToggle").classList.toggle("on", opening);
+  if (opening){
+    PICK_PROJ = PROJ; renderPick();
+    setTimeout(() => revealFold("#pickToggle", "#pickBox"), 30);
+    $("#pickFind").focus();
+  } else scheduleStick();
 };
 $("#pickProj").onchange = e => { PICK_PROJ = e.target.value; PICK_STATUS = null; renderPick(); };
 $("#pickFind").addEventListener("input", renderPick);
@@ -7093,13 +7474,16 @@ if (window.visualViewport) visualViewport.addEventListener("resize", scheduleSti
 addEventListener("orientationchange", scheduleStick);
 // กันเหนียว: บางเบราว์เซอร์/บางวิธีเปลี่ยนขนาดจอไม่ยิง event ให้เลย แล้วค่าจะค้าง
 // ทำให้ตารางยาวเลยจอหรือหัวตารางลอยผิดที่ ตรวจเบาๆ ทุกวินาที เขียนเฉพาะตอนค่าเปลี่ยนจริง
+// เทียบทั้งสองค่า ไม่ใช่แค่หัวเว็บ — แถบที่ตรึงไว้โตได้เองจากข้อความผลคำสั่ง
+// เดิมดูแต่ --stick ค่า --stick2 เลยค้างจนหัวตารางไปลอยผิดที่โดยไม่มีอะไรมาแก้
 setInterval(() => {
   const h = document.querySelector("header"), s = document.querySelector(".cmdbar-stick");
   if (!h || !s || document.body.dataset.view !== "coord") return;
-  const want = Math.round(h.getBoundingClientRect().height);
-  const now = parseInt(getComputedStyle(document.documentElement)
-    .getPropertyValue("--stick"), 10);
-  if (want !== now) measureStick();
+  const cs = getComputedStyle(document.documentElement);
+  const top = Math.round(h.getBoundingClientRect().height);
+  const bar = Math.round(s.getBoundingClientRect().height);
+  if (top !== parseInt(cs.getPropertyValue("--stick"), 10) ||
+      top + bar !== parseInt(cs.getPropertyValue("--stick2"), 10)) measureStick();
 }, 1000);
 function growCmd(){
   const t = $("#qoText");
@@ -7113,24 +7497,201 @@ addEventListener("resize", scheduleStick);
 $("#qoText").addEventListener("keydown", e => {
   if (e.key === "Enter" && !e.shiftKey){ e.preventDefault(); $("#qoParse").click(); }
 });
+// ═══ เติมคำสั่งลงช่อง Quick Order ═══
+// ใช้ร่วมกันสามทาง: กดจากคู่มือ · เลือกจากตัวช่วยตอนพิมพ์ / · ปุ่มคำสั่งด่วนในกล่องรายชื่อ
+// ทุกทางลงเอยที่ข้อความเดียวกัน ไม่มีทางลัดที่ตัวอ่านไม่รู้จัก
+
+// คำสั่งที่ไม่ต้องมีชื่อและไม่ต้องมีค่า — เติมแล้วกด Enter ได้เลย
+const SLASH_NOARG = new Set(["sync","reload","export","settings","filter","cols","help"]);
+const SLASH_ALL = SLASH_ROW.map(s => ({ ...s, g:"ข้อมูลในตาราง" }))
+  .concat(SLASH_DOC.map(s => ({ ...s, g:"เอกสาร/ลิงก์" })),
+          SLASH_FB.map(s => ({ ...s, g:"Feedback" })),
+          SLASH_ACT.map(s => ({ ...s, g:"จัดการรายชื่อ" })));
+const SLASH_WORDS = new Set(SLASH_ALL.map(s => s.c).concat(Object.keys(SLASH_ALIAS)));
+
+// ─── ลำดับที่เดาว่าจะใช้ ───
+// ตั้งต้นจากของที่ทีมใช้จริงบ่อยที่สุด แล้วขยับตามการใช้งานจริงของเครื่องนี้
+// (เก็บแค่ตัวนับในเครื่อง ไม่ได้ส่งไปไหน)
+const SLASH_HOT = ["status","rate","fb1","hashtag","cart","pay","sku","fb2","note",
+                   "sg","agreement","video","del","move","add","sync"];
+const LS_CMDUSE = "cf_cmduse_v1";
+let CMDUSE = {};
+try { CMDUSE = JSON.parse(localStorage.getItem(LS_CMDUSE) || "{}") || {}; } catch(e){}
+function bumpUse(c){
+  if (!c) return;
+  CMDUSE[c] = (CMDUSE[c] || 0) + 1;
+  try { localStorage.setItem(LS_CMDUSE, JSON.stringify(CMDUSE)); } catch(e){}
+}
+const useRank = c => (CMDUSE[c] || 0) * 100 +
+  (SLASH_HOT.indexOf(c) < 0 ? 0 : SLASH_HOT.length - SLASH_HOT.indexOf(c));
+
+// ข้อความที่จะเติม + ตำแหน่งเคอร์เซอร์ (นับถอยหลังจากท้ายข้อความ)
+function slashTemplate(c){
+  if (SLASH_NOARG.has(c)) return { s:`/${c}`, back:0 };
+  const names = PICK.size ? [...PICK].join(" ") : "";
+  const s = SLASH_BY[c];
+  // คำสั่งที่ต้องมีค่าต่อท้าย วางเคอร์เซอร์ไว้หลัง : ให้พิมพ์ค่าต่อได้เลย
+  if (s && (s.f || s.doc)) return { s:`/${c} ${names} : `, back: names ? 0 : 3 };
+  if (c === "del") return { s:`/del ${names}`, back:0 };
+  return { s:`/${c} ${names} : `, back: names ? 0 : 3 };
+}
+// เขียนลงช่องคำสั่ง: ทับ "/xx" ที่กำลังพิมพ์อยู่ถ้ามี ไม่งั้นต่อบรรทัดใหม่
+function putCmd(c){
+  const t = $("#qoText"), tpl = slashTemplate(c);
+  const at = sugQuery();
+  if (at) t.value = t.value.slice(0, at.start) + tpl.s + t.value.slice(at.end);
+  else {
+    const pad = t.value.trim() ? t.value.replace(/\s*$/, "") + "\n" : "";
+    t.value = pad + tpl.s;
+  }
+  const caret = (at ? at.start + tpl.s.length : t.value.length) - tpl.back;
+  hideSug();
+  growCmd();
+  t.focus();
+  t.setSelectionRange(caret, caret);
+  bumpUse(c);
+}
+
+// ═══ ตัวช่วยเติมคำสั่งตอนพิมพ์ ═══
+// ขึ้นเมื่อบรรทัดที่เคอร์เซอร์อยู่ขึ้นต้นด้วย / และยังพิมพ์ชื่อคำสั่งไม่จบ
+let SUG = [], SUG_AT = -1;
+function sugQuery(){
+  const t = $("#qoText");
+  if (!t || document.activeElement !== t) return null;
+  const pos = t.selectionStart;
+  if (pos !== t.selectionEnd) return null;
+  const ls = t.value.lastIndexOf("\n", pos - 1) + 1;
+  const m = t.value.slice(ls, pos).match(/^(\s*)\/([a-z]*)$/i);
+  return m ? { start: ls + m[1].length, end: pos, q: m[2].toLowerCase() } : null;
+}
+function hideSug(){ SUG = []; SUG_AT = -1; $("#qoSug").hidden = true; }
+function renderSug(){
+  const at = sugQuery();
+  if (!at) return hideSug();
+  SUG = SLASH_ALL.filter(s => s.c.startsWith(at.q))
+    .sort((a, b) => useRank(b.c) - useRank(a.c) || a.c.localeCompare(b.c))
+    .slice(0, 9);
+  if (!SUG.length) return hideSug();
+  if (SUG_AT < 0 || SUG_AT >= SUG.length) SUG_AT = 0;
+  const box = $("#qoSug");
+  box.innerHTML =
+    `<div class="sughead">↑↓ เลือก · Tab หรือ Enter ใส่ · Esc ปิด${
+      PICK.size ? ` — จะใส่ชื่อที่เลือกไว้ ${PICK.size} คนให้ด้วย` : ""}</div>` +
+    SUG.map((s, i) => `<button data-sug="${esc(s.c)}" class="${i === SUG_AT ? "sel" : ""}"
+      ><code>/${esc(s.c)}</code><span class="sugth">${esc(s.th)}</span
+      ><span class="sugex">${esc(s.g)}</span></button>`).join("");
+  box.hidden = false;
+  box.querySelectorAll("[data-sug]").forEach(b => {
+    // mousedown ไม่ใช่ click — click มาหลัง blur ซึ่งปิดกล่องไปแล้ว
+    b.onmousedown = e => { e.preventDefault(); putCmd(b.dataset.sug); };
+  });
+  const sel = box.querySelector(".sel");
+  if (sel) sel.scrollIntoView({ block:"nearest" });
+}
+
+// อ่านข้อความในตัวอย่าง <code> ให้ได้บรรทัดตามที่ตาเห็น
+// innerText ใช้ไม่ได้ เพราะกล่องคู่มือถูกพับอยู่ (hidden) แล้วมันจะเท่ากับ textContent
+// ซึ่งกลืน <br> หายไปหมด ตัวอย่างวางชื่อเป็นกลุ่มเลยติดกันเป็นบรรทัดเดียว
+function codeText(el){
+  const d = document.createElement("div");
+  d.innerHTML = el.innerHTML.replace(/<br\s*\/?>/gi, "\n");
+  return d.textContent.trim();
+}
+
 // คู่มือสร้างจากทะเบียนคำสั่งจริง — เพิ่มคำสั่งใหม่แล้วคู่มืออัปเดตตามเอง ไม่มีทางลืมแก้
+// ทุกบรรทัดกดได้ กดแล้วคำสั่งไปโผล่ในช่องพิมพ์ ไม่ต้องจำแล้วพิมพ์ตาม
 function renderHelp(){
-  const row = (s, showEx) => `<div class="hrow"><code>/${s.c}</code>
+  const row = (s, showEx) => `<button class="hrow" data-put="${esc(s.c)}"
+    title="กดเพื่อใส่ /${esc(s.c)} ลงช่องคำสั่ง"><code>/${esc(s.c)}</code>
     <span class="hth">${esc(s.th)}</span>${
-    showEx && s.ex ? `<span class="hex">${esc(s.ex)}</span>` : ""}</div>`;
+    showEx && s.ex ? `<span class="hex">${esc(s.ex)}</span>` : ""}</button>`;
   $("#helpRow").innerHTML = SLASH_ROW.map(s => row(s, true)).join("");
   $("#helpDoc").innerHTML = SLASH_DOC.map(s => row(s, false)).join("");
   $("#helpFb").innerHTML  = SLASH_FB.map(s => row(s, true)).join("");
   $("#helpAct").innerHTML = SLASH_ACT.map(s => row(s, true)).join("");
+  $("#cmdHelp").querySelectorAll("[data-put]").forEach(b =>
+    b.onclick = () => putCmd(b.dataset.put));
+  // ตัวอย่างในคำอธิบายก็กดได้ — วางลงไปทั้งบรรทัดแล้วแก้ชื่อเอา
+  // แต่ต้องเป็นตัวอย่างที่สั่งได้จริง ไม่ใช่ตัวอย่างรูปแบบอย่าง /คำสั่ง ชื่อ : ค่า
+  // หรือชื่อตัวแปรอย่าง {{sg}} — วางไปแล้วเว็บอ่านไม่ออก เสียเวลากดเปล่า
+  $("#cmdHelp").querySelectorAll("p code").forEach(c => {
+    const txt = codeText(c);
+    if (txt.includes("{{")) return;
+    if (!/^\s*\//.test(txt) && !/\S\s+\S/.test(txt)) return;
+    const w = txt.match(/^\/([a-z]+\d*)/i);
+    const known = w && (SLASH_WORDS.has(slashName(w[1].toLowerCase())) || specOf(w[1].toLowerCase()));
+    if (txt.startsWith("/") && !known) return;
+    c.classList.add("clickable");
+    c.title = "กดเพื่อวางลงช่องคำสั่ง";
+    c.onclick = () => {
+      const t = $("#qoText");
+      t.value = (t.value.trim() ? t.value.replace(/\s*$/, "") + "\n" : "") + txt;
+      growCmd(); t.focus();
+      t.setSelectionRange(t.value.length, t.value.length);
+      revealFold("#cmdHelpBtn");
+    };
+  });
+}
+
+// กางกล่องแล้วต้องเห็นกล่อง — เดิมกางอยู่ใต้จอ กดแล้วเหมือนไม่มีอะไรเกิดขึ้น
+// เลื่อนไปหยุดใต้แถบที่ตรึงไว้พอดี ไม่ให้หัวเว็บทับ
+function revealFold(btn, box){
+  const b = $(btn), el = box ? $(box) : null;
+  if (!b) return;
+  const target = (el && !el.hidden) ? el : b;
+  const off = parseInt(getComputedStyle(document.documentElement)
+    .getPropertyValue("--stick2"), 10) || 150;
+  const y = target.getBoundingClientRect().top + scrollY - off - 12;
+  scrollTo({ top: Math.max(0, y), behavior:"smooth" });
 }
 
 const toggleFold = (btn, box) => $(btn).onclick = () => {
-  $(box).hidden = !$(box).hidden;
-  $(btn).classList.toggle("on", !$(box).hidden);
+  const opening = $(box).hidden;
+  // เปิดได้ทีละกล่อง — สามกล่องกางพร้อมกันแล้วต้องเลื่อนสองจอกว่าจะเจอตาราง
+  if (opening) ["#pickBox", "#cmdHelp", "#bulkFold"].forEach(o => {
+    if (o === box || $(o).hidden) return;
+    $(o).hidden = true;
+    document.querySelectorAll(".cmdbar-foot .linkish").forEach(x => {
+      if (x.dataset.fold === o) x.classList.remove("on");
+    });
+  });
+  $(box).hidden = !opening;
+  $(btn).classList.toggle("on", opening);
+  if (opening) setTimeout(() => revealFold(btn, box), 30);   // รอให้กล่องมีความสูงจริงก่อนค่อยวัด
+  else scheduleStick();
 };
+$("#pickToggle").dataset.fold = "#pickBox";
+$("#cmdHelpBtn").dataset.fold = "#cmdHelp";
+$("#bulkToggle").dataset.fold = "#bulkFold";
 toggleFold("#cmdHelpBtn", "#cmdHelp");
 renderHelp();
 toggleFold("#bulkToggle", "#bulkFold");
+
+// ── ผูกตัวช่วยเข้ากับช่องพิมพ์ ──
+["input","click","keyup","focus"].forEach(ev =>
+  $("#qoText").addEventListener(ev, e => {
+    if (ev === "keyup" && ["ArrowUp","ArrowDown","Enter","Tab","Escape"].includes(e.key)) return;
+    renderSug();
+  }));
+$("#qoText").addEventListener("blur", () => setTimeout(hideSug, 120));
+// ต้องมาก่อนตัวจับ Enter เดิม เพราะตอนกล่องเปิดอยู่ Enter แปลว่า "เลือกอันนี้"
+// ผูกที่ document ชั้น capture — ตัวฟังที่ผูกกับ element เดียวกันจะเรียงตามลำดับที่ผูก
+// ไม่ได้เรียงตาม capture/bubble ดังนั้นผูกทีหลังที่ตัวมันเองจะไม่มีวันได้ทำงานก่อน
+document.addEventListener("keydown", e => {
+  if (e.target !== $("#qoText")) return;
+  if ($("#qoSug").hidden || !SUG.length) return;
+  if (e.key === "ArrowDown" || e.key === "ArrowUp"){
+    e.preventDefault(); e.stopImmediatePropagation();
+    SUG_AT = (SUG_AT + (e.key === "ArrowDown" ? 1 : SUG.length - 1)) % SUG.length;
+    renderSug();
+  } else if (e.key === "Enter" || e.key === "Tab"){
+    e.preventDefault(); e.stopImmediatePropagation();
+    putCmd(SUG[SUG_AT].c);
+  } else if (e.key === "Escape"){
+    e.preventDefault(); e.stopImmediatePropagation();
+    hideSug();
+  }
+}, true);
 
 document.querySelectorAll(".hcard,.nav button").forEach(b =>
   b.onclick = () => setView(b.dataset.go));
