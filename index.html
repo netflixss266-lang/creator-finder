@@ -106,6 +106,7 @@ body[data-view="home"] .nav{display:none}
   .coord-sum{max-width:100%}
   .coord-sum span{max-width:100%;white-space:normal}
   .coordbar .kindseg,.coordbar .colseg,.coordbar input{min-width:0;flex:1 1 100%}
+  .mapbtn{flex:1 1 100%}
   .headact{width:100%}
   .headact .export{flex:1 1 auto}
 }
@@ -220,6 +221,12 @@ body:not([data-view="coord"]) #gearBtn{display:none}
 .coord-head{display:flex;align-items:center;justify-content:space-between;
   gap:14px;flex-wrap:wrap;margin-bottom:14px}
 .coord-head .tabs{margin-bottom:0;flex:1;min-width:280px}
+/* ปุ่มเข้าแผนผัง — อยู่ติดแท็บโปรเจกต์ เพราะเป็นข้อมูลชุดเดียวกันคนละมุมมอง */
+.mapbtn{flex:none;background:var(--surface);border:1px solid var(--line);color:var(--ink);
+  border-radius:8px;padding:.55em 1.1em;font-family:inherit;font-size:.86rem;font-weight:700;
+  white-space:nowrap;min-height:36px}
+.mapbtn:hover{border-color:var(--accent);color:var(--accent);
+  background:rgba(var(--accent-rgb),.08)}
 /* เหลือแค่ธงเตือน — "อ่านชีตทางไหน" ไปอยู่บนแถบหัวเว็บแล้ว ไม่ต้องบอกซ้ำสองที่
    กินความสูงไปเปล่าๆ 83px ก่อนจะถึงตาราง */
 .coord-sum{display:flex;flex-wrap:wrap;gap:8px;flex:none}
@@ -255,8 +262,9 @@ body:not([data-view="coord"]) #gearBtn{display:none}
    ของที่ซ่อนไม่ได้หายไปไหน กด ⤢ ท้ายชื่อดูและแก้ได้ครบในลิ้นชัก
    คอลัมน์กลุ่มซ้ำกับปุ่ม KOL/KOC ที่อยู่เหนือตารางอยู่แล้ว เลยซ่อนด้วย */
 .ctable.lean th.opt,.ctable.lean td.opt{display:none}
-.ctable.lean .who{width:20.6em;max-width:20.6em}
-.ctable.lean th.w-sku,.ctable.lean td.w-sku{min-width:10.2em}
+.ctable.lean .who{width:24.1em;max-width:24.1em}
+/* SKU เป็นชิปที่ตัดบรรทัดเองได้ ไม่ต้องกว้างเท่าข้อความเต็ม — ชี้ที่ชิปมี tooltip เต็มอยู่แล้ว */
+.ctable.lean th.w-sku,.ctable.lean td.w-sku{min-width:8em;max-width:11em}
 .ctable.lean th.w-job,.ctable.lean td.w-job{min-width:5.6em}
 .ctable.lean td.w-job input{width:5em}
 .ctable.lean select.pay{min-width:8.8em!important}
@@ -452,7 +460,7 @@ body:not([data-view="coord"]) #gearBtn{display:none}
    ไม่งั้นชื่อจะลอยไม่ตรงกับของช่องอื่น เพราะ input มี padding ของตัวเอง */
 /* ความกว้างต้องเผื่อลูกศร ปุ่ม ⤢ ✉ และ ↗ ที่อยู่ในช่องเดียวกันด้วย รวมกัน ~6em
    เคยตั้งไว้ 15em แล้วเหลือให้ชื่อจริงแค่ 65px — ชื่อ 24 จาก 26 คนโดนตัด */
-.ctable .who{font-weight:600;white-space:nowrap;width:21em;max-width:21em}
+.ctable .who{font-weight:600;white-space:nowrap;width:24.5em;max-width:24.5em}
 /* ความสูงต้องเท่ากับ input/select ในแถวเดียวกัน ไม่งั้นชื่อลอยสูงกว่าเพื่อน */
 .ctable .who .wrapper{display:flex;align-items:center;gap:.35em;min-height:var(--rowh,2.6em)}
 /* ชื่อครีเอเตอร์คือสิ่งที่ต้องอ่านออกก่อนอย่างอื่นในแถว — ใหญ่กว่าช่องอื่นและหนากว่า
@@ -642,15 +650,33 @@ tr.dropover td{border-top:2px solid var(--accent)}
 .skupop{width:300px}
 
 /* ── SKU หลายอัน ── */
-.ctable th.w-sku,.ctable td.w-sku{min-width:13.5em;position:relative}
+.ctable th.w-sku,.ctable td.w-sku{min-width:9.5em;max-width:13em;position:relative}
 .skucell{display:flex;flex-wrap:wrap;gap:5px;align-items:center;min-height:30px}
-.skuchip{display:inline-flex;align-items:center;gap:5px;max-width:13em;
+/* ช่องแคบลงแล้ว โชว์เฉพาะเฉด/รหัส ซึ่งเป็นส่วนที่ต่างกันจริง
+   ชื่อไลน์ที่ตัดออก (Blush / Eyeshadow / Lip) ซ้ำกับคอลัมน์ "งาน" อยู่แล้ว
+   และรหัสเฉดบอกไลน์อยู่ในตัว (FE=Feather · LB=Lip) — ชี้ที่ชิปเห็นข้อความเต็ม */
+.skuchip{display:inline-flex;align-items:center;gap:5px;max-width:100%;
   background:var(--surface2);border:1px solid var(--line);border-radius:6px;
-  padding:3px 4px 3px 8px;font-size:.8rem;color:var(--mute);
-  white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  padding:3px 4px 3px 8px;font-size:.8rem;color:var(--mute)}
+.skuchip .t{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .skuchip button{background:none;border:0;color:var(--mute);font-size:.88rem;
   padding:.25em .3em;line-height:1;flex:none}
 .skuchip button:hover{color:var(--lo)}
+/* ── คู่มือถ่ายทำ ตาม SKU (หน้าตั้งค่า) ── */
+.skugrow{display:flex;align-items:center;gap:9px;flex-wrap:wrap;padding:8px 0;
+  border-bottom:1px solid var(--line)}
+.skugrow b{flex:none;min-width:11em;color:var(--ink);font-size:.86rem}
+.skugrow .n{flex:none;font-size:.76rem;color:var(--hi);background:rgba(var(--hi-rgb),.12);
+  border-radius:999px;padding:2px 9px}
+.skugrow .n.none{color:var(--warn);background:rgba(var(--warn-rgb),.12)}
+.skugrow input{flex:1;min-width:12em;font-size:.82rem;padding:6px 9px}
+.skugrow button{flex:none;background:none;border:1px solid var(--line);color:var(--mute);
+  border-radius:6px;padding:.35em .6em;font-size:.9rem}
+.skugrow button:hover{border-color:var(--lo);color:var(--lo)}
+.skuadd-row{display:flex;gap:8px;flex-wrap:wrap;margin-top:11px}
+.skuadd-row input:first-child{flex:0 1 13em;min-width:10em}
+.skuadd-row input{flex:1;min-width:12em;font-size:.84rem}
+.skuadd-row .run{flex:none;width:auto;padding:8px 20px;font-size:.84rem}
 .skuadd{background:none;border:1px dashed var(--line);color:var(--dim);
   border-radius:6px;padding:.4em .8em;font-size:.84rem;font-weight:600}
 .skuadd:hover{border-color:var(--accent);color:var(--accent)}
@@ -730,6 +756,132 @@ tr.dropover td{border-top:2px solid var(--accent)}
 .overlay.full .sect:first-child{margin-top:16px}
 .overlay.full details.sect > summary h3,.overlay.full .sect > h3{font-size:.9rem;
   text-transform:none;letter-spacing:0;color:var(--ink);font-weight:700}
+/* ══ แผนผังภาพรวม ══
+   ตารางอ่านทีละแถว แผ่นนี้อ่านทีเดียวทั้งกอง — สาขาคือช่วงของงาน ใบคือคน
+   เส้นเชื่อมวาดด้วยเส้นขอบ ไม่ใช่ SVG จะได้ยืดหดตามตัวอักษรและจอโดยไม่ต้องคำนวณพิกัด */
+.maphead{flex-wrap:wrap}
+.maphead .tabs{margin-bottom:0;flex:1 1 auto;min-width:220px}
+.mapmodes{display:flex;gap:6px;flex:none}
+.mapmodes button{background:var(--surface2);border:1px solid var(--line);color:var(--mute);
+  border-radius:999px;padding:6px 14px;font-family:inherit;font-size:.82rem;font-weight:600;
+  min-height:32px}
+.mapmodes button:hover{color:var(--accent);border-color:var(--accent)}
+.mapmodes button[aria-selected="true"]{background:var(--accent);color:var(--accent-ink);
+  border-color:var(--accent)}
+.mapbody{flex:1;padding:16px 26px 70px;width:100%;max-width:1500px;margin:0 auto}
+
+/* แถบสรุปบนสุด — ตัวเลขที่ต้องรู้ก่อนดูอย่างอื่น */
+.mapsum{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:16px}
+.mapstat{flex:1 1 9em;background:var(--surface);border:1px solid var(--line);
+  border-left:3px solid var(--accent);border-radius:9px;padding:11px 14px}
+.mapstat .k{font-size:.74rem;color:var(--dim);text-transform:uppercase;letter-spacing:.06em}
+.mapstat .v{font-family:'IBM Plex Mono',monospace;font-size:1.25rem;font-weight:600;
+  color:var(--ink);line-height:1.35}
+.mapstat .s{font-size:.76rem;color:var(--mute)}
+.mapstat.warn{border-left-color:var(--warn)} .mapstat.warn .v{color:var(--warn)}
+
+/* แถบสัดส่วนงาน — เห็นทันทีว่ากองอยู่ช่วงไหน */
+.mapbar{display:flex;height:1.5em;border-radius:7px;overflow:hidden;margin-bottom:6px;
+  border:1px solid var(--line);background:var(--surface)}
+.mapbar i{display:block;height:100%;background:var(--pc);min-width:2px}
+.mapbar i:hover{filter:brightness(1.25)}
+.mapkey{display:flex;gap:14px;flex-wrap:wrap;margin-bottom:20px;font-size:.78rem;color:var(--mute)}
+.mapkey span{display:inline-flex;align-items:center;gap:6px}
+.mapkey b{width:.7em;height:.7em;border-radius:3px;background:var(--pc);flex:none}
+
+/* โครงผัง: ราก → สาขา → ใบ */
+.mapmind{display:flex;align-items:flex-start;gap:0}
+.maproot{flex:none;width:15em;background:var(--surface);border:1px solid var(--accent);
+  border-radius:12px;padding:15px 16px;position:sticky;top:96px}
+.maproot .t{font-family:'Bebas Neue','Space Grotesk',sans-serif;font-size:1.5rem;
+  letter-spacing:.04em;color:var(--accent);line-height:1.15}
+.maproot .r{display:flex;justify-content:space-between;gap:8px;font-size:.8rem;
+  color:var(--mute);padding:5px 0;border-top:1px solid var(--line);margin-top:9px}
+.maproot .r b{font-family:'IBM Plex Mono',monospace;color:var(--ink);font-weight:600}
+.mapbranches{flex:1;min-width:0;position:relative;padding-left:2.4em}
+.mapbranches::before{content:"";position:absolute;left:0;top:1.7em;bottom:1.7em;
+  border-left:2px solid var(--line)}
+.mapbranch{position:relative;margin-bottom:14px}
+.mapbranch::before{content:"";position:absolute;left:-2.4em;top:1.7em;width:2.4em;
+  border-top:2px solid var(--line)}
+.mapbranch > header{display:flex;align-items:center;gap:10px;background:var(--surface);
+  border:1px solid var(--line);border-left:4px solid var(--pc);border-radius:9px;
+  padding:9px 13px;font-weight:700;font-size:.92rem;color:var(--ink)}
+.mapbranch > header .n{font-family:'IBM Plex Mono',monospace;color:var(--pc);font-size:1.05rem}
+.mapbranch > header .sub{font-weight:400;font-size:.78rem;color:var(--dim);margin-left:auto;
+  text-align:right}
+.mapbranch.empty{opacity:.42}
+.mapstages{padding:10px 0 0 1.6em;position:relative}
+.mapstages::before{content:"";position:absolute;left:.5em;top:0;bottom:1.1em;
+  border-left:1px dashed var(--line)}
+.mapstage{position:relative;margin-bottom:9px}
+.mapstage::before{content:"";position:absolute;left:-1.1em;top:.9em;width:1.1em;
+  border-top:1px dashed var(--line)}
+.mapstage .lab{font-size:.8rem;color:var(--mute);font-weight:600;margin-bottom:5px}
+.mapstage .lab i{font-style:normal;color:var(--pc);font-family:'IBM Plex Mono',monospace}
+.mapleaves{display:flex;flex-wrap:wrap;gap:7px}
+
+/* ใบ = ครีเอเตอร์หนึ่งคน กดแล้วเปิด Command ของคนนั้นได้เลย */
+.mapleaf{display:flex;flex-direction:column;align-items:flex-start;gap:2px;
+  background:var(--surface2);border:1px solid var(--line);border-radius:8px;
+  padding:7px 11px;text-align:left;font-family:inherit;min-width:9em}
+.mapleaf:hover{border-color:var(--pc);background:var(--surface)}
+.mapleaf .h{font-size:.88rem;font-weight:700;color:var(--ink);max-width:12em;
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.mapleaf .m{font-family:'IBM Plex Mono',monospace;font-size:.74rem;color:var(--mute);
+  display:flex;gap:6px;align-items:center;flex-wrap:wrap}
+.mapleaf .m .kk{color:var(--dim)}
+.mapleaf .flag{color:var(--warn)}
+.mapleaf.miss{border-style:dashed;border-color:rgba(var(--warn-rgb),.5)}
+
+/* แผ่น "ทุกโปรเจกต์" — เทียบโปรเจกต์กันตรงๆ */
+.mapgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(20em,1fr));gap:14px}
+.mapcard{background:var(--surface);border:1px solid var(--line);border-radius:11px;
+  padding:15px 17px}
+.mapcard.on{border-color:var(--accent)}
+.mapcard h4{font-family:'Space Grotesk',sans-serif;font-size:1rem;font-weight:700;
+  color:var(--ink);margin-bottom:3px;display:flex;align-items:center;gap:8px}
+.mapcard h4 .done{font-size:.72rem;color:var(--dim);border:1px solid var(--line);
+  border-radius:999px;padding:1px 8px;font-weight:400}
+.mapcard .sub{font-size:.78rem;color:var(--dim);margin-bottom:11px}
+.mapcard .rows{margin-top:11px;font-size:.8rem;color:var(--mute)}
+.mapcard .rows div{display:flex;justify-content:space-between;gap:10px;padding:3px 0}
+.mapcard .rows b{font-family:'IBM Plex Mono',monospace;color:var(--ink);font-weight:600}
+.mapcard .open{margin-top:12px;width:100%;background:none;border:1px solid var(--line);
+  color:var(--mute);border-radius:7px;padding:.55em;font-family:inherit;font-size:.82rem;
+  font-weight:600}
+.mapcard .open:hover{border-color:var(--accent);color:var(--accent)}
+
+/* แผ่น "ข้อมูลที่ยังขาด" */
+.mapgap{background:var(--surface);border:1px solid var(--line);border-left:3px solid var(--warn);
+  border-radius:10px;padding:13px 16px;margin-bottom:12px}
+.mapgap.ok{border-left-color:var(--hi)}
+.mapgap h4{font-size:.9rem;font-weight:700;color:var(--ink);margin-bottom:3px;
+  display:flex;align-items:center;gap:9px}
+.mapgap h4 .n{font-family:'IBM Plex Mono',monospace;color:var(--warn)}
+.mapgap.ok h4 .n{color:var(--hi)}
+.mapgap .why{font-size:.79rem;color:var(--dim);margin-bottom:9px}
+.mapempty{color:var(--dim);font-size:.85rem;padding:26px;text-align:center;
+  border:1px dashed var(--line);border-radius:10px}
+.mapnote{background:rgba(var(--warn-rgb),.1);border:1px solid rgba(var(--warn-rgb),.4);
+  border-radius:9px;padding:10px 14px;margin-bottom:16px;font-size:.82rem;color:var(--mute);
+  line-height:1.6}
+.mapnote b{color:var(--warn)}
+
+@media(max-width:820px){
+  .mapmind{flex-direction:column}
+  .maproot{width:100%;position:static}
+  .mapbranches{padding-left:0;width:100%;margin-top:12px}
+  .mapbranches::before,.mapbranch::before{display:none}
+  .mapbody{padding:14px 14px 60px}
+  /* หัวเรื่องพับเป็นสี่บรรทัดกินจอไปหนึ่งในสาม — ให้เลื่อนแนวนอนแทนการขึ้นบรรทัดใหม่ */
+  .maphead .tabs,.mapmodes{flex:1 1 100%;flex-wrap:nowrap;overflow-x:auto;
+    scrollbar-width:none;padding-bottom:2px}
+  .maphead .tabs::-webkit-scrollbar,.mapmodes::-webkit-scrollbar{display:none}
+  .maphead .tabs button,.mapmodes button{flex:none;white-space:nowrap}
+  .overlay.full .maphead{padding:12px 14px}
+  .overlay.full .maphead h2{font-size:1.2rem}
+}
 .x{background:none;border:0;color:var(--dim);font-size:1rem;padding:4px 8px;border-radius:6px}
 .x:hover{color:var(--ink);background:var(--surface2)}
 .sect{margin-top:20px;padding-top:18px;border-top:1px solid var(--line)}
@@ -1530,14 +1682,9 @@ tr.subrow td.w-status select{width:14.6em}
 
   <div class="coord-head">
     <div class="tabs sub" id="projTabs" role="tablist"></div>
+    <!-- ภาพรวมทั้งโปรเจกต์ — อยู่ติดแท็บโปรเจกต์เพราะมันคือ "อีกมุมของข้อมูลชุดเดียวกัน" -->
+    <button class="mapbtn" id="mapBtn" title="ดูภาพรวมทั้งโปรเจกต์เป็นแผนผัง">◈ Map</button>
     <div class="coord-sum" id="coordSum"></div>
-    <div class="headact">
-      <a class="export" id="coordSheet" target="_blank" rel="noopener noreferrer"
-         href="https://docs.google.com/spreadsheets/d/1v5CrMct_EQEnHYndMAujZZI_DUBhGY5j5msfJ-2uBOM/edit#gid=33859969">เปิดชีต ↗</a>
-      <button class="export" id="coordReload">โหลดจากชีตใหม่</button>
-      <button class="export" id="coordExport">Export CSV</button>
-      <button class="export ghost" id="coordResetEdits">คืนค่าที่แก้ในเครื่อง</button>
-    </div>
   </div>
   <div class="syncbar" id="syncBar"></div>
 
@@ -1552,6 +1699,21 @@ tr.subrow td.w-status select{width:14.6em}
 
   <div id="coordBody"></div>
 </section>
+
+<!-- ═══ แผนผังภาพรวม — โปรเจกต์ละแผ่น ═══
+     ตารางตอบว่า "คนนี้อยู่ตรงไหน" แผ่นนี้ตอบว่า "งานทั้งกองอยู่ตรงไหน"
+     เป็นข้อมูลชุดเดียวกับตาราง อ่านสดทุกครั้งที่เปิด ไม่มีสำเนา -->
+<div class="overlay full" id="mapView" hidden>
+  <div class="modal" role="dialog" aria-modal="true" aria-labelledby="mapTitle">
+    <div class="modal-head maphead">
+      <h2 id="mapTitle">แผนผังภาพรวม</h2>
+      <div class="tabs sub" id="mapTabs" role="tablist"></div>
+      <div class="mapmodes" id="mapModes" role="tablist"></div>
+      <button class="x" id="closeMap" aria-label="ปิด">✕</button>
+    </div>
+    <div class="mapbody" id="mapBody"></div>
+  </div>
+</div>
 
 <!-- ═══ จัดการโปรเจกต์ — เพิ่ม / ปิดงาน / เรียงใหม่ ═══ -->
 <div class="overlay" id="projPanel" hidden>
@@ -1684,6 +1846,25 @@ tr.subrow td.w-status select{width:14.6em}
     </div>
 
     <div class="setbody">
+    <!-- ปุ่มพวกนี้เคยอยู่เหนือตาราง กินแถวเต็มๆ ทั้งที่กดกันเดือนละครั้ง
+         ที่เหนือตารางเหลือแต่ของที่ใช้ทุกวัน — แท็บโปรเจกต์กับ Map -->
+    <section class="sect">
+      <h3>ข้อมูล Coordinate</h3>
+      <p class="sect-sub">โหลด/ส่งออก/เปิดชีตของหน้า Coordinator — สั่งจากช่องคำสั่งก็ได้:
+        <code>/reload</code> <code>/export</code> <code>/sync</code></p>
+      <div class="dd-act" style="flex-wrap:wrap">
+        <a class="export" id="coordSheet" target="_blank" rel="noopener noreferrer"
+           href="https://docs.google.com/spreadsheets/d/1v5CrMct_EQEnHYndMAujZZI_DUBhGY5j5msfJ-2uBOM/edit#gid=33859969">เปิดชีต ↗</a>
+        <button type="button" class="export" id="coordReload">โหลดจากชีตใหม่</button>
+        <button type="button" class="export" id="coordExport">Export CSV</button>
+        <button type="button" class="export ghost" id="coordResetEdits">คืนค่าที่แก้ในเครื่อง</button>
+      </div>
+      <div class="hint" style="margin-top:8px">
+        <b>โหลดจากชีตใหม่</b> ทิ้งของที่แก้ไว้แต่ยังไม่ได้ซิงก์ ·
+        <b>คืนค่าที่แก้ในเครื่อง</b> ล้างทุกอย่างที่แก้ไว้แต่ยังไม่ขึ้นชีต
+      </div>
+    </section>
+
     <section class="sect">
       <h3>Google Sheet</h3>
       <p class="sect-sub">ลิงก์ทั้งหมดที่เลือกได้ในหน้าหลัก — เพิ่มหรือลบได้ที่นี่ที่เดียว</p>
@@ -1692,6 +1873,27 @@ tr.subrow td.w-status select{width:14.6em}
         <button type="button" id="resetSheets">คืนค่าตั้งต้น (KOL + KOC)</button>
       </div>
     </section>
+
+    <!-- คู่มือถ่ายทำไม่ได้มีใบเดียว — คนได้บลัชกับคนได้ลิปถ่ายคนละแบบ
+         ผูกไว้กับ SKU ทีเดียว แล้วทุกคนที่ได้ SKU นั้นได้คู่มือถูกใบเอง -->
+    <details class="sect" id="skuGuideSect">
+      <summary><h3>คู่มือถ่ายทำ ตาม SKU</h3></summary>
+      <p class="sect-sub">
+        ใส่ <b>ชื่อไลน์</b> (<code>Blush</code> · <code>Lip</code> · <code>Eyeshadow</code>)
+        = ใช้กับทุกเฉดในไลน์นั้น · ใส่ <b>SKU เต็ม</b> = ใช้เฉพาะเฉดนั้น (ชนะชื่อไลน์เสมอ)<br>
+        <span style="color:var(--dim)">เข้าไปที่ <code>{{guide}}</code> ใน Command และเป็นตัวสำรองของ
+        <code>{{brief}}</code> เมื่อชีตไม่ได้กรอกบรีฟไว้ · สั่งจากช่องคำสั่งได้ด้วย
+        <code>/skuguide Blush : https://…</code></span>
+      </p>
+      <div id="skuGuideList"></div>
+      <div class="skuadd-row">
+        <input id="skuGuideKey" list="skuGuideOpts" placeholder="SKU หรือชื่อไลน์ เช่น Blush">
+        <datalist id="skuGuideOpts"></datalist>
+        <input id="skuGuideUrl" placeholder="https://… ลิงก์คู่มือถ่ายทำ">
+        <button type="button" class="run" id="skuGuideAdd">เพิ่ม</button>
+      </div>
+      <div class="addmsg" id="skuGuideMsg"></div>
+    </details>
 
     <details class="sect">
       <summary><h3>เพิ่ม Google Sheet</h3></summary>
@@ -3093,6 +3295,10 @@ const skuListFor = proj => proj === "Red Chamber Phase 2" ? SKU_RC2 : null;
 // ไม่ต้องเพิ่มคอลัมน์ในชีต และของเก่าที่พิมพ์ไว้แบบผสมก็ยังใช้ได้
 const skuParts = v => String(v || "").split(/\s*\+\s*/).map(s => s.trim()).filter(Boolean);
 const skuJoin = a => a.join(" + ");
+// ข้อความที่โชว์ในตาราง — ตัดชื่อไลน์หน้า " - " ทิ้ง เหลือเฉด/รหัสที่เป็นตัวแยกจริง
+// ค่าที่เก็บไม่เปลี่ยน ตัดเฉพาะตอนแสดง และเฉพาะรูปแบบ "ไลน์ - เฉด" เท่านั้น
+// (SKU อย่าง "OBSBOT Tiny 3 Lite" ไม่มีขีดคั่น เลยไม่โดนแตะ)
+const skuShort = p => String(p || "").replace(/^[^-]{1,24}\s+-\s+/, "");
 
 function skuOptions(){
   const list = skuListFor(PROJ);
@@ -3104,7 +3310,7 @@ function skuOptions(){
 function skuCell(r, i){
   const parts = skuParts(r.sku);
   return `<div class="skucell">${
-    parts.map(p => `<span class="skuchip" title="${esc(p)}">${esc(p)}<button
+    parts.map(p => `<span class="skuchip" title="${esc(p)}"><span class="t">${esc(skuShort(p))}</span><button
       data-skudel="${i}" data-v="${esc(p)}" title="เอาออก">✕</button></span>`).join("")
     }<button class="skuadd" data-sku="${i}" title="เพิ่ม SKU">${parts.length ? "＋" : "＋ เพิ่ม SKU"}</button></div>`;
 }
@@ -3277,7 +3483,7 @@ function renderDetail(){
 
       <div class="dfield wide2"><label>SKU — ใส่ได้หลายอัน</label>
         <div class="dsku" id="dSku">${skuParts(r.sku).map(p =>
-          `<span class="skuchip" title="${esc(p)}">${esc(p)}<button
+          `<span class="skuchip" title="${esc(p)}"><span class="t">${esc(p)}</span><button
              data-dskudel="${esc(p)}" title="เอาออก">✕</button></span>`).join("")
           }<button class="skuadd" id="dSkuAdd">＋ เพิ่ม SKU</button></div></div>
 
@@ -4184,6 +4390,40 @@ function saveCmdLinks(){
   try { localStorage.setItem(LS_CMDLINKS, JSON.stringify(CMDLINKS)); } catch(e){}
 }
 
+// ─── คู่มือถ่ายทำแยกตาม SKU ───
+// ครีเอเตอร์ที่ได้บลัชกับที่ได้ลิปถ่ายคนละแบบ ส่งคู่มือใบเดียวกันไปคือส่งของผิด
+// คีย์เป็นข้อความอิสระ: ใส่ SKU เต็ม ("Blush - Haelyn (40)") = ใช้เฉพาะเฉดนั้น
+// ใส่แค่ชื่อไลน์ ("Blush") = ใช้กับทุกเฉดในไลน์นั้น — ตรงเป๊ะชนะเสมอ ถ้าไม่ตรงเอาคีย์ที่ยาวที่สุดที่ขึ้นต้นตรงกัน
+const LS_SKUGUIDE = "cf_skuguide_v1";
+let SKUGUIDE = {};
+function loadSkuGuide(){
+  try { SKUGUIDE = JSON.parse(localStorage.getItem(LS_SKUGUIDE) || "{}") || {}; } catch(e){}
+}
+function saveSkuGuide(){
+  try { localStorage.setItem(LS_SKUGUIDE, JSON.stringify(SKUGUIDE)); } catch(e){}
+}
+// คืนลิงก์ของ SKU ก้อนเดียว (ไม่ใช่ทั้งช่องที่อาจมีหลายอันคั่นด้วย +)
+function guideForOne(one){
+  const s = String(one || "").trim();
+  if (!s) return "";
+  if (SKUGUIDE[s]) return SKUGUIDE[s];
+  let best = "", bestLen = 0;
+  const low = s.toLowerCase();
+  for (const k in SKUGUIDE){
+    const kl = k.trim().toLowerCase();
+    if (!kl || !SKUGUIDE[k]) continue;
+    if (low.startsWith(kl) && kl.length > bestLen){ bestLen = kl.length; best = SKUGUIDE[k]; }
+  }
+  return best;
+}
+// n = คลิปที่เท่าไหร่ (1 = SKU ตัวแรก) · 0 = เอาอันแรกที่หาเจอจากทุก SKU ที่คนนี้ได้
+function guideForSku(sku, n){
+  const parts = skuParts(sku);
+  if (n) return guideForOne(parts[n - 1]);
+  for (const p of parts){ const g = guideForOne(p); if (g) return g; }
+  return "";
+}
+
 // ─── Command เป็นของใครของมัน ───
 // เมื่อก่อนแก้ข้อความบล็อกไหน = เปลี่ยนของทุกคนพร้อมกัน ซึ่งผิดเวลาครีเอเตอร์คนเดียว
 // ตกลงเงื่อนไขต่างจากคนอื่น  ตอนนี้มี 3 ชั้น เอาชั้นบนสุดที่มีค่า:
@@ -4269,10 +4509,14 @@ function cmdValues(r){
   DOCS.forEach(d => {
     for (let n = 1; n <= clips; n++){
       const k = d.k + n;
+      // คู่มือถ่ายทำเลือกตาม SKU ของคลิปนั้น — คลิป 2 ได้คนละ SKU ก็ได้คนละคู่มือ
+      const bySku = d.k === "guide" ? guideForSku(r.sku, n) : "";
       perClip[k] = own[k] != null ? own[k]
-                 : n === 1 ? L(d.k) : (CMDLINKS[k] || "");
+                 : bySku || (n === 1 ? L(d.k) : (CMDLINKS[k] || ""));
     }
   });
+  // คู่มือถ่ายทำ: ของคนนี้เอง → ตาม SKU ที่ได้รับ → ลิงก์ที่ใช้ร่วมกัน
+  const guide = own.guide != null ? own.guide : (guideForSku(r.sku, 0) || L("guide"));
   // ฟีดแบคเป็นของใครของมันเสมอ ไม่มีตัวกลาง — แต่ละ Draft ก็คนละข้อความ
   // (เดิมทั้ง 3 Draft ใช้ตัวแปรเดียวกัน แก้ Draft 2 แล้ว Draft 1 เปลี่ยนตาม)
   const fb = n => own["feedback" + n] || "";
@@ -4280,12 +4524,15 @@ function cmdValues(r){
     sku: r.sku || "", rate: r.rate != null ? Number(r.rate).toLocaleString("en-US") : "",
     paytype: r.paytype ? payType(r.paytype).label.replace(/\s*\(.*\)$/, "") : "",
     net: net != null ? net.toLocaleString("en-US", {minimumFractionDigits:2}) : "",
-    brief: r.brief || "",
+    // บล็อก 5 ส่ง {{brief}} เป็นคู่มือถ่ายทำ — ชีตไม่ได้กรอกบรีฟไว้ก็ตกมาใช้คู่มือของ SKU
+    // ถ้าชีตกรอกไว้ถือว่าคนตั้งใจใส่ ของในชีตชนะเสมอ
+    brief: r.brief || guide,
     feedback1: fb(1), feedback2: fb(2), feedback3: fb(3),
     feedback: fb(1),                       // ชื่อเดิม เผื่อมีคนแก้ต้นแบบไว้เองแล้วยังใช้อยู่
     // เอกสารทุกชนิดใน DOCS ใช้เป็นตัวแปรใน Command ได้หมด {{sg}} {{agreement}} ฯลฯ
     ...Object.fromEntries(DOCS.map(d => [d.k, L(d.k)])),
     ...perClip,
+    guide,
     clips,
     script: own.script || r.script || L("script"),
     // เอกสารร่วมงานมีค่าตั้งต้นแยก KOL/KOC ถ้าคนนี้ไม่ได้ตั้งของตัวเอง
@@ -4522,7 +4769,7 @@ function cmdNavList(proj){
 function openCmd(proj, handle){
   const r = (COORD[proj] || []).find(x => normId(x.handle) === normId(handle));
   if (!r) return;
-  loadCmdLinks(); loadCmdEdit(); loadCmdOwn();
+  loadCmdLinks(); loadCmdEdit(); loadCmdOwn(); loadSkuGuide();
   $("#cmdPanel").classList.add("on");
 
   // ── ลูกศรไปคนก่อนหน้า / คนถัดไป ──
@@ -4793,6 +5040,334 @@ function openCmd(proj, handle){
   };
   $("#cmdEditBtn").onclick = () => { CMD_EDITING = true; renderCmdEditor(proj, handle); };
 }
+
+// ═══ แผนผังภาพรวม ═══
+// 19 ขั้นตอนเยอะเกินกว่าจะเห็นภาพรวม จับเป็น 5 ช่วงตามที่งานเดินจริง
+// ช่วงคือสิ่งที่ถามกันในที่ประชุม ("ของส่งหมดยัง" "ดราฟต์ค้างกี่คน") ไม่ใช่ขั้นย่อย
+const MAP_PHASES = [
+  { k:"start", th:"เริ่มงาน", sub:"คอนเฟิร์มร่วมงาน",   from:0,  to:1,  c:"#8B8BFF" },
+  { k:"ship",  th:"ส่งของ",   sub:"จัดส่ง + ส่ง SG",     from:2,  to:5,  c:"#4FB3D9" },
+  { k:"make",  th:"ทำคลิป",   sub:"สคริป + Draft 1-3",  from:6,  to:13, c:"#F5B546" },
+  { k:"post",  th:"โพสต์",    sub:"ขึ้นคลิป",            from:14, to:15, c:"#46D369" },
+  { k:"pay",   th:"ทำจ่าย",   sub:"Gencode + เบิกจ่าย",  from:16, to:18, c:"#E50914" },
+];
+const MAP_NONE = { k:"none", th:"ยังไม่มีสถานะ", sub:"ยังไม่ได้ตั้งว่าอยู่ขั้นไหน", c:"#6E6E6E" };
+// สถานะชุดเก่ายังใช้กันอยู่เกือบทั้งชีต ถ้าอ่านไม่ออกแล้วโยนไปกอง "ยังไม่มีสถานะ"
+// แผนผังจะบอกว่าไม่มีใครมีสถานะเลย ซึ่งผิดและทำให้ไล่แก้ผิดจุด
+// แปลงตอนอ่านเท่านั้น ไม่เขียนทับของในชีต (การเขียนทับสถานะทั้งทีมต้องเป็นการกดเอง)
+const mapStage = s => {
+  const v = String(s || "");
+  if (!v) return -1;
+  const at = stageAt(v);
+  return at >= 0 ? at : stageAt(STATUS_MIGRATE[v] || "");
+};
+function phaseOf(status){
+  const at = mapStage(status);
+  if (at < 0) return MAP_NONE;
+  return MAP_PHASES.find(p => at >= p.from && at <= p.to) || MAP_NONE;
+}
+// ป้ายของสถานะ — ชุดเก่าโชว์ชื่อใหม่พร้อมบอกว่ามาจากค่าเดิมอะไร
+function mapStatusLabel(v){
+  if (!v) return "ยังไม่มีสถานะ";
+  if (ST_TH[v]) return ST_TH[v];
+  const to = STATUS_MIGRATE[v];
+  return to ? `${ST_TH[to] || to} · ชุดเก่า “${v}”` : v;
+}
+// ตัวเลขบนแผนผังอ่านเอาภาพรวม ไม่ใช่เอาไปทำจ่าย — ปัดเศษสตางค์ทิ้งให้กวาดตาง่าย
+const mBaht = n => n == null ? "—" : "฿" + Math.round(n).toLocaleString("en-US");
+
+// ตัวเลขที่ใช้ซ้ำทุกแผ่น — นับจาก COORD สดๆ ไม่เก็บสำเนาไว้ที่ไหน
+function mapStats(rows){
+  const rate = rows.reduce((s, r) => s + (Number(r.rate) || 0), 0);
+  // ยอดที่บริษัทจ่ายจริง คนละตัวกับเรทที่ตกลงไว้ (NET บวก, หัก ณ ที่จ่าย ลบ)
+  const co = rows.reduce((s, r) => s + (coOf(r.rate, r.paytype) ?? Number(r.rate) ?? 0), 0);
+  const clips = rows.reduce((s, r) => s + clipCount(r), 0);
+  const by = {};
+  [...MAP_PHASES, MAP_NONE].forEach(p => by[p.k] = []);
+  rows.forEach(r => by[phaseOf(r.status).k].push(r));
+  return { n: rows.length, rate, co, clips, by,
+    kol: rows.filter(r => (r.kind || "") === "KOL").length,
+    koc: rows.filter(r => (r.kind || "") === "KOC").length,
+    noRate: rows.filter(r => r.rate == null).length,
+    noPay:  rows.filter(r => !r.paytype).length,
+    noSku:  rows.filter(r => !String(r.sku || "").trim()).length,
+    noSt:   rows.filter(r => !r.status).length,
+    // อ่านออกแต่เป็นคำเก่า — ไม่ใช่ปัญหาของแผนผัง แต่ควรรู้ว่ายังมีค้างเท่าไหร่
+    oldSt:  rows.filter(r => r.status && stageAt(r.status) < 0 && STATUS_MIGRATE[r.status]).length,
+    dupRate: rows.filter(r => (r.rate_all || []).length > 1).length,
+    done: by.pay.filter(r => r.status === "Already Submitted Payment").length };
+}
+// อะไรที่ทำให้คนนี้เดินต่อไม่ได้ — ใช้ทั้งบนใบและในแผ่น "ข้อมูลที่ยังขาด"
+function mapFlags(r){
+  const f = [];
+  if (r.rate == null) f.push("ไม่มีเรท");
+  if ((r.rate_all || []).length > 1) f.push("เรทไม่ตรงกันในชีต");
+  if (!r.paytype) f.push("ไม่ได้เลือกรูปแบบภาษี");
+  if (!String(r.sku || "").trim()) f.push("ไม่มี SKU");
+  else if (!guideForSku(r.sku, 0) && !CMDLINKS.guide) f.push("SKU นี้ยังไม่มีคู่มือถ่ายทำ");
+  if (!r.status) f.push("ไม่มีสถานะ");
+  return f;
+}
+
+let MAP_PROJ = null;             // null = แผ่นรวมทุกโปรเจกต์
+let MAP_MODE = "flow";
+const MAP_MODES = [["flow","ขั้นตอนงาน"],["gap","ข้อมูลที่ยังขาด"],["money","เงิน"]];
+
+function openMap(proj){
+  loadCmdLinks(); loadSkuGuide();
+  MAP_PROJ = proj === undefined ? PROJ : proj;
+  $("#mapView").hidden = false;
+  renderMap();
+}
+
+function renderMap(){
+  $("#mapTabs").innerHTML = [["", "ทุกโปรเจกต์"]].concat(PROJECTS.map(p => [p, p]))
+    .map(([id, label]) => `<button role="tab" data-mp="${esc(id)}"
+      aria-selected="${(MAP_PROJ || "") === id}">${esc(label)}${
+      id ? `<span class="n">${(COORD[id] || []).length}</span>` : ""}</button>`).join("");
+  $("#mapModes").innerHTML = MAP_MODES.map(([id, label]) =>
+    `<button role="tab" data-mm="${id}" aria-selected="${MAP_MODE === id}">${label}</button>`).join("");
+  $("#mapTitle").textContent = MAP_PROJ || "ทุกโปรเจกต์";
+
+  $("#mapBody").innerHTML = !MAP_PROJ ? mapAllSheet()
+    : MAP_MODE === "flow"  ? mapFlowSheet(MAP_PROJ)
+    : MAP_MODE === "gap"   ? mapGapSheet(MAP_PROJ)
+    :                        mapMoneySheet(MAP_PROJ);
+
+  document.querySelectorAll("#mapTabs [data-mp]").forEach(b => b.onclick = () => {
+    MAP_PROJ = b.dataset.mp || null; renderMap(); $("#mapBody").scrollIntoView({block:"start"});
+  });
+  document.querySelectorAll("#mapModes [data-mm]").forEach(b => b.onclick = () => {
+    MAP_MODE = b.dataset.mm; renderMap();
+  });
+  // กดที่ชื่อคน = เปิด Command ของคนนั้นทับแผนผัง (ลิ้นชักอยู่ชั้นบนกว่า)
+  document.querySelectorAll("#mapBody [data-mapwho]").forEach(b => b.onclick = () =>
+    openCmd(b.dataset.mapproj, b.dataset.mapwho));
+  document.querySelectorAll("#mapBody [data-mapgo]").forEach(b => b.onclick = () => {
+    MAP_PROJ = b.dataset.mapgo; MAP_MODE = "flow"; renderMap();
+  });
+}
+
+// แถบสัดส่วน + คำอธิบายสี ใช้ร่วมกันทุกแผ่น
+function mapBar(by, total){
+  if (!total) return "";
+  const ps = [...MAP_PHASES, MAP_NONE].filter(p => by[p.k].length);
+  return `<div class="mapbar">${ps.map(p =>
+    `<i style="--pc:${p.c};width:${(by[p.k].length / total * 100).toFixed(2)}%"
+      title="${esc(p.th)} ${by[p.k].length} คน"></i>`).join("")}</div>
+    <div class="mapkey">${ps.map(p =>
+      `<span style="--pc:${p.c}"><b></b>${esc(p.th)} <b style="all:unset;font-family:'IBM Plex Mono',monospace;color:var(--ink)">${by[p.k].length}</b></span>`).join("")}</div>`;
+}
+
+function mapLeaf(r, proj, color){
+  const flags = mapFlags(r);
+  const clips = clipCount(r);
+  return `<button class="mapleaf${flags.length ? " miss" : ""}" style="--pc:${color}"
+    data-mapwho="${esc(r.handle)}" data-mapproj="${esc(proj)}"
+    title="${esc(r.handle)}${flags.length ? " — " + esc(flags.join(" · ")) : ""}\nกดเพื่อเปิด Command">
+    <span class="h">${esc(r.handle)}</span>
+    <span class="m"><span class="kk">${esc(r.kind || "?")}</span>
+      ${r.rate != null ? mBaht(r.rate) : `<span class="flag">ไม่มีเรท</span>`}
+      ${clips > 1 ? `· ${clips} คลิป` : ""}
+      ${flags.length ? `<span class="flag" title="${esc(flags.join(" · "))}">⚑${flags.length}</span>` : ""}
+    </span></button>`;
+}
+
+// ─── แผ่นหลัก: ขั้นตอนงาน ───
+function mapFlowSheet(proj){
+  const rows = COORD[proj] || [];
+  if (!rows.length) return `<div class="mapempty">${esc(proj)} ยังไม่มีใครในโปรเจกต์นี้</div>`;
+  const s = mapStats(rows);
+  const flagged = rows.filter(r => mapFlags(r).length).length;
+
+  const branch = p => {
+    const list = s.by[p.k];
+    // ในหนึ่งช่วงยังแยกเป็นขั้นย่อยตามลำดับงานจริง จะได้รู้ว่าค้างตรงไหนของช่วง
+    // จัดกลุ่มด้วยข้อความที่อยู่ในชีตจริง ไม่ใช่ตามลิสต์ขั้นตอน — ชุดเก่าจะได้ไม่ตกหล่น
+    const groups = new Map();
+    list.forEach(r => {
+      const key = r.status || "";
+      if (!groups.has(key)) groups.set(key, []);
+      groups.get(key).push(r);
+    });
+    const stages = [...groups.entries()]
+      .map(([v, l]) => ({ v, list:l, at: mapStage(v) }))
+      .sort((a, b) => (a.at < 0 ? 99 : a.at) - (b.at < 0 ? 99 : b.at));
+    return `<div class="mapbranch${list.length ? "" : " empty"}" style="--pc:${p.c}">
+      <header><span class="n">${list.length}</span>${esc(p.th)}
+        <span class="sub">${esc(p.sub)}${list.length
+          ? `<br>${mBaht(list.reduce((a, r) => a + (Number(r.rate) || 0), 0))}` : ""}</span>
+      </header>
+      ${list.length ? `<div class="mapstages">${stages.map(st => `<div class="mapstage">
+        <div class="lab">${esc(mapStatusLabel(st.v))} <i>${st.list.length}</i></div>
+        <div class="mapleaves">${st.list.map(r => mapLeaf(r, proj, p.c)).join("")}</div>
+      </div>`).join("")}</div>` : ""}
+    </div>`;
+  };
+
+  return `<div class="mapsum">
+      <div class="mapstat"><div class="k">ครีเอเตอร์</div><div class="v">${s.n}</div>
+        <div class="s">KOL ${s.kol} · KOC ${s.koc} · ${s.clips} คลิป</div></div>
+      <div class="mapstat"><div class="k">เรทรวม</div><div class="v">${mBaht(s.rate)}</div>
+        <div class="s">บริษัทจ่ายจริง ${mBaht(s.co)}</div></div>
+      <div class="mapstat"><div class="k">ปิดงานแล้ว</div><div class="v">${s.done}<span
+        style="font-size:.6em;color:var(--dim)">/${s.n}</span></div>
+        <div class="s">ส่งเรื่องจ่ายแล้ว</div></div>
+      <div class="mapstat${flagged ? " warn" : ""}"><div class="k">ต้องดู</div>
+        <div class="v">${flagged}</div>
+        <div class="s">${flagged ? "ข้อมูลไม่ครบ — ดูแผ่นถัดไป" : "ข้อมูลครบทุกคน"}</div></div>
+    </div>
+    ${mapBar(s.by, s.n)}
+    ${s.oldSt ? `<div class="mapnote"><b>${s.oldSt}</b> คนยังใช้สถานะชุดเก่า —
+      แผนผังอ่านให้เป็นขั้นใหม่ให้แล้ว แต่ในชีตยังเป็นคำเดิม
+      กด <b>↻ สถานะชุดเก่า</b> เหนือตารางเพื่อแปลงจริง</div>` : ""}
+    <div class="mapmind">
+      <div class="maproot">
+        <div class="t">${esc(proj)}</div>
+        <div class="r"><span>ครีเอเตอร์</span><b>${s.n}</b></div>
+        <div class="r"><span>คลิป</span><b>${s.clips}</b></div>
+        <div class="r"><span>เรทรวม</span><b>${mBaht(s.rate)}</b></div>
+        <div class="r"><span>บริษัทจ่าย</span><b>${mBaht(s.co)}</b></div>
+      </div>
+      <div class="mapbranches">${[...MAP_PHASES, MAP_NONE]
+        .filter(p => p.k !== "none" || s.by.none.length)
+        .map(branch).join("")}</div>
+    </div>`;
+}
+
+// ─── แผ่นรวม: เทียบทุกโปรเจกต์ ───
+function mapAllSheet(){
+  const all = PROJECTS.flatMap(p => COORD[p] || []);
+  if (!all.length) return `<div class="mapempty">ยังไม่มีข้อมูล — โหลดจากชีตก่อน</div>`;
+  const g = mapStats(all);
+  return `<div class="mapsum">
+      <div class="mapstat"><div class="k">รวมทุกโปรเจกต์</div><div class="v">${g.n}</div>
+        <div class="s">${PROJECTS.length} โปรเจกต์ · ${g.clips} คลิป</div></div>
+      <div class="mapstat"><div class="k">เรทรวม</div><div class="v">${mBaht(g.rate)}</div>
+        <div class="s">บริษัทจ่ายจริง ${mBaht(g.co)}</div></div>
+      <div class="mapstat"><div class="k">กำลังทำคลิป</div>
+        <div class="v">${g.by.make.length}</div><div class="s">สคริป + Draft</div></div>
+      <div class="mapstat${g.noRate || g.noSt ? " warn" : ""}"><div class="k">ต้องดู</div>
+        <div class="v">${g.noRate + g.noSt}</div>
+        <div class="s">ไม่มีเรท ${g.noRate} · ไม่มีสถานะ ${g.noSt}</div></div>
+    </div>
+    ${mapBar(g.by, g.n)}
+    <div class="mapgrid">${PROJECTS.map(p => {
+      const rows = COORD[p] || [];
+      const s = mapStats(rows);
+      const flagged = rows.filter(r => mapFlags(r).length).length;
+      return `<div class="mapcard${p === PROJ ? " on" : ""}">
+        <h4>${esc(p)}${(projMeta(p) || {}).done ? `<span class="done">ปิดงานแล้ว</span>` : ""}</h4>
+        <div class="sub">${s.n} คน · ${s.clips} คลิป · KOL ${s.kol} / KOC ${s.koc}</div>
+        ${s.n ? mapBar(s.by, s.n) : `<div style="font-size:.8rem;color:var(--dim)">ยังไม่มีใคร</div>`}
+        <div class="rows">
+          <div><span>เรทรวม</span><b>${mBaht(s.rate)}</b></div>
+          <div><span>บริษัทจ่ายจริง</span><b>${mBaht(s.co)}</b></div>
+          <div><span>ส่งเรื่องจ่ายแล้ว</span><b>${s.done}/${s.n}</b></div>
+          <div><span>ข้อมูลไม่ครบ</span><b style="color:${flagged ? "var(--warn)" : "var(--hi)"}"
+            >${flagged}</b></div>
+        </div>
+        <button class="open" data-mapgo="${esc(p)}">ดูแผนผังของ ${esc(p)} →</button>
+      </div>`; }).join("")}</div>`;
+}
+
+// ─── แผ่น: ข้อมูลที่ยังขาด ───
+// จัดกลุ่มตาม "อะไรที่ขาด" ไม่ใช่ตามคน เพราะงานที่ต้องทำคือไล่เก็บทีละชนิด
+function mapGapSheet(proj){
+  const rows = COORD[proj] || [];
+  if (!rows.length) return `<div class="mapempty">${esc(proj)} ยังไม่มีใครในโปรเจกต์นี้</div>`;
+  const groups = [
+    { th:"ไม่มีเรท", why:"ยังตกลงราคาไม่ได้ หรือชีตยังไม่ได้กรอก — คิดยอดจ่ายไม่ได้",
+      fix:"/rate", test:r => r.rate == null },
+    { th:"เรทในชีตไม่ตรงกัน", why:"เจอหลายค่าในชีตสำหรับคนเดียวกัน ต้องเลือกให้ชัดก่อนทำจ่าย",
+      fix:"/rate", test:r => (r.rate_all || []).length > 1 },
+    { th:"ไม่ได้เลือกรูปแบบภาษี", why:"คิดยอดที่บริษัทจ่ายจริงไม่ได้ และออกเอกสารไม่ได้",
+      fix:"/pay", test:r => !r.paytype },
+    { th:"ไม่มี SKU", why:"ไม่รู้ว่าส่งของอะไรให้ และเลือกคู่มือถ่ายทำไม่ได้",
+      fix:"/sku", test:r => !String(r.sku || "").trim() },
+    { th:"SKU นี้ยังไม่มีคู่มือถ่ายทำ", why:"มี SKU แล้วแต่ยังไม่ได้ผูกคู่มือของไลน์นั้นไว้",
+      fix:"/skuguide", test:r => String(r.sku || "").trim() &&
+        !guideForSku(r.sku, 0) && !CMDLINKS.guide },
+    { th:"ไม่มีสถานะ", why:"ไม่รู้ว่าคนนี้เดินไปถึงไหนแล้ว ตกจากทุกแถบสรุป",
+      fix:"/status", test:r => !r.status },
+  ].map(g => Object.assign({}, g, { list: rows.filter(g.test) }));
+
+  const total = rows.filter(r => mapFlags(r).length).length;
+  return `<div class="mapsum">
+      <div class="mapstat${total ? " warn" : ""}"><div class="k">คนที่ข้อมูลไม่ครบ</div>
+        <div class="v">${total}<span style="font-size:.6em;color:var(--dim)">/${rows.length}</span></div>
+        <div class="s">${total ? "กดที่ชื่อเพื่อเปิด Command แล้วเติมตรงนั้น" : "ครบทุกคน"}</div></div>
+    </div>` +
+    (groups.every(g => !g.list.length)
+      ? `<div class="mapgap ok"><h4><span class="n">✓</span>ข้อมูลครบทุกช่องของทุกคน</h4>
+         <div class="why">ไม่มีอะไรค้างในโปรเจกต์นี้</div></div>`
+      : groups.filter(g => g.list.length).map(g => `<div class="mapgap">
+          <h4><span class="n">${g.list.length}</span>${esc(g.th)}</h4>
+          <div class="why">${esc(g.why)} — แก้ทีเดียวหลายคนด้วย <code>${esc(g.fix)}</code></div>
+          <div class="mapleaves">${g.list.map(r => mapLeaf(r, proj, "var(--warn)")).join("")}</div>
+        </div>`).join(""));
+}
+
+// ─── แผ่น: เงิน ───
+function mapMoneySheet(proj){
+  const rows = COORD[proj] || [];
+  if (!rows.length) return `<div class="mapempty">${esc(proj)} ยังไม่มีใครในโปรเจกต์นี้</div>`;
+  const s = mapStats(rows);
+  const byPay = PAYTYPES.filter(t => t.id).map(t => ({ t, list: rows.filter(r => r.paytype === t.id) }))
+    .concat([{ t:{ id:"", label:"ยังไม่เลือกรูปแบบภาษี" }, list: rows.filter(r => !r.paytype) }])
+    .filter(x => x.list.length);
+  const bySku = [...new Set(rows.flatMap(r => skuParts(r.sku)))].sort()
+    .map(k => ({ k, list: rows.filter(r => skuParts(r.sku).includes(k)) }));
+  const noSku = rows.filter(r => !String(r.sku || "").trim());
+
+  return `<div class="mapsum">
+      <div class="mapstat"><div class="k">เรทรวมที่ตกลงไว้</div><div class="v">${mBaht(s.rate)}</div>
+        <div class="s">${s.n} คน · ${s.clips} คลิป</div></div>
+      <div class="mapstat"><div class="k">บริษัทจ่ายจริง</div><div class="v">${mBaht(s.co)}</div>
+        <div class="s">รวมส่วนต่าง NET / หัก ณ ที่จ่าย</div></div>
+      <div class="mapstat"><div class="k">เฉลี่ยต่อคลิป</div>
+        <div class="v">${s.clips ? mBaht(s.rate / s.clips) : "—"}</div>
+        <div class="s">คิดจากเรทที่ตกลงไว้</div></div>
+      <div class="mapstat${s.noPay ? " warn" : ""}"><div class="k">ยังคิดยอดไม่ได้</div>
+        <div class="v">${s.noPay}</div><div class="s">ยังไม่ได้เลือกรูปแบบภาษี</div></div>
+    </div>
+    <div class="mapmind">
+      <div class="maproot">
+        <div class="t">${esc(proj)}</div>
+        <div class="r"><span>เรทรวม</span><b>${mBaht(s.rate)}</b></div>
+        <div class="r"><span>บริษัทจ่าย</span><b>${mBaht(s.co)}</b></div>
+        <div class="r"><span>ส่วนต่าง</span><b>${mBaht(s.co - s.rate)}</b></div>
+      </div>
+      <div class="mapbranches">
+        ${byPay.map(x => {
+          const rate = x.list.reduce((a, r) => a + (Number(r.rate) || 0), 0);
+          const co = x.list.reduce((a, r) => a + (coOf(r.rate, r.paytype) ?? Number(r.rate) ?? 0), 0);
+          const c = x.t.id ? "#4FB3D9" : "#F5B546";
+          return `<div class="mapbranch" style="--pc:${c}">
+            <header><span class="n">${x.list.length}</span>${esc(x.t.label)}
+              <span class="sub">เรท ${mBaht(rate)}<br>บริษัทจ่าย ${mBaht(co)}</span></header>
+            <div class="mapstages"><div class="mapstage">
+              <div class="mapleaves">${x.list.map(r => mapLeaf(r, proj, c)).join("")}</div>
+            </div></div></div>`; }).join("")}
+        ${(bySku.length || noSku.length) ? `<div class="mapbranch" style="--pc:#8B8BFF">
+          <header><span class="n">${bySku.length}</span>SKU ที่ใช้ในโปรเจกต์นี้
+            <span class="sub">คู่มือถ่ายทำผูกตาม SKU</span></header>
+          <div class="mapstages">${bySku.map(x => `<div class="mapstage">
+            <div class="lab">${esc(x.k)} <i>${x.list.length}</i>${
+              guideForSku(x.k, 0) ? ` <span style="color:var(--hi);font-weight:400">มีคู่มือ</span>`
+                                  : ` <span style="color:var(--warn);font-weight:400">ยังไม่มีคู่มือ</span>`}</div>
+            <div class="mapleaves">${x.list.map(r => mapLeaf(r, proj, "#8B8BFF")).join("")}</div>
+          </div>`).join("") + (noSku.length ? `<div class="mapstage">
+            <div class="lab" style="color:var(--warn)">ยังไม่มี SKU <i>${noSku.length}</i></div>
+            <div class="mapleaves">${noSku.map(r => mapLeaf(r, proj, "var(--warn)")).join("")}</div>
+          </div>` : "")}</div></div>` : ""}
+      </div>
+    </div>`;
+}
+
+$("#mapBtn").onclick = () => openMap(PROJ);
+$("#closeMap").onclick = () => { $("#mapView").hidden = true; };
+$("#mapView").onclick = e => { if (e.target.id === "mapView") $("#mapView").hidden = true; };
 
 $("#syncBtn").onclick = () => syncCoord(true);
 
@@ -5313,8 +5888,47 @@ function setMsg(text, kind){
 
 function openSettings(){
   renderSheetList();
+  renderSkuGuide();
   $("#addMsg").className = "addmsg";
   $("#settings").hidden = false;
+}
+
+// ─── ตารางคู่มือถ่ายทำ ตาม SKU ───
+// บอกด้วยว่าแต่ละแถวมีผลกับกี่คน — ตั้งไว้แล้วไม่มีใครได้ SKU นั้นคือตั้งผิด และเงียบมาก
+function renderSkuGuide(){
+  const box = $("#skuGuideList");
+  if (!box) return;
+  loadSkuGuide();
+  const all = PROJECTS.flatMap(p => (COORD[p] || []));
+  const hits = key => all.filter(r => skuParts(r.sku).some(x =>
+    x === key || x.toLowerCase().startsWith(String(key).trim().toLowerCase()))).length;
+  const keys = Object.keys(SKUGUIDE).sort();
+  box.innerHTML = keys.length
+    ? keys.map(k => {
+        const n = hits(k);
+        return `<div class="skugrow">
+          <b>${esc(k)}</b>
+          <span class="n${n ? "" : " none"}">${n ? n + " คน" : "ยังไม่มีใครได้"}</span>
+          <input data-sg="${esc(k)}" value="${esc(SKUGUIDE[k])}" spellcheck="false">
+          <button type="button" data-sgdel="${esc(k)}" title="เอาออก">✕</button>
+        </div>`; }).join("")
+    : `<p class="hint">ยังไม่ได้ตั้งไว้ — ทุกคนจะได้คู่มือใบเดียวกันจาก “ลิงก์ที่ใช้ร่วมกัน”</p>`;
+
+  // ตัวเลือกให้พิมพ์ง่าย: SKU ที่ใช้จริงในทุกโปรเจกต์ + ชื่อไลน์ที่ตัดมาจากหน้า SKU
+  const used = [...new Set(all.flatMap(r => skuParts(r.sku)))];
+  const lines = [...new Set(used.map(s => s.split(/\s*-\s*/)[0].trim()).filter(Boolean))];
+  $("#skuGuideOpts").innerHTML = [...new Set(lines.concat(used))]
+    .map(v => `<option value="${esc(v)}">`).join("");
+
+  box.querySelectorAll("[data-sg]").forEach(inp => inp.onchange = () => {
+    const v = inp.value.trim();
+    if (v) SKUGUIDE[inp.dataset.sg] = v; else delete SKUGUIDE[inp.dataset.sg];
+    saveSkuGuide(); renderSkuGuide();
+  });
+  box.querySelectorAll("[data-sgdel]").forEach(b => b.onclick = () => {
+    delete SKUGUIDE[b.dataset.sgdel];
+    saveSkuGuide(); renderSkuGuide();
+  });
 }
 function closeSettings(){ $("#settings").hidden = true; }
 
@@ -5815,12 +6429,28 @@ $("#closeSet").onclick = closeSettings;
 $("#closeProj").onclick = () => { $("#projPanel").hidden = true; };
 $("#projPanel").onclick = e => { if (e.target.id === "projPanel") $("#projPanel").hidden = true; };
 $("#addSheet").onclick = addSheet;
+$("#skuGuideAdd").onclick = () => {
+  const k = $("#skuGuideKey").value.trim(), u = $("#skuGuideUrl").value.trim();
+  const msg = $("#skuGuideMsg");
+  const say = (t, kind) => { msg.className = "addmsg on " + kind; msg.innerHTML = t; };
+  if (!k) return say("ใส่ SKU หรือชื่อไลน์ก่อน", "err");
+  if (!/^https?:\/\//i.test(u)) return say("คู่มือต้องเป็นลิงก์ ขึ้นต้นด้วย http", "err");
+  loadSkuGuide();
+  SKUGUIDE[k] = u; saveSkuGuide();
+  $("#skuGuideKey").value = ""; $("#skuGuideUrl").value = "";
+  renderSkuGuide();
+  const n = PROJECTS.flatMap(p => COORD[p] || []).filter(r =>
+    skuParts(r.sku).some(x => x === k || x.toLowerCase().startsWith(k.toLowerCase()))).length;
+  say(n ? `เพิ่มแล้ว — มีผลกับ <b>${n}</b> คน`
+        : `เพิ่มแล้ว แต่<b> ยังไม่มีใครได้ SKU นี้</b> เก็บไว้ใช้ทีหลัง`, n ? "ok" : "busy");
+};
 $("#settings").onclick = e => { if (e.target.id === "settings") closeSettings(); };
 document.addEventListener("keydown", e => {
   if (e.key !== "Escape") return;
   if (!$("#projPanel").hidden) $("#projPanel").hidden = true;
   else if ($("#detailPanel").classList.contains("on")) closeDetail();
   else if ($("#cmdPanel").classList.contains("on")) $("#cmdPanel").classList.remove("on");
+  else if (!$("#mapView").hidden) $("#mapView").hidden = true;
   else if ($("#cart").classList.contains("on")) closeCart();
   else if (!$("#addPanel").hidden) $("#addPanel").hidden = true;
   else if (!$("#settings").hidden) closeSettings();
@@ -6581,6 +7211,7 @@ const SLASH_ACT = [
   { c:"clear",  th:"ล้างค่า",            ex:"/clear cenakims : sg" },
   { c:"cmd",    th:"ทับข้อความ Command",  ex:"/cmd10 cenakims : ข้อความใหม่" },
   { c:"reset",  th:"คืนค่าต้นแบบ",        ex:"/reset fb1   ·   /reset cmd10   ·   /reset all" },
+  { c:"skuguide", th:"คู่มือถ่ายทำของ SKU", ex:"/skuguide Blush : https://…   ·   /skuguide (ดูทั้งหมด)" },
   { c:"goto",   th:"เปิดโปรเจกต์",        ex:"/goto RC2" },
   { c:"sync",   th:"ส่งขึ้นชีต",          ex:"/sync" },
   { c:"reload", th:"โหลดจากชีตใหม่",      ex:"/reload" },
@@ -6588,6 +7219,7 @@ const SLASH_ACT = [
   { c:"settings",th:"เปิดตั้งค่า",        ex:"/settings" },
   { c:"filter", th:"ล้างตัวกรอง",         ex:"/filter" },
   { c:"cols",   th:"สลับโหมดคอลัมน์",     ex:"/cols" },
+  { c:"map",    th:"เปิดแผนผังภาพรวม",    ex:"/map   ·   /map RC2" },
   { c:"help",   th:"เปิดคู่มือ",          ex:"/help" },
 ];
 
@@ -6701,6 +7333,44 @@ function parseSlashLine(line, pending){
     const p = (findProjects(whoRaw + " " + value)[0] || {}).proj || matchProject(whoRaw || value);
     if (!p) return bad(`ไม่รู้จักโปรเจกต์ "${(whoRaw || value).trim()}"`);
     return [{ line, ok:true, admin:"goto", proj:p, changes:{}, note:"เปิดโปรเจกต์" }];
+  }
+  if (word === "map"){
+    const arg = (whoRaw + " " + value).trim();
+    if (!arg) return [{ line, ok:true, admin:"map", proj:PROJ, changes:{}, note:"เปิดแผนผังของโปรเจกต์ที่เปิดอยู่" }];
+    if (/^(ทุกโปรเจกต์|ทั้งหมด|all|\*)$/i.test(arg))
+      return [{ line, ok:true, admin:"map", proj:"", changes:{}, note:"เปิดแผนผังรวมทุกโปรเจกต์" }];
+    const p = (findProjects(arg)[0] || {}).proj || matchProject(arg);
+    if (!p) return bad(`ไม่รู้จักโปรเจกต์ "${arg}" — /map เฉยๆ = โปรเจกต์ที่เปิดอยู่ · /map all = รวมทุกอัน`);
+    return [{ line, ok:true, admin:"map", proj:p, changes:{}, note:`เปิดแผนผังของ ${p}` }];
+  }
+  // ── คู่มือถ่ายทำของ SKU ──
+  // สิ่งที่อยู่หน้า : เป็น SKU ไม่ใช่ชื่อคน เลยต้องแยกออกมาก่อนถึงขั้นหาชื่อ
+  if (word === "skuguide"){
+    loadSkuGuide();
+    const key = whoRaw.trim();
+    if (!key){
+      const rows = Object.keys(SKUGUIDE).filter(k => SKUGUIDE[k]);
+      if (!rows.length) return bad(
+        `ยังไม่ได้ตั้งคู่มือของ SKU ไหนเลย — เช่น /skuguide Blush : https://…\n` +
+        `ใส่แค่ชื่อไลน์ (Blush · Lip · Eyeshadow) = ใช้กับทุกเฉดในไลน์นั้น`);
+      return [{ line, ok:true, admin:"skuguideList", changes:{},
+        note:`ดูคู่มือถ่ายทำที่ตั้งไว้ (${rows.length} รายการ)` }];
+    }
+    // นับคนที่จะได้ผลจริง เพื่อบอกล่วงหน้าว่าคำสั่งนี้กระทบใครบ้าง
+    const hitN = PROJECTS.reduce((s, p) => s + (COORD[p] || []).filter(r =>
+      skuParts(r.sku).some(x => x === key ||
+        x.toLowerCase().startsWith(key.toLowerCase()))).length, 0);
+    if (!value)
+      return SKUGUIDE[key]
+        ? [{ line, ok:true, admin:"skuguide", skuKey:key, skuUrl:"", changes:{},
+             note:`ลบคู่มือของ "${key}" (มีผลกับ ${hitN} คน)` }]
+        : bad(`"${key}" ยังไม่ได้ตั้งคู่มือไว้ ไม่มีอะไรให้ลบ`);
+    if (!/^https?:\/\//i.test(value))
+      return bad(`คู่มือถ่ายทำต้องเป็นลิงก์ ขึ้นต้นด้วย http — ได้มาว่า "${value}"`);
+    if (!hitN) return [{ line, ok:true, admin:"skuguide", skuKey:key, skuUrl:value, changes:{},
+      note:`ตั้งคู่มือของ "${key}" — <b style="color:var(--warn)">ยังไม่มีใครได้ SKU นี้</b> เก็บไว้ใช้ทีหลัง` }];
+    return [{ line, ok:true, admin:"skuguide", skuKey:key, skuUrl:value, changes:{},
+      note:`ตั้งคู่มือของ "${key}" — มีผลกับ <b>${hitN}</b> คน` }];
   }
   if (word === "reset"){
     const what = (whoRaw + " " + value).trim().toLowerCase();
@@ -7055,6 +7725,16 @@ function applyQuickOrder(){
         saveCmdEdit();
         break;
       }
+      case "skuguide": {
+        loadSkuGuide();
+        if (q.skuUrl) SKUGUIDE[q.skuKey] = q.skuUrl; else delete SKUGUIDE[q.skuKey];
+        saveSkuGuide(); renderSkuGuide();
+        break;
+      }
+      case "skuguideList": after = () => { openSettings();
+        const el = $("#skuGuideSect"); if (el){ el.open = true; el.scrollIntoView({block:"center"}); } };
+        break;
+      case "map":     { const p = q.proj; after = () => openMap(p || null); break; }
       case "goto":    PROJ = q.proj; break;
       case "migrate": after = migrateStatuses; break;
       case "filter":  clearFilters(); break;
@@ -7513,7 +8193,10 @@ $("#qoText").addEventListener("keydown", e => {
 // ทุกทางลงเอยที่ข้อความเดียวกัน ไม่มีทางลัดที่ตัวอ่านไม่รู้จัก
 
 // คำสั่งที่ไม่ต้องมีชื่อและไม่ต้องมีค่า — เติมแล้วกด Enter ได้เลย
-const SLASH_NOARG = new Set(["sync","reload","export","settings","filter","cols","help"]);
+const SLASH_NOARG = new Set(["sync","reload","export","settings","filter","cols","help","map"]);
+// คำสั่งที่สิ่งหลัง / ไม่ใช่ชื่อครีเอเตอร์ — ห้ามเติมชื่อที่เลือกไว้ให้
+// (/skuguide รับ SKU · /goto รับชื่อโปรเจกต์ · /add รับชื่อคนใหม่ที่ยังไม่มีในระบบ)
+const SLASH_NONAME = new Set(["skuguide","goto","reset","add","map"]);
 const SLASH_ALL = SLASH_ROW.map(s => ({ ...s, g:"ข้อมูลในตาราง" }))
   .concat(SLASH_DOC.map(s => ({ ...s, g:"เอกสาร/ลิงก์" })),
           SLASH_FB.map(s => ({ ...s, g:"Feedback" })),
@@ -7539,7 +8222,8 @@ const useRank = c => (CMDUSE[c] || 0) * 100 +
 // ข้อความที่จะเติม + ตำแหน่งเคอร์เซอร์ (นับถอยหลังจากท้ายข้อความ)
 function slashTemplate(c){
   if (SLASH_NOARG.has(c)) return { s:`/${c}`, back:0 };
-  const names = PICK.size ? [...PICK].join(" ") : "";
+  if (c === "skuguide") return { s:`/skuguide  : `, back:3 };
+  const names = (PICK.size && !SLASH_NONAME.has(c)) ? [...PICK].join(" ") : "";
   const s = SLASH_BY[c];
   // คำสั่งที่ต้องมีค่าต่อท้าย วางเคอร์เซอร์ไว้หลัง : ให้พิมพ์ค่าต่อได้เลย
   if (s && (s.f || s.doc)) return { s:`/${c} ${names} : `, back: names ? 0 : 3 };
