@@ -865,10 +865,14 @@ body.mapdrag [data-drop]{border-radius:8px;transition:background .1s}
 .mapcard .rows{margin-top:11px;font-size:.8rem;color:var(--mute)}
 .mapcard .rows div{display:flex;justify-content:space-between;gap:10px;padding:3px 0}
 .mapcard .rows b{font-family:'IBM Plex Mono',monospace;color:var(--ink);font-weight:600}
-.mapcard .open{margin-top:12px;width:100%;background:none;border:1px solid var(--line);
+.mapgo{display:flex;gap:7px;margin-top:12px}
+.mapcard .open{flex:1;background:none;border:1px solid var(--line);
   color:var(--mute);border-radius:7px;padding:.55em;font-family:inherit;font-size:.82rem;
   font-weight:600}
 .mapcard .open:hover{border-color:var(--accent);color:var(--accent)}
+/* ทางออกไปตาราง — อยู่ท้ายแถบมุมมอง เพราะเป็นการ "ออกจากแผนผัง" ไม่ใช่มุมมองหนึ่ง */
+.mapmodes .totable{margin-left:6px;border-style:dashed}
+.mapmodes .totable:hover{border-style:solid}
 
 /* แผ่น "ข้อมูลที่ยังขาด" */
 .mapgap{background:var(--surface);border:1px solid var(--line);border-left:3px solid var(--warn);
@@ -5233,8 +5237,11 @@ function renderMap(){
     .map(([id, label]) => `<button role="tab" data-mp="${esc(id)}"
       aria-selected="${(MAP_PROJ || "") === id}">${esc(label)}${
       id ? `<span class="n">${(COORD[id] || []).length}</span>` : ""}</button>`).join("");
-  $("#mapModes").innerHTML = MAP_MODES.map(([id, label]) =>
-    `<button role="tab" data-mm="${id}" aria-selected="${MAP_MODE === id}">${label}</button>`).join("");
+  // มุมมองใช้ได้เฉพาะแผ่นรายโปรเจกต์ — แผ่นรวมมีหน้าตาเดียว ปุ่มที่กดแล้วไม่เกิดอะไรอย่าโชว์
+  $("#mapModes").innerHTML = (MAP_PROJ ? MAP_MODES.map(([id, label]) =>
+    `<button role="tab" data-mm="${id}" aria-selected="${MAP_MODE === id}">${label}</button>`) : [])
+    .concat([`<button class="totable" data-totable="1"
+      title="ปิดแผนผัง ไปที่ตาราง${MAP_PROJ ? " ของ " + esc(MAP_PROJ) : ""}">▦ ตาราง</button>`]).join("");
   $("#mapTitle").textContent = MAP_PROJ || "ทุกโปรเจกต์";
 
   $("#mapBody").innerHTML = !MAP_PROJ ? mapAllSheet()
@@ -5248,6 +5255,7 @@ function renderMap(){
   document.querySelectorAll("#mapModes [data-mm]").forEach(b => b.onclick = () => {
     MAP_MODE = b.dataset.mm; renderMap();
   });
+  document.querySelectorAll("#mapModes [data-totable]").forEach(b => b.onclick = () => openTable(MAP_PROJ));
   // กดที่ชื่อคน = เปิด Command ของคนนั้นทับแผนผัง (ลิ้นชักอยู่ชั้นบนกว่า)
   document.querySelectorAll("#mapBody [data-mapwho]").forEach(b => b.onclick = () =>
     openCmd(b.dataset.mapproj, b.dataset.mapwho));
@@ -5257,8 +5265,21 @@ function renderMap(){
   });
   document.querySelectorAll("#mapBody [data-mapgo]").forEach(b => b.onclick = () => {
     MAP_PROJ = b.dataset.mapgo; MAP_MODE = "flow"; renderMap();
+    $("#mapBody").scrollIntoView({ block:"start" });
   });
+  document.querySelectorAll("#mapBody [data-tablego]").forEach(b =>
+    b.onclick = () => openTable(b.dataset.tablego));
   wireMapDrag();
+}
+
+// ปิดแผนผัง ไปที่ตารางของโปรเจกต์นั้น — ทางออกเดียวกันหมดทุกปุ่ม
+function openTable(proj){
+  if (proj && PROJECTS.includes(proj) && proj !== PROJ){
+    PROJ = proj;
+    renderProjTabs(); renderCoord(); fillProjSelect();
+  }
+  $("#mapView").hidden = true;
+  measureStick();
 }
 
 // ─── ลากคนไปวางที่ขั้นอื่น ───
@@ -5484,7 +5505,10 @@ function mapAllSheet(){
           <div><span>ข้อมูลไม่ครบ</span><b style="color:${flagged ? "var(--warn)" : "var(--hi)"}"
             >${flagged}</b></div>
         </div>
-        <button class="open" data-mapgo="${esc(p)}">ดูแผนผังของ ${esc(p)} →</button>
+        <div class="mapgo">
+          <button class="open" data-mapgo="${esc(p)}">◈ แผนผัง</button>
+          <button class="open" data-tablego="${esc(p)}">▦ ตาราง</button>
+        </div>
       </div>`; }).join("")}</div>`;
 }
 
@@ -5583,8 +5607,8 @@ function mapMoneySheet(proj){
 }
 
 $("#mapBtn").onclick = () => openMap(PROJ);
-$("#closeMap").onclick = () => { $("#mapView").hidden = true; };
-$("#mapView").onclick = e => { if (e.target.id === "mapView") $("#mapView").hidden = true; };
+$("#closeMap").onclick = () => openTable(MAP_PROJ);
+$("#mapView").onclick = e => { if (e.target.id === "mapView") openTable(MAP_PROJ); };
 
 $("#syncBtn").onclick = () => syncCoord(true);
 
@@ -5769,7 +5793,10 @@ async function setView(v){
     await loadCoordData();
     renderProjTabs(); renderCoord(); fillProjSelect(); updateSyncBar();
   }
-  if (v === "coord") measureStick();
+  // เข้าหน้า Coordinate มาเจอแผนผังรวมทุกโปรเจกต์ก่อน — คำถามแรกของวันคือ "งานทั้งกองอยู่ตรงไหน"
+  // ไม่ใช่ "แถวที่ 14 ของโปรเจกต์ที่เปิดค้างไว้เมื่อวานเขียนว่าอะไร"
+  // ปิดแผนผังเมื่อไหร่ก็เจอตารางที่อยู่ข้างหลัง กด ◈ Map กลับมาได้ตลอด
+  if (v === "coord"){ measureStick(); openMap(null); }
   if (v === "home") homeCounts();
 }
 
@@ -6667,7 +6694,7 @@ document.addEventListener("keydown", e => {
   if (!$("#projPanel").hidden) $("#projPanel").hidden = true;
   else if ($("#detailPanel").classList.contains("on")) closeDetail();
   else if ($("#cmdPanel").classList.contains("on")) $("#cmdPanel").classList.remove("on");
-  else if (!$("#mapView").hidden) $("#mapView").hidden = true;
+  else if (!$("#mapView").hidden) openTable(MAP_PROJ);
   else if ($("#cart").classList.contains("on")) closeCart();
   else if (!$("#addPanel").hidden) $("#addPanel").hidden = true;
   else if (!$("#settings").hidden) closeSettings();
