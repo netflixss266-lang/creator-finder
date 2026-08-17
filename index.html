@@ -821,11 +821,29 @@ tr.dropover td{border-top:2px solid var(--accent)}
 .mapstage .lab i{font-style:normal;color:var(--pc);font-family:'IBM Plex Mono',monospace}
 .mapleaves{display:flex;flex-wrap:wrap;gap:7px}
 
-/* ใบ = ครีเอเตอร์หนึ่งคน กดแล้วเปิด Command ของคนนั้นได้เลย */
+/* ใบ = ครีเอเตอร์หนึ่งคน กดแล้วเปิด Command · ลากไปวางที่ขั้นอื่นเพื่อเปลี่ยนสถานะ */
+.mapleafwrap{position:relative;display:inline-flex;align-items:stretch}
 .mapleaf{display:flex;flex-direction:column;align-items:flex-start;gap:2px;
-  background:var(--surface2);border:1px solid var(--line);border-radius:8px;
-  padding:7px 11px;text-align:left;font-family:inherit;min-width:9em}
+  background:var(--surface2);border:1px solid var(--line);border-right:0;
+  border-radius:8px 0 0 8px;padding:7px 9px 7px 11px;text-align:left;
+  font-family:inherit;min-width:8em;cursor:grab}
 .mapleaf:hover{border-color:var(--pc);background:var(--surface)}
+.mapleaf:active{cursor:grabbing}
+.mapleaf.dragging{opacity:.35}
+.mapst{flex:none;background:var(--surface2);border:1px solid var(--line);border-left:0;
+  border-radius:0 8px 8px 0;color:var(--dim);font-size:.9rem;padding:0 8px;line-height:1}
+.mapst:hover{border-color:var(--pc);color:var(--pc);background:var(--surface)}
+.mapleafwrap:hover .mapleaf,.mapleafwrap:hover .mapst{border-color:var(--pc)}
+.mappop{width:290px;right:auto;left:0;top:calc(100% + 4px)}
+.mappop .flist label i{color:var(--pc)}
+/* ระหว่างลาก: กางขั้นที่ยังไม่มีใครออกมาให้เป็นที่วางด้วย */
+.mapstage.zero{display:none}
+body.mapdrag .mapstage.zero{display:block;opacity:.75}
+body.mapdrag .mapstage.zero .lab{border:1px dashed var(--line);border-radius:7px;
+  padding:6px 10px;color:var(--dim)}
+body.mapdrag [data-drop]{border-radius:8px;transition:background .1s}
+[data-drop].over{background:rgba(var(--accent-rgb),.16);
+  outline:2px dashed var(--accent);outline-offset:2px}
 .mapleaf .h{font-size:.88rem;font-weight:700;color:var(--ink);max-width:12em;
   overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .mapleaf .m{font-family:'IBM Plex Mono',monospace;font-size:.74rem;color:var(--mute);
@@ -1209,6 +1227,10 @@ main{padding:22px 24px;overflow-y:auto;max-height:calc(100vh - 62px)}
 .fbrow label{display:block;font-size:.7rem;text-transform:uppercase;letter-spacing:.07em;
   color:var(--dim);font-weight:600;margin-bottom:5px}
 .fbrow textarea{background:var(--surface2);font-size:.92rem;line-height:1.7;min-height:80px}
+/* หัวข้อคั่นเมื่อคนนี้ได้หลาย SKU — บอกว่าสามช่องต่อจากนี้เป็นของสินค้าตัวไหน */
+.fbset{font-size:.8rem;font-weight:700;color:var(--accent);margin:14px 0 8px;
+  padding-top:11px;border-top:1px solid var(--line)}
+.fbset:first-child{margin-top:0;padding-top:0;border-top:0}
 .fbfoot{display:flex;align-items:center;gap:12px;flex-wrap:wrap;
   border-top:1px solid var(--line);padding-top:11px}
 .cmdblk .cmdt{flex:1;min-width:0;font-size:.8rem;font-weight:600;padding:4px 8px}
@@ -4169,7 +4191,7 @@ function coordRow(r, i){
 // แยกเป็นบล็อกตามที่ส่งจริงทีละข้อความ ช่องไหนยังไม่มีข้อมูลจะขึ้นแดงให้เห็น
 // ไม่เติมเดาให้ เพราะข้อความพวกนี้ส่งให้คนนอกทีมอ่าน ผิดแล้วแก้ยาก
 const CMD_BLOCKS = [
-  { t:"1. ขอคอนเฟิร์มการร่วมงาน", b:
+  { t:"1. ขอคอนเฟิร์มการร่วมงาน", clip:true, b:
 `สวัสดีครับ🙏😊 แอดมินจาก Alta Global Commerce นะครับ ขออนุญาต Confirm✅ การร่วมงาน
 
 สำหรับแบรนด์: Red Chamber ({{sku}})
@@ -4182,7 +4204,7 @@ const CMD_BLOCKS = [
 
 💬สามารถทักไลน์โดยการแคปหลักฐานการคอนเฟิร์มขั้นต้นได้เลยนะค้าบบ😊` },
 
-  { t:"3. คอนเฟิร์มเรท + รูปแบบนำจ่าย", b:
+  { t:"3. คอนเฟิร์มเรท + รูปแบบนำจ่าย", clip:true, b:
 `ขออนุญาตคอนเฟิร์มเรทราคา + รูปแบบนำจ่ายนะครับ😀
 สำหรับแบรนด์: Red Chamber ({{sku}})
 
@@ -4194,7 +4216,7 @@ const CMD_BLOCKS = [
   { t:"4. ขอที่อยู่จัดส่ง", b:
 `แอดมินรบกวนขอที่อยู่สำหรับจัดส่งสินค้าด้วยนะค้าบบ😀` },
 
-  { t:"5. ส่งคู่มือการถ่ายทำ", b:
+  { t:"5. ส่งคู่มือการถ่ายทำ", clip:true, b:
 `ขออนุญาตส่งคู่มือการถ่ายทำนะครับ🙏 หากมีข้อสงสัยเพิ่มเติมตรงไหนสามารถสอบถามแอดมินได้เลยครับ🩷
 
 📦สำหรับแบรนด์: Red Chamber ({{sku}})
@@ -4238,19 +4260,19 @@ const CMD_BLOCKS = [
 
 หากเกิดปัญหาในการเข้า Doc รบกวนแจ้งครีเอเตอร์นะครับ😊` },
 
-  { t:"10. Feedback Draft #1", b:
+  { t:"10. Feedback Draft #1", clip:true, b:
 `แอดมินขออนุญาตส่ง Feedback Draft#1 นะครับ😀
 📌📌
 
 {{feedback1}}` },
 
-  { t:"11. Feedback Draft #2", b:
+  { t:"11. Feedback Draft #2", clip:true, b:
 `แอดมินขออนุญาตส่ง Feedback Draft#2 นะครับ😀
 📌📌
 
 {{feedback2}}` },
 
-  { t:"12. Feedback Draft #3", b:
+  { t:"12. Feedback Draft #3", clip:true, b:
 `แอดมินขออนุญาตส่ง Feedback Draft#3 นะครับ😀
 📌📌
 
@@ -4306,7 +4328,7 @@ Hashtag:📱
 // มันคือร่องรอยจากตอนกดแก้แล้วกดกลับ พอเราปรับต้นแบบทีหลังคนพวกนั้นจะไม่ได้ของใหม่
 // เทียบแบบตรงตัวอักษรเท่านั้น ใครแก้ไปแม้แต่ช่องว่างเดียวก็ไม่โดนแตะ
 const LEGACY_BODIES = {
-  4: [{ t:"5. ส่งคู่มือการถ่ายทำ", b:
+  4: [{ t:"5. ส่งคู่มือการถ่ายทำ", clip:true, b:
 `ขออนุญาตส่งคู่มือการถ่ายทำนะครับ🙏 หากมีข้อสงสัยเพิ่มเติมตรงไหนสามารถสอบถามแอดมินได้เลยครับ🩷
 
 📖คู่มือการถ่ายทำ :
@@ -4367,7 +4389,7 @@ function docSplit(k){
 }
 function docLabel(k){
   const s = docSplit(k);
-  return s ? s.d.th + (s.n ? ` (คลิป ${s.n})` : "") : k;
+  return s ? s.d.th + (s.n > 1 ? ` (ชุดที่ ${s.n})` : "") : k;
 }
 
 const CMD_LINK_FIELDS = [
@@ -4493,9 +4515,14 @@ function toggleSent(proj, handle, i, clip){
   pruneCmdOwn(proj, handle); saveCmdOwn();
 }
 
-// ครีเอเตอร์ทำกี่คลิป — ใช้ตัดสินว่าต้องแยกเอกสาร/ข้อความเป็นชุดต่อคลิปไหม
+// ครีเอเตอร์ต้องได้ข้อความกี่ชุด — ใช้ตัดสินว่าบล็อกไหนต้องแยกเป็นชุดต่อคลิป
+// นับจาก "จำนวน SKU" ด้วย ไม่ใช่แค่ช่องจำนวนวิดีโอ เพราะได้สินค้า 2 ตัวคือถ่าย 2 แบบ
+// คนละคู่มือ คนละตะกร้า คนละแฮชแท็ก คนละรอบฟีดแบค — ต่อให้ช่องวิดีโอยังว่างอยู่
 // จำกัดที่ 6 กันคนพิมพ์เลขหลุดแล้วได้ Command 200 บล็อก
-const clipCount = r => Math.min(6, Math.max(1, Number(r && r.videos) || 1));
+const clipCount = r => Math.min(6, Math.max(1,
+  Number(r && r.videos) || 0, skuParts(r && r.sku).length));
+// SKU ของชุดที่ n (1 = ตัวแรก) — ไม่มีก็คืนว่าง
+const skuOf = (r, n) => skuParts(r && r.sku)[(n || 1) - 1] || "";
 
 function cmdValues(r){
   const net = payOf(r.rate, r.paytype);
@@ -4517,6 +4544,18 @@ function cmdValues(r){
   });
   // คู่มือถ่ายทำ: ของคนนี้เอง → ตาม SKU ที่ได้รับ → ลิงก์ที่ใช้ร่วมกัน
   const guide = own.guide != null ? own.guide : (guideForSku(r.sku, 0) || L("guide"));
+  // SKU ของแต่ละชุด — บล็อกคอนเฟิร์ม/คู่มือของชุดที่ 2 ต้องบอกชื่อสินค้าตัวที่ 2
+  // ไม่ใช่ "A + B" ทั้งก้อน ไม่งั้นครีเอเตอร์อ่านแล้วไม่รู้ว่ารอบนี้พูดถึงตัวไหน
+  for (let n = 1; n <= clips; n++) perClip["sku" + n] = skuOf(r, n) || r.sku || "";
+  // ฟีดแบคแยกทั้ง "ดราฟต์ที่เท่าไหร่" และ "ของชุดไหน" — คนละคลิปคือคนละงาน
+  // ชุดแรกใช้คีย์เดิม (feedback1) ของเก่าจะได้ไม่ต้องย้าย
+  for (let d = 1; d <= 3; d++)
+    for (let n = 2; n <= clips; n++)
+      perClip[`feedback${d}_${n}`] = own[`feedback${d}_${n}`] || "";
+  // บรีฟของชุดที่ 2 ขึ้นไปเอาคู่มือของ SKU ตัวนั้นก่อน ชีตมีบรีฟช่องเดียวใช้ร่วมไม่ได้
+  for (let n = 1; n <= clips; n++)
+    perClip["brief" + n] = n === 1 ? (r.brief || guide)
+                                   : (perClip["guide" + n] || r.brief || "");
   // ฟีดแบคเป็นของใครของมันเสมอ ไม่มีตัวกลาง — แต่ละ Draft ก็คนละข้อความ
   // (เดิมทั้ง 3 Draft ใช้ตัวแปรเดียวกัน แก้ Draft 2 แล้ว Draft 1 เปลี่ยนตาม)
   const fb = n => own["feedback" + n] || "";
@@ -4549,28 +4588,55 @@ const CMD_GAP = Object.assign(
     feedback2:"ยังไม่มีฟีดแบค Draft 2", feedback3:"ยังไม่มีฟีดแบค Draft 3",
     docs:"ยังไม่มีลิงก์เอกสารของกลุ่มนี้" });
 
-// ป้ายของช่องว่าง — รวมช่องรายคลิปที่สร้างขึ้นตอนรัน ({{cart2}} = ตะกร้าของคลิป 2)
+// ─── คีย์เดียวกันแต่คนละคลิป ───
+// ชุดแรกใช้คีย์เดิมเสมอ (cart · sku · feedback1) ของที่เก็บไว้ก่อนหน้าจะได้ไม่ต้องย้าย
+// ชุดที่ 2 ขึ้นไปต่อเลขท้าย · ฟีดแบคมีสองมิติ (ดราฟต์ที่เท่าไหร่ × ชุดไหน) เลยคั่นด้วย _
+// clip 0 = บล็อกที่ไม่ได้แยกชุด ใช้ค่ารวมทั้งงาน ({{sku}} = "A + B" ทั้งก้อน)
+// clip 1 = ชุดแรกของบล็อกที่แยก ต้องได้ค่าของชุดแรกจริงๆ ไม่ใช่ค่ารวม
+const clipKey = (k, clip) => {
+  if (!(clip >= 1)) return k;
+  if (DOC_BY_KEY[k] || k === "sku" || k === "brief") return k + clip;
+  const m = String(k).match(/^feedback([123])?$/);
+  return m ? fbKey(Number(m[1] || 1), clip) : k;
+};
+// แยกคีย์ฟีดแบครายคลิปกลับเป็น {ดราฟต์, คลิป}
+const fbSplit = k => {
+  const m = String(k).match(/^feedback([123])(?:_(\d+))?$/);
+  return m ? { d: Number(m[1]), n: Number(m[2] || 1) } : null;
+};
+// ป้ายของช่องว่าง — รวมช่องรายคลิปที่สร้างขึ้นตอนรัน ({{cart2}} = ตะกร้าของชุด 2)
 // ไม่เอาไปยัดใน CMD_GAP เพราะรายการตัวแปรในหน้าแก้ข้อความจะยาวขึ้นเป็นสิบเท่าโดยไม่จำเป็น
 function gapLabel(k){
   if (CMD_GAP[k]) return CMD_GAP[k];
+  const set = n => n > 1 ? ` ชุดที่ ${n}` : "";
   const s = docSplit(k);
-  return s ? `ยังไม่มี${s.d.th}${s.n ? ` คลิป ${s.n}` : ""}` : k;
+  if (s) return `ยังไม่มี${s.d.th}${set(s.n)}`;
+  const f = fbSplit(k);
+  if (f) return `ยังไม่มีฟีดแบค Draft ${f.d}${set(f.n)}`;
+  const m = String(k).match(/^(sku|brief)(\d+)$/);
+  if (m) return (m[1] === "sku" ? "ยังไม่มี SKU" : "ยังไม่มีลิงก์บรีฟ") + set(Number(m[2]));
+  return k;
 }
 
-// ─── ฟีดแบครายคน รายดราฟต์ ───
+// ─── ฟีดแบครายคน รายดราฟต์ (และรายชุด ถ้าได้หลาย SKU) ───
 const FB_ROUNDS = [1, 2, 3];
-const fbKey = n => "feedback" + n;
-function fbCount(proj, handle){
+// set = ชุดที่เท่าไหร่ (1 หรือไม่ใส่ = ชุดแรก ใช้คีย์เดิม)
+const fbKey = (n, set) => "feedback" + n + (set > 1 ? "_" + set : "");
+function fbCount(proj, handle, clips){
   const own = cmdOwnRead(proj, handle).links || {};
-  return FB_ROUNDS.filter(n => (own[fbKey(n)] || "").trim()).length;
+  let c = 0;
+  for (let s = 1; s <= (clips || 1); s++)
+    FB_ROUNDS.forEach(n => { if ((own[fbKey(n, s)] || "").trim()) c++; });
+  return c;
 }
 
 // คืน 2 แบบ: ข้อความจริงไว้ก๊อป กับ HTML ที่ไฮไลต์ให้เห็นว่าตรงไหนยังว่าง
 // clip = บล็อกนี้เป็นของคลิปที่เท่าไหร่ (>1 = เอกสารในบล็อกนี้อ่านจากช่องของคลิปนั้น)
 function fillBlock(body, vals, clip){
   let missing = 0;
-  // เฉพาะเอกสารเท่านั้นที่แยกรายคลิป — เรท/SKU/รูปแบบภาษี เป็นของทั้งงาน ไม่ใช่ของคลิป
-  const key = k => (clip > 1 && DOC_BY_KEY[k]) ? k + clip : k;
+  // แยกรายคลิป: เอกสาร · SKU · บรีฟ · ฟีดแบคแต่ละดราฟต์
+  // ไม่แยก: เรท/รูปแบบภาษี/จ่ายจริง — ตกลงกันเป็นก้อนเดียวทั้งงาน ไม่ได้แยกตามคลิป
+  const key = k => clipKey(k, clip);
   const text = body.replace(/\{\{(\w+)\}\}/g, (_, k) =>
     vals[key(k)] || `…..${gapLabel(key(k))}…..`);
   const gaps = [];
@@ -4801,9 +4867,9 @@ function openCmd(proj, handle){
   const own = cmdOwnRead(proj, handle);
   const clips = clipCount(r);
   const nMine = Object.keys(own.blocks || {}).length;
-  const nFb = fbCount(proj, handle);
-  // นับเฉพาะลิงก์จริง ไม่รวมฟีดแบคที่นับแยกไว้แล้ว
-  const nLink = Object.keys(own.links || {}).filter(k => !/^feedback\d$/.test(k)).length;
+  const nFb = fbCount(proj, handle, clips);
+  // นับเฉพาะลิงก์จริง ไม่รวมฟีดแบคที่นับแยกไว้แล้ว (ทั้งชุดแรกและชุดรายคลิป)
+  const nLink = Object.keys(own.links || {}).filter(k => !fbSplit(k)).length;
   // บล็อกที่ทำเครื่องหมาย clip ไว้ ถ้าคนนี้ทำหลายคลิปจะแตกเป็นชุดละคลิป
   // เอกสารในบล็อกนั้นอ่านจากช่องของคลิปนั้นเอง — {{cart}} ของคลิป 2 คือ {{cart2}}
   const blocks = [];
@@ -4814,8 +4880,9 @@ function openCmd(proj, handle){
     // 0 = บล็อกเดียวไม่แยกคลิป · 1..n = ชุดของคลิปที่ n
     const rounds = (bl.clip && clips > 1) ? Array.from({length:clips}, (_, x) => x + 1) : [0];
     rounds.forEach(n => blocks.push(Object.assign(
-      { t: bl.t + (n ? ` — คลิป ${n}` : ""), mine: bl.mine, i, clip:n,
-        sent: isSent(proj, handle, i, n) },
+      // หัวข้อบอกชื่อ SKU ของชุดนั้นด้วย — "ชุด 2" เฉยๆ ยังต้องเปิดตารางไปดูว่าตัวไหน
+      { t: bl.t + (n ? ` — ชุด ${n}${skuOf(r, n) ? ` · ${skuOf(r, n)}` : ""}` : ""),
+        mine: bl.mine, i, clip:n, sent: isSent(proj, handle, i, n) },
       fillBlock(bl.b, vals, n))));
   });
   const nSent = blocks.filter(b => b.sent).length;
@@ -4851,7 +4918,9 @@ function openCmd(proj, handle){
      <div class="cmdmeta">
        ${gaps ? `<span style="color:var(--lo)">ตัวหนังสือสีแดงในข้อความคือช่องที่ยังว่าง</span> — กดที่ตัวแดงหรือปุ่มข้างบนเพื่อเติมตรงนั้นเลย`
               : `<span style="color:var(--hi)">พร้อมส่งทุกบล็อก</span>`}
-       ${clips > 1 ? ` · <span style="color:var(--warn)">ทำ ${clips} คลิป — บล็อกตะกร้า/แฮชแท็กแยกเป็น ${clips} ชุด</span>` : ""}
+       ${clips > 1 ? ` · <span style="color:var(--warn)">${
+         skuParts(r.sku).length > 1 ? `ได้ ${skuParts(r.sku).length} SKU` : `ทำ ${clips} คลิป`
+         } — คอนเฟิร์ม · คู่มือ · ตะกร้า/แฮชแท็ก · ฟีดแบค แยกเป็น ${clips} ชุด</span>` : ""}
        <span id="cmdSentN">${nSent
          ? ` · <span style="color:var(--hi)">ส่งแล้ว ${nSent}/${blocks.length} บล็อก</span>` : ""}</span>
        ${(nMine || nLink || nFb) ? ` · <span style="color:var(--accent)">เฉพาะคนนี้: ${
@@ -4859,7 +4928,7 @@ function openCmd(proj, handle){
           nFb ? `Feedback ${nFb} Draft` : ""]
          .filter(Boolean).join(" · ")}</span>` : ""}
        <br>
-       <button class="cmdbtn" id="cmdFbBtn">✎ Feedback${nFb ? ` (${nFb}/3)` : ""}</button>
+       <button class="cmdbtn" id="cmdFbBtn">✎ Feedback${nFb ? ` (${nFb}/${3 * clips})` : ""}</button>
        <button class="cmdbtn" id="cmdSetLinks">ลิงก์เฉพาะคนนี้</button>
        <button class="cmdbtn" id="cmdSetLinksAll">ลิงก์ที่ใช้ร่วมกัน</button>
        <button class="cmdbtn" id="cmdEditBtn">✎ แก้ข้อความ</button>
@@ -4877,14 +4946,17 @@ function openCmd(proj, handle){
      <div class="fbbox" id="fbBox" hidden>
        <div class="fbhead">Feedback ของ <b>${esc(r.handle)}</b> — คนละชุดกับครีเอเตอร์คนอื่น
          <span style="color:var(--dim)">วางข้อความที่แบรนด์ส่งมาได้เลย ขึ้นบรรทัดใหม่ได้</span></div>
-       ${FB_ROUNDS.map(n => `<div class="fbrow">
-         <label>Draft #${n}</label>
-         <textarea data-fb="${n}" rows="4"
-           placeholder="ฟีดแบคของ Draft ${n} — ว่างไว้ก็ได้ถ้ายังไม่ถึงรอบนี้">${
-           esc(cmdOwnRead(proj, handle).links[fbKey(n)] || "")}</textarea>
-       </div>`).join("")}
+       ${Array.from({length:clips}, (_, x) => x + 1).map(set => `
+         ${clips > 1 ? `<div class="fbset">ชุดที่ ${set}${
+           skuOf(r, set) ? ` · ${esc(skuOf(r, set))}` : ""}</div>` : ""}
+         ${FB_ROUNDS.map(n => `<div class="fbrow">
+           <label>Draft #${n}</label>
+           <textarea data-fb="${n}" data-fbset="${set}" rows="4"
+             placeholder="ฟีดแบคของ Draft ${n}${clips > 1 ? ` ชุดที่ ${set}` : ""} — ว่างไว้ก็ได้ถ้ายังไม่ถึงรอบนี้">${
+             esc(cmdOwnRead(proj, handle).links[fbKey(n, set)] || "")}</textarea>
+         </div>`).join("")}`).join("")}
        <div class="fbfoot">
-         <button class="cmdbtn" id="fbClear">ล้างทั้ง 3 Draft</button>
+         <button class="cmdbtn" id="fbClear">ล้างทั้งหมด (${3 * clips} ช่อง)</button>
          <span style="color:var(--dim);font-size:.8rem">บันทึกเองเมื่อคลิกออกจากช่อง</span>
        </div>
      </div>
@@ -4932,13 +5004,18 @@ function openCmd(proj, handle){
   function fillGap(k){
     const r2 = (COORD[proj] || []).find(x => normId(x.handle) === normId(handle));
     if (!r2) return;
-    if (/^feedback\d?$/.test(k)){
-      $("#cmdFbBtn").click();
-      const n = k.replace("feedback", "") || "1";
-      const ta = $(`#fbBox [data-fb="${n}"]`);
-      if (ta) ta.focus();
+    const fb = fbSplit(k) || (k === "feedback" ? { d:1, n:1 } : null);
+    if (fb){
+      if ($("#fbBox").hidden) $("#cmdFbBtn").click();
+      const ta = $(`#fbBox [data-fb="${fb.d}"][data-fbset="${fb.n}"]`);
+      if (ta){ ta.focus(); ta.scrollIntoView({ block:"center" }); }
       return;
     }
+    // SKU ชุดที่ N แก้ที่ช่อง SKU ช่องเดียวกัน (เก็บเป็น "A + B") เลยส่งไปที่ตัวเลือก SKU
+    if (/^sku\d+$/.test(k)) return fillGap("sku");
+    // บรีฟของชุดที่ 2 ขึ้นไปไม่มีที่เก็บในชีต ใช้ช่องคู่มือของชุดนั้นแทน
+    const bm = k.match(/^brief(\d+)$/);
+    if (bm) return fillGap(Number(bm[1]) > 1 ? "guide" + bm[1] : "brief");
     if (k === "paytype"){
       const pick = prompt(`รูปแบบภาษีของ ${normId(handle)}\n` +
         PAYTYPES.filter(t => t.id).map((t,i) => `${i+1}. ${t.label}`).join("\n") +
@@ -5002,15 +5079,16 @@ function openCmd(proj, handle){
     if (!box.hidden) box.querySelector("textarea").focus();
   };
   $("#fbBox").querySelectorAll("[data-fb]").forEach(ta => ta.onchange = () => {
-    setCmdOwnLink(proj, handle, fbKey(+ta.dataset.fb), ta.value.trim());
+    setCmdOwnLink(proj, handle, fbKey(+ta.dataset.fb, +ta.dataset.fbset), ta.value.trim());
     renderCoord();                      // จุดหน้าปุ่ม ✉ ในตารางจะได้อัปเดตตาม
     const keep = $("#fbBox").hidden;
     openCmd(proj, handle);
     if (!keep) $("#cmdFbBtn").click();   // เปิดค้างไว้ให้พิมพ์ Draft ถัดไปต่อ
   });
   $("#fbClear").onclick = () => {
-    if (!confirm(`ล้าง Feedback ทั้ง 3 Draft ของ ${normId(handle)}?`)) return;
-    FB_ROUNDS.forEach(n => setCmdOwnLink(proj, handle, fbKey(n), ""));
+    if (!confirm(`ล้าง Feedback ทั้งหมดของ ${normId(handle)} (${3 * clips} ช่อง)?`)) return;
+    for (let s = 1; s <= clips; s++)
+      FB_ROUNDS.forEach(n => setCmdOwnLink(proj, handle, fbKey(n, s), ""));
     renderCoord(); openCmd(proj, handle);
   };
 
@@ -5020,7 +5098,8 @@ function openCmd(proj, handle){
     const cur = cmdOwnRead(proj, handle).links || {};
     const fields = CMD_LINK_FIELDS.concat(clips > 1
       ? [...clipDocs].flatMap(k => Array.from({length: clips - 1},
-          (_, x) => [k + (x + 2), `${DOC_BY_KEY[k].th} (คลิป ${x + 2})`]))
+          (_, x) => [k + (x + 2), `${DOC_BY_KEY[k].th} (ชุดที่ ${x + 2}${
+            skuOf(r, x + 2) ? " · " + skuOf(r, x + 2) : ""})`]))
       : []);
     for (const [k, label] of fields){
       const v = prompt(`${label}\n(เฉพาะ ${normId(handle)} — เว้นว่างเพื่อใช้ตัวร่วม: ${
@@ -5143,8 +5222,58 @@ function renderMap(){
   // กดที่ชื่อคน = เปิด Command ของคนนั้นทับแผนผัง (ลิ้นชักอยู่ชั้นบนกว่า)
   document.querySelectorAll("#mapBody [data-mapwho]").forEach(b => b.onclick = () =>
     openCmd(b.dataset.mapproj, b.dataset.mapwho));
+  document.querySelectorAll("#mapBody [data-mapst]").forEach(b => b.onclick = e => {
+    e.stopPropagation();
+    mapStatusMenu(b.dataset.mapproj, b.dataset.mapst, b.parentElement);
+  });
   document.querySelectorAll("#mapBody [data-mapgo]").forEach(b => b.onclick = () => {
     MAP_PROJ = b.dataset.mapgo; MAP_MODE = "flow"; renderMap();
+  });
+  wireMapDrag();
+}
+
+// ─── ลากคนไปวางที่ขั้นอื่น ───
+// ระหว่างลากจะกางขั้นที่ยังไม่มีใครออกมาให้เห็นด้วย ไม่งั้นจะวางลงขั้นว่างไม่ได้เลย
+// (ปกติซ่อนไว้ เพราะช่วง "ทำคลิป" มี 8 ขั้น ขึ้นครบตลอดเวลาแล้วอ่านยาก)
+function wireMapDrag(){
+  let from = null;
+  const clearOver = () => document.querySelectorAll("#mapBody .over")
+    .forEach(e => e.classList.remove("over"));
+
+  document.querySelectorAll("#mapBody .mapleaf[draggable]").forEach(el => {
+    el.ondragstart = e => {
+      from = { proj: el.dataset.mapproj, who: el.dataset.mapwho };
+      e.dataTransfer.effectAllowed = "move";
+      // Firefox ไม่เริ่มลากเลยถ้าไม่ได้ตั้งข้อมูลอะไรไว้
+      try { e.dataTransfer.setData("text/plain", el.dataset.mapwho); } catch(err){}
+      document.body.classList.add("mapdrag");
+      el.classList.add("dragging");
+    };
+    el.ondragend = () => {
+      from = null;
+      document.body.classList.remove("mapdrag");
+      el.classList.remove("dragging");
+      clearOver();
+    };
+  });
+
+  document.querySelectorAll("#mapBody [data-drop]").forEach(zone => {
+    zone.ondragover = e => {
+      if (!from) return;
+      e.preventDefault();
+      e.dataTransfer.dropEffect = "move";
+      zone.classList.add("over");
+    };
+    zone.ondragleave = () => zone.classList.remove("over");
+    zone.ondrop = e => {
+      e.preventDefault();
+      zone.classList.remove("over");
+      if (!from) return;
+      const f = from;
+      from = null;
+      document.body.classList.remove("mapdrag");
+      mapSetStatus(f.proj, f.who, zone.dataset.drop);
+    };
   });
 }
 
@@ -5159,18 +5288,66 @@ function mapBar(by, total){
       `<span style="--pc:${p.c}"><b></b>${esc(p.th)} <b style="all:unset;font-family:'IBM Plex Mono',monospace;color:var(--ink)">${by[p.k].length}</b></span>`).join("")}</div>`;
 }
 
+// ใบ = ครีเอเตอร์หนึ่งคน — ลากไปวางที่ขั้นอื่นเพื่อเปลี่ยนสถานะ
+// ปุ่ม ▾ ทำอย่างเดียวกันโดยไม่ต้องลาก (จอสัมผัสลากแบบ HTML5 ไม่ได้)
 function mapLeaf(r, proj, color){
   const flags = mapFlags(r);
   const clips = clipCount(r);
-  return `<button class="mapleaf${flags.length ? " miss" : ""}" style="--pc:${color}"
-    data-mapwho="${esc(r.handle)}" data-mapproj="${esc(proj)}"
-    title="${esc(r.handle)}${flags.length ? " — " + esc(flags.join(" · ")) : ""}\nกดเพื่อเปิด Command">
-    <span class="h">${esc(r.handle)}</span>
-    <span class="m"><span class="kk">${esc(r.kind || "?")}</span>
-      ${r.rate != null ? mBaht(r.rate) : `<span class="flag">ไม่มีเรท</span>`}
-      ${clips > 1 ? `· ${clips} คลิป` : ""}
-      ${flags.length ? `<span class="flag" title="${esc(flags.join(" · "))}">⚑${flags.length}</span>` : ""}
-    </span></button>`;
+  return `<span class="mapleafwrap">
+    <button class="mapleaf${flags.length ? " miss" : ""}" style="--pc:${color}" draggable="true"
+      data-mapwho="${esc(r.handle)}" data-mapproj="${esc(proj)}"
+      title="${esc(r.handle)}${flags.length ? " — " + esc(flags.join(" · ")) : ""}\nกดเพื่อเปิด Command · ลากไปวางที่ขั้นอื่นเพื่อเปลี่ยนสถานะ">
+      <span class="h">${esc(r.handle)}</span>
+      <span class="m"><span class="kk">${esc(r.kind || "?")}</span>
+        ${r.rate != null ? mBaht(r.rate) : `<span class="flag">ไม่มีเรท</span>`}
+        ${clips > 1 ? `· ${clips} ชุด` : ""}
+        ${flags.length ? `<span class="flag" title="${esc(flags.join(" · "))}">⚑${flags.length}</span>` : ""}
+      </span></button>
+    <button class="mapst" data-mapst="${esc(r.handle)}" data-mapproj="${esc(proj)}"
+      title="เปลี่ยนสถานะของ ${esc(r.handle)}">▾</button>
+  </span>`;
+}
+
+// ─── เปลี่ยนสถานะจากแผนผัง ───
+// จุดเดียวที่เขียนสถานะจากหน้านี้ ทั้งลากวางและเมนู ▾ เรียกตัวนี้ตัวเดียว
+function mapSetStatus(proj, handle, to){
+  const r = (COORD[proj] || []).find(x => normId(x.handle) === normId(handle));
+  if (!r || (r.status || "") === to) return false;
+  setField(r, "status", to);
+  renderCoord(); renderMap();
+  return true;
+}
+function mapStatusMenu(proj, handle, host){
+  document.querySelectorAll(".fpop").forEach(p => p.remove());
+  const r = (COORD[proj] || []).find(x => normId(x.handle) === normId(handle));
+  if (!r) return;
+  const cur = r.status || "";
+  // ค่าที่อยู่ในชีตอาจเป็นคำชุดเก่าซึ่งไม่มีในลิสต์ — ติ๊กที่ขั้นใหม่ที่ตรงกันแทน
+  // ไม่งั้นเมนูจะไม่ติ๊กอะไรเลย ทั้งที่คนนี้มีสถานะอยู่
+  const at = STAGES.some(x => x.v === cur) ? cur : (STATUS_MIGRATE[cur] || cur);
+  const pop = document.createElement("div");
+  pop.className = "fpop mappop";
+  pop.innerHTML =
+    `<div class="fhead">สถานะของ ${esc(normId(handle))}${
+      at !== cur && cur ? ` <span style="color:var(--dim);font-weight:400">· ในชีตเป็น “${esc(cur)}”</span>` : ""}</div>
+     <div class="flist">${
+       [{ v:"", th:"ยังไม่มีสถานะ", c:"" }].concat(STAGES).map(x => {
+         const p = x.v ? phaseOf(x.v) : MAP_NONE;
+         return `<label style="--pc:${p.c}"><input type="radio" name="mapst"
+           value="${esc(x.v)}"${at === x.v ? " checked" : ""}>
+           <span>${esc(x.th)}</span><i>${esc(p.th)}</i></label>`;
+       }).join("")}</div>`;
+  host.appendChild(pop);
+  // ใบที่อยู่ริมขวาจะดันเมนูตกขอบจอ — พลิกไปเกาะขวาแทน
+  const box = pop.getBoundingClientRect();
+  if (box.right > innerWidth - 8){ pop.style.left = "auto"; pop.style.right = "0"; }
+  pop.querySelectorAll("input").forEach(i => i.onchange = () => {
+    pop.remove();
+    mapSetStatus(proj, handle, i.value);
+  });
+  pop.onclick = e => e.stopPropagation();
+  setTimeout(() => document.addEventListener("click", function close(){
+    pop.remove(); document.removeEventListener("click", close); }), 0);
 }
 
 // ─── แผ่นหลัก: ขั้นตอนงาน ───
@@ -5190,18 +5367,29 @@ function mapFlowSheet(proj){
       if (!groups.has(key)) groups.set(key, []);
       groups.get(key).push(r);
     });
-    const stages = [...groups.entries()]
-      .map(([v, l]) => ({ v, list:l, at: mapStage(v) }))
-      .sort((a, b) => (a.at < 0 ? 99 : a.at) - (b.at < 0 ? 99 : b.at));
+    // ทุกขั้นของช่วงนี้ต้องมีที่ให้วาง ถึงจะยังไม่มีใครอยู่ — ขั้นที่ว่างซ่อนไว้จนกว่าจะเริ่มลาก
+    const stages = (p.k === "none" ? [""] : STAGES.slice(p.from, p.to + 1).map(x => x.v))
+      .map(v => ({ v, drop:v, list: groups.get(v) || [] }));
+    [...groups.keys()].forEach(v => {
+      if (stages.some(x => x.v === v)) return;
+      // ค่าชุดเก่าที่ยังอยู่ในชีต — วางลงได้ แต่ที่เขียนกลับคือชื่อขั้นใหม่
+      stages.push({ v, drop: STATUS_MIGRATE[v] || v, list: groups.get(v), legacy:true });
+    });
+    stages.sort((a, b) => {
+      const A = mapStage(a.v), B = mapStage(b.v);
+      return (A < 0 ? 99 : A) - (B < 0 ? 99 : B);
+    });
     return `<div class="mapbranch${list.length ? "" : " empty"}" style="--pc:${p.c}">
-      <header><span class="n">${list.length}</span>${esc(p.th)}
+      <header data-drop="${esc(p.k === "none" ? "" : STAGES[p.from].v)}"
+        ><span class="n">${list.length}</span>${esc(p.th)}
         <span class="sub">${esc(p.sub)}${list.length
           ? `<br>${mBaht(list.reduce((a, r) => a + (Number(r.rate) || 0), 0))}` : ""}</span>
       </header>
-      ${list.length ? `<div class="mapstages">${stages.map(st => `<div class="mapstage">
-        <div class="lab">${esc(mapStatusLabel(st.v))} <i>${st.list.length}</i></div>
-        <div class="mapleaves">${st.list.map(r => mapLeaf(r, proj, p.c)).join("")}</div>
-      </div>`).join("")}</div>` : ""}
+      <div class="mapstages">${stages.map(st =>
+        `<div class="mapstage${st.list.length ? "" : " zero"}" data-drop="${esc(st.drop)}">
+          <div class="lab">${esc(mapStatusLabel(st.v))} <i>${st.list.length}</i></div>
+          <div class="mapleaves">${st.list.map(r => mapLeaf(r, proj, p.c)).join("")}</div>
+        </div>`).join("")}</div>
     </div>`;
   };
 
@@ -7195,7 +7383,7 @@ const SLASH_ROW = [
 const SLASH_DOC = DOCS.map(d => ({ c:d.k, doc:d.k, th:d.th, ex:`/${d.k} cenakims : ` +
   (d.tags ? "#tag1 #tag2" : d.text ? "20-25 ส.ค." : "https://…") }));
 const SLASH_FB = FB_ROUNDS.map(n => ({ c:"fb"+n, doc:fbKey(n), th:`Feedback Draft ${n}`,
-  ex:`/fb${n} cenakims : ข้อความฟีดแบค` }));
+  ex:`/fb${n} cenakims : ข้อความ   ·   /fb${n}_2 = ชุดที่ 2` }));
 
 const SLASH_FIELD = SLASH_ROW.concat(SLASH_DOC, SLASH_FB);
 const SLASH_BY = Object.fromEntries(SLASH_FIELD.map(s => [s.c, s]));
@@ -7226,7 +7414,8 @@ const SLASH_ACT = [
 const slashName = w => SLASH_ALIAS[w] || w;
 // รู้จักทั้งคำสั่งในทะเบียน และช่องเอกสารรายคลิปที่สร้างตอนรัน (cart2, hashtag3 …)
 const specOf = key => SLASH_BY[key] ||
-  (docSplit(key) && docSplit(key).n > 1 ? { c:key, doc:key, th: docLabel(key) } : null);
+  ((docSplit(key) && docSplit(key).n >= 1) || (fbSplit(key) && fbSplit(key).n > 1)
+    ? { c:key, doc:key, th: gapLabel(key).replace(/^ยังไม่มี/, "") } : null);
 
 // อ่านค่าตามชนิดที่คำสั่งนั้นต้องการ — คืน {v} ถ้าได้ หรือ {err} ถ้าไม่ได้
 function slashValue(spec, raw){
@@ -7295,7 +7484,8 @@ function resolveTargets(names, projFilter, line){
   return { hits, errs };
 }
 
-const SLASH_RE = /^\s*\/([a-z]+)(\d*)\s*/i;
+// เลขหลังคำสั่ง = ชุดที่เท่าไหร่ (/cart2) · ฟีดแบคมีสองเลข ดราฟต์กับชุด (/fb1_2)
+const SLASH_RE = /^\s*\/([a-z]+)(\d*)(?:[_.](\d+))?\s*/i;
 
 function parseSlashLine(line, pending){
   const m = line.match(SLASH_RE);
@@ -7305,6 +7495,7 @@ function parseSlashLine(line, pending){
   const whole = (m[1] + m[2]).toLowerCase();
   const word = SLASH_BY[whole] ? whole : slashName(m[1].toLowerCase());
   const num = SLASH_BY[whole] ? "" : m[2];
+  const set = m[3] || "";
   const rest = line.slice(m[0].length);
   const bad = why => [{ line, ok:false, changes:{}, why }];
 
@@ -7402,12 +7593,19 @@ function parseSlashLine(line, pending){
   const isAct = ["add","del","move","copy","clear"].includes(word);
   if (!spec && !isAct)
     return bad(`ไม่รู้จักคำสั่ง /${m[1]} — พิมพ์ /help เพื่อดูทั้งหมด`);
-  // /cart2 · /hashtag2 = เอกสารของคลิปที่ 2 (คลิป 1 ยังใช้ช่องเดิม ไม่มีเลขต่อท้าย)
+  // /cart2 · /hashtag2 = เอกสารของชุดที่ 2 (ชุดแรกยังใช้ช่องเดิม ไม่มีเลขต่อท้าย)
   if (num && spec && spec.doc && DOC_BY_KEY[spec.doc]){
     const n = Number(num);
-    if (n > 6) return bad(`/${spec.doc}${num} — รองรับถึงคลิปที่ 6 เท่านั้น`);
+    if (n > 6) return bad(`/${spec.doc}${num} — รองรับถึงชุดที่ 6 เท่านั้น`);
     if (n > 1) spec = Object.assign({}, spec, { doc: spec.doc + n,
-                                                th: `${spec.th} (คลิป ${n})` });
+                                                th: `${spec.th} (ชุดที่ ${n})` });
+  }
+  // /fb2_3 = ฟีดแบค Draft 2 ของชุดที่ 3
+  if (set && spec && spec.doc && fbSplit(spec.doc)){
+    const n = Number(set);
+    if (n > 6) return bad(`/${whole}_${set} — รองรับถึงชุดที่ 6 เท่านั้น`);
+    if (n > 1) spec = Object.assign({}, spec, { doc: fbKey(fbSplit(spec.doc).d, n),
+                                                th: `${spec.th} (ชุดที่ ${n})` });
   }
 
   // ชื่อ: จากในบรรทัด หรือจากบรรทัดข้างบนที่พักไว้
