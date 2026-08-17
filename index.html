@@ -255,8 +255,8 @@ body:not([data-view="coord"]) #gearBtn{display:none}
    ของที่ซ่อนไม่ได้หายไปไหน กด ⤢ ท้ายชื่อดูและแก้ได้ครบในลิ้นชัก
    คอลัมน์กลุ่มซ้ำกับปุ่ม KOL/KOC ที่อยู่เหนือตารางอยู่แล้ว เลยซ่อนด้วย */
 .ctable.lean th.opt,.ctable.lean td.opt{display:none}
-.ctable.lean .who{width:14.8em;max-width:14.8em}
-.ctable.lean th.w-sku,.ctable.lean td.w-sku{min-width:11.3em}
+.ctable.lean .who{width:20.6em;max-width:20.6em}
+.ctable.lean th.w-sku,.ctable.lean td.w-sku{min-width:10.2em}
 .ctable.lean th.w-job,.ctable.lean td.w-job{min-width:5.6em}
 .ctable.lean td.w-job input{width:5em}
 .ctable.lean select.pay{min-width:8.8em!important}
@@ -450,7 +450,9 @@ body:not([data-view="coord"]) #gearBtn{display:none}
 .ctable tr:hover td{background:var(--surface)}
 /* ช่องครีเอเตอร์ — บังคับให้สูงเท่าช่องที่มี input/select ในแถวเดียวกัน
    ไม่งั้นชื่อจะลอยไม่ตรงกับของช่องอื่น เพราะ input มี padding ของตัวเอง */
-.ctable .who{font-weight:600;white-space:nowrap;width:15em;max-width:15em}
+/* ความกว้างต้องเผื่อลูกศร ปุ่ม ⤢ ✉ และ ↗ ที่อยู่ในช่องเดียวกันด้วย รวมกัน ~6em
+   เคยตั้งไว้ 15em แล้วเหลือให้ชื่อจริงแค่ 65px — ชื่อ 24 จาก 26 คนโดนตัด */
+.ctable .who{font-weight:600;white-space:nowrap;width:21em;max-width:21em}
 /* ความสูงต้องเท่ากับ input/select ในแถวเดียวกัน ไม่งั้นชื่อลอยสูงกว่าเพื่อน */
 .ctable .who .wrapper{display:flex;align-items:center;gap:.35em;min-height:var(--rowh,2.6em)}
 /* ชื่อครีเอเตอร์คือสิ่งที่ต้องอ่านออกก่อนอย่างอื่นในแถว — ใหญ่กว่าช่องอื่นและหนากว่า
@@ -555,7 +557,7 @@ select.st-sel optgroup{background:#141414;color:var(--dim);font-style:normal}
   flex:none;transition:transform .13s;line-height:1}
 .chev:hover{color:var(--accent)}
 .chev.open{transform:rotate(90deg);color:var(--accent)}
-.chev-gap{width:1.5em;flex:none}
+.chev-gap{width:1.1em;flex:none}
 tr.hasclips td:nth-child(2){border-left:2px solid rgba(var(--accent-rgb),.35)}
 tr.subrow td{background:var(--bg);border-bottom:1px solid var(--line);padding-top:5px;padding-bottom:5px}
 tr.subrow td:nth-child(1),tr.subrow td:nth-child(2){background:var(--bg)}
@@ -572,10 +574,19 @@ tr.subrow .clipsku{font-size:.78rem;color:var(--mute)}
 .ctable th.w-job,.ctable td.w-job{min-width:6.6em}
 .ctable td.w-job input{width:5.9em;text-align:center;font-weight:600;
   font-family:'IBM Plex Mono',monospace}
-.ctable th.w-status,.ctable td.w-status{min-width:13.4em}
-.ctable td.w-status select{width:13em}
+.ctable th.w-status,.ctable td.w-status{min-width:12.2em}
+.ctable td.w-status select{width:11.8em}
 .ctable td.w-brief{white-space:nowrap}
 .ctable th.w-del,.ctable td.w-del{width:38px;text-align:center}
+/* จอแคบ: ช่องชื่อตรึงอยู่ทางซ้าย ถ้ายังกว้าง 21em จะเหลือที่ให้คอลัมน์อื่นไม่ถึงนิ้ว
+   ยอมให้ชื่อยาวๆ ถูกตัดดีกว่ามีแต่ชื่อกับขอบจอ — กดที่ชื่อยังเห็นเต็มในช่องแก้
+   ปุ่ม ↗ ตัดออกด้วย ลิงก์ TikTok มีอยู่แล้วในลิ้นชักที่กด ⤢ */
+@media(max-width:720px){
+  .ctable .who,.ctable.lean .who{width:14.6em;max-width:14.6em}
+  .ctable .who .go{display:none}
+  .ctable .who .chev-gap{width:.5em}
+  .ctable .who .icobtn{padding:.3em .25em;font-size:.98rem}
+}
 .delrow{background:none;border:1px solid transparent;color:var(--dim);
   border-radius:7px;padding:.4em .55em;font-size:1.05rem;line-height:1}
 .delrow:hover{border-color:var(--lo);color:var(--lo);background:rgba(var(--lo-rgb),.1)}
