@@ -4249,7 +4249,7 @@ const CMD_BLOCKS = [
 
 💬สามารถทักไลน์โดยการแคปหลักฐานการคอนเฟิร์มขั้นต้นได้เลยนะค้าบบ😊` },
 
-  { t:"3. คอนเฟิร์มเรท + รูปแบบนำจ่าย", b:
+  { t:"3. คอนเฟิร์มเรท + รูปแบบนำจ่าย", kind:"KOL", b:
 `ขออนุญาตคอนเฟิร์มเรทราคา + รูปแบบนำจ่ายนะครับ😀
 สำหรับแบรนด์: Red Chamber ({{sku}})
 
@@ -4279,7 +4279,7 @@ const CMD_BLOCKS = [
 📢เอกสารสำคัญสำหรับร่วมงาน:
 {{docs}}` },
 
-  { t:"6. ถามรูปแบบการชำระเงิน", b:
+  { t:"6. ถามรูปแบบการชำระเงิน", kind:"KOL", b:
 `ขออนุญาตสอบถามครีเอเตอร์ต้องการรูปแบบการชำระเงินรูปแบบไหนครับ💵😀
 ✅ณ ที่จ่าย 3%
 ✅จ่าย NET
@@ -4349,7 +4349,7 @@ Hashtag:📱
 
   // ฟอร์มกับใบรับเงินเป็นคนละขั้นตอนและคนละเวลา — ฟอร์มกรอกครั้งเดียวตอนเริ่ม
   // ใบรับเงินเซ็นตอนจะเบิกจ่าย รวมไว้ก้อนเดียวแล้วส่งซ้ำทั้งก้อนทุกครั้ง
-  { t:"14. ฟอร์มเอกสารหัก ณ ที่จ่าย", b:
+  { t:"14. ฟอร์มเอกสารหัก ณ ที่จ่าย", kind:"KOL", b:
 `สวัสดีครับ😊
 แอดมินรบกวนครีเอเตอร์กรอกข้อมูลสำหรับออกเอกสารหัก ณ ที่จ่าย และเอกสารอื่น ๆ ประกอบการทำจ่ายในลิ้งด้านล่างนี้นะค้าบ (กรอกเพียงครั้งเดียว✅)
 
@@ -4359,7 +4359,7 @@ Hashtag:📱
 
 📢หากกรอกเสร็จแล้วรบกวนแคปให้แอดมินด้วยนะครับ` },
 
-  { t:"15. ใบรับเงิน Acknowledgement of Receipt", b:
+  { t:"15. ใบรับเงิน Acknowledgement of Receipt", kind:"KOL", b:
 `แอดมินขออนุญาตส่งใบรับเงิน Acknowledgement of Receipt เพื่อทำการเบิกจ่ายนะครับ😊
 
 📦สำหรับแบรนด์: Red Chamber ({{sku}})
@@ -5034,9 +5034,13 @@ function openCmd(proj, handle){
        <a class="go" href="https://www.tiktok.com/@${esc(r.handle)}"
           target="_blank" rel="noopener noreferrer">TikTok ↗</a>
        <div class="facts">
-         เรท <b>${r.rate != null ? "฿" + Number(r.rate).toLocaleString("en-US") : "—"}</b> ·
-         ${r.paytype ? esc(payType(r.paytype).label) : "ยังไม่เลือกรูปแบบภาษี"} ·
-         จ่ายจริง <b>${net != null ? "฿" + net.toLocaleString("en-US",{minimumFractionDigits:2}) : "—"}</b>
+         ${K === "KOC"
+           // KOC ไม่มีขั้นตอนหักภาษี/ทำจ่ายในระบบนี้ — โชว์เรทกับส่วนแบ่ง ไม่โชว์ช่องที่ไม่ได้ใช้
+           ? `Commission <b>${r.commission ? esc(r.commission) : "—"}</b>${
+               r.rate != null ? ` · เรท <b>฿${Number(r.rate).toLocaleString("en-US")}</b>` : ""}`
+           : `เรท <b>${r.rate != null ? "฿" + Number(r.rate).toLocaleString("en-US") : "—"}</b> ·
+              ${r.paytype ? esc(payType(r.paytype).label) : "ยังไม่เลือกรูปแบบภาษี"} ·
+              จ่ายจริง <b>${net != null ? "฿" + net.toLocaleString("en-US",{minimumFractionDigits:2}) : "—"}</b>`}
          ${r.sku ? `<br>SKU ${esc(r.sku)}` : ""}
        </div>
      </div>
@@ -5333,10 +5337,16 @@ function mapStats(rows){
 // คนที่ส่งเรื่องจ่ายแล้วถือว่าจบ ไม่ต้องทวงข้อมูลย้อนหลัง เงินออกไปแล้ว
 function mapFlags(r){
   if (mapDone(r)) return [];
+  const koc = kindOf(r) === "KOC";
   const f = [];
-  if (r.rate == null) f.push("ไม่มีเรท");
+  // KOC ไม่ผ่านขั้นตอนหักภาษี/ทำจ่าย — ทวงรูปแบบภาษีคือทวงของที่ไม่ได้ใช้
+  if (koc){
+    if (!String(r.commission || "").trim()) f.push("ไม่มี Commission");
+  } else {
+    if (r.rate == null) f.push("ไม่มีเรท");
+    if (!r.paytype) f.push("ไม่ได้เลือกรูปแบบภาษี");
+  }
   if ((r.rate_all || []).length > 1) f.push("เรทไม่ตรงกันในชีต");
-  if (!r.paytype) f.push("ไม่ได้เลือกรูปแบบภาษี");
   if (!String(r.sku || "").trim()) f.push("ไม่มี SKU");
   else if (!guideForSku(r.sku, 0) && !CMDLINKS.guide) f.push("SKU นี้ยังไม่มีคู่มือถ่ายทำ");
   if (!r.status) f.push("ไม่มีสถานะ");
@@ -5655,12 +5665,14 @@ function mapGapSheet(proj){
   const rows = COORD[proj] || [];
   if (!rows.length) return `<div class="mapempty">${esc(proj)} ยังไม่มีใครในโปรเจกต์นี้</div>`;
   const groups = [
-    { th:"ไม่มีเรท", why:"ยังตกลงราคาไม่ได้ หรือชีตยังไม่ได้กรอก — คิดยอดจ่ายไม่ได้",
-      fix:"/rate", test:r => r.rate == null },
+    { th:"ไม่มีเรท (KOL)", why:"ยังตกลงราคาไม่ได้ หรือชีตยังไม่ได้กรอก — คิดยอดจ่ายไม่ได้",
+      fix:"/rate", test:r => kindOf(r) !== "KOC" && r.rate == null },
+    { th:"KOC ยังไม่มี Commission", why:"ข้อความคอนเฟิร์มของ KOC อ่านส่วนแบ่งจากช่องนี้ ว่างอยู่จะส่งไม่ได้",
+      fix:"/comm", test:r => kindOf(r) === "KOC" && !String(r.commission || "").trim() },
     { th:"เรทในชีตไม่ตรงกัน", why:"เจอหลายค่าในชีตสำหรับคนเดียวกัน ต้องเลือกให้ชัดก่อนทำจ่าย",
       fix:"/rate", test:r => (r.rate_all || []).length > 1 },
-    { th:"ไม่ได้เลือกรูปแบบภาษี", why:"คิดยอดที่บริษัทจ่ายจริงไม่ได้ และออกเอกสารไม่ได้",
-      fix:"/pay", test:r => !r.paytype },
+    { th:"ไม่ได้เลือกรูปแบบภาษี (KOL)", why:"คิดยอดที่บริษัทจ่ายจริงไม่ได้ และออกเอกสารไม่ได้",
+      fix:"/pay", test:r => kindOf(r) !== "KOC" && !r.paytype },
     { th:"ไม่มี SKU", why:"ไม่รู้ว่าส่งของอะไรให้ และเลือกคู่มือถ่ายทำไม่ได้",
       fix:"/sku", test:r => !String(r.sku || "").trim() },
     { th:"SKU นี้ยังไม่มีคู่มือถ่ายทำ", why:"มี SKU แล้วแต่ยังไม่ได้ผูกคู่มือของไลน์นั้นไว้",
