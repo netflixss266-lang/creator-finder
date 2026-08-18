@@ -780,6 +780,22 @@ tr.dropover td{border-top:2px solid var(--accent)}
 .mapstat .s{font-size:.76rem;color:var(--mute)}
 .mapstat.warn{border-left-color:var(--warn)} .mapstat.warn .v{color:var(--warn)}
 
+/* ── % คืบหน้า ── นับจากคนที่โพสต์คลิปแล้วขึ้นไป คือส่วนที่ลูกค้าเห็นจริง */
+.mapprog{display:flex;align-items:center;gap:14px;margin-bottom:10px}
+.mapprog .pct{flex:none;font-family:'Bebas Neue','Space Grotesk',sans-serif;
+  font-size:2.6rem;line-height:1;letter-spacing:.02em;color:var(--accent)}
+.mapprog .pct.full{color:var(--hi)}
+.mapprog .pct i{font-style:normal;font-size:.45em;padding-left:2px;opacity:.7}
+.mapprog .lab{flex:none;font-size:.78rem;color:var(--dim);line-height:1.5}
+.mapprog .lab b{color:var(--ink);font-family:'IBM Plex Mono',monospace;font-weight:600}
+.mapprog .track{flex:1;min-width:4em;height:.7em;border-radius:999px;
+  background:var(--surface2);border:1px solid var(--line);overflow:hidden}
+.mapprog .track i{display:block;height:100%;background:var(--accent);
+  border-radius:999px;transition:width .25s}
+.mapprog .pct.full + .lab + .track i{background:var(--hi)}
+.mapcard .mapprog{gap:9px;margin-bottom:7px}
+.mapcard .mapprog .pct{font-size:1.7rem}
+.mapcard .mapprog .lab{font-size:.72rem}
 /* แถบสัดส่วนงาน — เห็นทันทีว่ากองอยู่ช่วงไหน */
 .mapbar{display:flex;height:1.5em;border-radius:7px;overflow:hidden;margin-bottom:6px;
   border:1px solid var(--line);background:var(--surface)}
@@ -830,6 +846,12 @@ tr.dropover td{border-top:2px solid var(--accent)}
 .mapleaf:hover{border-color:var(--pc);background:var(--surface)}
 .mapleaf:active{cursor:grabbing}
 .mapleaf.dragging{opacity:.35}
+/* แผ่นที่ลากไม่ได้ อย่าทำเป็นมือจับ — ชี้แล้วนึกว่าลากได้แล้ววางไม่ลงคือบัคในสายตาคนใช้ */
+.mapleaf:not([draggable]){cursor:pointer}
+/* ปิดงานแล้ว — เหลือไว้ให้เห็นว่ามีคนนี้อยู่ แต่ไม่ต้องดึงสายตาอีก */
+.mapleaf.done{opacity:.62}
+.mapleaf.done .h{color:var(--hi)}
+.mapleafwrap:hover .mapleaf.done{opacity:1}
 .mapst{flex:none;background:var(--surface2);border:1px solid var(--line);border-left:0;
   border-radius:0 8px 8px 0;color:var(--dim);font-size:.9rem;padding:0 8px;line-height:1}
 .mapst:hover{border-color:var(--pc);color:var(--pc);background:var(--surface)}
@@ -5188,6 +5210,15 @@ function mapStatusLabel(v){
 // ตัวเลขบนแผนผังอ่านเอาภาพรวม ไม่ใช่เอาไปทำจ่าย — ปัดเศษสตางค์ทิ้งให้กวาดตาง่าย
 const mBaht = n => n == null ? "—" : "฿" + Math.round(n).toLocaleString("en-US");
 
+// ─── นับว่า "เสร็จ" แค่ไหน ───
+// เสร็จ = โพสต์คลิปแล้วขึ้นไป (โพสต์ → gencode → ทำจ่าย → ส่งเรื่องจ่าย)
+// "รอโพสต์" ยังไม่นับ เพราะของยังไม่ออกสู่สายตาคน ซึ่งคือสิ่งที่ลูกค้าซื้อ
+const ST_POSTED = STAGES.findIndex(x => x.v === "Already Posted");
+const ST_LAST   = STAGES.length - 1;                 // ส่งเรื่องจ่ายแล้ว = จบงานของคนนั้น
+const mapPosted = r => mapStage(r && r.status) >= ST_POSTED;
+// ปิดงานคนนี้แล้ว — ข้อมูลที่ยังไม่ครบไม่ต้องทวงอีก จ่ายเงินไปแล้ว
+const mapDone = r => mapStage(r && r.status) >= ST_LAST;
+
 // ตัวเลขที่ใช้ซ้ำทุกแผ่น — นับจาก COORD สดๆ ไม่เก็บสำเนาไว้ที่ไหน
 function mapStats(rows){
   const rate = rows.reduce((s, r) => s + (Number(r.rate) || 0), 0);
@@ -5207,10 +5238,15 @@ function mapStats(rows){
     // อ่านออกแต่เป็นคำเก่า — ไม่ใช่ปัญหาของแผนผัง แต่ควรรู้ว่ายังมีค้างเท่าไหร่
     oldSt:  rows.filter(r => r.status && stageAt(r.status) < 0 && STATUS_MIGRATE[r.status]).length,
     dupRate: rows.filter(r => (r.rate_all || []).length > 1).length,
-    done: by.pay.filter(r => r.status === "Already Submitted Payment").length };
+    // โพสต์แล้วขึ้นไป = ถือว่างานนั้นเดินจบส่วนที่ลูกค้าเห็นแล้ว
+    posted: rows.filter(mapPosted).length,
+    pct: rows.length ? Math.round(rows.filter(mapPosted).length / rows.length * 100) : 0,
+    done: rows.filter(mapDone).length };
 }
 // อะไรที่ทำให้คนนี้เดินต่อไม่ได้ — ใช้ทั้งบนใบและในแผ่น "ข้อมูลที่ยังขาด"
+// คนที่ส่งเรื่องจ่ายแล้วถือว่าจบ ไม่ต้องทวงข้อมูลย้อนหลัง เงินออกไปแล้ว
 function mapFlags(r){
+  if (mapDone(r)) return [];
   const f = [];
   if (r.rate == null) f.push("ไม่มีเรท");
   if ((r.rate_all || []).length > 1) f.push("เรทไม่ตรงกันในชีต");
@@ -5327,27 +5363,42 @@ function wireMapDrag(){
   });
 }
 
-// แถบสัดส่วน + คำอธิบายสี ใช้ร่วมกันทุกแผ่น
-function mapBar(by, total){
+// แถบสัดส่วน + % คืบหน้า + คำอธิบายสี ใช้ร่วมกันทุกแผ่น
+// small = แบบย่อสำหรับการ์ดในแผ่นรวม (ไม่มีคำอธิบายสี ไม่งั้นการ์ดยาวเป็นเมตร)
+function mapBar(s, small){
+  const total = s.n;
   if (!total) return "";
-  const ps = [...MAP_PHASES, MAP_NONE].filter(p => by[p.k].length);
-  return `<div class="mapbar">${ps.map(p =>
-    `<i style="--pc:${p.c};width:${(by[p.k].length / total * 100).toFixed(2)}%"
-      title="${esc(p.th)} ${by[p.k].length} คน"></i>`).join("")}</div>
-    <div class="mapkey">${ps.map(p =>
-      `<span style="--pc:${p.c}"><b></b>${esc(p.th)} <b style="all:unset;font-family:'IBM Plex Mono',monospace;color:var(--ink)">${by[p.k].length}</b></span>`).join("")}</div>`;
+  const ps = [...MAP_PHASES, MAP_NONE].filter(p => s.by[p.k].length);
+  return `<div class="mapprog">
+      <span class="pct${s.pct >= 100 ? " full" : ""}">${s.pct}<i>%</i></span>
+      <span class="lab">คืบหน้า<br><b>${s.posted}</b> จาก <b>${total}</b> คน โพสต์แล้วขึ้นไป</span>
+      <div class="track" title="โพสต์แล้วขึ้นไป ${s.posted}/${total} คน">
+        <i style="width:${s.pct}%"></i></div>
+    </div>
+    <div class="mapbar">${ps.map(p =>
+    `<i style="--pc:${p.c};width:${(s.by[p.k].length / total * 100).toFixed(2)}%"
+      title="${esc(p.th)} ${s.by[p.k].length} คน"></i>`).join("")}</div>` +
+    (small ? "" : `<div class="mapkey">${ps.map(p =>
+      `<span style="--pc:${p.c}"><b></b>${esc(p.th)} <b style="all:unset;font-family:'IBM Plex Mono',monospace;color:var(--ink)">${s.by[p.k].length}</b></span>`).join("")}</div>`);
 }
 
 // ใบ = ครีเอเตอร์หนึ่งคน — ลากไปวางที่ขั้นอื่นเพื่อเปลี่ยนสถานะ
 // ปุ่ม ▾ ทำอย่างเดียวกันโดยไม่ต้องลาก (จอสัมผัสลากแบบ HTML5 ไม่ได้)
-function mapLeaf(r, proj, color){
+// drag = แผ่นนี้มีขั้นตอนให้วางไหม — มีเฉพาะแผ่น "ขั้นตอนงาน"
+// แผ่น "ข้อมูลที่ยังขาด" กับ "เงิน" จัดกลุ่มด้วยอย่างอื่น ลากไปวางแล้วไม่มีความหมาย
+// เคยตั้ง draggable ไว้ทุกแผ่น เลยกลายเป็นลากได้แต่วางไม่ลง — ดูเหมือนเว็บพัง
+function mapLeaf(r, proj, color, drag){
   const flags = mapFlags(r);
   const clips = clipCount(r);
+  const done = mapDone(r);
   return `<span class="mapleafwrap">
-    <button class="mapleaf${flags.length ? " miss" : ""}" style="--pc:${color}" draggable="true"
+    <button class="mapleaf${flags.length ? " miss" : ""}${done ? " done" : ""}"
+      style="--pc:${color}"${drag ? ` draggable="true"` : ""}
       data-mapwho="${esc(r.handle)}" data-mapproj="${esc(proj)}"
-      title="${esc(r.handle)}${flags.length ? " — " + esc(flags.join(" · ")) : ""}\nกดเพื่อเปิด Command · ลากไปวางที่ขั้นอื่นเพื่อเปลี่ยนสถานะ">
-      <span class="h">${esc(r.handle)}</span>
+      title="${esc(r.handle)}${flags.length ? " — " + esc(flags.join(" · ")) : ""}${
+        done ? " — ส่งเรื่องจ่ายแล้ว ปิดงาน" : ""}\nกดเพื่อเปิด Command${
+        drag ? " · ลากไปวางที่ขั้นอื่นเพื่อเปลี่ยนสถานะ" : " · กด ▾ เพื่อเปลี่ยนสถานะ"}">
+      <span class="h">${done ? "✓ " : ""}${esc(r.handle)}</span>
       <span class="m"><span class="kk">${esc(r.kind || "?")}</span>
         ${r.rate != null ? mBaht(r.rate) : `<span class="flag">ไม่มีเรท</span>`}
         ${clips > 1 ? `· ${clips} ชุด` : ""}
@@ -5438,7 +5489,7 @@ function mapFlowSheet(proj){
       <div class="mapstages">${stages.map(st =>
         `<div class="mapstage${st.list.length ? "" : " zero"}" data-drop="${esc(st.drop)}">
           <div class="lab">${esc(mapStatusLabel(st.v))} <i>${st.list.length}</i></div>
-          <div class="mapleaves">${st.list.map(r => mapLeaf(r, proj, p.c)).join("")}</div>
+          <div class="mapleaves">${st.list.map(r => mapLeaf(r, proj, p.c, true)).join("")}</div>
         </div>`).join("")}</div>
     </div>`;
   };
@@ -5455,7 +5506,7 @@ function mapFlowSheet(proj){
         <div class="v">${flagged}</div>
         <div class="s">${flagged ? "ข้อมูลไม่ครบ — ดูแผ่นถัดไป" : "ข้อมูลครบทุกคน"}</div></div>
     </div>
-    ${mapBar(s.by, s.n)}
+    ${mapBar(s)}
     ${s.oldSt ? `<div class="mapnote"><b>${s.oldSt}</b> คนยังใช้สถานะชุดเก่า —
       แผนผังอ่านให้เป็นขั้นใหม่ให้แล้ว แต่ในชีตยังเป็นคำเดิม
       กด <b>↻ สถานะชุดเก่า</b> เหนือตารางเพื่อแปลงจริง</div>` : ""}
@@ -5489,7 +5540,7 @@ function mapAllSheet(){
         <div class="v">${g.noRate + g.noSt}</div>
         <div class="s">ไม่มีเรท ${g.noRate} · ไม่มีสถานะ ${g.noSt}</div></div>
     </div>
-    ${mapBar(g.by, g.n)}
+    ${mapBar(g)}
     <div class="mapgrid">${PROJECTS.map(p => {
       const rows = COORD[p] || [];
       const s = mapStats(rows);
@@ -5497,7 +5548,7 @@ function mapAllSheet(){
       return `<div class="mapcard${p === PROJ ? " on" : ""}">
         <h4>${esc(p)}${(projMeta(p) || {}).done ? `<span class="done">ปิดงานแล้ว</span>` : ""}</h4>
         <div class="sub">${s.n} คน · ${s.clips} คลิป · KOL ${s.kol} / KOC ${s.koc}</div>
-        ${s.n ? mapBar(s.by, s.n) : `<div style="font-size:.8rem;color:var(--dim)">ยังไม่มีใคร</div>`}
+        ${s.n ? mapBar(s, true) : `<div style="font-size:.8rem;color:var(--dim)">ยังไม่มีใคร</div>`}
         <div class="rows">
           <div><span>เรทรวม</span><b>${mBaht(s.rate)}</b></div>
           <div><span>บริษัทจ่ายจริง</span><b>${mBaht(s.co)}</b></div>
@@ -5531,17 +5582,21 @@ function mapGapSheet(proj){
         !guideForSku(r.sku, 0) && !CMDLINKS.guide },
     { th:"ไม่มีสถานะ", why:"ไม่รู้ว่าคนนี้เดินไปถึงไหนแล้ว ตกจากทุกแถบสรุป",
       fix:"/status", test:r => !r.status },
-  ].map(g => Object.assign({}, g, { list: rows.filter(g.test) }));
+  // คนที่ส่งเรื่องจ่ายแล้วตัดออกทุกกลุ่ม — จบงานไปแล้ว ไล่เก็บข้อมูลย้อนหลังไม่มีประโยชน์
+  ].map(g => Object.assign({}, g, { list: rows.filter(r => !mapDone(r) && g.test(r)) }));
 
+  const closed = rows.filter(mapDone).length;
+  const open = rows.length - closed;
   const total = rows.filter(r => mapFlags(r).length).length;
   return `<div class="mapsum">
       <div class="mapstat${total ? " warn" : ""}"><div class="k">คนที่ข้อมูลไม่ครบ</div>
-        <div class="v">${total}<span style="font-size:.6em;color:var(--dim)">/${rows.length}</span></div>
-        <div class="s">${total ? "กดที่ชื่อเพื่อเปิด Command แล้วเติมตรงนั้น" : "ครบทุกคน"}</div></div>
+        <div class="v">${total}<span style="font-size:.6em;color:var(--dim)">/${open}</span></div>
+        <div class="s">${total ? "กดที่ชื่อเพื่อเปิด Command แล้วเติมตรงนั้น" : "ครบทุกคนที่ยังไม่ปิดงาน"}${
+          closed ? `<br>ไม่นับ ${closed} คนที่ส่งเรื่องจ่ายแล้ว` : ""}</div></div>
     </div>` +
     (groups.every(g => !g.list.length)
       ? `<div class="mapgap ok"><h4><span class="n">✓</span>ข้อมูลครบทุกช่องของทุกคน</h4>
-         <div class="why">ไม่มีอะไรค้างในโปรเจกต์นี้</div></div>`
+         <div class="why">${closed ? `${closed} คนที่ส่งเรื่องจ่ายแล้วไม่ถูกนับ · ` : ""}ไม่มีอะไรค้างในโปรเจกต์นี้</div></div>`
       : groups.filter(g => g.list.length).map(g => `<div class="mapgap">
           <h4><span class="n">${g.list.length}</span>${esc(g.th)}</h4>
           <div class="why">${esc(g.why)} — แก้ทีเดียวหลายคนด้วย <code>${esc(g.fix)}</code></div>
