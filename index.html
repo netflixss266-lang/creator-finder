@@ -762,6 +762,8 @@ tr.dropover td{border-top:2px solid var(--accent)}
    เส้นเชื่อมวาดด้วยเส้นขอบ ไม่ใช่ SVG จะได้ยืดหดตามตัวอักษรและจอโดยไม่ต้องคำนวณพิกัด */
 .maphead{flex-wrap:wrap}
 .maphead .tabs{margin-bottom:0;flex:1 1 auto;min-width:220px}
+/* ตัวกรองกลุ่ม — แคบกว่าแท็บโปรเจกต์ เพราะมีแค่สามปุ่มและไม่ควรแย่งที่ */
+.maphead .mapkind{flex:0 0 auto;min-width:0}
 .mapmodes{display:flex;gap:6px;flex:none}
 .mapmodes button{background:var(--surface2);border:1px solid var(--line);color:var(--mute);
   border-radius:999px;padding:6px 14px;font-family:inherit;font-size:.82rem;font-weight:600;
@@ -924,6 +926,9 @@ body.mapdrag [data-drop]{border-radius:8px;transition:background .1s}
     scrollbar-width:none;padding-bottom:2px}
   .maphead .tabs::-webkit-scrollbar,.mapmodes::-webkit-scrollbar{display:none}
   .maphead .tabs button,.mapmodes button{flex:none;white-space:nowrap}
+  /* กลุ่มกับมุมมองแชร์บรรทัดเดียวกัน ไม่งั้นหัวเรื่องกิน 4 บรรทัดเกือบหนึ่งในสามของจอ */
+  .maphead .mapkind{flex:0 0 auto;margin-right:8px}
+  .mapmodes{flex:1 1 auto;min-width:0}
   .overlay.full .maphead{padding:12px 14px}
   .overlay.full .maphead h2{font-size:1.2rem}
 }
@@ -1760,6 +1765,8 @@ tr.subrow td.w-status select{width:14.6em}
     <div class="modal-head maphead">
       <h2 id="mapTitle">แผนผังภาพรวม</h2>
       <div class="tabs sub" id="mapTabs" role="tablist"></div>
+      <!-- KOL กับ KOC เดินคนละกระบวนการแล้ว (11 บล็อก vs 15) ดูรวมกันบางทีก็ไม่ตอบอะไร -->
+      <div class="tabs sub mapkind" id="mapKind" role="tablist"></div>
       <div class="mapmodes" id="mapModes" role="tablist"></div>
       <button class="x" id="closeMap" aria-label="ปิด">✕</button>
     </div>
@@ -3048,6 +3055,8 @@ async function syncCoord(manual){
   const failed = [];
   NEED_FORCE = [];
   for (const p of PROJECTS){
+    // ต้องเป็นแถวทั้งหมดของโปรเจกต์เสมอ — สคริปต์เขียนทับทั้งแท็บ
+    // ส่งไปแค่บางกลุ่มเมื่อไหร่ อีกกลุ่มหายจากชีตทันที
     const rows = COORD[p] || [];
     // โปรเจกต์ที่ว่างต้องส่งขึ้นไปด้วย ถ้าเมื่อตอนโหลดมันเคยมีคน = มีการลบเกิดขึ้น
     // แต่ถ้าว่างมาตั้งแต่แรกก็ไม่ต้องยุ่ง กันกรณีโหลดชีตไม่สำเร็จแล้วเผลอล้างทิ้ง
@@ -5355,7 +5364,11 @@ function mapFlags(r){
 
 let MAP_PROJ = null;             // null = แผ่นรวมทุกโปรเจกต์
 let MAP_MODE = "flow";
+let MAP_KIND = "all";            // all | KOL | KOC — ใช้กับทุกแผ่นและทุกมุมมอง
 const MAP_MODES = [["flow","ขั้นตอนงาน"],["gap","ข้อมูลที่ยังขาด"],["money","เงิน"]];
+// ทุกแผ่นอ่านแถวผ่านตัวนี้ตัวเดียว ตัวกรองกลุ่มจะได้มีผลเหมือนกันหมดโดยไม่ต้องไล่ใส่ทีละที่
+const mapRows = proj => (COORD[proj] || [])
+  .filter(r => MAP_KIND === "all" || kindOf(r) === MAP_KIND);
 
 function openMap(proj){
   loadCmdLinks(); loadSkuGuide();
@@ -5368,7 +5381,12 @@ function renderMap(){
   $("#mapTabs").innerHTML = [["", "ทุกโปรเจกต์"]].concat(PROJECTS.map(p => [p, p]))
     .map(([id, label]) => `<button role="tab" data-mp="${esc(id)}"
       aria-selected="${(MAP_PROJ || "") === id}">${esc(label)}${
-      id ? `<span class="n">${(COORD[id] || []).length}</span>` : ""}</button>`).join("");
+      id ? `<span class="n">${mapRows(id).length}</span>` : ""}</button>`).join("");
+  // นับจากขอบเขตที่กำลังดูอยู่ — แผ่นรวมนับทุกโปรเจกต์ แผ่นเดียวนับเฉพาะโปรเจกต์นั้น
+  const scope = MAP_PROJ ? (COORD[MAP_PROJ] || []) : PROJECTS.flatMap(p => COORD[p] || []);
+  $("#mapKind").innerHTML = [["all","ทั้งหมด"],["KOL","KOL"],["KOC","KOC"]].map(([id, label]) =>
+    `<button role="tab" data-mk="${id}" aria-selected="${MAP_KIND === id}">${label}<span class="n">${
+      id === "all" ? scope.length : scope.filter(r => kindOf(r) === id).length}</span></button>`).join("");
   // มุมมองใช้ได้เฉพาะแผ่นรายโปรเจกต์ — แผ่นรวมมีหน้าตาเดียว ปุ่มที่กดแล้วไม่เกิดอะไรอย่าโชว์
   $("#mapModes").innerHTML = (MAP_PROJ ? MAP_MODES.map(([id, label]) =>
     `<button role="tab" data-mm="${id}" aria-selected="${MAP_MODE === id}">${label}</button>`) : [])
@@ -5386,6 +5404,9 @@ function renderMap(){
   });
   document.querySelectorAll("#mapModes [data-mm]").forEach(b => b.onclick = () => {
     MAP_MODE = b.dataset.mm; renderMap();
+  });
+  document.querySelectorAll("#mapKind [data-mk]").forEach(b => b.onclick = () => {
+    MAP_KIND = b.dataset.mk; renderMap();
   });
   document.querySelectorAll("#mapModes [data-totable]").forEach(b => b.onclick = () => openTable(MAP_PROJ));
   // กดที่ชื่อคน = เปิด Command ของคนนั้นทับแผนผัง (ลิ้นชักอยู่ชั้นบนกว่า)
@@ -5549,8 +5570,8 @@ function mapStatusMenu(proj, handle, host){
 
 // ─── แผ่นหลัก: ขั้นตอนงาน ───
 function mapFlowSheet(proj){
-  const rows = COORD[proj] || [];
-  if (!rows.length) return `<div class="mapempty">${esc(proj)} ยังไม่มีใครในโปรเจกต์นี้</div>`;
+  const rows = mapRows(proj);
+  if (!rows.length) return `<div class="mapempty">${esc(proj)} ยังไม่มี${MAP_KIND === "all" ? "ใคร" : MAP_KIND} ในโปรเจกต์นี้</div>`;
   const s = mapStats(rows);
   const flagged = rows.filter(r => mapFlags(r).length).length;
 
@@ -5591,8 +5612,9 @@ function mapFlowSheet(proj){
   };
 
   return `<div class="mapsum">
-      <div class="mapstat"><div class="k">ครีเอเตอร์</div><div class="v">${s.n}</div>
-        <div class="s">KOL ${s.kol} · KOC ${s.koc} · ${s.clips} คลิป</div></div>
+      <div class="mapstat"><div class="k">ครีเอเตอร์${
+        MAP_KIND === "all" ? "" : ` · เฉพาะ ${MAP_KIND}`}</div><div class="v">${s.n}</div>
+        <div class="s">${MAP_KIND === "all" ? `KOL ${s.kol} · KOC ${s.koc} · ` : ""}${s.clips} คลิป</div></div>
       <div class="mapstat"><div class="k">เรทรวม</div><div class="v">${mBaht(s.rate)}</div>
         <div class="s">บริษัทจ่ายจริง ${mBaht(s.co)}</div></div>
       <div class="mapstat"><div class="k">ปิดงานแล้ว</div><div class="v">${s.done}<span
@@ -5622,7 +5644,7 @@ function mapFlowSheet(proj){
 
 // ─── แผ่นรวม: เทียบทุกโปรเจกต์ ───
 function mapAllSheet(){
-  const all = PROJECTS.flatMap(p => COORD[p] || []);
+  const all = PROJECTS.flatMap(mapRows);
   if (!all.length) return `<div class="mapempty">ยังไม่มีข้อมูล — โหลดจากชีตก่อน</div>`;
   const g = mapStats(all);
   return `<div class="mapsum">
@@ -5638,12 +5660,13 @@ function mapAllSheet(){
     </div>
     ${mapBar(g)}
     <div class="mapgrid">${PROJECTS.map(p => {
-      const rows = COORD[p] || [];
+      const rows = mapRows(p);
       const s = mapStats(rows);
       const flagged = rows.filter(r => mapFlags(r).length).length;
       return `<div class="mapcard${p === PROJ ? " on" : ""}">
         <h4>${esc(p)}${(projMeta(p) || {}).done ? `<span class="done">ปิดงานแล้ว</span>` : ""}</h4>
-        <div class="sub">${s.n} คน · ${s.clips} คลิป · KOL ${s.kol} / KOC ${s.koc}</div>
+        <div class="sub">${s.n} คน · ${s.clips} คลิป${
+          MAP_KIND === "all" ? ` · KOL ${s.kol} / KOC ${s.koc}` : ` · เฉพาะ ${MAP_KIND}`}</div>
         ${s.n ? mapBar(s, true) : `<div style="font-size:.8rem;color:var(--dim)">ยังไม่มีใคร</div>`}
         <div class="rows">
           <div><span>เรทรวม</span><b>${mBaht(s.rate)}</b></div>
@@ -5662,8 +5685,8 @@ function mapAllSheet(){
 // ─── แผ่น: ข้อมูลที่ยังขาด ───
 // จัดกลุ่มตาม "อะไรที่ขาด" ไม่ใช่ตามคน เพราะงานที่ต้องทำคือไล่เก็บทีละชนิด
 function mapGapSheet(proj){
-  const rows = COORD[proj] || [];
-  if (!rows.length) return `<div class="mapempty">${esc(proj)} ยังไม่มีใครในโปรเจกต์นี้</div>`;
+  const rows = mapRows(proj);
+  if (!rows.length) return `<div class="mapempty">${esc(proj)} ยังไม่มี${MAP_KIND === "all" ? "ใคร" : MAP_KIND} ในโปรเจกต์นี้</div>`;
   const groups = [
     { th:"ไม่มีเรท (KOL)", why:"ยังตกลงราคาไม่ได้ หรือชีตยังไม่ได้กรอก — คิดยอดจ่ายไม่ได้",
       fix:"/rate", test:r => kindOf(r) !== "KOC" && r.rate == null },
@@ -5704,8 +5727,8 @@ function mapGapSheet(proj){
 
 // ─── แผ่น: เงิน ───
 function mapMoneySheet(proj){
-  const rows = COORD[proj] || [];
-  if (!rows.length) return `<div class="mapempty">${esc(proj)} ยังไม่มีใครในโปรเจกต์นี้</div>`;
+  const rows = mapRows(proj);
+  if (!rows.length) return `<div class="mapempty">${esc(proj)} ยังไม่มี${MAP_KIND === "all" ? "ใคร" : MAP_KIND} ในโปรเจกต์นี้</div>`;
   const s = mapStats(rows);
   const byPay = PAYTYPES.filter(t => t.id).map(t => ({ t, list: rows.filter(r => r.paytype === t.id) }))
     .concat([{ t:{ id:"", label:"ยังไม่เลือกรูปแบบภาษี" }, list: rows.filter(r => !r.paytype) }])
@@ -5722,8 +5745,18 @@ function mapMoneySheet(proj){
       <div class="mapstat"><div class="k">เฉลี่ยต่อคลิป</div>
         <div class="v">${s.clips ? mBaht(s.rate / s.clips) : "—"}</div>
         <div class="s">คิดจากเรทที่ตกลงไว้</div></div>
-      <div class="mapstat${s.noPay ? " warn" : ""}"><div class="k">ยังคิดยอดไม่ได้</div>
-        <div class="v">${s.noPay}</div><div class="s">ยังไม่ได้เลือกรูปแบบภาษี</div></div>
+      ${(() => {
+        // KOC ไม่เข้าระบบหักภาษี — ช่องที่ค้างของเขาคือ Commission ไม่ใช่รูปแบบภาษี
+        const koc = rows.filter(r => kindOf(r) === "KOC");
+        const noComm = koc.filter(r => !String(r.commission || "").trim()).length;
+        const noPayKol = rows.filter(r => kindOf(r) !== "KOC" && !r.paytype).length;
+        return MAP_KIND === "KOC"
+          ? `<div class="mapstat${noComm ? " warn" : ""}"><div class="k">ยังไม่มี Commission</div>
+             <div class="v">${noComm}</div><div class="s">ข้อความคอนเฟิร์มของ KOC ใช้ช่องนี้</div></div>`
+          : `<div class="mapstat${noPayKol ? " warn" : ""}"><div class="k">ยังคิดยอดไม่ได้</div>
+             <div class="v">${noPayKol}</div><div class="s">KOL ที่ยังไม่ได้เลือกรูปแบบภาษี${
+               noComm ? `<br>KOC ยังไม่มี Commission ${noComm}` : ""}</div></div>`;
+      })()}
     </div>
     <div class="mapmind">
       <div class="maproot">
@@ -7433,7 +7466,7 @@ function parseCmdText(text){
         /^\s*(?:everyone|all)\b/i.test(line)){
       flushUnused();
       const p = (findProjects(line)[0] || {}).proj || PROJ;
-      const rows = COORD[p] || [];
+      const rows = COORD[p] || [];        // "ทุกคน" คือทุกคนจริงๆ ตัวกรองในแผนผังไม่เกี่ยว
       if (!rows.length){ out.push({ line, ok:false, changes:{}, why:`${p} ยังไม่มีใครเลย` }); continue; }
       const all = rows.map(r => ({ h: normId(r.handle), entries:[{ proj:p, row:r }] }));
       const got = parseQuickLine(line, all);
