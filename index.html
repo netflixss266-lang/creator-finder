@@ -586,6 +586,7 @@ tr.subrow .clipsku{font-size:.78rem;color:var(--mute)}
 .ctable td.w-status select{width:11.8em}
 .ctable td.w-brief{white-space:nowrap}
 .ctable th.w-del,.ctable td.w-del{width:38px;text-align:center}
+.ctable th.w-comm,.ctable td.w-comm{min-width:8em}
 /* จอแคบ: ช่องชื่อตรึงอยู่ทางซ้าย ถ้ายังกว้าง 21em จะเหลือที่ให้คอลัมน์อื่นไม่ถึงนิ้ว
    ยอมให้ชื่อยาวๆ ถูกตัดดีกว่ามีแต่ชื่อกับขอบจอ — กดที่ชื่อยังเห็นเต็มในช่องแก้
    ปุ่ม ↗ ตัดออกด้วย ลิงก์ TikTok มีอยู่แล้วในลิ้นชักที่กด ⤢ */
@@ -1228,6 +1229,9 @@ main{padding:22px 24px;overflow-y:auto;max-height:calc(100vh - 62px)}
 .cmdblk > header .mark + button{margin-left:9px}
 .cmdblk.sent > header .mark{border-color:var(--hi);color:var(--hi)}
 .cmdblk > header .no i{font-style:normal;font-size:.78em;opacity:.75}
+/* บล็อกที่ใช้เฉพาะกลุ่มเดียว — ในหน้าแก้ข้อความเห็นทั้ง 2 ใบพร้อมกัน ต้องบอกว่าใบไหนของใคร */
+.cmdblk > header .kindtag{flex:none;font-size:.7rem;font-weight:700;color:var(--accent);
+  background:rgba(var(--accent-rgb),.14);border-radius:999px;padding:2px 9px}
 .cmdblk.edited{border-color:rgba(var(--accent-rgb),.4)}
 .cmdblk.edited > header::before{content:"แก้แล้ว";font-size:.8rem;color:var(--accent);
   border:1px solid rgba(var(--accent-rgb),.35);border-radius:4px;padding:1px 6px}
@@ -3524,6 +3528,13 @@ function renderDetail(){
           `<option value="${p.id}"${p.id === (r.paytype||"") ? " selected" : ""}>${
             esc(p.label)}</option>`).join("")}</select></div>
 
+      <!-- KOC ตกลงกันเป็นส่วนแบ่ง ไม่ใช่เรทเหมา — ข้อความคอนเฟิร์มของ KOC อ่านจากช่องนี้ -->
+      <div class="dfield wide2"><label>Commission${
+        kindOf(r) === "KOC" ? " — ใช้ในข้อความคอนเฟิร์มของ KOC" : " (ใช้กับ KOC)"}</label>
+        <input data-d="commission" value="${esc(r.commission || "")}"
+               placeholder="${kindOf(r) === "KOC" ? "เช่น 10%  ·  12% + ค่าตัว 2,000" : "ปล่อยว่างได้ถ้าเป็น KOL"}">
+        <div class="hint">เก็บในเครื่องนี้เท่านั้น — ชีตยังไม่มีคอลัมน์นี้ จึงไม่ขึ้นชีตตอนซิงก์</div></div>
+
       <div class="dfield wide2"><label>${cost ? "บริษัทจ่ายจริง" : "จ่ายจริง"} — คิดให้จากเรท × รูปแบบภาษี</label>
         <div class="ro">${auto == null ? `<span class="dash">ยังคิดไม่ได้</span>`
           : cost ? baht(cost) : baht(auto)}${
@@ -3914,10 +3925,11 @@ function renderCoord(){
       <th style="text-align:right">จ่ายจริง</th>
       <th>SKU</th><th class="opt">โพสต์</th><th class="opt">กำหนดส่ง</th>
       <th class="opt">บรีฟ</th><th class="opt">โน้ต</th>
+      <th class="opt" title="ใช้กับ KOC — ยังไม่ขึ้นชีต">Commission</th>
       <th class="w-del"></th>
     </tr></thead><tbody>${rows.length
       ? rows.map(r => coordRow(r, all.indexOf(r))).join("")
-      : `<tr><td colspan="15" style="text-align:center;color:var(--dim);padding:22px">
+      : `<tr><td colspan="16" style="text-align:center;color:var(--dim);padding:22px">
           ไม่มีแถวที่ตรงกับตัวกรอง —
           <button class="cmdbtn" id="clearAllF">ล้างตัวกรองทั้งหมด</button></td></tr>`
     }</tbody></table></div>`;
@@ -4140,7 +4152,8 @@ function subRows(r, i){
       statusOptions(c.status)}</select></td>
     <td></td><td></td><td></td>
     <td class="clipsku">${esc(c.sku)}</td>
-    <td class="opt"></td><td class="opt"></td><td class="opt"></td><td class="opt"></td><td></td>
+    <td class="opt"></td><td class="opt"></td><td class="opt"></td><td class="opt"></td>
+    <td class="opt"></td><td></td>
   </tr>`).join("");
 }
 
@@ -4208,6 +4221,9 @@ function coordRow(r, i){
         class="go" title="เปิดบรีฟ">↗</a>` : ""}</td>
     <td class="w-note opt"><input data-i="${i}" data-f="note" value="${esc(r.note || "")}"
         placeholder="โน้ต"></td>
+    <td class="w-comm opt"><input data-i="${i}" data-f="commission"
+        value="${esc(r.commission || "")}"
+        placeholder="${(r.kind || "").toUpperCase() === "KOC" ? "เช่น 10%" : "-"}"></td>
     <td class="w-del"><button class="delrow" data-del="${i}"
         title="ลบ ${esc(r.handle)} ออกจาก ${esc(PROJ)}">🗑</button></td>
   </tr>${subRows(r, i)}`;
@@ -4219,7 +4235,8 @@ function coordRow(r, i){
 const CMD_BLOCKS = [
   // ไม่แยกรายชุด — ข้อความนี้ถือเรทรวมของทั้งดีล แยกเมื่อไหร่จะกลายเป็นแจ้งเรทเต็มสองรอบ
   // ครีเอเตอร์ได้กี่ SKU ก็ขึ้นครบในบรรทัดเดียว จำนวน video เดินตามช่องในตาราง
-  { t:"1. ขอคอนเฟิร์มการร่วมงาน", b:
+  // kind = โชว์เฉพาะกลุ่มนี้ — KOC ตกลงกันด้วย Commission ไม่ใช่เรทเหมา ใช้ข้อความคนละใบ
+  { t:"1. ขอคอนเฟิร์มการร่วมงาน", kind:"KOL", b:
 `สวัสดีครับ🙏😊 แอดมินจาก Alta Global Commerce นะครับ ขออนุญาต Confirm✅ การร่วมงาน
 
 สำหรับแบรนด์: Red Chamber ({{sku}})
@@ -4290,18 +4307,21 @@ const CMD_BLOCKS = [
 
   { t:"10. Feedback Draft #1", clip:true, b:
 `แอดมินขออนุญาตส่ง Feedback Draft#1 นะครับ😀
+📦สำหรับ: {{sku}}
 📌📌
 
 {{feedback1}}` },
 
   { t:"11. Feedback Draft #2", clip:true, b:
 `แอดมินขออนุญาตส่ง Feedback Draft#2 นะครับ😀
+📦สำหรับ: {{sku}}
 📌📌
 
 {{feedback2}}` },
 
   { t:"12. Feedback Draft #3", clip:true, b:
 `แอดมินขออนุญาตส่ง Feedback Draft#3 นะครับ😀
+📦สำหรับ: {{sku}}
 📌📌
 
 {{feedback3}}` },
@@ -4309,6 +4329,7 @@ const CMD_BLOCKS = [
   // clip:true = ครีเอเตอร์ทำหลายคลิปได้บล็อกนี้คนละชุดต่อคลิป ({{cart}} ของคลิป 2 = {{cart2}})
   { t:"13. Hashtag + Link ตะกร้า", clip:true, b:
 `แอดมินขออนุญาตอัปเดต Hashtag และ Linkตะกร้า สำหรับโพสต์นะครับ🛒
+📦สำหรับ: {{sku}}
 
 Link ตะกร้า:📦🛒
 {{cart}}
@@ -4349,6 +4370,18 @@ Hashtag:📱
 💵ยอดที่จะได้รับ: {{net}} บาท ({{paytype}})
 
 📢เซ็นเรียบร้อยแล้วรบกวนส่งกลับให้แอดมินด้วยนะค้าบ🙏` },
+
+  // ── ต่อท้ายลิสต์ ไม่แทรกกลาง ── เลขบล็อกคือคีย์ที่ใช้เก็บของที่แก้ไว้ (CMDEDIT/CMDOWN)
+  // แทรกกลางเมื่อไหร่ ข้อความที่ทุกคนแก้ไว้จะเลื่อนไปผิดบล็อกทั้งแถบ
+  // ord บอกว่าให้ไปโผล่ตรงไหนตอนแสดงผล — อันนี้ยืนแทนบล็อก 1 ของฝั่ง KOC
+  { t:"1. ขอคอนเฟิร์มการร่วมงาน (KOC)", kind:"KOC", ord:0, b:
+`สวัสดีครับ🙏😊 แอดมินจาก Alta Global Commerce นะครับ ขออนุญาต Confirm✅ การร่วมงาน
+
+สำหรับแบรนด์: Red Chamber ({{sku}})
+โดยรูปแบบค่าตอบแทน {{videos}} video + gencode 60 days + ติดตะกร้า
+💰Commission = {{commission}}
+
+หากครีเอเตอร์คอนเฟิร์มการร่วมงาน กรุณาตอบกลับ “Confirm” เพื่อร่วมงานครับ` },
 ];
 
 // ─── ต้นแบบรุ่นก่อนหน้า ───
@@ -4356,6 +4389,39 @@ Hashtag:📱
 // มันคือร่องรอยจากตอนกดแก้แล้วกดกลับ พอเราปรับต้นแบบทีหลังคนพวกนั้นจะไม่ได้ของใหม่
 // เทียบแบบตรงตัวอักษรเท่านั้น ใครแก้ไปแม้แต่ช่องว่างเดียวก็ไม่โดนแตะ
 const LEGACY_BODIES = {
+  9:  [{ t:"10. Feedback Draft #1", b:
+`แอดมินขออนุญาตส่ง Feedback Draft#1 นะครับ😀
+📌📌
+
+{{feedback1}}` }],
+  10: [{ t:"11. Feedback Draft #2", b:
+`แอดมินขออนุญาตส่ง Feedback Draft#2 นะครับ😀
+📌📌
+
+{{feedback2}}` }],
+  11: [{ t:"12. Feedback Draft #3", b:
+`แอดมินขออนุญาตส่ง Feedback Draft#3 นะครับ😀
+📌📌
+
+{{feedback3}}` }],
+  12: [{ t:"13. Hashtag + Link ตะกร้า", b:
+`แอดมินขออนุญาตอัปเดต Hashtag และ Linkตะกร้า สำหรับโพสต์นะครับ🛒
+
+Link ตะกร้า:📦🛒
+{{cart}}
+
+💬FREE CAPTION💬
+
+Hashtag:📱
+{{hashtag}}
+
+✅สามารถลงคลิปในวันนี้ได้เลยนะครับ เวลาตามครีเอเตอร์สะดวกเลยค้าบบ😀
+💬รบกวนแจ้งเวลาลงคลิปกับแอดมินด้วยนะค้าบบ
+
+📌📌รบกวนครีเอเตอร์ **แคปภาพหน้าจอตะกร้าและแฮชแท็ก** ก่อนโพสต์เพื่อให้แอดมินตรวจสอบก่อนโพสต์ด้วยนะค้าบ😊
+📢อย่าลืมGencode 60 วันให้แอดมินด้วยนะค้าบบ🙏😊
+
+ขอบคุณครับ🙏` }],
   0: [{ t:"1. ขอคอนเฟิร์มการร่วมงาน", b:
 `สวัสดีครับ🙏😊 แอดมินจาก Alta Global Commerce นะครับ ขออนุญาต Confirm✅ การร่วมงาน
 
@@ -4610,6 +4676,8 @@ function cmdValues(r){
     // ทั้งที่คนทำ 2 คลิปก็ได้ข้อความเดียวกัน แล้วเรทที่แจ้งไปก็เหมือนเป็นของคลิปเดียว
     // ช่องว่างในตารางให้ถือตามจำนวนชุดที่คำนวณได้ (ได้ 2 SKU = อย่างน้อย 2 คลิป)
     videos: String(Number(r.videos) || clipCount(r)),
+    // KOC ตกลงกันเป็นส่วนแบ่ง ไม่ใช่เรทเหมา — เก็บเป็นข้อความอิสระ ("10%" · "12% + ค่าตัว 2,000")
+    commission: r.commission || "",
     // บล็อก 5 ส่ง {{brief}} เป็นคู่มือถ่ายทำ — ชีตไม่ได้กรอกบรีฟไว้ก็ตกมาใช้คู่มือของ SKU
     // ถ้าชีตกรอกไว้ถือว่าคนตั้งใจใส่ ของในชีตชนะเสมอ
     brief: r.brief || guide,
@@ -4630,7 +4698,7 @@ function cmdValues(r){
 const CMD_GAP = Object.assign(
   Object.fromEntries(DOCS.map(d => [d.k, "ยังไม่มี" + d.th])),
   { sku:"ยังไม่มี SKU", rate:"ยังไม่มีเรท", paytype:"ยังไม่เลือกรูปแบบภาษี",
-    videos:"ยังไม่มีจำนวนวิดีโอ",
+    videos:"ยังไม่มีจำนวนวิดีโอ", commission:"ยังไม่มี Commission",
     net:"คิดไม่ได้ ต้องมีเรท+รูปแบบภาษี", brief:"ยังไม่มีลิงก์บรีฟ",
     feedback:"ยังไม่มีฟีดแบค", feedback1:"ยังไม่มีฟีดแบค Draft 1",
     feedback2:"ยังไม่มีฟีดแบค Draft 2", feedback3:"ยังไม่มีฟีดแบค Draft 3",
@@ -4748,7 +4816,7 @@ function saveCmdEdit(){
 const cmdBlocks = () => CMD_BLOCKS.map((b, i) =>
   ({ t: (CMDEDIT[i] && CMDEDIT[i].t) || b.t,
      b: (CMDEDIT[i] && CMDEDIT[i].b != null) ? CMDEDIT[i].b : b.b,
-     clip: !!b.clip, edited: !!CMDEDIT[i] }));
+     clip: !!b.clip, kind: b.kind || "", ord: b.ord, edited: !!CMDEDIT[i] }));
 
 // ข้อความจริงของครีเอเตอร์คนหนึ่ง — ทับต้นแบบด้วยของตัวเองถ้ามี
 function cmdBlocksFor(proj, handle){
@@ -4757,9 +4825,13 @@ function cmdBlocksFor(proj, handle){
     const o = own[i];
     return { t: (o && o.t) || b.t,
              b: (o && o.b != null) ? o.b : b.b,
-             clip: b.clip, edited: b.edited, mine: !!o };
+             clip: b.clip, kind: b.kind, ord: b.ord, edited: b.edited, mine: !!o };
   });
 }
+// KOL / KOC ใช้ข้อความบางบล็อกคนละใบ — ไม่ระบุกลุ่มถือว่าใช้ได้ทั้งคู่
+// แถวที่ยังไม่ได้เลือกกลุ่มถือเป็น KOL เพราะเป็นค่าที่ทีมใช้เป็นหลัก
+const kindOf = r => (r && (r.kind || "").toUpperCase() === "KOC") ? "KOC" : "KOL";
+const blockForKind = (b, k) => !b.kind || b.kind === k;
 
 // เขียนทับเฉพาะคนนี้ — เหมือนต้นแบบเป๊ะเมื่อไหร่ก็ถอดออก ไม่เก็บของซ้ำ
 function setCmdOwnBlock(proj, handle, i, key, val){
@@ -4809,6 +4881,7 @@ function renderCmdEditor(proj, handle){
      </div>` +
     list.map((b, i) => `<div class="cmdblk${(mine ? b.mine : b.edited) ? " edited" : ""}">
       <header><span class="no">${i+1}</span>
+        ${b.kind ? `<span class="kindtag">เฉพาะ ${esc(b.kind)}</span>` : ""}
         <input class="cmdt" data-i="${i}" value="${esc(b.t)}">
         ${(mine ? b.mine : b.edited)
           ? `<button data-reset="${i}" title="${mine ? "คืนบล็อกนี้ให้เหมือนต้นแบบ" : "คืนค่าบล็อกนี้"}">↺</button>` : ""}
@@ -4922,7 +4995,14 @@ function openCmd(proj, handle){
   // เอกสารในบล็อกนั้นอ่านจากช่องของคลิปนั้นเอง — {{cart}} ของคลิป 2 คือ {{cart2}}
   const blocks = [];
   const clipDocs = new Set();          // เอกสารชนิดไหนบ้างที่ต้องมีชุดของคลิป 2, 3, …
-  cmdBlocksFor(proj, handle).forEach((bl, i) => {
+  // เอาเฉพาะบล็อกของกลุ่มนี้ แล้วเรียงตามที่ควรเห็น (ord ทับลำดับดิบได้)
+  const K = kindOf(r);
+  cmdBlocksFor(proj, handle)
+    .map((bl, i) => Object.assign({}, bl, { i }))
+    .filter(bl => blockForKind(bl, K))
+    .sort((a, b) => (a.ord ?? a.i) - (b.ord ?? b.i))
+    .forEach(bl => {
+    const i = bl.i;
     if (bl.clip) (bl.b.match(/\{\{(\w+)\}\}/g) || [])
       .map(v => v.slice(2, -2)).filter(k => DOC_BY_KEY[k]).forEach(k => clipDocs.add(k));
     // 0 = บล็อกเดียวไม่แยกคลิป · 1..n = ชุดของคลิปที่ n
@@ -4933,6 +5013,9 @@ function openCmd(proj, handle){
         mine: bl.mine, i, clip:n, sent: isSent(proj, handle, i, n) },
       fillBlock(bl.b, vals, n))));
   });
+  // ลำดับที่คนนี้จะได้รับจริง — บล็อกที่แยกชุดนับเป็นขั้นเดียวกัน (5.1 / 5.2)
+  let seq = 0, lastI = -1;
+  blocks.forEach(b => { if (b.i !== lastI){ seq++; lastI = b.i; } b.step = seq; });
   const nSent = blocks.filter(b => b.sent).length;
   const gaps = blocks.reduce((s, b) => s + (b.sent ? 0 : b.missing), 0);
   // ช่องว่างแต่ละชนิด (ไม่นับซ้ำ) — เอาไปทำปุ่มเติมบนหัว
@@ -5016,8 +5099,11 @@ function openCmd(proj, handle){
        </div>
      </div>
      <div class="cmdlist">` +
+    // เลขที่โชว์คือลำดับที่ส่งจริงของคนนี้ ไม่ใช่เลขบล็อกในต้นแบบ
+    // (KOL กับ KOC ใช้บล็อกคนละใบในตำแหน่งเดียวกัน เลขต้นแบบเลยไม่เรียงกัน)
     blocks.map((b, j) => `<div class="cmdblk${b.mine ? " edited" : ""}${b.sent ? " sent" : ""}">
-      <header><span class="no">${b.i + 1}${b.clip ? `<i>.${b.clip}</i>` : ""}</span>${
+      <header><span class="no" title="บล็อกที่ ${b.i + 1} ในต้นแบบ — ใช้กับ /cmd${b.i + 1}"
+        >${b.step}${b.clip ? `<i>.${b.clip}</i>` : ""}</span>${
         esc(b.t.replace(/^\d+\.\s*/, ""))}
         <button class="mark" data-sent="${j}"
           title="${b.sent ? "ยังไม่ได้ส่ง — กดเพื่อเอาเครื่องหมายออก" : "ทำเครื่องหมายว่าส่งบล็อกนี้ให้ " + esc(normId(handle)) + " แล้ว"}"
@@ -7483,6 +7569,7 @@ const SLASH_ROW = [
   { c:"status", f:"status",   th:"สถานะ",         val:"stage", ex:"/status cenakims : รอ Draft 2" },
   { c:"pay",    f:"paytype",  th:"รูปแบบภาษี",    val:"pay",   ex:"/pay cenakims : ชำระ3%" },
   { c:"kind",   f:"kind",     th:"กลุ่ม",         val:"kind",  ex:"/kind cenakims : KOC" },
+  { c:"comm",   f:"commission", th:"Commission (KOC)", ex:"/comm cenakims : 10%" },
   { c:"sku",    f:"sku",      th:"SKU",           ex:"/sku cenakims : Blush - Haelyn (40)" },
   { c:"job",    f:"code",     th:"งาน",           ex:"/job cenakims : B+E" },
   { c:"note",   f:"note",     th:"โน้ต",          ex:"/note cenakims : ทักไลน์แล้ว" },
