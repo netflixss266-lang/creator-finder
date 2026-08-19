@@ -1237,6 +1237,20 @@ main{padding:22px 24px;overflow-y:auto;max-height:calc(100vh - 62px)}
 /* บล็อกที่ใช้เฉพาะกลุ่มเดียว — ในหน้าแก้ข้อความเห็นทั้ง 2 ใบพร้อมกัน ต้องบอกว่าใบไหนของใคร */
 .cmdblk > header .kindtag{flex:none;font-size:.7rem;font-weight:700;color:var(--accent);
   background:rgba(var(--accent-rgb),.14);border-radius:999px;padding:2px 9px}
+.cmdblk > header .kindtag.add{color:var(--hi);background:rgba(var(--hi-rgb),.14)}
+.cmdblk > header .kindtag.off{color:var(--dim);background:var(--surface2)}
+/* บล็อกที่ไม่ใช้ในโปรเจกต์นี้ — ยังเห็นอยู่เพื่อกดคืนได้ แต่ไม่ต้องดึงสายตา */
+.cmdblk.hiddenblk{opacity:.5;border-style:dashed}
+.cmdblk.hiddenblk:hover{opacity:1}
+.addhere{display:block;width:100%;background:none;border:0;border-top:1px dashed var(--line);
+  color:var(--dim);font-family:inherit;font-size:.78rem;padding:.55em;font-weight:600}
+.addhere:hover{color:var(--hi);background:rgba(var(--hi-rgb),.08)}
+/* ช่องแบรนด์ในหน้าจัดการโปรเจกต์ — อยู่บรรทัดล่างของแต่ละแถว */
+.prow{flex-wrap:wrap}
+.pbrand{flex:1 1 100%;display:flex;align-items:center;gap:8px;font-size:.78rem;
+  color:var(--dim);margin-top:6px}
+.pbrand input{flex:1;min-width:8em;font-size:.82rem;padding:5px 9px}
+.prow.add input{min-width:9em}
 .cmdblk.edited{border-color:rgba(var(--accent-rgb),.4)}
 .cmdblk.edited > header::before{content:"แก้แล้ว";font-size:.8rem;color:var(--accent);
   border:1px solid rgba(var(--accent-rgb),.35);border-radius:4px;padding:1px 6px}
@@ -2805,14 +2819,22 @@ const LS_COORD = "cf_coord_v1";       // เก็บเฉพาะที่แ
 const LS_PROJ = "cf_projects_v1";
 const DEFAULT_PROJECTS = ["Red Chamber Phase 1", "Red Chamber Phase 2",
                           "OBSBOT-KOL", "OBSBOT-KOC", "TikTok Live"];
-let PROJ_LIST = DEFAULT_PROJECTS.map(name => ({ name, done: false }));
+// ชื่อแบรนด์เดาจากชื่อโปรเจกต์ได้พอสมควร แต่แก้ได้เสมอ และของใหม่ต้องกรอกเอง
+// ตัดส่วนที่เป็นเฟส/กลุ่มออก: "Red Chamber Phase 2" → "Red Chamber" · "OBSBOT-KOL" → "OBSBOT"
+const guessBrand = name => String(name || "")
+  .replace(/\s*[-–]\s*(KOL|KOC)\s*$/i, "")
+  .replace(/\s+(phase|ph|เฟส)\s*\d+\s*$/i, "")
+  .trim() || String(name || "");
+let PROJ_LIST = DEFAULT_PROJECTS.map(name => ({ name, done:false, brand: guessBrand(name) }));
 let PROJECTS = PROJ_LIST.map(p => p.name);
 
 function loadProjects(){
   try {
     const saved = JSON.parse(localStorage.getItem(LS_PROJ) || "null");
     if (Array.isArray(saved) && saved.length && saved.every(p => p && typeof p.name === "string"))
-      PROJ_LIST = saved.map(p => ({ name: p.name, done: !!p.done }));
+      PROJ_LIST = saved.map(p => ({ name: p.name, done: !!p.done,
+        // ของที่บันทึกไว้ก่อนมีช่องแบรนด์ เดาให้ครั้งแรก แล้วแก้เองได้
+        brand: typeof p.brand === "string" ? p.brand : guessBrand(p.name) }));
   } catch(e){}
   syncProjects();
 }
@@ -2828,6 +2850,42 @@ function syncProjects(){
 const activeProjects = () => PROJ_LIST.filter(p => !p.done).map(p => p.name);
 const doneProjects   = () => PROJ_LIST.filter(p => p.done).map(p => p.name);
 const projMeta = name => PROJ_LIST.find(p => p.name === name);
+// ชื่อแบรนด์ที่ {{brandname}} ใช้ — ไม่มีก็ตกกลับไปที่ชื่อโปรเจกต์ ดีกว่าปล่อยว่างในข้อความที่ส่งจริง
+const brandOf = name => ((projMeta(name) || {}).brand || "").trim() || guessBrand(name);
+
+// ─── เปลี่ยนชื่อโปรเจกต์ ───
+// ชื่อโปรเจกต์เป็นคีย์ของอีกหลายอย่าง: แถวในหน่วยความจำ · คีย์ของที่แก้ค้างไว้ ·
+// Command รายคน · ต้นแบบรายโปรเจกต์ · ตัวนับตอนโหลด
+// ย้ายไม่ครบสักที่เดียว = ของที่แก้ไว้หายเงียบ เลยรวมไว้ที่เดียวและเดินให้ครบทุกรายการ
+function renameProject(from, to){
+  if (!from || !to || from === to) return false;
+  const meta = projMeta(from);
+  if (!meta) return false;
+  meta.name = to;
+  COORD[to] = COORD[from] || [];
+  delete COORD[from];
+  (COORD[to] || []).forEach(r => { r.project = to; });
+  const remap = (obj, fn) => {
+    if (!obj) return;
+    Object.keys(obj).forEach(k => {
+      const nk = fn(k);
+      if (nk === k || nk == null) return;
+      obj[nk] = obj[k];
+      delete obj[k];
+    });
+  };
+  // คีย์แถว "โปรเจกต์|ชื่อ|โค้ด" และ Command รายคน "โปรเจกต์|ชื่อ"
+  const head = k => k.startsWith(from + "|") ? to + k.slice(from.length) : k;
+  remap(EDITS, head);
+  remap(CMDOWN, head);
+  remap(LOADED_COUNT, k => k === from ? to : k);
+  [CMDEDIT, CMDADD, CMDHIDE].forEach(o => remap(o, k => k === from ? to : k));
+  if (FORCE_PROJ.has(from)){ FORCE_PROJ.delete(from); FORCE_PROJ.add(to); }
+  if (PROJ === from) PROJ = to;
+  if (MAP_PROJ === from) MAP_PROJ = to;
+  saveEdits(); saveCmdOwn(); saveCmdEdit(); saveProjects();
+  return true;
+}
 
 // แท็บที่ Apps Script ยอมรับ — ของใหม่ที่เพิ่มเองจะยังซิงก์ไม่ได้จนกว่าจะไปเติมในสคริปต์
 // เตือนตรงจุดดีกว่าปล่อยให้กดซิงก์แล้วขึ้น error ที่อ่านไม่ออก
@@ -3279,19 +3337,28 @@ function openProjManager(){
       <span class="nm">${esc(p.name)}${needsScript(p.name)
         ? `<span class="warnmark" title="ยังไม่มีในสคริปต์">!</span>` : ""}</span>
       <span class="cnt">${(COORD[p.name] || []).length} คน</span>
+      <button class="cmdbtn" data-ren="${i}" title="เปลี่ยนชื่อโปรเจกต์">✎ ชื่อ</button>
       <button class="cmdbtn" data-toggle="${i}">${p.done ? "กลับมาทำต่อ" : "ปิดงาน"}</button>
       <button class="cmdbtn" data-up="${i}"${i ? "" : " disabled"}>↑</button>
       <button class="cmdbtn del" data-drop="${i}">ลบ</button>
+      <label class="pbrand">แบรนด์ <input data-brand="${i}" value="${esc(p.brand || "")}"
+        placeholder="ชื่อแบรนด์ที่ใช้ใน Command"></label>
     </div>`).join("") +
     `<div class="prow add">
        <input id="newProjName" placeholder="ชื่อโปรเจกต์ใหม่ — ต้องตรงกับชื่อแท็บในชีต">
+       <input id="newProjBrand" placeholder="ชื่อแบรนด์ — บังคับกรอก">
        <button class="cmdbtn" id="addProj">เพิ่ม</button>
      </div>
      <p class="sect-sub" style="margin-top:14px">
+       <b>ชื่อแบรนด์</b>เข้าไปที่ <code>{{brandname}}</code> ใน Command —
+       บรรทัด “สำหรับแบรนด์: …” ของทุกบล็อกอ่านจากตรงนี้<br>
        โปรเจกต์ที่เพิ่มเองจะมีเครื่องหมาย <span class="warnmark">!</span> —
        ใช้ในเว็บได้ทันที แต่<b>ยังซิงก์ขึ้นชีตไม่ได้</b> จนกว่าจะเติมชื่อนี้ลงใน
        <code>COORD_PROJECTS</code> ของ Apps Script แล้ว deploy ใหม่<br>
-       <span style="color:var(--dim)">ปิดงานแล้วแท็บจะถูกพับเก็บ ข้อมูลยังอยู่ครบ
+       <span style="color:var(--dim)">เปลี่ยนชื่อ = ย้ายข้อมูลในเว็บให้ครบทุกที่
+       (แถว · ที่แก้ค้าง · Command รายคน · ต้นแบบของโปรเจกต์) แต่<b>ชื่อแท็บในชีตไม่เปลี่ยนตาม</b>
+       ต้องไปเปลี่ยนในชีตกับในสคริปต์ให้ตรงกันเอง<br>
+       ปิดงานแล้วแท็บจะถูกพับเก็บ ข้อมูลยังอยู่ครบ
        · ลบโปรเจกต์ = ลบเฉพาะในเว็บ แท็บในชีตไม่ถูกแตะ</span>
      </p>`;
   $("#projPanel").hidden = false;
@@ -3316,15 +3383,39 @@ function openProjManager(){
     if (!PROJ_LIST.length) PROJ_LIST = DEFAULT_PROJECTS.map(name => ({ name, done:false }));
     saveProjects(); renderProjTabs(); renderCoord(); fillProjSelect(); openProjManager();
   });
+  body.querySelectorAll("[data-brand]").forEach(inp => inp.onchange = () => {
+    PROJ_LIST[+inp.dataset.brand].brand = inp.value.trim();
+    saveProjects();
+    if (!$("#cmdPanel").classList.contains("on")) return;
+    renderCoord();                       // ข้อความใน Command อ้างชื่อแบรนด์อยู่
+  });
+  body.querySelectorAll("[data-ren]").forEach(b => b.onclick = () => {
+    const p = PROJ_LIST[+b.dataset.ren];
+    const to = (prompt(`เปลี่ยนชื่อ "${p.name}" เป็น\n\n` +
+      `ชื่อนี้ต้องตรงกับชื่อแท็บในชีต ไม่งั้นซิงก์ไม่ขึ้น`, p.name) || "").trim();
+    if (!to || to === p.name) return;
+    if (PROJECTS.includes(to)) return alert(`มี "${to}" อยู่แล้ว`);
+    const n = (COORD[p.name] || []).length;
+    if (!confirm(`เปลี่ยน "${p.name}" → "${to}"\n\n` +
+      `ย้ายให้ครบในเว็บ: ${n} แถว · ที่แก้ค้างส่ง · Command รายคน · ต้นแบบของโปรเจกต์\n` +
+      `แต่ชื่อแท็บในชีตไม่เปลี่ยนตาม — ต้องไปเปลี่ยนในชีตและใน COORD_PROJECTS ให้ตรงกันเอง`)) return;
+    renameProject(p.name, to);
+    renderProjTabs(); renderCoord(); fillProjSelect(); openProjManager();
+  });
   $("#addProj").onclick = () => {
     const name = $("#newProjName").value.trim();
-    if (!name) return;
+    const brand = $("#newProjBrand").value.trim();
+    if (!name) return alert("ใส่ชื่อโปรเจกต์ก่อน");
+    // บังคับกรอกแบรนด์ตั้งแต่ตอนสร้าง — ปล่อยว่างแล้ว Command ทุกบล็อกของโปรเจกต์นี้
+    // จะขึ้นช่องแดง "ยังไม่ได้ตั้งชื่อแบรนด์" ซึ่งกว่าจะรู้ตัวก็ตอนกำลังจะส่งข้อความแล้ว
+    if (!brand){ alert("ใส่ชื่อแบรนด์ด้วย — Command ทุกบล็อกอ้างชื่อนี้"); $("#newProjBrand").focus(); return; }
     if (PROJECTS.includes(name)) return alert(`มี "${name}" อยู่แล้ว`);
-    PROJ_LIST.push({ name, done:false });
+    PROJ_LIST.push({ name, done:false, brand });
     COORD[name] = [];
     saveProjects(); renderProjTabs(); fillProjSelect(); openProjManager();
   };
-  $("#newProjName").onkeydown = e => { if (e.key === "Enter") $("#addProj").click(); };
+  $("#newProjName").onkeydown = e => { if (e.key === "Enter") $("#newProjBrand").focus(); };
+  $("#newProjBrand").onkeydown = e => { if (e.key === "Enter") $("#addProj").click(); };
 }
 
 // ตัวย่อในช่องงาน — เก็บตัวย่อไว้เหมือนเดิม แต่โชว์ชื่อเต็มให้อ่านออก
@@ -3414,16 +3505,28 @@ function openSkuPicker(r, host, after){
 }
 
 // ใส่จุลภาคระหว่างพิมพ์ โดยพยายามคงตำแหน่งเคอร์เซอร์ไว้ที่หลักเดิม
+// เรทที่โชว์ — จำนวนเต็มไม่ต้องมี .00 ให้รก มีเศษเมื่อไหร่ค่อยโชว์สองตำแหน่งเต็ม
+const rateText = v => (v == null || v === "") ? ""
+  : Number(v).toLocaleString("en-US", Number.isInteger(Number(v))
+      ? {} : { minimumFractionDigits:2, maximumFractionDigits:2 });
+// ใส่จุลภาคให้เฉพาะฝั่งจำนวนเต็ม ทศนิยมปล่อยไว้ตามที่พิมพ์
+// จัดรูปฝั่งทศนิยมระหว่างพิมพ์ไม่ได้ — พิมพ์ "1200." แล้วโดนตัดจุดทิ้งทุกครั้งจะพิมพ์ต่อไม่ได้เลย
 function formatRateInput(inp){
-  const before = inp.value.slice(0, inp.selectionStart).replace(/\D/g, "").length;
-  const digits = inp.value.replace(/\D/g, "");
-  const out = digits ? Number(digits).toLocaleString("en-US") : "";
-  if (out === inp.value) return;
+  const raw = inp.value;
+  const before = raw.slice(0, inp.selectionStart).replace(/[^\d.]/g, "").length;
+  // เก็บจุดแรกจุดเดียว ที่เหลือทิ้ง
+  let s = raw.replace(/[^\d.]/g, "");
+  const dot = s.indexOf(".");
+  if (dot >= 0) s = s.slice(0, dot + 1) + s.slice(dot + 1).replace(/\./g, "");
+  const [intPart, decPart] = dot >= 0 ? [s.slice(0, dot), s.slice(dot + 1)] : [s, null];
+  const out = (intPart ? Number(intPart).toLocaleString("en-US") : (decPart != null ? "0" : "")) +
+              (decPart != null ? "." + decPart : "");
+  if (out === raw) return;
   inp.value = out;
   let seen = 0, pos = out.length;
   if (before === 0) pos = 0;
   else for (let i = 0; i < out.length; i++){
-    if (/\d/.test(out[i]) && ++seen === before){ pos = i + 1; break; }
+    if (/[\d.]/.test(out[i]) && ++seen === before){ pos = i + 1; break; }
   }
   inp.setSelectionRange(pos, pos);
 }
@@ -3530,7 +3633,7 @@ function renderDetail(){
 
       <div class="dfield"><label>เรท (บาท)</label>
         <input class="mono" data-d="rate" data-f="rate" inputmode="numeric"
-               value="${r.rate == null ? "" : Number(r.rate).toLocaleString("en-US")}"
+               value="${rateText(r.rate)}"
                placeholder="${(r.kind||"") === "KOC" ? "-" : "ยังไม่รู้"}"></div>
       <div class="dfield"><label>รูปแบบภาษี</label>
         <select class="pay ${payClass(r.paytype)}" data-d="paytype">${PAYTYPES.map(p =>
@@ -4208,7 +4311,7 @@ function coordRow(r, i){
       statusOptions(r.status)}</select></td>
     <td class="mono ${noRate&&!isKOC ? "warn" : amb ? "warn" : ""}">
       <input class="mono" data-i="${i}" data-f="rate" style="width:92px" inputmode="numeric"
-             value="${r.rate == null ? "" : Number(r.rate).toLocaleString("en-US")}"
+             value="${rateText(r.rate)}"
              placeholder="${isKOC ? "-" : "ยังไม่รู้"}">
       ${amb ? `<span class="flag" title="ในบรีฟเจอหลายค่า: ${esc((r.rate_all||[]).join(" / "))} — เลือกให้ตรงแล้วธงจะหาย">⚑</span>` : ""}
       ${noRate && !isKOC ? `<span class="flag" title="ในบรีฟไม่มีตัวเลขเรทเลย">⚑</span>` : ""}</td>
@@ -4248,7 +4351,7 @@ const CMD_BLOCKS = [
   { t:"1. ขอคอนเฟิร์มการร่วมงาน", kind:"KOL", b:
 `สวัสดีครับ🙏😊 แอดมินจาก Alta Global Commerce นะครับ ขออนุญาต Confirm✅ การร่วมงาน
 
-สำหรับแบรนด์: Red Chamber ({{sku}})
+สำหรับแบรนด์: {{brandname}} ({{sku}})
 โดยเรทราคา {{videos}} video + gencode 60 days + ติดตะกร้า = {{rate}} บาท
 
 หากครีเอเตอร์คอนเฟิร์มการร่วมงาน กรุณาตอบกลับ “Confirm” เพื่อร่วมงานครับ` },
@@ -4260,7 +4363,7 @@ const CMD_BLOCKS = [
 
   { t:"3. คอนเฟิร์มเรท + รูปแบบนำจ่าย", kind:"KOL", b:
 `ขออนุญาตคอนเฟิร์มเรทราคา + รูปแบบนำจ่ายนะครับ😀
-สำหรับแบรนด์: Red Chamber ({{sku}})
+สำหรับแบรนด์: {{brandname}} ({{sku}})
 
 โดยเรทราคา {{videos}} video + gencode 60 days + ติดตะกร้า = {{rate}} บาท
 รูปแบบการชำระ: {{paytype}}✅= {{net}} บาท
@@ -4273,7 +4376,7 @@ const CMD_BLOCKS = [
   { t:"5. ส่งคู่มือการถ่ายทำ", clip:true, b:
 `ขออนุญาตส่งคู่มือการถ่ายทำนะครับ🙏 หากมีข้อสงสัยเพิ่มเติมตรงไหนสามารถสอบถามแอดมินได้เลยครับ🩷
 
-📦สำหรับแบรนด์: Red Chamber ({{sku}})
+📦สำหรับแบรนด์: {{brandname}} ({{sku}})
 
 📖คู่มือการถ่ายทำ :
 {{brief}}
@@ -4362,7 +4465,7 @@ Hashtag:📱
 `สวัสดีครับ😊
 แอดมินรบกวนครีเอเตอร์กรอกข้อมูลสำหรับออกเอกสารหัก ณ ที่จ่าย และเอกสารอื่น ๆ ประกอบการทำจ่ายในลิ้งด้านล่างนี้นะค้าบ (กรอกเพียงครั้งเดียว✅)
 
-📦สำหรับแบรนด์: Red Chamber ({{sku}}) 🧴
+📦สำหรับแบรนด์: {{brandname}} ({{sku}}) 🧴
 📌ฟอร์ม :
 {{form}}
 
@@ -4371,7 +4474,7 @@ Hashtag:📱
   { t:"15. ใบรับเงิน Acknowledgement of Receipt", kind:"KOL", b:
 `แอดมินขออนุญาตส่งใบรับเงิน Acknowledgement of Receipt เพื่อทำการเบิกจ่ายนะครับ😊
 
-📦สำหรับแบรนด์: Red Chamber ({{sku}})
+📦สำหรับแบรนด์: {{brandname}} ({{sku}})
 🧾ใบรับเงิน :
 {{sign}}
 
@@ -4386,7 +4489,7 @@ Hashtag:📱
   { t:"1. ขอคอนเฟิร์มการร่วมงาน (KOC)", kind:"KOC", ord:0, b:
 `สวัสดีครับ🙏😊 แอดมินจาก Alta Global Commerce นะครับ ขออนุญาต Confirm✅ การร่วมงาน
 
-สำหรับแบรนด์: Red Chamber ({{sku}})
+สำหรับแบรนด์: {{brandname}} ({{sku}})
 โดยรูปแบบค่าตอบแทน {{videos}} video + gencode 60 days + ติดตะกร้า
 💰Commission = {{commission}}
 
@@ -4476,8 +4579,17 @@ Hashtag:📱
 {{sign}}` }],
 };
 // ของที่แก้ไว้ตรงกับต้นแบบรุ่นเก่าเป๊ะไหม (ทั้งข้อความและหัวข้อ)
-const isLegacyCopy = (i, cur) => (LEGACY_BODIES[i] || []).some(o =>
-  cur.b === o.b && (cur.t == null || cur.t === o.t || cur.t === CMD_BLOCKS[i].t));
+// รวมรุ่นก่อนที่ยังเขียนชื่อแบรนด์ตายตัวไว้ในข้อความ — ต่างกันแค่ตรงนั้นแปลว่าไม่ได้แก้เอง
+// สร้างจากต้นแบบปัจจุบันตอนรัน จะได้ไม่ต้องคัดลอกข้อความเดิมมาแปะทุกครั้งที่เปลี่ยนคำ
+function isLegacyCopy(i, cur){
+  const def = CMD_BLOCKS[i];
+  if (!def) return false;
+  const titleOK = cur.t == null || cur.t === def.t;
+  const olds = (LEGACY_BODIES[i] || []).map(o => ({ t:o.t, b:o.b }));
+  if (def.b.includes("{{brandname}}"))
+    olds.push({ t:def.t, b:def.b.replace(/\{\{brandname\}\}/g, "Red Chamber") });
+  return olds.some(o => cur.b === o.b && (titleOK || cur.t === o.t));
+}
 
 // ลิงก์ที่ใช้ซ้ำทุกคน เก็บในเครื่อง ไม่ฝังลงหน้าเว็บสาธารณะ
 const LS_CMDLINKS = "cf_cmdlinks_v1";
@@ -4678,7 +4790,7 @@ function cmdValues(r){
   // (เดิมทั้ง 3 Draft ใช้ตัวแปรเดียวกัน แก้ Draft 2 แล้ว Draft 1 เปลี่ยนตาม)
   const fb = n => own["feedback" + n] || "";
   return {
-    sku: r.sku || "", rate: r.rate != null ? Number(r.rate).toLocaleString("en-US") : "",
+    sku: r.sku || "", rate: rateText(r.rate),
     paytype: r.paytype ? payType(r.paytype).label.replace(/\s*\(.*\)$/, "") : "",
     net: net != null ? net.toLocaleString("en-US", {minimumFractionDigits:2}) : "",
     // จำนวนวิดีโอในข้อความต้องตรงกับช่องในตาราง — เดิมเขียนตายตัวว่า "1 video"
@@ -4687,6 +4799,8 @@ function cmdValues(r){
     videos: String(Number(r.videos) || clipCount(r)),
     // KOC ตกลงกันเป็นส่วนแบ่ง ไม่ใช่เรทเหมา — เก็บเป็นข้อความอิสระ ("10%" · "12% + ค่าตัว 2,000")
     commission: r.commission || "",
+    // ชื่อแบรนด์มาจากโปรเจกต์ ไม่ใช่จากแถว — โปรเจกต์ใหม่ต้องกรอกตอนสร้าง
+    brandname: brandOf(r.project),
     // บล็อก 5 ส่ง {{brief}} เป็นคู่มือถ่ายทำ — ชีตไม่ได้กรอกบรีฟไว้ก็ตกมาใช้คู่มือของ SKU
     // ถ้าชีตกรอกไว้ถือว่าคนตั้งใจใส่ ของในชีตชนะเสมอ
     brief: r.brief || guide,
@@ -4708,6 +4822,7 @@ const CMD_GAP = Object.assign(
   Object.fromEntries(DOCS.map(d => [d.k, "ยังไม่มี" + d.th])),
   { sku:"ยังไม่มี SKU", rate:"ยังไม่มีเรท", paytype:"ยังไม่เลือกรูปแบบภาษี",
     videos:"ยังไม่มีจำนวนวิดีโอ", commission:"ยังไม่มี Commission",
+    brandname:"ยังไม่ได้ตั้งชื่อแบรนด์ของโปรเจกต์นี้",
     net:"คิดไม่ได้ ต้องมีเรท+รูปแบบภาษี", brief:"ยังไม่มีลิงก์บรีฟ",
     feedback:"ยังไม่มีฟีดแบค", feedback1:"ยังไม่มีฟีดแบค Draft 1",
     feedback2:"ยังไม่มีฟีดแบค Draft 2", feedback3:"ยังไม่มีฟีดแบค Draft 3",
@@ -4779,20 +4894,43 @@ function fillBlock(body, vals, clip){
 
 // ─── แก้ข้อความ Command เองได้ ───
 // เก็บเฉพาะบล็อกที่แก้ ที่ไม่แตะยังใช้ของตั้งต้น พออัปเดตโค้ดทีหลังจะได้ของใหม่ตามไปด้วย
-const LS_CMDEDIT = "cf_cmdedit_v1";
-let CMDEDIT = {};
+//
+// ต้นแบบเป็น "ของโปรเจกต์" ไม่ใช่ของทั้งเว็บ — แต่ละโปรเจกต์คนละแบรนด์ คนละข้อความ
+// ของเก่าที่เคยแก้ไว้ตอนยังเป็นชั้นเดียวอยู่ในถัง "*" ใช้กับทุกโปรเจกต์ที่ยังไม่มีของตัวเอง
+// อ่านตามลำดับ: ของโปรเจกต์นี้ → ถัง "*" (ของเดิม) → ต้นแบบในโค้ด
+// ไฟล์เก่า cf_cmdedit_v1 ไม่ถูกเขียนทับเลย ของที่ทีมแก้ไว้จึงไม่มีทางหายจากบั๊กตรงนี้
+const LS_CMDEDIT_OLD = "cf_cmdedit_v1";     // อ่านอย่างเดียว = ถัง "*"
+const LS_CMDEDIT = "cf_cmdedit_v2";         // { โปรเจกต์: { id: {t,b} } }
+const LS_CMDADD  = "cf_cmdadd_v1";          // { โปรเจกต์: [ {id,t,b,ord,clip,kind} ] }
+const LS_CMDHIDE = "cf_cmdhide_v1";         // { โปรเจกต์: [id, …] }
+const ALLP = "*";
+let CMDEDIT = {};        // รวมถัง "*" ไว้ในนี้ด้วย
+let CMDADD  = {};
+let CMDHIDE = {};
 let CMD_EDITING = false;
+
+const cmdEditBucket = proj => (CMDEDIT[proj] || (CMDEDIT[proj] = {}));
+// ที่แก้ไว้ของบล็อกนี้ในโปรเจกต์นี้ — ไม่มีก็ตกไปที่ของเดิมที่ใช้ร่วมกัน
+const cmdEditOne = (proj, id) => (CMDEDIT[proj] || {})[id] || (CMDEDIT[ALLP] || {})[id] || null;
+const cmdAddFor  = proj => CMDADD[proj] || [];
+const cmdHideFor = proj => new Set(CMDHIDE[proj] || []);
+
 function loadCmdEdit(){
   try { CMDEDIT = JSON.parse(localStorage.getItem(LS_CMDEDIT) || "{}") || {}; } catch(e){}
+  try { CMDADD  = JSON.parse(localStorage.getItem(LS_CMDADD)  || "{}") || {}; } catch(e){}
+  try { CMDHIDE = JSON.parse(localStorage.getItem(LS_CMDHIDE) || "{}") || {}; } catch(e){}
+  // ของเดิมชั้นเดียว — ยกมาเป็นถัง "*" ทุกครั้งที่โหลด ไม่แก้ไฟล์เดิม
+  try { CMDEDIT[ALLP] = JSON.parse(localStorage.getItem(LS_CMDEDIT_OLD) || "{}") || {}; } catch(e){}
   repairFeedbackBlocks();
   let n = 0;
-  for (const i in LEGACY_BODIES){
-    const cur = CMDEDIT[i];
-    if (!cur || cur.b == null || !isLegacyCopy(i, cur)) continue;
-    delete CMDEDIT[i]; n++;
-  }
+  for (const proj in CMDEDIT)
+    CMD_BLOCKS.forEach((_, i) => {
+      const cur = CMDEDIT[proj][i];
+      if (!cur || cur.b == null || !isLegacyCopy(i, cur)) return;
+      delete CMDEDIT[proj][i]; n++;
+    });
   if (n){ saveCmdEdit();
-    console.info(`[Creator Finder] ต้นแบบกลาง ${n} บล็อกเป็นสำเนารุ่นเก่า — คืนเป็นรุ่นใหม่`); }
+    console.info(`[Creator Finder] ต้นแบบ ${n} บล็อกเป็นสำเนารุ่นเก่า — คืนเป็นรุ่นใหม่`); }
 }
 
 // ─── ซ่อมบล็อกฟีดแบคที่ตัวแปรหาย ───
@@ -4803,15 +4941,16 @@ function loadCmdEdit(){
 // เพราะมันเป็นฟีดแบคของคนคนเดียว ไม่ใช่ข้อความกลางที่ทุกคนควรได้
 function repairFeedbackBlocks(){
   let fixed = 0;
-  CMD_BLOCKS.forEach((def, i) => {
-    const vars = (def.b.match(/\{\{feedback\d\}\}/g) || []);
-    if (!vars.length) return;
-    const cur = CMDEDIT[i];
-    if (!cur || cur.b == null) return;
-    if (vars.every(v => cur.b.includes(v))) return;   // ยังมีตัวแปรครบ ไม่ต้องยุ่ง
-    delete CMDEDIT[i];
-    fixed++;
-  });
+  for (const proj in CMDEDIT)
+    CMD_BLOCKS.forEach((def, i) => {
+      const vars = (def.b.match(/\{\{feedback\d\}\}/g) || []);
+      if (!vars.length) return;
+      const cur = CMDEDIT[proj][i];
+      if (!cur || cur.b == null) return;
+      if (vars.every(v => cur.b.includes(v))) return;   // ยังมีตัวแปรครบ ไม่ต้องยุ่ง
+      delete CMDEDIT[proj][i];
+      fixed++;
+    });
   if (fixed){
     saveCmdEdit();
     console.info(`[Creator Finder] คืนข้อความต้นแบบบล็อกฟีดแบค ${fixed} บล็อก — ตัวแปร {{feedbackN}} หายไป`);
@@ -4819,22 +4958,42 @@ function repairFeedbackBlocks(){
   return fixed;
 }
 function saveCmdEdit(){
-  try { localStorage.setItem(LS_CMDEDIT, JSON.stringify(CMDEDIT)); } catch(e){}
+  // ถัง "*" คือของเดิมที่อ่านมา ไม่เขียนกลับ — เก็บเฉพาะของรายโปรเจกต์
+  const out = {};
+  for (const k in CMDEDIT) if (k !== ALLP && Object.keys(CMDEDIT[k]).length) out[k] = CMDEDIT[k];
+  try {
+    localStorage.setItem(LS_CMDEDIT, JSON.stringify(out));
+    localStorage.setItem(LS_CMDADD,  JSON.stringify(CMDADD));
+    localStorage.setItem(LS_CMDHIDE, JSON.stringify(CMDHIDE));
+  } catch(e){}
 }
-// ต้นแบบกลาง (ชั้นกลาง) — ยังใช้อยู่สำหรับข้อความที่ทุกคนเหมือนกันจริงๆ
-const cmdBlocks = () => CMD_BLOCKS.map((b, i) =>
-  ({ t: (CMDEDIT[i] && CMDEDIT[i].t) || b.t,
-     b: (CMDEDIT[i] && CMDEDIT[i].b != null) ? CMDEDIT[i].b : b.b,
-     clip: !!b.clip, kind: b.kind || "", ord: b.ord, edited: !!CMDEDIT[i] }));
+
+// ─── ต้นแบบของโปรเจกต์หนึ่ง ───
+// id ของบล็อกในโค้ดคือเลขลำดับเดิม ("0".."15") — คีย์ที่เก็บของเก่าไว้จึงยังตรงทุกตัว
+// บล็อกที่ทีมเพิ่มเองได้ id ขึ้นต้นด้วย x จะได้ไม่มีวันชนกับเลขลำดับ
+// ลบบล็อกในโค้ด = ซ่อน ไม่ได้ลบจริง ของที่แก้ไว้ยังอยู่ กดคืนได้
+// ทุกบล็อกของโปรเจกต์นี้ รวมที่ซ่อนไว้ (หน้าแก้ข้อความต้องเห็นเพื่อกดคืนได้)
+function cmdBlocksAll(proj){
+  const hid = cmdHideFor(proj);
+  const mk = (id, def, ord, custom) => {
+    const ed = cmdEditOne(proj, id);
+    return { id, t:(ed && ed.t) || def.t, b:(ed && ed.b != null) ? ed.b : def.b,
+             clip: !!def.clip, kind: def.kind || "", ord, custom, edited: !!ed,
+             hidden: hid.has(id), base: def };
+  };
+  return CMD_BLOCKS.map((b, i) => mk(String(i), b, b.ord ?? i, false))
+    .concat(cmdAddFor(proj).map(x => mk(x.id, x, x.ord, true)))
+    .sort((a, b) => a.ord - b.ord);
+}
+const cmdBlocks = proj => cmdBlocksAll(proj).filter(b => !b.hidden);
 
 // ข้อความจริงของครีเอเตอร์คนหนึ่ง — ทับต้นแบบด้วยของตัวเองถ้ามี
 function cmdBlocksFor(proj, handle){
   const own = (cmdOwnRead(proj, handle).blocks) || {};
-  return cmdBlocks().map((b, i) => {
-    const o = own[i];
-    return { t: (o && o.t) || b.t,
-             b: (o && o.b != null) ? o.b : b.b,
-             clip: b.clip, kind: b.kind, ord: b.ord, edited: b.edited, mine: !!o };
+  return cmdBlocks(proj).map(b => {
+    const o = own[b.id];
+    return Object.assign({}, b, { t: (o && o.t) || b.t,
+      b: (o && o.b != null) ? o.b : b.b, mine: !!o });
   });
 }
 // KOL / KOC ใช้ข้อความบางบล็อกคนละใบ — ไม่ระบุกลุ่มถือว่าใช้ได้ทั้งคู่
@@ -4843,17 +5002,50 @@ const kindOf = r => (r && (r.kind || "").toUpperCase() === "KOC") ? "KOC" : "KOL
 const blockForKind = (b, k) => !b.kind || b.kind === k;
 
 // เขียนทับเฉพาะคนนี้ — เหมือนต้นแบบเป๊ะเมื่อไหร่ก็ถอดออก ไม่เก็บของซ้ำ
-function setCmdOwnBlock(proj, handle, i, key, val){
-  const base = cmdBlocks()[i];
+function setCmdOwnBlock(proj, handle, id, key, val){
+  const base = cmdBlocks(proj).find(b => b.id === id);
   if (!base) return false;
   const own = cmdOwn(proj, handle);
-  const cur = Object.assign({ t: base.t, b: base.b }, own.blocks[i] || {});
+  const cur = Object.assign({ t: base.t, b: base.b }, own.blocks[id] || {});
   cur[key] = val;
-  if (cur.t === base.t && cur.b === base.b) delete own.blocks[i];
-  else own.blocks[i] = cur;
+  if (cur.t === base.t && cur.b === base.b) delete own.blocks[id];
+  else own.blocks[id] = cur;
   pruneCmdOwn(proj, handle);
   saveCmdOwn();
   return true;
+}
+
+// ─── เพิ่ม / ลบบล็อกของโปรเจกต์นี้ ───
+// เพิ่มแล้ววางไว้ระหว่างบล็อกเดิม ใช้ ord เศษส่วน จะได้ไม่ต้องขยับเลขของใครเลย
+// (เลขบล็อกคือคีย์ที่ของทุกคนแขวนอยู่ ขยับเมื่อไหร่ข้อความที่แก้ไว้ไปผิดที่ทั้งแถบ)
+function addCmdBlock(proj, afterOrd){
+  const list = cmdBlocksAll(proj);
+  const at = list.findIndex(b => b.ord === afterOrd);
+  const next = at >= 0 && list[at + 1] ? list[at + 1].ord : (afterOrd + 1);
+  const ord = at < 0 ? (list.length ? list[list.length - 1].ord + 1 : 0)
+                     : (afterOrd + next) / 2;
+  const id = "x" + Date.now().toString(36) + Math.random().toString(36).slice(2, 5);
+  (CMDADD[proj] || (CMDADD[proj] = [])).push({ id, ord, t:"บล็อกใหม่", b:"" });
+  saveCmdEdit();
+  return id;
+}
+function dropCmdBlock(proj, id){
+  const custom = cmdAddFor(proj).some(x => x.id === id);
+  if (custom){
+    // ของที่เพิ่มเอง ลบทิ้งได้จริง เพราะไม่มีต้นแบบให้กลับไปหา
+    CMDADD[proj] = cmdAddFor(proj).filter(x => x.id !== id);
+    if (CMDEDIT[proj]) delete CMDEDIT[proj][id];
+  } else {
+    // บล็อกในโค้ด ซ่อนเฉยๆ ของที่แก้ไว้ยังอยู่ กดคืนได้ทุกเมื่อ
+    const set = cmdHideFor(proj); set.add(id);
+    CMDHIDE[proj] = [...set];
+  }
+  saveCmdEdit();
+}
+function showCmdBlock(proj, id){
+  const set = cmdHideFor(proj); set.delete(id);
+  CMDHIDE[proj] = [...set];
+  saveCmdEdit();
 }
 function setCmdOwnLink(proj, handle, key, val){
   const own = cmdOwn(proj, handle);
@@ -4870,51 +5062,72 @@ let CMD_STEP = null;
 
 function renderCmdEditor(proj, handle){
   const mine = CMD_SCOPE === "mine";
-  const list = mine ? cmdBlocksFor(proj, handle) : cmdBlocks();
+  // โหมดต้นแบบเห็นบล็อกที่ซ่อนไว้ด้วย จะได้กดคืนได้ · โหมดรายคนเห็นเฉพาะที่ใช้จริง
+  const list = mine ? cmdBlocksFor(proj, handle) : cmdBlocksAll(proj);
   const nMine = Object.keys(cmdOwnRead(proj, handle).blocks || {}).length;
+  const nProj = Object.keys(CMDEDIT[proj] || {}).length
+              + cmdAddFor(proj).length + (CMDHIDE[proj] || []).length;
 
   $("#cmdBody").innerHTML =
     `<div class="cmdmeta">
        <div class="tabs sub cmdscope">
          <button data-scope="mine" aria-selected="${mine}">เฉพาะ ${esc(normId(handle))}${
            nMine ? `<span class="n">${nMine}</span>` : ""}</button>
-         <button data-scope="all" aria-selected="${!mine}">ต้นแบบทุกคน${
-           Object.keys(CMDEDIT).length ? `<span class="n">${Object.keys(CMDEDIT).length}</span>` : ""}</button>
+         <button data-scope="all" aria-selected="${!mine}">ทุกคนใน ${esc(proj)}${
+           nProj ? `<span class="n">${nProj}</span>` : ""}</button>
        </div>
        ${mine
          ? `แก้แล้ว<b> ใช้กับ ${esc(normId(handle))} คนเดียว</b> คนอื่นยังได้ข้อความต้นแบบเหมือนเดิม`
-         : `แก้แล้ว<b> ใช้กับครีเอเตอร์ทุกคน</b> ยกเว้นคนที่มีข้อความของตัวเองอยู่แล้ว`}<br>
+         : `แก้แล้ว<b> ใช้กับครีเอเตอร์ทุกคนใน ${esc(proj)}</b> โปรเจกต์อื่นไม่เปลี่ยนตาม
+            <span style="color:var(--dim)">(ยกเว้นคนที่มีข้อความของตัวเองอยู่แล้ว)</span>`}<br>
        ตัวแปรที่ใส่ได้: ${Object.keys(CMD_GAP).map(k => `<code>{{${k}}}</code>`).join(" ")}
        <button class="cmdbtn" id="cmdDone">เสร็จแล้ว</button>
        <button class="cmdbtn" id="cmdResetAll">${mine ? "คืนให้เหมือนต้นแบบทั้งหมด" : "คืนค่าต้นแบบทั้งหมด"}</button>
      </div>` +
-    list.map((b, i) => `<div class="cmdblk${(mine ? b.mine : b.edited) ? " edited" : ""}">
+    list.map((b, i) => `<div class="cmdblk${(mine ? b.mine : b.edited) ? " edited" : ""}${
+      b.hidden ? " hiddenblk" : ""}">
       <header><span class="no">${i+1}</span>
         ${b.kind ? `<span class="kindtag">เฉพาะ ${esc(b.kind)}</span>` : ""}
-        <input class="cmdt" data-i="${i}" value="${esc(b.t)}">
+        ${b.custom ? `<span class="kindtag add">เพิ่มเอง</span>` : ""}
+        ${b.hidden ? `<span class="kindtag off">ซ่อนอยู่</span>` : ""}
+        <input class="cmdt" data-id="${esc(b.id)}" value="${esc(b.t)}"${b.hidden ? " disabled" : ""}>
         ${(mine ? b.mine : b.edited)
-          ? `<button data-reset="${i}" title="${mine ? "คืนบล็อกนี้ให้เหมือนต้นแบบ" : "คืนค่าบล็อกนี้"}">↺</button>` : ""}
+          ? `<button data-reset="${esc(b.id)}" title="${mine ? "คืนบล็อกนี้ให้เหมือนต้นแบบ" : "คืนค่าบล็อกนี้"}">↺</button>` : ""}
+        ${!mine ? (b.hidden
+          ? `<button data-show="${esc(b.id)}" title="เอากลับมาใช้">คืนบล็อกนี้</button>`
+          : `<button data-drop="${esc(b.id)}" title="${b.custom
+              ? "ลบบล็อกนี้ทิ้ง" : "ไม่ใช้บล็อกนี้ในโปรเจกต์นี้ — กดคืนได้ทีหลัง"}">🗑</button>`) : ""}
       </header>
-      <textarea class="cmdb" data-i="${i}" rows="${Math.min(16, b.b.split("\n").length + 1)}">${esc(b.b)}</textarea>
-    </div>`).join("");
+      ${b.hidden ? "" :
+        `<textarea class="cmdb" data-id="${esc(b.id)}"
+           rows="${Math.min(16, b.b.split("\n").length + 1)}">${esc(b.b)}</textarea>`}
+      ${!mine ? `<button class="addhere" data-add="${b.ord}"
+        title="แทรกบล็อกใหม่ต่อจากอันนี้">＋ เพิ่มบล็อกตรงนี้</button>` : ""}
+    </div>`).join("") +
+    (mine ? "" : `<div class="cmdmeta" style="text-align:center">
+       <button class="cmdbtn" data-add="${Number.MAX_SAFE_INTEGER}">＋ เพิ่มบล็อกท้ายสุด</button></div>`);
 
-  const saveAll = (i, key, val) => {
-    const def = CMD_BLOCKS[i];
-    const cur = Object.assign({ t: def.t, b: def.b }, CMDEDIT[i] || {});
+  const saveAll = (id, key, val) => {
+    const base = (cmdBlocksAll(proj).find(b => b.id === id) || {}).base;
+    if (!base) return false;
+    const cur = Object.assign({ t: base.t, b: base.b }, (CMDEDIT[proj] || {})[id] || {});
     cur[key] = val;
-    if (cur.t === def.t && cur.b === def.b) delete CMDEDIT[i];
-    else CMDEDIT[i] = cur;
+    // เหมือนต้นแบบเป๊ะแล้วก็ถอดออก จะได้ไหลตามต้นแบบต่อไปเวลาโค้ดอัปเดต
+    if (cur.t === base.t && cur.b === base.b) delete cmdEditBucket(proj)[id];
+    else cmdEditBucket(proj)[id] = cur;
     saveCmdEdit();
+    return true;
   };
-  const save = (i, key, val) => {
+  const save = (id, key, val) => {
     // กันพลาดซ้ำรอยเดิม — ลบ {{feedbackN}} ออกจากต้นแบบ = ทุกคนได้ข้อความก้อนเดียวกัน
     // และไม่เหลือที่ให้เติมฟีดแบครายคนอีกเลย
     if (key === "b" && !mine){
-      const need = (CMD_BLOCKS[i].b.match(/\{\{feedback\d\}\}/g) || []);
+      const base = (cmdBlocksAll(proj).find(b => b.id === id) || {}).base || {};
+      const need = ((base.b || "").match(/\{\{feedback\d\}\}/g) || []);
       const lost = need.filter(v => !val.includes(v));
       if (lost.length && !confirm(
         `ข้อความนี้ไม่มี ${lost.join(" ")} แล้ว\n\n` +
-        `ต้นแบบใช้กับครีเอเตอร์ทุกคน — ถ้าตัวแปรหาย ทุกคนจะได้ข้อความเดียวกันหมด\n` +
+        `ต้นแบบใช้กับครีเอเตอร์ทุกคนใน ${proj} — ถ้าตัวแปรหาย ทุกคนจะได้ข้อความเดียวกันหมด\n` +
         `และไม่มีที่ให้เติมฟีดแบคของแต่ละคนอีก\n\n` +
         `ถ้าจะใส่ฟีดแบคให้คนใดคนหนึ่ง ให้กด "เฉพาะ ${normId(handle)}" ด้านบน\n` +
         `หรือปุ่ม ✎ Feedback แทน\n\nยืนยันว่าจะแก้ต้นแบบจริงๆ?`)){
@@ -4922,18 +5135,34 @@ function renderCmdEditor(proj, handle){
         return false;
       }
     }
-    return mine ? setCmdOwnBlock(proj, handle, i, key, val) : saveAll(i, key, val);
+    return mine ? setCmdOwnBlock(proj, handle, id, key, val) : saveAll(id, key, val);
   };
 
   document.querySelectorAll("#cmdBody .cmdt").forEach(el =>
-    el.onchange = () => { save(+el.dataset.i, "t", el.value); renderCmdEditor(proj, handle); });
+    el.onchange = () => { save(el.dataset.id, "t", el.value); renderCmdEditor(proj, handle); });
   document.querySelectorAll("#cmdBody .cmdb").forEach(el =>
-    el.onchange = () => { save(+el.dataset.i, "b", el.value); renderCmdEditor(proj, handle); });
+    el.onchange = () => { save(el.dataset.id, "b", el.value); renderCmdEditor(proj, handle); });
   document.querySelectorAll("#cmdBody [data-reset]").forEach(b => b.onclick = () => {
-    const i = +b.dataset.reset;
-    if (mine){ delete cmdOwn(proj, handle).blocks[i]; pruneCmdOwn(proj, handle); saveCmdOwn(); }
-    else { delete CMDEDIT[i]; saveCmdEdit(); }
+    const id = b.dataset.reset;
+    if (mine){ delete cmdOwn(proj, handle).blocks[id]; pruneCmdOwn(proj, handle); saveCmdOwn(); }
+    else { if (CMDEDIT[proj]) delete CMDEDIT[proj][id]; saveCmdEdit(); }
     renderCmdEditor(proj, handle);
+  });
+  document.querySelectorAll("#cmdBody [data-add]").forEach(b => b.onclick = () => {
+    addCmdBlock(proj, Number(b.dataset.add));
+    renderCmdEditor(proj, handle);
+  });
+  document.querySelectorAll("#cmdBody [data-drop]").forEach(b => b.onclick = () => {
+    const id = b.dataset.drop;
+    const blk = cmdBlocksAll(proj).find(x => x.id === id) || {};
+    if (!confirm(blk.custom
+      ? `ลบบล็อก "${blk.t}" ทิ้ง? เอากลับมาไม่ได้`
+      : `ไม่ใช้บล็อก "${blk.t}" กับครีเอเตอร์ใน ${proj}?\n\nโปรเจกต์อื่นไม่เปลี่ยน · กดคืนได้ทีหลังจากหน้านี้`)) return;
+    dropCmdBlock(proj, id);
+    renderCmdEditor(proj, handle);
+  });
+  document.querySelectorAll("#cmdBody [data-show]").forEach(b => b.onclick = () => {
+    showCmdBlock(proj, b.dataset.show); renderCmdEditor(proj, handle);
   });
   document.querySelectorAll("#cmdBody .cmdscope button").forEach(b => b.onclick = () => {
     CMD_SCOPE = b.dataset.scope; renderCmdEditor(proj, handle);
@@ -4944,8 +5173,11 @@ function renderCmdEditor(proj, handle){
       delete CMDOWN[cmdKey(proj, handle)];
       saveCmdOwn();
     } else {
-      if (!confirm("คืนข้อความต้นแบบทุกบล็อก? ที่แก้ไว้จะหาย (ของที่แก้รายคนยังอยู่)")) return;
-      CMDEDIT = {}; saveCmdEdit();
+      if (!confirm(`คืนข้อความต้นแบบของ ${proj} ทุกบล็อก?\n\n` +
+        `ที่แก้ไว้ · บล็อกที่เพิ่มเอง · บล็อกที่ซ่อนไว้ ของโปรเจกต์นี้จะหายทั้งหมด\n` +
+        `(ของที่แก้รายคน และโปรเจกต์อื่น ยังอยู่)`)) return;
+      delete CMDEDIT[proj]; delete CMDADD[proj]; delete CMDHIDE[proj];
+      saveCmdEdit();
     }
     renderCmdEditor(proj, handle);
   };
@@ -5007,11 +5239,9 @@ function openCmd(proj, handle){
   // เอาเฉพาะบล็อกของกลุ่มนี้ แล้วเรียงตามที่ควรเห็น (ord ทับลำดับดิบได้)
   const K = kindOf(r);
   cmdBlocksFor(proj, handle)
-    .map((bl, i) => Object.assign({}, bl, { i }))
     .filter(bl => blockForKind(bl, K))
-    .sort((a, b) => (a.ord ?? a.i) - (b.ord ?? b.i))
     .forEach(bl => {
-    const i = bl.i;
+    const id = bl.id;
     if (bl.clip) (bl.b.match(/\{\{(\w+)\}\}/g) || [])
       .map(v => v.slice(2, -2)).filter(k => DOC_BY_KEY[k]).forEach(k => clipDocs.add(k));
     // 0 = บล็อกเดียวไม่แยกคลิป · 1..n = ชุดของคลิปที่ n
@@ -5019,12 +5249,12 @@ function openCmd(proj, handle){
     rounds.forEach(n => blocks.push(Object.assign(
       // หัวข้อบอกชื่อ SKU ของชุดนั้นด้วย — "ชุด 2" เฉยๆ ยังต้องเปิดตารางไปดูว่าตัวไหน
       { t: bl.t + (n ? ` — ชุด ${n}${skuOf(r, n) ? ` · ${skuOf(r, n)}` : ""}` : ""),
-        mine: bl.mine, i, clip:n, sent: isSent(proj, handle, i, n) },
+        mine: bl.mine, id, custom: bl.custom, clip:n, sent: isSent(proj, handle, id, n) },
       fillBlock(bl.b, vals, n))));
   });
   // ลำดับที่คนนี้จะได้รับจริง — บล็อกที่แยกชุดนับเป็นขั้นเดียวกัน (5.1 / 5.2)
-  let seq = 0, lastI = -1;
-  blocks.forEach(b => { if (b.i !== lastI){ seq++; lastI = b.i; } b.step = seq; });
+  let seq = 0, lastI = null;
+  blocks.forEach(b => { if (b.id !== lastI){ seq++; lastI = b.id; } b.step = seq; });
   const nSent = blocks.filter(b => b.sent).length;
   const gaps = blocks.reduce((s, b) => s + (b.sent ? 0 : b.missing), 0);
   // ช่องว่างแต่ละชนิด (ไม่นับซ้ำ) — เอาไปทำปุ่มเติมบนหัว
@@ -5046,8 +5276,8 @@ function openCmd(proj, handle){
          ${K === "KOC"
            // KOC ไม่มีขั้นตอนหักภาษี/ทำจ่ายในระบบนี้ — โชว์เรทกับส่วนแบ่ง ไม่โชว์ช่องที่ไม่ได้ใช้
            ? `Commission <b>${r.commission ? esc(r.commission) : "—"}</b>${
-               r.rate != null ? ` · เรท <b>฿${Number(r.rate).toLocaleString("en-US")}</b>` : ""}`
-           : `เรท <b>${r.rate != null ? "฿" + Number(r.rate).toLocaleString("en-US") : "—"}</b> ·
+               r.rate != null ? ` · เรท <b>฿${rateText(r.rate)}</b>` : ""}`
+           : `เรท <b>${r.rate != null ? "฿" + rateText(r.rate) : "—"}</b> ·
               ${r.paytype ? esc(payType(r.paytype).label) : "ยังไม่เลือกรูปแบบภาษี"} ·
               จ่ายจริง <b>${net != null ? "฿" + net.toLocaleString("en-US",{minimumFractionDigits:2}) : "—"}</b>`}
          ${r.sku ? `<br>SKU ${esc(r.sku)}` : ""}
@@ -5115,7 +5345,8 @@ function openCmd(proj, handle){
     // เลขที่โชว์คือลำดับที่ส่งจริงของคนนี้ ไม่ใช่เลขบล็อกในต้นแบบ
     // (KOL กับ KOC ใช้บล็อกคนละใบในตำแหน่งเดียวกัน เลขต้นแบบเลยไม่เรียงกัน)
     blocks.map((b, j) => `<div class="cmdblk${b.mine ? " edited" : ""}${b.sent ? " sent" : ""}">
-      <header><span class="no" title="บล็อกที่ ${b.i + 1} ในต้นแบบ — ใช้กับ /cmd${b.i + 1}"
+      <header><span class="no" title="${b.custom ? "บล็อกที่เพิ่มเองในโปรเจกต์นี้"
+        : `บล็อกที่ ${Number(b.id) + 1} ในต้นแบบ — ใช้กับ /cmd${Number(b.id) + 1}`}"
         >${b.step}${b.clip ? `<i>.${b.clip}</i>` : ""}</span>${
         esc(b.t.replace(/^\d+\.\s*/, ""))}
         <button class="mark" data-sent="${j}"
@@ -5134,7 +5365,7 @@ function openCmd(proj, handle){
   // (วาดใหม่แล้วจอจะเด้งกลับไปบนสุด ทั้งที่กำลังไล่อ่านบล็อกที่ 12 อยู่)
   document.querySelectorAll("#cmdBody [data-sent]").forEach(btn => btn.onclick = () => {
     const b = blocks[+btn.dataset.sent];
-    toggleSent(proj, handle, b.i, b.clip);
+    toggleSent(proj, handle, b.id, b.clip);
     b.sent = !b.sent;
     btn.closest(".cmdblk").classList.toggle("sent", b.sent);
     btn.textContent = b.sent ? "✓ ส่งแล้ว" : "ส่งแล้ว";
@@ -7039,7 +7270,7 @@ $("#ncBulkParse").onclick = () => {
 // คำเรียกหลายแบบต่อหนึ่งช่อง และเครื่องหมายคั่นไม่บังคับ — ดู SEP/VERB ข้างบน
 const QO_FIELDS = [
   // คำอังกฤษต้องมีขอบคำ ไม่งั้น fee ไปโดนใน "feedback 1" แล้วอ่านเป็นเรท 1
-  { f:"rate",    re:/(?:เรท|ยอด(?:การ)?ชำระ|ค่าตัว|ค่าจ้าง|ค่าคลิป|ราคา|จ่าย|(?<![a-z])(?:rate|fee|budget)(?![a-z]))\D{0,12}?([\d,]+)/i, num:true },
+  { f:"rate",    re:/(?:เรท|ยอด(?:การ)?ชำระ|ค่าตัว|ค่าจ้าง|ค่าคลิป|ราคา|จ่าย|(?<![a-z])(?:rate|fee|budget)(?![a-z]))[^\d.]{0,12}?([\d,]*\.?\d+)/i, num:true },
   { f:"videos",  re:/(\d+)\s*(?:คลิป|วิดีโอ|วีดีโอ|ตัว|clips?|videos?)/i, num:true },
   { f:"note",    re:/(?:โน้ต|หมายเหตุ|note|remark)\s*[:：=]?\s*(.+?)$/i },
   { f:"postdate",re:/(?:วันโพสต์|โพสต์วันที่|ลงวันที่|ลงคลิปวันที่|post(?:ed)?\s*date)\s*[:：=]?\s*(.+?)$/i },
@@ -7121,13 +7352,13 @@ function readNames(text){
 // คิดจริงตอนรู้ว่าเป็นแถวไหนแล้ว (ในหน้าตรวจจะเห็นตัวเลขสุดท้ายเลย)
 const RATE_WORD = "เรท|ค่าตัว|ค่าจ้าง|ราคา|(?<![a-z])(?:fee|rate)(?![a-z])";
 const RATE_DELTA_RE = [
-  [ 1, new RegExp("(?:ขอเพิ่ม|เพิ่ม|บวก|ขึ้น|up|\\+)\\s*(?:" + RATE_WORD + ")?\\D{0,4}?([\\d,]+)", "i")],
-  [-1, new RegExp("(?:ขอลด|ลด|หัก(?!\\s*ณ)|ลง|down|-)\\s*(?:" + RATE_WORD + ")?\\D{0,4}?([\\d,]+)", "i")],
+  [ 1, new RegExp("(?:ขอเพิ่ม|เพิ่ม|บวก|ขึ้น|up|\\+)\\s*(?:" + RATE_WORD + ")?[^\\d.]{0,4}?([\\d,]*\\.?\\d+)", "i")],
+  [-1, new RegExp("(?:ขอลด|ลด|หัก(?!\\s*ณ)|ลง|down|-)\\s*(?:" + RATE_WORD + ")?[^\\d.]{0,4}?([\\d,]*\\.?\\d+)", "i")],
 ];
 function readRateDelta(text){
   // ต้องพูดถึงเรทจริงๆ ไม่งั้น "เพิ่ม 2 คลิป" จะโดนอ่านเป็นเรท
   // ยกเว้น "ขอเพิ่ม 500" ที่ไม่มีหน่วย — เลขหลักร้อยขึ้นไปไม่มีทางเป็นจำนวนคลิป
-  const bare = text.match(/(?:ขอ)?(เพิ่ม|ลด)\s*([\d,]+)\s*$/i);
+  const bare = text.match(/(?:ขอ)?(เพิ่ม|ลด)\s*([\d,]*\.?\d+)\s*$/i);
   if (bare && !/คลิป|วิดีโอ|วีดีโอ|ตัว|clips?|videos?/i.test(text)){
     const n = Number(bare[2].replace(/,/g, ""));
     if (isFinite(n) && n >= 100) return (bare[1] === "ลด" ? -1 : 1) * n;
@@ -7665,10 +7896,13 @@ function slashValue(spec, raw){
   const s = String(raw || "").trim();
   if (!s) return { err:"ยังไม่ได้ใส่ค่าหลังเครื่องหมาย :" };
   if (spec.val === "num"){
-    const m = s.match(/^([+-])?\s*([\d,]+)$/);
+    // รับทศนิยมด้วย — เรทบางเจ้าตกลงกันเป็นเศษสตางค์ (12,500.50)
+    const m = s.match(/^([+-])?\s*([\d,]*\.?\d+)$/);
     if (!m) return { err:`"${s}" ไม่ใช่ตัวเลข` };
     const n = Number(m[2].replace(/,/g, ""));
     if (!isFinite(n)) return { err:`"${s}" ไม่ใช่ตัวเลข` };
+    if (spec.f === "videos" && !Number.isInteger(n))
+      return { err:`จำนวนคลิปต้องเป็นจำนวนเต็ม — ได้มาว่า "${s}"` };
     return m[1] ? { delta: m[1] === "-" ? -n : n } : { v:n };
   }
   if (spec.val === "stage"){
@@ -7818,15 +8052,17 @@ function parseSlashLine(line, pending){
     if (mc){
       const i = Number(mc[1]) - 1;
       if (i < 0 || i >= CMD_BLOCKS.length) return bad(`ไม่มี Command บล็อกที่ ${mc[1]}`);
-      if (!CMDEDIT[i]) return bad(`Command บล็อก ${mc[1]} เป็นต้นแบบอยู่แล้ว ไม่ได้ถูกแก้`);
+      if (!cmdEditOne(PROJ, String(i)))
+        return bad(`Command บล็อก ${mc[1]} ของ ${PROJ} เป็นต้นแบบอยู่แล้ว ไม่ได้ถูกแก้`);
       return [{ line, ok:true, admin:"resetcmd", block:i, changes:{},
         note:`คืนข้อความต้นแบบบล็อก ${mc[1]} (${CMD_BLOCKS[i].t.replace(/^\d+\.\s*/,"")})` }];
     }
     if (what === "all" || what === "ทั้งหมด"){
-      const n = Object.keys(CMDEDIT).length;
-      if (!n) return bad("ข้อความต้นแบบยังไม่ได้ถูกแก้เลย");
+      const n = Object.keys(CMDEDIT[PROJ] || {}).length
+              + cmdAddFor(PROJ).length + (CMDHIDE[PROJ] || []).length;
+      if (!n) return bad(`ต้นแบบของ ${PROJ} ยังไม่ได้ถูกแก้เลย`);
       return [{ line, ok:true, admin:"resetcmd", block:"all", changes:{},
-        note:`คืนข้อความต้นแบบทั้งหมด (${n} บล็อก)` }];
+        note:`คืนต้นแบบของ <b>${esc(PROJ)}</b> ทั้งหมด (${n} รายการ — โปรเจกต์อื่นไม่แตะ)` }];
     }
     return bad(`/reset ใช้ได้กับ: fb1 · fb2 · fb3 · fb · cmd1–cmd${CMD_BLOCKS.length} · all`);
   }
@@ -8162,7 +8398,9 @@ function applyQuickOrder(){
       }
       case "resetcmd": {
         loadCmdEdit();
-        if (q.block === "all") CMDEDIT = {}; else delete CMDEDIT[q.block];
+        if (q.block === "all"){
+          delete CMDEDIT[PROJ]; delete CMDADD[PROJ]; delete CMDHIDE[PROJ];
+        } else if (CMDEDIT[PROJ]) delete CMDEDIT[PROJ][String(q.block)];
         saveCmdEdit();
         break;
       }
