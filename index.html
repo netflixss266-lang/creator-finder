@@ -516,7 +516,7 @@ body:not([data-view="coord"]) #gearBtn{display:none}
 
 /* ── ตรึง 2 คอลัมน์แรกไว้ตอนเลื่อนขวา ── */
 .ctable th:nth-child(1),.ctable td:nth-child(1){position:sticky;left:0;z-index:3}
-.ctable th:nth-child(2),.ctable td:nth-child(2){position:sticky;left:26px;z-index:3}
+.ctable th:nth-child(2),.ctable td:nth-child(2){position:sticky;left:var(--col1,26px);z-index:3}
 .ctable td:nth-child(1),.ctable td:nth-child(2){background:var(--surface)}
 .ctable th:nth-child(1),.ctable th:nth-child(2){z-index:5;background:var(--bg)}
 .ctable tr:hover td:nth-child(1),.ctable tr:hover td:nth-child(2){background:var(--surface2)}
@@ -731,6 +731,18 @@ tr.dropover td{border-top:2px solid var(--accent)}
 .overlay[hidden]{display:none}
 .modal{background:var(--surface);border:1px solid var(--line);border-radius:14px;
   width:100%;max-width:560px;padding:22px 24px 24px}
+.modal.wide{max-width:820px}
+/* ── Format ขอเรท ── ข้อความยาว ต้องอ่านเทียบกับช่องที่ปรับได้ในจอเดียว */
+.fmtgrid{display:grid;grid-template-columns:1fr 8em;gap:10px;margin:12px 0 14px}
+.fmtgrid label{display:flex;flex-direction:column;gap:5px;font-size:.78rem;
+  text-transform:uppercase;letter-spacing:.06em;color:var(--mute)}
+.fmtgrid label.wide{grid-column:1/-1}
+.fmtgrid textarea{min-height:0;font-size:.85rem;line-height:1.6}
+.fmtprev{background:var(--bg);border:1px solid var(--line);border-radius:9px;
+  padding:1em 1.1em;font-family:'IBM Plex Sans Thai',sans-serif;font-size:.9rem;
+  line-height:1.85;white-space:pre-wrap;word-break:break-word;color:var(--ink);
+  max-height:44vh;overflow:auto}
+@media(max-width:560px){.fmtgrid{grid-template-columns:1fr}}
 .modal-head{display:flex;align-items:center;justify-content:space-between;
   gap:12px;margin-bottom:4px}
 .modal-head h2{font-family:'Space Grotesk',sans-serif;font-size:1.05rem;font-weight:700}
@@ -1755,6 +1767,8 @@ tr.subrow td.w-status select{width:14.6em}
     <div class="tabs sub" id="projTabs" role="tablist"></div>
     <!-- ภาพรวมทั้งโปรเจกต์ — อยู่ติดแท็บโปรเจกต์เพราะมันคือ "อีกมุมของข้อมูลชุดเดียวกัน" -->
     <button class="mapbtn" id="mapBtn" title="ดูภาพรวมทั้งโปรเจกต์เป็นแผนผัง">◈ Map</button>
+    <!-- ข้อความทักครั้งแรกเพื่อขอเรท — ยังไม่มีคนในตาราง เลยเป็นของโปรเจกต์ ไม่ใช่ของรายคน -->
+    <button class="mapbtn" id="fmtBtn" title="ข้อความขอเรทสำหรับทักครีเอเตอร์ครั้งแรก">✉ Format ขอเรท</button>
     <div class="coord-sum" id="coordSum"></div>
   </div>
   <div class="syncbar" id="syncBar"></div>
@@ -1785,6 +1799,17 @@ tr.subrow td.w-status select{width:14.6em}
       <button class="x" id="closeMap" aria-label="ปิด">✕</button>
     </div>
     <div class="mapbody" id="mapBody"></div>
+  </div>
+</div>
+
+<!-- ═══ Format ขอเรท — ข้อความทักครั้งแรก แยกต้นแบบตามโปรเจกต์ ═══ -->
+<div class="overlay" id="fmtPanel" hidden>
+  <div class="modal wide" role="dialog" aria-modal="true" aria-labelledby="fmtTitle">
+    <div class="modal-head">
+      <h2 id="fmtTitle">Format ขอเรท</h2>
+      <button class="x" id="closeFmt" aria-label="ปิด">✕</button>
+    </div>
+    <div id="fmtBody"></div>
   </div>
 </div>
 
@@ -3330,6 +3355,120 @@ function renderProjTabs(){
   if (mg) mg.onclick = openProjManager;
 }
 
+// ═══ Format ขอเรท ═══
+// ข้อความที่ทักครีเอเตอร์ครั้งแรกก่อนจะรู้ว่าเขาคิดเท่าไหร่ — ยังไม่มีแถวในตาราง
+// เลยเป็นของ "โปรเจกต์" ไม่ใช่ของรายคน และแยกต้นแบบตามโปรเจกต์เหมือน Command
+const LS_FORMAT = "cf_format_v1";
+const FORMAT_DEFAULT =
+`สวัสดีครับ🙏 แอดมินจากบริษัท ALTA Global Commerce ขออนุญาตติดต่อสอบถามเรทราคางานสำหรับโพสต์วิดีโอลงช่อง Tiktok  นะครับ
+- SOW : รีวิวสินค้า + ติดตะกร้า {{videos}} Video + Gencode 60 Days🛒📦
+- Platform : Tiktok📱
+
+แบรนด์ : {{brandname}}
+สินค้า :
+{{sku}}
+
+
+📌📌เงื่อนไข📌📌
+✅ ทีมมีบรีฟให้รายละเอียดสินค้าและรูปแบบคอนเทนต์
+✅ ทางทีมมีการตรวจดราฟ
+✅ สามารถแก้ดราฟได้ 3 ครั้ง
+
+✿ ทางบริษัทมีการทำจ่ายในรูปแบบของการหักภาษี 3% ณ ที่จ่าย เท่านั้น แอดขออนุญาตหัก ณ ที่จ่ายตามรูปแบบของกฎหมายนะครับ และจะมีระยะเวลาในการทำจ่าย 30 วันครับ ✿
+
+🙂หากสนใจแอดมินขอทราบรายละเอียดเพิ่มเติมดังนี้นะครับ
+1) เรทสำหรับรีวิวสินค้า 1 Video + ติดตะกร้า + Gencode ขั้นต่ำ 60 Days ______
+2) เรทสำหรับรีวิวสินค้า 2 Video + ติดตะกร้า + Gencode ขั้นต่ำ 60 Days ______
+3) สินค้าที่สนใจรีวิว ______
+4) เบอร์โทรและ ID Line ที่ใช้ในเพื่อใช้ในการติดต่อคุยงานยามฉุกเฉินในกรณีที่คอนเฟิร์มร่วมงาน ______
+5) สะดวกลงช่องทาง Shopee หรือ Facebook ด้วยไหม  ______
+
+ขอบคุณมากเลยนะครับ 🙏🏻😊`;
+
+let FORMATS = {};
+function loadFormats(){
+  try { FORMATS = JSON.parse(localStorage.getItem(LS_FORMAT) || "{}") || {}; } catch(e){}
+}
+function saveFormats(){
+  try { localStorage.setItem(LS_FORMAT, JSON.stringify(FORMATS)); } catch(e){}
+}
+const formatOf = proj => FORMATS[proj] != null ? FORMATS[proj] : FORMAT_DEFAULT;
+// ค่าที่ใช้เติมช่องว่าง — จำนวนวิดีโอกับรายการสินค้าปรับได้ทุกครั้งก่อนส่ง
+let FMT_EDIT = false;
+let FMT_VID = "1";
+let FMT_SKU = null;          // null = ใช้ลิสต์ SKU ของโปรเจกต์
+
+const fmtSkuText = proj => FMT_SKU != null ? FMT_SKU
+  : [...new Set((COORD[proj] || []).flatMap(r => skuParts(r.sku)))].join("\n")
+    || (skuListFor(proj) || []).join("\n");
+
+function renderFormat(){
+  const proj = PROJ;
+  const body = $("#fmtBody");
+  $("#fmtTitle").textContent = `Format ขอเรท · ${proj}`;
+  const vals = { brandname: brandOf(proj), videos: FMT_VID || "1", sku: fmtSkuText(proj) };
+  const raw = formatOf(proj);
+  const filled = raw.replace(/\{\{(\w+)\}\}/g, (_, k) =>
+    vals[k] != null && vals[k] !== "" ? vals[k] : `…..ยังไม่มี${k}…..`);
+  const mine = FORMATS[proj] != null;
+
+  body.innerHTML = FMT_EDIT
+    ? `<p class="sect-sub">แก้ต้นแบบของ <b>${esc(proj)}</b> — โปรเจกต์อื่นไม่เปลี่ยนตาม<br>
+         ตัวแปรที่ใส่ได้: <code>{{brandname}}</code> <code>{{videos}}</code> <code>{{sku}}</code></p>
+       <textarea id="fmtText" style="min-height:46vh;font-size:.9rem;line-height:1.7">${esc(raw)}</textarea>
+       <div class="dd-act" style="margin-top:10px;flex-wrap:wrap">
+         <button type="button" class="run" id="fmtSave">บันทึก</button>
+         <button type="button" class="export" id="fmtCancel">ยกเลิก</button>
+         ${mine ? `<button type="button" class="export ghost" id="fmtReset">คืนค่าตั้งต้น</button>` : ""}
+       </div>`
+    : `<div class="fmtgrid">
+         <label>แบรนด์<input value="${esc(vals.brandname)}" disabled
+           title="แก้ที่หน้าจัดการโปรเจกต์ (ปุ่ม ⚙ ท้ายแท็บ)"></label>
+         <label>จำนวนวิดีโอ<input id="fmtVid" type="number" min="1" step="1" value="${esc(FMT_VID)}"></label>
+         <label class="wide">สินค้าที่จะเสนอ — บรรทัดละอย่าง
+           <textarea id="fmtSku" rows="3" placeholder="ว่างไว้ = ใช้ SKU ทั้งหมดที่มีในโปรเจกต์นี้">${esc(vals.sku)}</textarea></label>
+       </div>
+       <pre class="fmtprev" id="fmtPrev">${esc(filled)}</pre>
+       <div class="dd-act" style="margin-top:11px;flex-wrap:wrap">
+         <button type="button" class="run" id="fmtCopy">คัดลอกข้อความ</button>
+         <button type="button" class="export" id="fmtEdit">✎ แก้ format</button>
+         ${mine ? `<button type="button" class="export ghost" id="fmtReset">คืนค่าตั้งต้น</button>` : ""}
+         <span class="picksum">${mine ? "ใช้ต้นแบบที่แก้ไว้ของโปรเจกต์นี้" : "ใช้ต้นแบบตั้งต้น"}</span>
+       </div>`;
+
+  const rerender = () => renderFormat();
+  if (FMT_EDIT){
+    $("#fmtSave").onclick = () => {
+      const v = $("#fmtText").value;
+      if (v === FORMAT_DEFAULT) delete FORMATS[proj]; else FORMATS[proj] = v;
+      saveFormats(); FMT_EDIT = false; rerender();
+    };
+    $("#fmtCancel").onclick = () => { FMT_EDIT = false; rerender(); };
+  } else {
+    $("#fmtVid").onchange = () => { FMT_VID = String(Math.max(1, Number($("#fmtVid").value) || 1)); rerender(); };
+    $("#fmtSku").onchange = () => { FMT_SKU = $("#fmtSku").value; rerender(); };
+    $("#fmtCopy").onclick = () => {
+      const btn = $("#fmtCopy");
+      navigator.clipboard.writeText(filled).then(() => {
+        btn.textContent = "คัดลอกแล้ว ✓";
+        setTimeout(() => { const b = $("#fmtCopy"); if (b) b.textContent = "คัดลอกข้อความ"; }, 1600);
+      }).catch(() => { btn.textContent = "ก๊อปไม่ได้"; });
+    };
+    $("#fmtEdit").onclick = () => { FMT_EDIT = true; rerender(); };
+  }
+  const rst = $("#fmtReset");
+  if (rst) rst.onclick = () => {
+    if (!confirm(`คืน Format ของ ${proj} เป็นค่าตั้งต้น? ที่แก้ไว้จะหาย`)) return;
+    delete FORMATS[proj]; saveFormats(); FMT_EDIT = false; rerender();
+  };
+}
+function openFormat(){
+  loadFormats();
+  FMT_EDIT = false; FMT_SKU = null;
+  $("#fmtPanel").hidden = false;
+  renderFormat();
+}
+
 // ─── จัดการโปรเจกต์ ───
 function openProjManager(){
   const body = $("#projBody");
@@ -4016,17 +4155,29 @@ function renderCoord(){
   }
 
   // ตัวเลขสรุปเอาออกแล้ว — จำนวนคนดูได้จากตัวเลขบนแท็บโปรเจกต์กับปุ่ม KOL/KOC อยู่แล้ว
-  // เหลือไว้ 2 อย่างที่ไม่ใช่สถิติ: อ่านชีตทางไหน (ตัวชี้ขาดก่อนปิด Share) และเรทที่ยังต้องยืนยัน
-  const flagged = all.filter(r => r.rate == null || (r.rate_all || []).length > 1).length;
   // แถวที่ยังใช้สถานะชุดเก่า — ไม่แปลงให้เอง เพราะเขียนทับสถานะทั้งทีมควรเป็นการกดเอง
   const oldN = PROJECTS.reduce((s, p) => s + (COORD[p] || [])
     .filter(r => STATUS_MIGRATE[r.status]).length, 0);
+  // ธง "ต้องยืนยันเรท" ย้ายไปอยู่ในแผนผังหน้า "ข้อมูลที่ยังขาด" ซึ่งบอกได้ว่าใครบ้าง
+  // ตรงนี้เหลือไว้เฉพาะเรื่องที่ต้องกดทำทันที
   $("#coordSum").innerHTML =
-    (flagged ? `<span style="color:var(--lo)" title="ข้อมูลจาก: ${esc(COORD_SRC)}">⚑ ต้องยืนยันเรท <b>${flagged}</b> คน</span>` : "") +
     (oldN ? `<span style="color:var(--warn);cursor:pointer" id="migBtn"
       title="ดูรายการก่อนแปลง">↻ สถานะชุดเก่า <b>${oldN}</b> แถว — แปลงเป็นชุดใหม่</span>` : "");
   const mig = $("#migBtn");
   if (mig) mig.onclick = migrateStatuses;
+
+  // ── จำที่ที่กำลังอ่านอยู่ ──
+  // วาดตารางใหม่ = เปลี่ยนกล่องเลื่อนทั้งก้อน ตำแหน่งเลื่อนเลยกลับไปบนสุดทุกครั้งที่แก้ค่าสักช่อง
+  // ซึ่งแปลว่าแก้แถวที่ 30 เสร็จแล้วต้องเลื่อนกลับลงมาใหม่ทุกรอบ
+  const keep = (() => {
+    const cw = document.querySelector(".cwrap");
+    const a = document.activeElement;
+    const inTable = a && a.closest && a.closest("#coordBody") && (a.dataset.i != null || a.dataset.clip != null);
+    return { top: cw ? cw.scrollTop : 0, left: cw ? cw.scrollLeft : 0,
+      page: window.scrollY,
+      sel: inTable ? { i:a.dataset.i, f:a.dataset.f, clip:a.dataset.clip, k:a.dataset.k,
+                       s:a.selectionStart, e:a.selectionEnd } : null };
+  })();
 
   $("#coordBody").innerHTML = `<div class="cwrap"><table class="ctable${LEAN ? " lean" : ""}">
     <thead><tr>
@@ -4149,7 +4300,38 @@ function renderCoord(){
       markDirty(); renderCoord();
     };
   });
+
+  // ── กลับไปที่เดิม ──
+  // ต้องคืนหลังผูก handler เสร็จ ไม่งั้น focus โดนของที่วาดทีหลังแย่งไป
+  const cw = document.querySelector(".cwrap");
+  if (cw){ cw.scrollTop = keep.top; cw.scrollLeft = keep.left; }
+  if (keep.page) window.scrollTo(0, keep.page);
+  if (keep.sel){
+    const s = keep.sel;
+    const el = s.clip != null
+      ? document.querySelector(`#coordBody [data-clip="${s.clip}"][data-k="${s.k}"]`)
+      : document.querySelector(`#coordBody [data-i="${s.i}"][data-f="${s.f}"]`);
+    if (el){
+      el.focus({ preventScroll:true });
+      // select/checkbox ไม่มีเคอร์เซอร์ ตั้ง selectionRange แล้วจะ error
+      try { if (s.s != null && el.setSelectionRange) el.setSelectionRange(s.s, s.e); } catch(e){}
+    }
+  }
+  measureStickyCols();
 }
+
+// ── ตรึงคอลัมน์ที่สอง ──
+// ระยะที่คอลัมน์ชื่อไปเกาะต้องเท่ากับความกว้างจริงของคอลัมน์แรก
+// เดิมเขียนตายตัวไว้ 26px แต่คอลัมน์แรกกว้างเป็น em โตตามขนาดตัวอักษร
+// ห่างกันเมื่อไหร่ก็เกิดร่องให้คอลัมน์ที่เลื่อนอยู่ข้างหลังโผล่ทะลุขึ้นมาให้เห็น
+function measureStickyCols(){
+  const th = document.querySelector("#coordBody .ctable thead th");
+  if (!th) return;
+  const w = th.getBoundingClientRect().width;
+  if (w > 0) th.closest("table").style.setProperty("--col1", Math.round(w) + "px");
+}
+// ความกว้างคอลัมน์เปลี่ยนตามจอและขนาดตัวอักษร วัดใหม่ทุกครั้งที่ขนาดขยับ
+addEventListener("resize", measureStickyCols);
 
 // ─── แก้ค่าหนึ่งช่อง — ใช้ร่วมกันทั้งตารางและลิ้นชักรายละเอียด ───
 // ที่เดียวจบ จะได้ไม่มีทางที่สองที่แก้ข้อมูลคนละแบบกัน
@@ -6024,6 +6206,9 @@ function mapMoneySheet(proj){
 }
 
 $("#mapBtn").onclick = () => openMap(PROJ);
+$("#fmtBtn").onclick = openFormat;
+$("#closeFmt").onclick = () => { $("#fmtPanel").hidden = true; };
+$("#fmtPanel").onclick = e => { if (e.target.id === "fmtPanel") $("#fmtPanel").hidden = true; };
 $("#closeMap").onclick = () => openTable(MAP_PROJ);
 $("#mapView").onclick = e => { if (e.target.id === "mapView") openTable(MAP_PROJ); };
 
@@ -7108,7 +7293,8 @@ $("#skuGuideAdd").onclick = () => {
 $("#settings").onclick = e => { if (e.target.id === "settings") closeSettings(); };
 document.addEventListener("keydown", e => {
   if (e.key !== "Escape") return;
-  if (!$("#projPanel").hidden) $("#projPanel").hidden = true;
+  if (!$("#fmtPanel").hidden) $("#fmtPanel").hidden = true;
+  else if (!$("#projPanel").hidden) $("#projPanel").hidden = true;
   else if ($("#detailPanel").classList.contains("on")) closeDetail();
   else if ($("#cmdPanel").classList.contains("on")) $("#cmdPanel").classList.remove("on");
   else if (!$("#mapView").hidden) openTable(MAP_PROJ);
