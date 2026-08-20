@@ -428,6 +428,21 @@ body:not([data-view="coord"]) #gearBtn{display:none}
 @media(max-width:520px){.hrow .hex{padding-left:0}}
 .cmdhelp code.clickable{cursor:pointer;border:1px solid transparent}
 .cmdhelp code.clickable:hover{border-color:var(--accent);color:var(--accent)}
+/* ── วางข้อความ / ลากไฟล์ ── อยู่ข้างกัน ใครถนัดทางไหนก็ทางนั้น */
+.bulkpaste{display:grid;grid-template-columns:1fr 13em;gap:10px;align-items:stretch}
+.bulkpaste textarea{min-height:132px}
+.dropzone{display:flex;flex-direction:column;align-items:center;justify-content:center;
+  gap:4px;text-align:center;border:2px dashed var(--line);border-radius:10px;
+  background:var(--surface2);padding:12px;cursor:pointer;transition:border-color .12s,background .12s}
+.dropzone:hover{border-color:var(--accent);background:rgba(var(--accent-rgb),.06)}
+.dropzone.over{border-color:var(--accent);background:rgba(var(--accent-rgb),.16)}
+.dropzone .ic{font-size:1.5rem;color:var(--accent);line-height:1}
+.dropzone b{font-size:.84rem;color:var(--ink)}
+.dropzone .sub{font-size:.76rem;color:var(--dim);line-height:1.5}
+@media(max-width:560px){
+  .bulkpaste{grid-template-columns:1fr}
+  .dropzone{padding:14px}
+}
 .cgrid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
 @media(max-width:520px){.cgrid{grid-template-columns:1fr}}
 .cgrid label{display:block;font-size:.79rem;text-transform:uppercase;letter-spacing:.06em;
@@ -1946,8 +1961,16 @@ tr.subrow td.w-status select{width:14.6em}
         ก๊อปจากชีต/ตาราง/แชทมาวางได้เลย บรรทัดละคน คั่นด้วย Tab หรือเว้นวรรคหลายเคาะ<br>
         <code style="font-size:.79rem;color:var(--mute)">_khongprodpam&#9;https://www.tiktok.com/@_khongprodpam&#9;1166&#9;2K - 19K</code>
       </p>
-      <textarea id="bulkText" style="min-height:110px"
-        placeholder="วางที่นี่ แล้วกดตรวจ"></textarea>
+      <!-- วางข้อความหรือลากไฟล์มาก็ได้ — ทั้งสองทางลงเอยที่ช่องเดียวกันแล้วตรวจด้วยตัวอ่านตัวเดียว -->
+      <div class="bulkpaste">
+        <textarea id="bulkText" placeholder="วางที่นี่ แล้วกดตรวจ"></textarea>
+        <label class="dropzone" id="bulkDrop">
+          <input type="file" id="bulkFile" accept=".csv,.tsv,.txt,text/plain" multiple hidden>
+          <span class="ic">⤓</span>
+          <b>ลากไฟล์มาวางตรงนี้</b>
+          <span class="sub">หรือกดเพื่อเลือกไฟล์<br>.csv · .tsv · .txt</span>
+        </label>
+      </div>
       <button class="run" id="bulkParse" style="margin-top:10px">ตรวจแล้วดูตัวอย่าง</button>
       <div id="bulkPreview"></div>
       <div class="addmsg" id="bulkMsg"></div>
@@ -7099,8 +7122,34 @@ $("#acSave").onclick = async () => {
 // เดาให้ว่าคอลัมน์ไหนคืออะไร แต่ให้คนยืนยันก่อนเขียน
 // เดาผิดแล้วเขียนลงชีตเลย = ข้อมูลทีมเพี้ยนโดยไม่มีใครรู้
 const BULK_ROLES = { skip:"— ไม่เอา —", id:"ID", link:"Link",
-                     follower:"Follower", rate:"Rate", cat:"Cat" };
+                     follower:"Follower", rate:"Rate", budget:"Budget", cat:"Cat" };
 let BULK = { rows: [], roles: [] };
+
+// ─── ลากไฟล์มาวาง ───
+// ไฟล์กับข้อความที่วางลงเอยที่ช่องเดียวกัน แล้วตรวจด้วยตัวอ่านตัวเดียว
+// จะได้ไม่มีทางที่สองที่อ่านข้อมูลคนละแบบกับทางที่พิมพ์มาเอง
+async function bulkAddFiles(files){
+  const msg = $("#bulkMsg");
+  const good = [], bad = [];
+  for (const f of files){
+    if (/\.(pdf|jpe?g|png|gif|webp|xlsx?|docx?)$/i.test(f.name)){ bad.push(f.name); continue; }
+    try { good.push({ name:f.name, text: await f.text() }); }
+    catch(e){ bad.push(f.name); }
+  }
+  if (good.length){
+    const ta = $("#bulkText");
+    ta.value = (ta.value.trim() ? ta.value.replace(/\s*$/, "") + "\n" : "") +
+               good.map(g => g.text.trim()).join("\n");
+    $("#bulkParse").click();
+  }
+  const lines = good.reduce((s, g) => s + bulkSplit(g.text).length, 0);
+  msg.className = "addmsg on " + (bad.length ? "err" : good.length ? "ok" : "err");
+  msg.innerHTML = [
+    good.length ? `อ่านไฟล์ <b>${good.map(g => esc(g.name)).join(" · ")}</b> — ${lines} บรรทัด` : "",
+    bad.length ? `<span style="color:var(--lo)">${bad.map(esc).join(" · ")} อ่านไม่ได้</span> —
+      ไฟล์ Excel/PDF/รูป ต้องเปิดแล้วก๊อปข้อความมาวางแทน` : ""
+  ].filter(Boolean).join("<br>");
+}
 
 function bulkSplit(text){
   return String(text).split(/\r?\n/).map(l => l.trim()).filter(Boolean)
@@ -7115,11 +7164,55 @@ function guessRole(vals){
   if (all(x => /tiktok\.com\/@/i.test(x))) return "link";
   // ช่วงตัวเลข เช่น "2K - 19K" ไม่มีคอลัมน์ไหนรับได้ตรงๆ ต้องให้คนเลือกเอง
   if (v.some(x => /\d\s*[kKmM]?\s*[-–—]\s*\d/.test(x))) return "skip";
-  if (v.some(x => /฿|บาท|barter|unknown|เรท/i.test(x))) return "rate";
+  // งบที่ตั้งไว้ ไม่ใช่เรทที่ครีเอเตอร์เสนอ — เดาก่อน rate ไม่งั้นสองคอลัมน์นี้จะทับกัน
+  // และถ้าเดาผิดไปเป็น rate เรทที่ตกลงจริงจะโดนงบเขียนทับโดยไม่มีใครเห็น
+  if (v.some(x => /budget|งบ(ประมาณ)?/i.test(x))) return "budget";
+  if (v.some(x => /฿|บาท|barter|unknown|เรท|rate/i.test(x))) return "rate";
   // เช็คตัวเลขก่อน ID เสมอ — "1166" กับ "24.5K" เข้าเงื่อนไข ID ได้ด้วยถ้าเช็คทีหลัง
   if (all(x => /^[\d,]+(\.\d+)?\s*[kKmM]?$/.test(x))) return "follower";
   if (all(x => /^@?[A-Za-z0-9._]{2,30}$/.test(x)) && v.some(x => /[a-z]/i.test(x))) return "id";
   return "skip";
+}
+
+$("#bulkFile").onchange = e => { bulkAddFiles(e.target.files); e.target.value = ""; };
+// ลากวางได้ทั้งบนกล่องไฟล์และบนช่องพิมพ์ — คนลากมักเล็งไปที่ช่องข้อความก่อน
+["#bulkDrop", "#bulkText"].forEach(sel => {
+  const el = $(sel);
+  el.addEventListener("dragover", e => {
+    e.preventDefault(); e.dataTransfer.dropEffect = "copy";
+    $("#bulkDrop").classList.add("over");
+  });
+  el.addEventListener("dragleave", () => $("#bulkDrop").classList.remove("over"));
+  el.addEventListener("drop", e => {
+    if (!e.dataTransfer.files || !e.dataTransfer.files.length) return;   // ลากข้อความมาปล่อยให้เบราว์เซอร์จัดการเอง
+    e.preventDefault();
+    $("#bulkDrop").classList.remove("over");
+    bulkAddFiles(e.dataTransfer.files);
+  });
+});
+
+// ─── แถวหัวตาราง ───
+// ไฟล์ที่ลากมามักมีบรรทัดชื่อคอลัมน์อยู่บนสุด ถ้าอ่านเป็นข้อมูลด้วยจะเสียสองต่อ:
+// ได้แถวขยะเพิ่มมาหนึ่งคน และคำว่า "Link"/"Follower" ทำให้เดาบทบาทคอลัมน์เพี้ยนทั้งคอลัมน์
+const HEAD_WORDS = {
+  id:      /^(id|ชื่อ|handle|username|user|creator)$/i,
+  link:    /^(link|url|ลิงก์|ลิ้ง|tiktok)$/i,
+  follower:/^(followers?|ผู้ติดตาม|ยอดติดตาม|fol)$/i,
+  rate:    /^(rate|เรท|ราคา|ค่าตัว)$/i,
+  budget:  /^(budget|งบ|งบประมาณ)$/i,
+  cat:     /^(cat|category|หมวด|หมวดหมู่|ประเภท)$/i,
+};
+// คืนบทบาทของแต่ละคอลัมน์ถ้าบรรทัดนี้เป็นหัวตาราง ไม่ใช่ก็คืน null
+function headerRoles(row){
+  const roles = row.map(c => {
+    const s = String(c || "").trim();
+    for (const k in HEAD_WORDS) if (HEAD_WORDS[k].test(s)) return k;
+    return null;
+  });
+  // ต้องตรงอย่างน้อย 2 ช่อง และห้ามมีช่องไหนหน้าตาเป็นข้อมูลจริง (ลิงก์/ตัวเลขยาว)
+  const hit = roles.filter(Boolean).length;
+  const looksData = row.some(c => /tiktok\.com|^\d[\d,]{2,}/.test(String(c || "").trim()));
+  return (hit >= 2 && !looksData) ? roles.map(r => r || "skip") : null;
 }
 
 $("#bulkParse").onclick = () => {
@@ -7128,9 +7221,19 @@ $("#bulkParse").onclick = () => {
   if (!rows.length){ msg.className = "addmsg on err"; msg.textContent = "ยังไม่ได้วางอะไร"; return; }
   const width = Math.max(...rows.map(r => r.length));
   rows.forEach(r => { while (r.length < width) r.push(""); });
-  BULK.rows = rows;
-  BULK.roles = Array.from({length: width}, (_, c) => guessRole(rows.map(r => r[c])));
-  msg.className = "addmsg";
+  const head = headerRoles(rows[0]);
+  const body = head ? rows.slice(1) : rows;
+  if (head && !body.length){
+    msg.className = "addmsg on err";
+    msg.textContent = "มีแต่บรรทัดหัวตาราง ยังไม่มีข้อมูลสักคน";
+    return;
+  }
+  BULK.rows = body;
+  BULK.roles = head ||
+    Array.from({length: width}, (_, c) => guessRole(body.map(r => r[c])));
+  BULK.fromHead = !!head;
+  msg.className = head ? "addmsg on ok" : "addmsg";
+  if (head) msg.innerHTML = `อ่านบรรทัดแรกเป็นหัวตาราง — ตั้งคอลัมน์ตามนั้นให้แล้ว`;
   renderBulk();
 };
 
@@ -7140,6 +7243,7 @@ function renderBulk(){
   $("#bulkPreview").innerHTML = `
     <p class="sect-sub" style="margin-top:13px">
       เจอ <b>${rows.length}</b> บรรทัด · ${roles.length} คอลัมน์ — เช็คหัวคอลัมน์ให้ตรงก่อนกดเพิ่ม
+      ${BULK.fromHead ? `<br><span style="color:var(--hi)">ตั้งจากบรรทัดหัวตารางในไฟล์ (ไม่นับเป็นข้อมูล)</span>` : ""}
       ${rows.length > 8 ? `<br>(แสดง 8 บรรทัดแรก)` : ""}</p>
     <div class="cwrap"><table class="ctable"><thead><tr>${
       roles.map((r, c) => `<th><select data-c="${c}" class="brole">${
@@ -7179,6 +7283,9 @@ async function bulkSave(){
     return { id: normId(id), link,
              follower: iOf("follower") >= 0 ? r[iOf("follower")] : "",
              rate: iOf("rate") >= 0 ? r[iOf("rate")] : "",
+             // สคริปต์เขียนตามชื่อหัวคอลัมน์ในชีต — ยังไม่มี Budget ก็แค่ถูกมองข้าม
+             // ส่งไปเลยเพื่อให้วันที่ชีตกับสคริปต์พร้อม ไม่ต้องกลับมาแก้ตรงนี้อีก
+             budget: iOf("budget") >= 0 ? r[iOf("budget")] : "",
              cat: iOf("cat") >= 0 ? (r[iOf("cat")] || cat) : cat };
   }).filter(x => x.id);
 
