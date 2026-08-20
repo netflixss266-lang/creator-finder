@@ -1298,7 +1298,12 @@ main{padding:22px 24px;overflow-y:auto;max-height:calc(100vh - 62px)}
 .linkrow{display:flex;align-items:center;gap:10px;padding:5px 0}
 .linkrow label{flex:0 0 11em;font-size:.8rem;color:var(--mute);
   overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.linkrow input{flex:1;min-width:0;font-size:.84rem;padding:7px 10px}
+.linkrow input,.linkrow textarea{flex:1;min-width:0;font-size:.84rem;padding:7px 10px}
+/* ช่องหลายบรรทัด — ป้ายขึ้นไปอยู่บนสุดของช่อง ไม่ลอยกลางกล่องสูงๆ */
+.linkrow.multi{align-items:flex-start}
+.linkrow.multi label{padding-top:9px}
+.linkrow textarea{min-height:0;line-height:1.7;resize:vertical;
+  font-family:'IBM Plex Sans Thai',sans-serif}
 .linkrow.own input{border-color:rgba(var(--accent-rgb),.45)}
 .linkrow.own label{color:var(--accent)}
 .linkrow button{flex:none;background:none;border:1px solid var(--line);color:var(--mute);
@@ -5654,6 +5659,14 @@ function openCmd(proj, handle){
       if (v == null) return;
       setField(r2, ROW_GAP[k], v.trim());
     } else {
+      const d = (docSplit(k) || {}).d;
+      // ช่องที่เป็นข้อความหลายบรรทัด (Timeline) ใส่ใน prompt ไม่ได้ — ส่งไปที่ฟอร์มลิงก์
+      if (d && d.text){
+        if ($("#linkBox").hidden) $("#cmdLinkBtn").click();
+        const ta = $(`#linkRows [data-link="${k}"]`);
+        if (ta){ ta.focus(); ta.scrollIntoView({ block:"center" }); }
+        return;
+      }
       // ที่เหลือคือเอกสาร/ลิงก์รายคน — รวมช่องรายคลิป (cart2, hashtag2 …)
       const cur = (cmdOwnRead(proj, handle).links || {})[k] || CMDLINKS[k] || "";
       const v = prompt(`${docLabel(k)} ของ ${normId(handle)}\n` +
@@ -5732,12 +5745,20 @@ function openCmd(proj, handle){
       : `<span style="color:var(--warn)">แก้ตรงนี้มีผลกับครีเอเตอร์ทุกคนที่ไม่ได้ตั้งลิงก์ของตัวเอง</span>`;
     $("#linkRows").innerHTML = (mine ? linkFields() : CMD_LINK_FIELDS).map(([k, label]) => {
       const v = mine ? (own[k] != null ? own[k] : "") : (CMDLINKS[k] || "");
-      const ph = mine ? (CMDLINKS[k] || "ยังไม่ได้ตั้งลิงก์ร่วม") : "วางลิงก์ที่นี่";
-      return `<div class="linkrow${mine && own[k] != null ? " own" : ""}">
+      // Timeline ไม่ใช่ลิงก์ เป็นตารางวันหลายบรรทัด — ต้องกด Enter ขึ้นบรรทัดใหม่ได้
+      // ดูจากธง text ในทะเบียนเอกสาร ไม่ได้เช็กชื่อช่องตรงๆ เผื่อมีชนิดข้อความอื่นตามมา
+      const d = (docSplit(k) || {}).d;
+      const multi = !!(d && d.text);
+      const ph = mine ? (CMDLINKS[k] || (multi ? "ยังไม่ได้ตั้งของร่วม" : "ยังไม่ได้ตั้งลิงก์ร่วม"))
+                      : (multi ? "พิมพ์ได้หลายบรรทัด" : "วางลิงก์ที่นี่");
+      return `<div class="linkrow${mine && own[k] != null ? " own" : ""}${multi ? " multi" : ""}">
         <label title="${esc(label)}">${esc(label)}</label>
-        <input data-link="${esc(k)}" value="${esc(v)}" placeholder="${esc(ph)}" spellcheck="false">
+        ${multi
+          ? `<textarea data-link="${esc(k)}" rows="${Math.min(10, Math.max(3, String(v).split("\n").length + 1))}"
+               placeholder="${esc(ph)}" spellcheck="false">${esc(v)}</textarea>`
+          : `<input data-link="${esc(k)}" value="${esc(v)}" placeholder="${esc(ph)}" spellcheck="false">`}
         ${mine && own[k] != null ? `<button data-linkclr="${esc(k)}"
-          title="ใช้ลิงก์ร่วมแทน">↺</button>` : ""}
+          title="ใช้${multi ? "ของ" : "ลิงก์"}ร่วมแทน">↺</button>` : ""}
       </div>`;
     }).join("");
     $("#linkRows").querySelectorAll("[data-link]").forEach(inp => inp.onchange = () => {
