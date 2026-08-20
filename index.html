@@ -1607,6 +1607,14 @@ tr.subrow td.w-status select{width:14.6em}
       </div>
     </details>
 
+    <!-- ขึ้นเฉพาะตอนชีตมีคอลัมน์ LIVE — ชีตเก่าไม่มีก็ไม่ต้องมีปุ่มที่กดแล้วไม่เกิดอะไร -->
+    <details class="fold" data-fold="live" id="liveFold" hidden>
+      <summary><span class="fl">ไลฟ์ได้ไหม</span><span class="fv" id="liveSum">ทั้งหมด</span></summary>
+      <div class="fbody">
+        <div class="tabs sub" id="liveTabs" role="tablist"></div>
+      </div>
+    </details>
+
     <details class="fold" data-fold="rate" id="rateFold" open>
       <summary><span class="fl">งบต่อคน (Rate)</span><span class="fv" id="rateSum">ไม่จำกัด</span></summary>
       <div class="fbody">
@@ -2138,7 +2146,8 @@ tr.subrow td.w-status select{width:14.6em}
 
 <script>
 const $ = s => document.querySelector(s);
-let POOL = [];          // ข้อมูลดิบจาก Sheet
+let POOL = [];          // ข้อมูลดิบจาก Sheet (คัดเฉพาะฝั่งที่เลือกอยู่แล้ว)
+let POOL_ALL = [];      // ทั้งชีตก่อนคัดฝั่ง — ชีตรวมสลับ KOL/KOC จากตรงนี้ ไม่ต้องโหลดใหม่
 let POOL_URL = "";      // URL ที่โหลด POOL ปัจจุบันมา
 let RESULTS = [];       // หลังกรอง+จัดอันดับ
 // ตะกร้า — เก็บตัวข้อมูลไว้เลย ไม่ใช่แค่ id
@@ -2154,6 +2163,21 @@ const DEALS = [
   { id: "unknown", label: "ยังไม่รู้", test: p => p.unknown },
 ];
 let DEAL = "all";
+
+// ─── ไลฟ์ได้ไหม ───
+// ช่องว่าง = ยังไม่ได้ถาม ซึ่งคนละเรื่องกับ "ถามแล้วไลฟ์ไม่ได้" — แยกปุ่มกันคนละอัน
+// ปุ่มขึ้นเฉพาะตอนชีตมีคอลัมน์นี้จริง ชีตเก่าที่ไม่มีก็ไม่มีปุ่มโผล่มาให้งง
+// ⚠️ "ไม่ได้" ลงท้ายด้วย "ได้" — เช็ค "ไม่ได้" ให้ตกก่อนเสมอ
+// ไม่งั้น "LIVE ไม่ได้" จะถูกนับเป็นไลฟ์ได้ ซึ่งเงียบและกลับหัวความหมายเลย
+const liveNo  = p => /ไม่ได้/.test(p.live || "");
+const liveYes = p => !liveNo(p) && /ได้|เคยไลฟ์/.test(p.live || "");
+const LIVES = [
+  { id: "all",  label: "ทั้งหมด",     test: () => true },
+  { id: "yes",  label: "LIVE ได้",     test: liveYes },
+  { id: "no",   label: "LIVE ไม่ได้",  test: liveNo },
+  { id: "ask",  label: "ยังไม่ได้ถาม", test: p => !(p.live || "").trim() },
+];
+let LIVEF = "all";
 
 // ─── รายชื่อที่ตัดออก (เคยติดต่อ/เคยใช้ไปแล้ว) ───
 const LS_EX = "cf_exclude_v1";
@@ -2230,9 +2254,13 @@ const KINDS = ["KOL", "KOC"];
 const BOOK = "https://docs.google.com/spreadsheets/d/1v5CrMct_EQEnHYndMAujZZI_DUBhGY5j5msfJ-2uBOM/export?format=csv&gid=";
 // ลิงก์เดิมที่เคยเซฟไว้ในเบราว์เซอร์ — ใช้จับเพื่อย้ายไปลิงก์ใหม่
 const OLD_PUB = "https://docs.google.com/spreadsheets/d/e/2PACX-1vTGGwh3e85B56qXFj5MbNRC0p7KgR-dQPfq_0Rfc6ey0rakPqwjGpdeG7Z-eN0qlnhsCAX4b3wEGAM2/pub?output=csv";
+// แท็บ Pool เดียวถือทั้ง KOL และ KOC โดยมีคอลัมน์ Kind บอกว่าแถวไหนเป็นฝั่งไหน
+// คนที่ทำงานทั้งสองแบบมีสองแถว เพราะเรทของสองฝั่งเป็นคนละดีลจริงๆ (เงินสด vs Barter)
+// รวมเป็นแถวเดียวเมื่อไหร่ก็ต้องทิ้งเรทฝั่งหนึ่ง
+const MERGED_GID = "723848506";
+const OLD_POOL_GIDS = ["0", "2067804304"];
 const DEFAULT_SHEETS = [
-  { name: "Creator Pool", kind: "KOL", url: BOOK + "0" },
-  { name: "Creator Pool", kind: "KOC", url: BOOK + "2067804304" },
+  { name: "Creator Pool", kind: "*", url: BOOK + MERGED_GID },
 ];
 let SHEETS = [];
 let KIND = KINDS[0];
@@ -2258,6 +2286,16 @@ function loadSheets(){
     return o;
   });
 
+  // ─── ย้ายไปแท็บรวม ───
+  // เครื่องที่เคยเซฟลิงก์แท็บ KOL/KOC แยกไว้ ให้เปลี่ยนมาใช้แท็บรวมแทน
+  // แตะเฉพาะลิงก์สองอันที่เป็นของตั้งต้นจริงๆ — ชีตที่ทีมเพิ่มเองไม่ยุ่ง
+  const isOldPool = s => OLD_POOL_GIDS.some(g => s.url === BOOK + g);
+  if (arr.some(isOldPool)){
+    arr = arr.filter(s => !isOldPool(s));
+    arr.unshift(Object.assign({}, DEFAULT_SHEETS[0]));
+    moved = true;
+  }
+
   if (healSheets(arr)) moved = true;
   if (moved){ SHEETS = arr; saveSheets(); }
   return arr;
@@ -2266,19 +2304,26 @@ function loadSheets(){
 // กลุ่มไหนไม่เหลือ sheet เลย ให้เติมตัวตั้งต้นกลับมา
 // ลบทิ้งหมดแล้วเว็บจะโหลดอะไรไม่ได้เลย และไม่มีอะไรบนจอบอกว่าต้องกดตรงไหนถึงจะกลับมา
 function healSheets(arr){
+  // ชีตรวมอันเดียวครอบทุกกลุ่มอยู่แล้ว ไม่ต้องเติมอะไร
+  if (arr.some(s => (s.kind || "") === "*")) return false;
   let added = false;
-  for (const d of DEFAULT_SHEETS){
-    if (!arr.some(s => (s.kind || KINDS[0]) === d.kind)){
-      arr.push(Object.assign({}, d));
+  for (const k of KINDS){
+    if (!arr.some(s => (s.kind || KINDS[0]) === k)){
+      arr.push(Object.assign({}, DEFAULT_SHEETS[0]));
       added = true;
+      break;                  // ตัวตั้งต้นเป็นชีตรวม ใส่ครั้งเดียวพอ
     }
   }
   return added;
 }
 
-function sheetsOfKind(k){ return SHEETS.filter(s => (s.kind || KINDS[0]) === k); }
+// kind "*" = ชีตรวม ใช้ได้กับทั้ง KOL และ KOC — คัดฝั่งเอาตอนกรอง ไม่ใช่ตอนโหลด
+const isMerged = s => (s && s.kind) === "*";
+function sheetsOfKind(k){ return SHEETS.filter(s => isMerged(s) || (s.kind || KINDS[0]) === k); }
 
 function activeKinds(){
+  // ชีตรวมถือทั้ง KOL และ KOC — ปุ่มต้องขึ้นสองปุ่มตามปกติ ไม่ใช่ปุ่มชื่อ "*"
+  if (SHEETS.some(isMerged)) return KINDS.slice();
   const seen = SHEETS.map(s => s.kind || KINDS[0]);
   return [...KINDS.filter(k => seen.includes(k)),
           ...[...new Set(seen)].filter(k => !KINDS.includes(k)).sort()];
@@ -2373,10 +2418,15 @@ async function fetchPool(url){
   const iLink= head.findIndex((h,ix) => ix!==iAv && /link|url/.test(h));
   const iFol = head.findIndex(h => /fol/.test(h));
   const iRate= head.findIndex(h => /rate|price|cost|budget|ราคา|ค่าตัว|เรท/.test(h));
+  // ชีตรวมมีคอลัมน์ Kind บอกฝั่ง — ชีตเก่าที่แยกแท็บไม่มี ก็ปล่อยว่างไว้
+  const iKind= head.findIndex(h => h === "kind" || /^(type|กลุ่ม|ประเภท)$/.test(h));
+  const iLive= head.findIndex(h => /^live$/.test(h) || /ไลฟ์/.test(h));
   if (iId < 0) throw new Error(`ไม่เจอคอลัมน์ ID (หัวตารางที่อ่านได้: ${head.join(", ") || "ว่าง"})`);
 
   return rows.slice(1).filter(r => r[iId]).map(r => ({
     cat:  (iCat>=0 ? r[iCat] : "").trim(),
+    kind: (iKind>=0 ? r[iKind] : "").trim().toUpperCase(),
+    live: (iLive>=0 ? r[iLive] : "").trim(),
     id:   r[iId].trim(),
     link: (iLink>=0 ? r[iLink] : "").trim(),
     fol:  parseFollowers(iFol>=0 ? r[iFol] : "0"),
@@ -2388,7 +2438,11 @@ async function fetchPool(url){
 // ─── โหลดเข้า state จริง ───
 async function loadPool(url){
   const keepCats = pickedCats();
-  POOL = await fetchPool(url);
+  const all = await fetchPool(url);
+  // ชีตรวมโหลดมาทั้งก้อนแล้วคัดเอาฝั่งที่เลือกอยู่ — สลับ KOL/KOC ไม่ต้องโหลดใหม่
+  // แถวที่ไม่มีคอลัมน์ Kind (ชีตเก่าที่ยังแยกแท็บ) ถือว่าเป็นของฝั่งนั้นทั้งหมดเหมือนเดิม
+  POOL_ALL = all;
+  POOL = all.some(p => p.kind) ? all.filter(p => !p.kind || p.kind === KIND) : all;
   POOL_URL = url;
   CATS = [...new Set(POOL.flatMap(catsOf))].sort();
   renderCatChips(keepCats);
@@ -2691,11 +2745,13 @@ async function run(opt){
   HIDDEN_EX = 0;
   HIDDEN_LIKED = 0;
   const dealTest = (DEALS.find(d => d.id === DEAL) || DEALS[0]).test;
+  const liveTest = (LIVES.find(d => d.id === LIVEF) || LIVES[0]).test;
 
   let filtered = POOL.filter(p => {
     if (EXCLUDE.has(normId(p.id))){ HIDDEN_EX++; return false; }
     if (HIDE_LIKED && LIKED.has(normId(p.id))){ HIDDEN_LIKED++; return false; }
     if (!dealTest(p)) return false;
+    if (!liveTest(p)) return false;
     if (onCats.length && !catsOf(p).some(c => onCats.includes(c))) return false;
     if (p.fol < fMin || p.fol > fMax) return false;
     if (rateFilterOn){
@@ -6784,6 +6840,24 @@ function renderDealTabs(){
     runLive();
   });
   syncRateField();
+  renderLiveTabs();
+}
+
+function renderLiveTabs(){
+  const has = POOL.some(p => (p.live || "").trim());
+  $("#liveFold").hidden = !has;
+  if (!has){ LIVEF = "all"; return; }
+  if (!LIVES.some(d => d.id === LIVEF)) LIVEF = "all";
+  $("#liveTabs").innerHTML = LIVES.map(d => `<button role="tab" data-live="${d.id}"
+    aria-selected="${d.id === LIVEF}">${esc(d.label)}<span class="n">${
+      d.id === "all" ? POOL.length : POOL.filter(d.test).length}</span></button>`).join("");
+  $("#liveSum").textContent = (LIVES.find(d => d.id === LIVEF) || LIVES[0]).label;
+  document.querySelectorAll("#liveTabs button").forEach(b => b.onclick = () => {
+    if (b.dataset.live === LIVEF) return;
+    LIVEF = b.dataset.live;
+    renderLiveTabs();
+    runLive();
+  });
 }
 
 // Barter = แลกของ ไม่มีค่าตัวเป็นเงิน ช่องงบเลยไม่มีความหมาย — ซ่อนไปเลย
@@ -6807,6 +6881,17 @@ function renderSheetSelect(){
 
 async function selectSheet(){
   const url = currentSheetUrl();
+  // ชีตรวมโหลดไว้แล้วและมีทั้งสองฝั่งอยู่ในมือ — สลับกลุ่มก็แค่คัดใหม่ ไม่ต้องยิงเน็ต
+  if (url && url === POOL_URL && POOL_ALL.some(p => p.kind)){
+    const keepCats = pickedCats();
+    POOL = POOL_ALL.filter(p => !p.kind || p.kind === KIND);
+    CATS = [...new Set(POOL.flatMap(catsOf))].sort();
+    renderCatChips(keepCats); renderDealTabs(); refreshExclude(); refreshLiked();
+    $("#poolN").textContent = POOL.length;
+    $("#banner").style.display = "none";
+    runLive();
+    return;
+  }
   $("#banner").style.display = "";
   if (!url){
     POOL = []; POOL_URL = ""; CATS = []; renderCatChips();
@@ -6944,6 +7029,10 @@ async function addSheet(){
 const LS_HOOK = "cf_hook_v1";
 let HOOK = { url: "", token: "" };
 let ADD_KIND = KINDS[0];
+// ชีตรวมเขียนลงแท็บเดียวแล้วบอกฝั่งด้วยคอลัมน์ Kind
+// ยังใช้ชีตแยกอยู่ก็เขียนลงแท็บชื่อเดียวกับกลุ่มเหมือนเดิม
+const MERGED_TAB = "Pool";
+const addTab = () => SHEETS.some(isMerged) ? MERGED_TAB : ADD_KIND;
 
 // URL ไม่ลับ เก็บถาวรได้ แต่ token เขียนชีตได้ เลยแยกออกมาให้เลือกว่าจะจำไหม
 // ไม่จำ = อยู่แค่ใน sessionStorage ปิดแท็บแล้วหาย เครื่องที่ใช้ร่วมกันควรใช้แบบนี้
@@ -7056,7 +7145,7 @@ $("#acSave").onclick = async () => {
     return setAcMsg(`มี ${esc(id)} อยู่ใน ${esc(ADD_KIND)} อยู่แล้ว`, "err");
 
   const body = {
-    token: HOOK.token, tab: ADD_KIND, id,
+    token: HOOK.token, tab: addTab(), kind: ADD_KIND, id,
     cat: $("#acCat").value.trim(),
     link: $("#acLink").value.trim(),
     follower: $("#acFol").value.trim(),
@@ -7301,7 +7390,7 @@ async function bulkSave(){
     try {
       const r = await fetch(HOOK.url, { method:"POST",
         headers:{ "Content-Type":"text/plain;charset=utf-8" },
-        body: JSON.stringify(Object.assign({ token: HOOK.token, tab: ADD_KIND }, it)) });
+        body: JSON.stringify(Object.assign({ token: HOOK.token, tab: addTab(), kind: ADD_KIND }, it)) });
       const said = await r.json().catch(() => null);
       if (said && said.ok === false) failed.push(it.id + " (" + said.error + ")");
       else ok++;
