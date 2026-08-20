@@ -265,8 +265,7 @@ body:not([data-view="coord"]) #gearBtn{display:none}
 .ctable.lean .who{width:24.1em;max-width:24.1em}
 /* SKU เป็นชิปที่ตัดบรรทัดเองได้ ไม่ต้องกว้างเท่าข้อความเต็ม — ชี้ที่ชิปมี tooltip เต็มอยู่แล้ว */
 .ctable.lean th.w-sku,.ctable.lean td.w-sku{min-width:8em;max-width:11em}
-.ctable.lean th.w-job,.ctable.lean td.w-job{min-width:5.6em}
-.ctable.lean td.w-job input{width:5em}
+
 .ctable.lean select.pay{min-width:8.8em!important}
 .ctable.lean td .mono[data-f="rate"]{width:5.3em!important}
 .ctable.lean td.vid input{width:3.2em}
@@ -579,9 +578,9 @@ tr.subrow .clipsku{font-size:.78rem;color:var(--mute)}
 .ctable th.w-move,.ctable td.w-move{width:1.7em;text-align:center;color:var(--mute);font-size:1.05em;
   cursor:grab;user-select:none;padding-left:.2em;padding-right:.2em}
 .ctable td.w-move:active{cursor:grabbing}
-.ctable th.w-job,.ctable td.w-job{min-width:6.6em}
-.ctable td.w-job input{width:5.9em;text-align:center;font-weight:600;
-  font-family:'IBM Plex Mono',monospace}
+
+/* ตัวย่องานที่โผล่ในช่อง SKU ตอนแถวนั้นยังไม่ได้ใส่ SKU — ไม่ใช่ของที่เลือกเอง เลยไม่มีปุ่มลบ */
+.skuchip.fromcode{border-style:dashed;color:var(--dim);padding-right:8px}
 .ctable th.w-status,.ctable td.w-status{min-width:12.2em}
 .ctable td.w-status select{width:11.8em}
 .ctable td.w-brief{white-space:nowrap}
@@ -3621,9 +3620,15 @@ function skuOptions(){
 
 function skuCell(r, i){
   const parts = skuParts(r.sku);
+  // ยังไม่มี SKU แต่มีตัวย่องานอยู่ — ตัวย่อคือของเดียวที่บอกว่าคนนี้ได้สินค้าอะไร
+  // คอลัมน์ "งาน" เอาออกไปแล้ว ถ้าไม่โชว์ตรงนี้ข้อมูลของแถวพวกนี้จะหายไปจากตารางเลย
+  const code = !parts.length && String(r.code || "").trim();
   return `<div class="skucell">${
     parts.map(p => `<span class="skuchip" title="${esc(p)}"><span class="t">${esc(skuShort(p))}</span><button
       data-skudel="${i}" data-v="${esc(p)}" title="เอาออก">✕</button></span>`).join("")
+    }${code ? `<span class="skuchip fromcode"
+      title="ยังไม่ได้ใส่ SKU — นี่คือตัวย่องาน &quot;${esc(r.code)}&quot; ที่มาจากชีต แก้ได้ในลิ้นชัก ⤢"
+      ><span class="t">${esc(codeLabel(r.code))}</span></span>` : ""
     }<button class="skuadd" data-sku="${i}" title="เพิ่ม SKU">${parts.length ? "＋" : "＋ เพิ่ม SKU"}</button></div>`;
 }
 
@@ -3998,16 +4003,18 @@ let COLNUM = {};         // ช่วงตัวเลขต่อคอลั�
 
 // ทุกคอลัมน์กรองได้ แต่คนละแบบตามชนิดข้อมูล
 //   list = เลือกจากค่าที่มีอยู่จริง · text = พิมพ์ค้น + มีค่า/ว่าง · num = ช่วงตัวเลข
-const FILTERABLE = { handle:"ครีเอเตอร์", videos:"วิดีโอ", kind:"กลุ่ม", code:"งาน",
+// คอลัมน์ "งาน" เอาออกจากตารางแล้ว — ตัวย่อบอกแค่ไลน์สินค้าซึ่ง SKU บอกอยู่แล้ว
+// ช่อง code ยังอยู่ (เป็นส่วนหนึ่งของคีย์แถวและยังขึ้นชีต) แก้ได้ในลิ้นชัก ⤢
+const FILTERABLE = { handle:"ครีเอเตอร์", videos:"วิดีโอ", kind:"กลุ่ม",
   status:"สถานะ", rate:"เรท", paytype:"รูปแบบภาษี", net3:"จ่ายจริง", sku:"SKU",
   postdate:"โพสต์", deadline:"กำหนดส่ง", brief:"บรีฟ", note:"โน้ต" };
 const FILTER_KIND = { handle:"text", brief:"text", note:"text",
   postdate:"text", deadline:"text", rate:"num", net3:"num" };
 const fkind = f => FILTER_KIND[f] || "list";
 // ลำดับคอลัมน์ในหัวตาราง → ชื่อช่อง (0=ปุ่มลาก, 14=ปุ่มลบ ไม่มีตัวกรอง)
-const FILTER_COL = [[1,"handle"],[2,"videos"],[3,"kind"],[4,"code"],[5,"status"],
-  [6,"rate"],[7,"paytype"],[8,"net3"],[9,"sku"],[10,"postdate"],[11,"deadline"],
-  [12,"brief"],[13,"note"]];
+const FILTER_COL = [[1,"handle"],[2,"videos"],[3,"kind"],[4,"status"],
+  [5,"rate"],[6,"paytype"],[7,"net3"],[8,"sku"],[9,"postdate"],[10,"deadline"],
+  [11,"brief"],[12,"note"]];
 const filterText = (f, v) => f === "status" ? (ST_TH[v] || v || "—")
   : f === "paytype" ? payType(v).label
   : f === "code" ? (codeLabel(v) || "—") : (v || "—");
@@ -4204,7 +4211,7 @@ function renderCoord(){
     <thead><tr>
       <th class="w-move" title="ลากเพื่อสลับลำดับ">↕</th>
       <th>ครีเอเตอร์</th><th style="text-align:center">วิดีโอ</th>
-      <th class="opt">กลุ่ม</th><th class="w-job">งาน</th><th class="w-status">สถานะ</th>
+      <th class="opt">กลุ่ม</th><th class="w-status">สถานะ</th>
       <th style="text-align:right">เรท</th><th>รูปแบบภาษี</th>
       <th style="text-align:right">จ่ายจริง</th>
       <th>SKU</th><th class="opt">โพสต์</th><th class="opt">กำหนดส่ง</th>
@@ -4213,7 +4220,7 @@ function renderCoord(){
       <th class="w-del"></th>
     </tr></thead><tbody>${rows.length
       ? rows.map(r => coordRow(r, all.indexOf(r))).join("")
-      : `<tr><td colspan="16" style="text-align:center;color:var(--dim);padding:22px">
+      : `<tr><td colspan="15" style="text-align:center;color:var(--dim);padding:22px">
           ไม่มีแถวที่ตรงกับตัวกรอง —
           <button class="cmdbtn" id="clearAllF">ล้างตัวกรองทั้งหมด</button></td></tr>`
     }</tbody></table></div>`;
@@ -4460,7 +4467,6 @@ function subRows(r, i){
       <span class="clipno">คลิป ${k + 1}</span></div></td>
     <td class="vid"><span class="one">${c.videos}</span></td>
     <td class="opt"></td>
-    <td class="w-job"><span class="tag job ${codeClass(c.code)}">${esc(codeLabel(c.code))}</span></td>
     <td class="w-status"><select class="st-sel ${stClass(c.status)}"
         data-clip="${i}" data-k="${k}"
         title="สถานะของคลิปนี้เท่านั้น — คลิปอื่นไม่เปลี่ยนตาม">${
@@ -4507,9 +4513,6 @@ function coordRow(r, i){
     <td class="opt"><select data-i="${i}" data-f="kind" style="width:72px">${
       ["", "KOL", "KOC"].map(k =>
         `<option value="${k}"${k === (r.kind||"") ? " selected" : ""}>${k || "—"}</option>`).join("")}</select></td>
-    <td class="w-job"><input class="job-in ${codeClass(r.code)}" data-i="${i}" data-f="code"
-        value="${esc(r.code || "")}" placeholder="-"
-        title="${esc(codeLabel(r.code))} — B=Creamblush E=Eyeshadow L=Lipgloss F=Feather C=Contour"></td>
     <td class="w-status"><select class="st-sel ${stClass(r.status)}" data-i="${i}" data-f="status">${
       statusOptions(r.status)}</select></td>
     <td class="mono ${noRate&&!isKOC ? "warn" : amb ? "warn" : ""}">
