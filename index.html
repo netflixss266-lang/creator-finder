@@ -1292,6 +1292,22 @@ main{padding:22px 24px;overflow-y:auto;max-height:calc(100vh - 62px)}
 .fbset{font-size:.8rem;font-weight:700;color:var(--accent);margin:14px 0 8px;
   padding-top:11px;border-top:1px solid var(--line)}
 .fbset:first-child{margin-top:0;padding-top:0;border-top:0}
+/* ── ลิงก์ทั้งชุด ── ป้ายซ้าย ช่องขวา เห็นทุกช่องพร้อมกัน */
+.linkbox .fbhead{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+.linkbox .linkscope{margin-bottom:0;flex:none}
+.linkrow{display:flex;align-items:center;gap:10px;padding:5px 0}
+.linkrow label{flex:0 0 11em;font-size:.8rem;color:var(--mute);
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.linkrow input{flex:1;min-width:0;font-size:.84rem;padding:7px 10px}
+.linkrow.own input{border-color:rgba(var(--accent-rgb),.45)}
+.linkrow.own label{color:var(--accent)}
+.linkrow button{flex:none;background:none;border:1px solid var(--line);color:var(--mute);
+  border-radius:6px;padding:.35em .6em;font-size:.85rem}
+.linkrow button:hover{border-color:var(--accent);color:var(--accent)}
+@media(max-width:620px){
+  .linkrow{flex-wrap:wrap}
+  .linkrow label{flex:1 1 100%}
+}
 .fbfoot{display:flex;align-items:center;gap:12px;flex-wrap:wrap;
   border-top:1px solid var(--line);padding-top:11px}
 .cmdblk .cmdt{flex:1;min-width:0;font-size:.8rem;font-weight:600;padding:4px 8px}
@@ -5184,7 +5200,9 @@ const kindOf = r => (r && (r.kind || "").toUpperCase() === "KOC") ? "KOC" : "KOL
 const blockForKind = (b, k) => !b.kind || b.kind === k;
 
 // เขียนทับเฉพาะคนนี้ — เหมือนต้นแบบเป๊ะเมื่อไหร่ก็ถอดออก ไม่เก็บของซ้ำ
-function setCmdOwnBlock(proj, handle, id, key, val){
+function setCmdOwnBlock(proj, handle, rawId, key, val){
+  // id เป็นสตริงเสมอ ("9" ไม่ใช่ 9) — /cmd10 ส่งเลขมา แล้ว === ไม่ตรง เลยเงียบไปทั้งคำสั่ง
+  const id = String(rawId);
   const base = cmdBlocks(proj).find(b => b.id === id);
   if (!base) return false;
   const own = cmdOwn(proj, handle);
@@ -5239,6 +5257,35 @@ function setCmdOwnLink(proj, handle, key, val){
 
 // "mine" = แก้เฉพาะคนนี้ (ค่าตั้งต้น) · "all" = แก้ต้นแบบที่ทุกคนใช้
 let CMD_SCOPE = "mine";
+// แท็บของกล่องลิงก์ — อยู่นอกฟังก์ชันเพื่อให้ค้างไว้หลังบันทึกแล้ววาดใหม่
+// ไม่งั้นแก้ลิงก์ร่วมทีละช่องจะถูกเด้งกลับไปแท็บ "เฉพาะคนนี้" ทุกครั้ง
+let LINK_SCOPE = "mine";
+
+// ─── เมนูเลือกจากรายการสั้นๆ ───
+// ใช้แทน prompt ที่ให้พิมพ์เลข 1-6 — อ่านตัวเลือกแล้วกดเลย ไม่ต้องแปลงเป็นเลขในหัว
+function pickPop(host, title, items, onPick){
+  document.querySelectorAll(".fpop").forEach(p => p.remove());
+  if (!host) return;
+  // เมนูวางตัวเทียบกับกล่องที่ถูกจัดตำแหน่งไว้ที่ใกล้ที่สุด — ถ้าเจ้าของไม่ได้จัด
+  // มันจะไปโผล่ที่อื่นของหน้า ห่างจากปุ่มที่เพิ่งกด
+  if (getComputedStyle(host).position === "static") host.style.position = "relative";
+  const pop = document.createElement("div");
+  pop.className = "fpop mappop";
+  pop.innerHTML = `<div class="fhead">${esc(title)}</div>
+    <div class="flist">${items.map((it, i) =>
+      `<label><input type="radio" name="pickpop" value="${i}"${it.on ? " checked" : ""}>
+       <span>${esc(it.label)}</span>${it.note ? `<i>${esc(it.note)}</i>` : ""}</label>`).join("")}</div>`;
+  host.appendChild(pop);
+  const box = pop.getBoundingClientRect();
+  if (box.right > innerWidth - 8){ pop.style.left = "auto"; pop.style.right = "0"; }
+  pop.querySelectorAll("input").forEach(inp => inp.onchange = () => {
+    pop.remove();
+    onPick(items[+inp.value]);
+  });
+  pop.onclick = e => e.stopPropagation();
+  setTimeout(() => document.addEventListener("click", function close(){
+    pop.remove(); document.removeEventListener("click", close); }), 0);
+}
 // ตัวเดินไปคนก่อนหน้า/ถัดไป — ตั้งใหม่ทุกครั้งที่เปิด Command (null = ไม่มีที่ให้ไป)
 let CMD_STEP = null;
 
@@ -5492,8 +5539,7 @@ function openCmd(proj, handle){
          .filter(Boolean).join(" · ")}</span>` : ""}
        <br>
        <button class="cmdbtn" id="cmdFbBtn">✎ Feedback${nFb ? ` (${nFb}/${3 * clips})` : ""}</button>
-       <button class="cmdbtn" id="cmdSetLinks">ลิงก์เฉพาะคนนี้</button>
-       <button class="cmdbtn" id="cmdSetLinksAll">ลิงก์ที่ใช้ร่วมกัน</button>
+       <button class="cmdbtn" id="cmdLinkBtn">🔗 ลิงก์${nLink ? ` (${nLink})` : ""}</button>
        <button class="cmdbtn" id="cmdEditBtn">✎ แก้ข้อความ</button>
        <button class="cmdbtn" id="cmdUnsent" ${nSent ? "" : "hidden"}
          >↺ ล้างเครื่องหมายส่งแล้ว (${nSent})</button>
@@ -5522,6 +5568,18 @@ function openCmd(proj, handle){
          <button class="cmdbtn" id="fbClear">ล้างทั้งหมด (${3 * clips} ช่อง)</button>
          <span style="color:var(--dim);font-size:.8rem">บันทึกเองเมื่อคลิกออกจากช่อง</span>
        </div>
+     </div>
+     <!-- ลิงก์ทั้งชุดในหน้าเดียว — เดิมเป็น prompt() ไล่ถามทีละช่อง 13 รอบ
+          จะแก้ช่องเดียวก็ต้องกดผ่านให้ครบ และกดยกเลิกกลางทางคือทิ้งที่พิมพ์มาทั้งหมด -->
+     <div class="fbbox linkbox" id="linkBox" hidden>
+       <div class="fbhead">
+         <div class="tabs sub linkscope">
+           <button data-lscope="mine" aria-selected="${LINK_SCOPE === "mine"}">เฉพาะ ${esc(normId(handle))}</button>
+           <button data-lscope="all" aria-selected="${LINK_SCOPE === "all"}">ใช้ร่วมกันทุกคน</button>
+         </div>
+         <span id="linkHint" style="color:var(--dim)">เว้นว่าง = ใช้ลิงก์ที่ตั้งร่วมกันไว้ · บันทึกเองเมื่อคลิกออกจากช่อง</span>
+       </div>
+       <div id="linkRows"></div>
      </div>
      <div class="cmdlist">` +
     // เลขที่โชว์คือลำดับที่ส่งจริงของคนนี้ ไม่ใช่เลขบล็อกในต้นแบบ
@@ -5584,13 +5642,12 @@ function openCmd(proj, handle){
     const bm = k.match(/^brief(\d+)$/);
     if (bm) return fillGap(Number(bm[1]) > 1 ? "guide" + bm[1] : "brief");
     if (k === "paytype"){
-      const pick = prompt(`รูปแบบภาษีของ ${normId(handle)}\n` +
-        PAYTYPES.filter(t => t.id).map((t,i) => `${i+1}. ${t.label}`).join("\n") +
-        `\n\nพิมพ์เลข 1-6`, "");
-      if (pick == null) return;
-      const t = PAYTYPES.filter(x => x.id)[Number(pick) - 1];
-      if (!t) return alert("เลือกไม่ถูก");
-      setField(r2, "paytype", t.id);
+      // เลือกจากรายการ ไม่ใช่พิมพ์เลขตามที่อ่านจากกล่องข้อความ
+      const host = $("#cmdBody").querySelector(`[data-gap="paytype"]`);
+      pickPop(host && host.parentElement, `รูปแบบภาษีของ ${normId(handle)}`,
+        PAYTYPES.filter(t => t.id).map(t => ({ label:t.label, id:t.id, on:t.id === r2.paytype })),
+        it => { setField(r2, "paytype", it.id); renderCoord(); openCmd(proj, handle); });
+      return;
     } else if (ROW_GAP[k]){
       const cur = r2[ROW_GAP[k]] ?? "";
       const v = prompt(`${CMD_GAP[k]} ของ ${normId(handle)}`, cur === null ? "" : String(cur));
@@ -5659,30 +5716,57 @@ function openCmd(proj, handle){
     renderCoord(); openCmd(proj, handle);
   };
 
-  // ลิงก์ของคนนี้เอง — เว้นว่าง = กลับไปใช้ตัวที่ใช้ร่วมกัน
-  // คนทำหลายคลิปได้ช่องของคลิป 2 ขึ้นไปต่อท้าย จะได้ไม่ต้องไปกดจากตัวแดงทีละอัน
-  $("#cmdSetLinks").onclick = () => {
-    const cur = cmdOwnRead(proj, handle).links || {};
-    const fields = CMD_LINK_FIELDS.concat(clips > 1
-      ? [...clipDocs].flatMap(k => Array.from({length: clips - 1},
-          (_, x) => [k + (x + 2), `${DOC_BY_KEY[k].th} (ชุดที่ ${x + 2}${
-            skuOf(r, x + 2) ? " · " + skuOf(r, x + 2) : ""})`]))
-      : []);
-    for (const [k, label] of fields){
-      const v = prompt(`${label}\n(เฉพาะ ${normId(handle)} — เว้นว่างเพื่อใช้ตัวร่วม: ${
-        CMDLINKS[k] || "ยังไม่ตั้ง"})`, cur[k] != null ? cur[k] : "");
-      if (v === null) return;
-      setCmdOwnLink(proj, handle, k, v.trim());
-    }
-    openCmd(proj, handle);
-  };
-  $("#cmdSetLinksAll").onclick = () => {
-    for (const [k, label] of CMD_LINK_FIELDS){
-      const v = prompt(`${label}\n(ใช้กับทุกคนที่ไม่ได้ตั้งลิงก์ของตัวเอง)`, CMDLINKS[k] || "");
-      if (v === null) return;
-      CMDLINKS[k] = v.trim();
-    }
-    saveCmdLinks(); openCmd(proj, handle);
+  // ─── ลิงก์ทั้งชุดในหน้าเดียว ───
+  // เห็นทุกช่องพร้อมกัน แก้ช่องไหนก็ได้ ไม่ต้องกดผ่านช่องที่ไม่เกี่ยว
+  // ช่องของคนนี้ว่างไว้ = ใช้ลิงก์ที่ตั้งร่วมกัน โดยโชว์ค่านั้นเป็นตัวจางในช่องให้เห็นว่าจะได้อะไร
+  const linkFields = () => CMD_LINK_FIELDS.concat(clips > 1
+    ? [...clipDocs].flatMap(k => Array.from({length: clips - 1},
+        (_, x) => [k + (x + 2), `${DOC_BY_KEY[k].th} (ชุดที่ ${x + 2}${
+          skuOf(r, x + 2) ? " · " + skuOf(r, x + 2) : ""})`]))
+    : []);
+  function renderLinks(){
+    const mine = LINK_SCOPE === "mine";
+    const own = cmdOwnRead(proj, handle).links || {};
+    $("#linkHint").innerHTML = mine
+      ? `เว้นว่าง = ใช้ลิงก์ที่ตั้งร่วมกันไว้ (ตัวจางในช่องคือค่าที่จะได้) · บันทึกเองเมื่อคลิกออกจากช่อง`
+      : `<span style="color:var(--warn)">แก้ตรงนี้มีผลกับครีเอเตอร์ทุกคนที่ไม่ได้ตั้งลิงก์ของตัวเอง</span>`;
+    $("#linkRows").innerHTML = (mine ? linkFields() : CMD_LINK_FIELDS).map(([k, label]) => {
+      const v = mine ? (own[k] != null ? own[k] : "") : (CMDLINKS[k] || "");
+      const ph = mine ? (CMDLINKS[k] || "ยังไม่ได้ตั้งลิงก์ร่วม") : "วางลิงก์ที่นี่";
+      return `<div class="linkrow${mine && own[k] != null ? " own" : ""}">
+        <label title="${esc(label)}">${esc(label)}</label>
+        <input data-link="${esc(k)}" value="${esc(v)}" placeholder="${esc(ph)}" spellcheck="false">
+        ${mine && own[k] != null ? `<button data-linkclr="${esc(k)}"
+          title="ใช้ลิงก์ร่วมแทน">↺</button>` : ""}
+      </div>`;
+    }).join("");
+    $("#linkRows").querySelectorAll("[data-link]").forEach(inp => inp.onchange = () => {
+      const k = inp.dataset.link, v = inp.value.trim();
+      if (mine) setCmdOwnLink(proj, handle, k, v);
+      else { CMDLINKS[k] = v; saveCmdLinks(); }
+      renderCoord();
+      const wasOpen = !$("#linkBox").hidden;
+      openCmd(proj, handle);
+      if (wasOpen){ $("#cmdLinkBtn").click(); }   // เปิดค้างไว้ให้แก้ช่องถัดไปต่อ
+    });
+    $("#linkRows").querySelectorAll("[data-linkclr]").forEach(b => b.onclick = () => {
+      setCmdOwnLink(proj, handle, b.dataset.linkclr, "");
+      renderCoord();
+      openCmd(proj, handle);
+      $("#cmdLinkBtn").click();
+    });
+    document.querySelectorAll("#linkBox .linkscope button").forEach(b => b.onclick = () => {
+      LINK_SCOPE = b.dataset.lscope;
+      document.querySelectorAll("#linkBox .linkscope button").forEach(x =>
+        x.setAttribute("aria-selected", x.dataset.lscope === LINK_SCOPE));
+      renderLinks();
+    });
+  }
+  $("#cmdLinkBtn").onclick = () => {
+    const box = $("#linkBox");
+    box.hidden = !box.hidden;
+    $("#cmdLinkBtn").classList.toggle("on", !box.hidden);
+    if (!box.hidden){ renderLinks(); box.scrollIntoView({ block:"nearest" }); }
   };
   $("#cmdEditBtn").onclick = () => { CMD_EDITING = true; renderCmdEditor(proj, handle); };
 }
@@ -8543,7 +8627,7 @@ function applyQuickOrder(){
     // Command เก็บแยกจากข้อมูลแถว และผูกกับโปรเจกต์ปลายทางถ้าย้าย
     if (q.cmd){
       const proj = q.moveTo || q.proj;
-      for (const i in q.cmd.blocks) setCmdOwnBlock(proj, q.row.handle, +i, "b", q.cmd.blocks[i]);
+      for (const i in q.cmd.blocks) setCmdOwnBlock(proj, q.row.handle, i, "b", q.cmd.blocks[i]);
       for (const key in q.cmd.links) setCmdOwnLink(proj, q.row.handle, key, q.cmd.links[key]);
       (q.cmd.clear || []).forEach(key => setCmdOwnLink(proj, q.row.handle, key, ""));
       cmds++;
