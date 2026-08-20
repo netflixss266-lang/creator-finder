@@ -740,8 +740,13 @@ tr.dropover td{border-top:2px solid var(--accent)}
 .quick button:hover{border-color:var(--accent);color:var(--accent)}
 
 /* ── ตั้งค่า ── */
+/* overscroll-behavior:contain — เลื่อนจนสุดกล่องแล้วห้ามไหลไปเลื่อนหน้าข้างหลังต่อ
+   ไม่งั้นพอสุดแผนผัง หน้าข้างหลังจะขยับแล้วหัวเว็บของมันโผล่ขึ้นมาทับ */
 .overlay{position:fixed;inset:0;background:rgba(8,9,12,.72);z-index:50;
-  display:flex;align-items:flex-start;justify-content:center;padding:48px 20px;overflow-y:auto}
+  display:flex;align-items:flex-start;justify-content:center;padding:48px 20px;
+  overflow-y:auto;overscroll-behavior:contain}
+/* เปิดแผงไหนอยู่ หน้าข้างหลังต้องนิ่ง — กันทั้งการเลื่อนหลุดและของข้างหลังโผล่มาทับ */
+body.locked{overflow:hidden}
 .overlay[hidden]{display:none}
 .modal{background:var(--surface);border:1px solid var(--line);border-radius:14px;
   width:100%;max-width:560px;padding:22px 24px 24px}
@@ -764,12 +769,15 @@ tr.dropover td{border-top:2px solid var(--accent)}
 /* ── ตั้งค่าแบบเต็มจอ ──
    เนื้อในยาว (รายการชีต + Apps Script + ความเป็นส่วนตัว) กล่อง 560px ทำให้ต้องเลื่อนตลอด
    เต็มจอแล้วแบ่งสองคอลัมน์บนจอกว้าง เห็นทุกหัวข้อพร้อมกัน */
-.overlay.full{padding:0;align-items:stretch}
-.overlay.full .modal{max-width:none;border:0;border-radius:0;min-height:100%;
+/* ⚠️ align-items:stretch ตรึงความสูงกล่องไว้เท่าจอ เนื้อในที่ยาวกว่าก็ล้นออกไปโดยกล่องไม่โตตาม
+   หัวเรื่องที่ตรึงไว้เดินได้แค่ในกล่องแม่ — พอกล่องสูงแค่จอเดียว เลื่อนเลยจุดนั้นหัวก็หลุดขึ้นไป
+   flex-start + min-height:100vh ให้กล่องโตตามเนื้อใน หัวเรื่องเลยตรึงได้ตลอดทาง
+   และพื้นหลังยังเต็มจอตอนเนื้อในสั้นเหมือนเดิม */
+.overlay.full{padding:0;align-items:flex-start}
+.overlay.full .modal{max-width:none;border:0;border-radius:0;min-height:100vh;
   padding:0;display:flex;flex-direction:column;background:var(--bg)}
-.overlay.full .modal-head{position:sticky;top:0;z-index:2;margin:0;padding:16px 26px;
-  background:linear-gradient(180deg,var(--bg) 70%,rgba(11,11,11,.9));
-  border-bottom:1px solid var(--line)}
+.overlay.full .modal-head{position:sticky;top:0;z-index:12;margin:0;padding:16px 26px;
+  background:var(--bg);border-bottom:1px solid var(--line)}
 .overlay.full .modal-head h2{font-family:'Bebas Neue','Space Grotesk',sans-serif;
   font-size:1.55rem;font-weight:400;letter-spacing:.06em;color:var(--accent)}
 .overlay.full .modal-head .x{font-size:1.3rem;padding:6px 12px}
@@ -836,8 +844,10 @@ tr.dropover td{border-top:2px solid var(--accent)}
 
 /* โครงผัง: ราก → สาขา → ใบ */
 .mapmind{display:flex;align-items:flex-start;gap:0}
+/* ตรึงใต้หัวเรื่องพอดี — หัวเรื่องสูงไม่เท่ากันตามจอ (แท็บพับบรรทัด) เลขตายตัวเลยใช้ไม่ได้
+   วัดจริงตอนวาดแล้วส่งมาทาง --maphead */
 .maproot{flex:none;width:15em;background:var(--surface);border:1px solid var(--accent);
-  border-radius:12px;padding:15px 16px;position:sticky;top:96px}
+  border-radius:12px;padding:15px 16px;position:sticky;top:calc(var(--maphead,96px) + 12px)}
 .maproot .t{font-family:'Bebas Neue','Space Grotesk',sans-serif;font-size:1.5rem;
   letter-spacing:.04em;color:var(--accent);line-height:1.15}
 .maproot .r{display:flex;justify-content:space-between;gap:8px;font-size:.8rem;
@@ -955,6 +965,11 @@ body.mapdrag [data-drop]{border-radius:8px;transition:background .1s}
   /* กลุ่มกับมุมมองแชร์บรรทัดเดียวกัน ไม่งั้นหัวเรื่องกิน 4 บรรทัดเกือบหนึ่งในสามของจอ */
   .maphead .mapkind{flex:0 0 auto;margin-right:8px}
   .mapmodes{flex:1 1 auto;min-width:0}
+  /* ปุ่มปิดอยู่ท้าย DOM เลยตกไปกินบรรทัดของตัวเองอีก 44px — ดึงขึ้นไปอยู่กับหัวเรื่อง
+     เหลือ 3 บรรทัด (หัวเรื่อง+ปิด · แท็บโปรเจกต์ · กลุ่ม+มุมมอง) จาก 5 */
+  .maphead{gap:8px}
+  .maphead h2{order:-2}
+  .maphead .x{order:-1;flex:none}
   .overlay.full .maphead{padding:12px 14px}
   .overlay.full .maphead h2{font-size:1.2rem}
 }
@@ -1182,6 +1197,7 @@ main{padding:22px 24px;overflow-y:auto;max-height:calc(100vh - 62px)}
 
 /* ── ลิ้นชักตะกร้า เลื่อนเข้ามาจากขวา ── */
 .drawer{position:fixed;inset:0;z-index:70;pointer-events:none}
+.drawer-body{overscroll-behavior:contain}
 .drawer .scrim{position:absolute;inset:0;background:rgba(8,9,12,.66);
   opacity:0;transition:opacity .24s}
 .drawer .panel{position:absolute;top:0;right:0;height:100%;width:min(410px,94vw);
@@ -6023,7 +6039,35 @@ function renderMap(){
   document.querySelectorAll("#mapBody [data-tablego]").forEach(b =>
     b.onclick = () => openTable(b.dataset.tablego));
   wireMapDrag();
+  measureMapHead();
 }
+
+// ─── ล็อกหน้าข้างหลังตอนมีแผงเปิดอยู่ ───
+// เฝ้าดูเองแทนการไปเติมโค้ดที่ทุกจุดที่เปิด/ปิด — มีหลายสิบจุดและลืมจุดเดียวก็หลุด
+// ปิดแผงแล้วต้องกลับมาที่เดิม ไม่ใช่เด้งขึ้นบนสุด
+let LOCK_Y = 0;
+function syncScrollLock(){
+  const open = [...document.querySelectorAll(".overlay")].some(o => !o.hidden) ||
+               [...document.querySelectorAll(".drawer")].some(d => d.classList.contains("on"));
+  const was = document.body.classList.contains("locked");
+  if (open === was) return;
+  if (open){ LOCK_Y = window.scrollY; document.body.classList.add("locked"); }
+  else { document.body.classList.remove("locked"); window.scrollTo(0, LOCK_Y); }
+}
+(() => {
+  const mo = new MutationObserver(syncScrollLock);
+  document.querySelectorAll(".overlay, .drawer").forEach(el =>
+    mo.observe(el, { attributes:true, attributeFilter:["hidden", "class"] }));
+})();
+
+// หัวเรื่องแผนผังสูงไม่เท่ากันตามความกว้างจอและจำนวนแท็บ — วัดหลังวาดเสร็จทุกครั้ง
+function measureMapHead(){
+  const h = document.querySelector(".maphead");
+  if (!h) return;
+  const n = Math.round(h.getBoundingClientRect().height);
+  if (n > 0) document.querySelector("#mapView").style.setProperty("--maphead", n + "px");
+}
+addEventListener("resize", () => { if (!$("#mapView").hidden) measureMapHead(); });
 
 // ปิดแผนผัง ไปที่ตารางของโปรเจกต์นั้น — ทางออกเดียวกันหมดทุกปุ่ม
 function openTable(proj){
