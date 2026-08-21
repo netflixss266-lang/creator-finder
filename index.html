@@ -397,6 +397,9 @@ body:not([data-view="coord"]) #gearBtn{display:none}
 .pickquick button[data-pq]{background:none;border:1px dashed var(--line);color:var(--mute);
   border-radius:6px;padding:5px 11px;font-size:.8rem}
 .pickquick button[data-pq]:hover{border-color:var(--accent);color:var(--accent);border-style:solid}
+/* ยกเลิกงานอยู่ปนกับปุ่มขั้นตอนอื่น — ต่างสีไว้ กันกดพลาดตอนไล่กดเร็วๆ */
+.pickquick button.cancelbtn{color:#C98A8A;border-color:rgba(201,138,138,.45)}
+.pickquick button.cancelbtn:hover{border-color:#C98A8A;color:#E5B4B4}
 
 /* คู่มือ 40 คำสั่งสูงร่วมสองพัน px — ปล่อยไว้แล้วกางทีตารางหายไปจากจอเลย
    ให้เลื่อนอยู่ในกล่องแทน จะได้ยังเห็นว่ากำลังทำงานกับตารางไหนอยู่ */
@@ -543,6 +546,11 @@ body:not([data-view="coord"]) #gearBtn{display:none}
 .st-sel.s-fb{color:var(--info);border-color:rgba(var(--info-rgb),.45);background:rgba(var(--info-rgb),.12)}
 .st-sel.s-pay{color:var(--pay);border-color:rgba(199,156,255,.5);background:rgba(199,156,255,.14)}
 .st-sel.s-none{color:var(--dim)}
+/* ยกเลิก — แดงหม่นไม่ใช่แดงสด แดงสดในหน้านี้แปลว่า "ผิด ต้องแก้" ซึ่งงานที่ยกเลิกไม่ใช่
+   ขีดคาดทับด้วย จะได้ต่างจากขั้นอื่นตั้งแต่กวาดตาผ่าน ไม่ต้องอ่านคำ */
+.st-sel.s-cancel{color:#C98A8A;border-color:rgba(201,138,138,.45);
+  background:rgba(201,138,138,.12);text-decoration:line-through}
+.st-sel.s-cancel option{text-decoration:none}
 
 /* ── เมนูที่กางออกมาตอนเลือก ──
    เมนูของ <select> เป็นของระบบปฏิบัติการ ไม่ได้ใช้พื้นหลังของหน้าเว็บ
@@ -553,6 +561,7 @@ select.st-sel option.s-done{color:#6EE787}
 select.st-sel option.s-wait{color:#FFC061}
 select.st-sel option.s-fb{color:#8FC4FF}
 select.st-sel option.s-pay{color:#CDA9FF}
+select.st-sel option.s-cancel{color:#C98A8A}
 /* ขั้นที่เดินผ่านมาแล้ว — หรี่ลงคู่กับขีดคาด ไม่ให้แย่งสายตากับขั้นที่ยังต้องทำ */
 select.st-sel option.passed{color:#6E6E6E}
 select.st-sel optgroup{background:#141414;color:var(--dim);font-style:normal}
@@ -563,6 +572,14 @@ select.st-sel optgroup{background:#141414;color:var(--dim);font-style:normal}
 .st.s-fb{color:var(--info);border-color:rgba(var(--info-rgb),.4);background:rgba(var(--info-rgb),.1)}
 .st.s-pay{color:var(--pay);border-color:rgba(199,156,255,.45);background:rgba(199,156,255,.12)}
 .st.s-none{color:var(--dim)}
+.st.s-cancel{color:#C98A8A;border-color:rgba(201,138,138,.4);background:rgba(201,138,138,.1)}
+
+/* ── แถวที่ยกเลิกงานแล้ว ──
+   หรี่ทั้งแถวแต่ไม่ซ่อน — ยังต้องเห็นว่าเคยมีคนนี้อยู่ กันเผลอชวนซ้ำ
+   ชี้เมาส์แล้วสว่างกลับมาเต็ม จะได้ยังอ่าน/แก้ได้จริงโดยไม่ต้องเพ่ง */
+.ctable tr.cancelled td{opacity:.45}
+.ctable tr.cancelled:hover td{opacity:1}
+.ctable tr.cancelled .nm{text-decoration:line-through;text-decoration-color:#C98A8A}
 
 /* ── ช่องเรท เน้นให้เห็นชัด ──
    ตัวเลขเป็นสีขาวสว่าง ไม่ใช้แดง เพราะแดงในหน้านี้แปลว่า "ผิด/ต้องแก้"
@@ -891,6 +908,10 @@ body.locked{overflow:hidden}
 .mapleaf.done{opacity:.62}
 .mapleaf.done .h{color:var(--hi)}
 .mapleafwrap:hover .mapleaf.done{opacity:1}
+/* ยกเลิก — หรี่กว่า "ปิดงานแล้ว" เพราะปิดงานคือจบสวย ส่วนอันนี้คือไม่ได้เกิดขึ้น */
+.mapleaf.cancelled{opacity:.5}
+.mapleaf.cancelled .h{color:#C98A8A;text-decoration:line-through}
+.mapleafwrap:hover .mapleaf.cancelled{opacity:1}
 .mapst{flex:none;background:var(--surface2);border:1px solid var(--line);border-left:0;
   border-radius:0 8px 8px 0;color:var(--dim);font-size:.9rem;padding:0 8px;line-height:1}
 .mapst:hover{border-color:var(--pc);color:var(--pc);background:var(--surface)}
@@ -1218,6 +1239,12 @@ main{padding:22px 24px;overflow-y:auto;max-height:calc(100vh - 62px)}
 }
 .cmdmeta{font-size:.8rem;color:var(--mute);margin-bottom:18px;line-height:1.7}
 .cmdmeta b{color:var(--ink)}
+/* คนที่ยกเลิกไปแล้ว — ต้องอ่านเจอก่อนถึงตัวข้อความ ไม่ใช่ป้ายเล็กๆ ปนกับป้ายอื่น
+   ก๊อปข้อความส่งให้คนที่เลิกจ้างไปแล้วคือความผิดพลาดที่เรียกคืนไม่ได้ */
+.cmdcancel{padding:12px 15px;margin-bottom:14px;border-radius:9px;font-size:.85rem;
+  line-height:1.65;color:#E5B4B4;background:rgba(201,138,138,.1);
+  border:1px solid rgba(201,138,138,.4);border-left:4px solid #C98A8A}
+.cmdcancel b{color:#F0C9C9}
 /* ชื่อครีเอเตอร์ต้องเห็นก่อนอย่างอื่น — เปิด Command ผิดคนแล้วส่งไปคือแก้ไม่ได้ */
 .cmdwho{display:flex;align-items:center;gap:13px;flex-wrap:wrap;
   padding:16px 18px;margin-bottom:16px;border-radius:9px;background:var(--surface);
@@ -3060,10 +3087,30 @@ const STAGES = [
   { v:"Already Submitted Payment",th:"ส่งเรื่องจ่ายแล้ว",    c:"s-pay",  a:/ส่งเรื่องจ่าย|จ่ายแล้ว/i },
 ];
 
+// ─── ยกเลิกงาน ───
+// จงใจไม่ใส่ใน STAGES — STAGES เรียงตามลำดับที่งานเดินจริง ใส่ต่อท้ายเมื่อไหร่
+// "ยกเลิก" จะกลายเป็นขั้นสุดท้ายที่ทุกคนต้องเดินผ่าน แล้วขีดฆ่าในเมนู แถบคืบหน้า
+// และการนับ "ปิดงานแล้ว" จะคิดผิดทั้งหมด
+// นี่คือทางออกข้างทาง เข้าได้จากทุกขั้น และไม่มีทางกลับเข้าเส้นทางเอง (ต้องเลือกขั้นใหม่เอง)
+const ST_CANCEL = "Cancelled";
+// รับคำเก่าที่ทีมเคยพิมพ์ลงชีตเองด้วย ("ยกเลิก") — ทั้งเว็บถามผ่านตัวนี้ตัวเดียว
+// ถ้าแยกเป็นสองตัว (ตารางเช็คเป๊ะ แผนผังเช็ครวมคำเก่า) จะได้แถวที่หรี่ในหน้านึงแต่ไม่หรี่ในอีกหน้า
+const isCancelSt = v => { const s = String(v || "");
+  return s === ST_CANCEL || STATUS_MIGRATE[s] === ST_CANCEL; };
+const isCancelled = r => isCancelSt(r && r.status);
+// ขั้นที่ "ตรงคำ" ได้จากข้อความที่พิมพ์ — ยกเลิกอยู่ในนี้ แต่ไม่อยู่ใน STAGES
+// ตัวอ่านคำสั่งทุกตัวใช้ลิสต์นี้ ส่วนตัวที่คิดลำดับงานใช้ STAGES เหมือนเดิม
+const STAGE_MATCH = STAGES.concat([
+  // "cancel" ล้วนต้องติดด้วย ไม่ใช่แค่ cancelled/canceled — ขอบซ้ายขวากันไปโดนคำที่มีมันอยู่ข้างใน
+  { v: ST_CANCEL, th:"ยกเลิกงาน", c:"s-cancel",
+    a:/ยกเลิก(?:งาน|จ้าง|ดีล|คิว)?|(?<![a-z])cancel(?:l?ed)?(?![a-z])/i },
+]);
+
 // ค่าเดิมที่เคยอยู่ในชีต — เก็บไว้ให้แถวเก่าไม่กลายเป็นช่องว่าง
 // ไม่แปลงให้อัตโนมัติ เพราะการเขียนทับสถานะของทั้งทีมควรเป็นการกดเอง ดูปุ่มแปลงเหนือตาราง
 // "Waiting Payment" ตกออกไปเพราะชื่อตรงกับขั้นใหม่อยู่แล้ว ไม่ต้องนับเป็นค่าเดิม
-const LEGACY_STATUS = ["Waiting to post", "Waiting 1st Draft", "Waiting 2nd Draft",
+const LEGACY_STATUS = ["Cancel", "ยกเลิก", "ยกเลิกงาน",
+  "Waiting to post", "Waiting 1st Draft", "Waiting 2nd Draft",
   "Waiting Creators Update Script", "Waiting Brand Feedback 1st Draft",
   "Waiting PM / PMA Asst. Feedback 1st Draft",
   "Waiting IBD Feedback 1st Draft", "Waiting PMA / PM Confirm final Draft",
@@ -3084,9 +3131,11 @@ const STATUS_MIGRATE = {
   "Already Post":"Already Posted", "posted":"Already Posted",
   "Waiting Payment Docs":"Waiting Gencode",
   "paid":"Already Submitted Payment",
+  // คนที่พิมพ์คำไทยลงชีตตรงๆ ก่อนจะมีสถานะนี้ — ปุ่มแปลงจะเก็บให้เป็นค่าเดียวกัน
+  "Cancel":ST_CANCEL, "ยกเลิก":ST_CANCEL, "ยกเลิกงาน":ST_CANCEL,
 };
 
-const STATUSES = [""].concat(STAGES.map(s => s.v), LEGACY_STATUS);
+const STATUSES = [""].concat(STAGES.map(s => s.v), [ST_CANCEL], LEGACY_STATUS);
 const stageAt = v => STAGES.findIndex(s => s.v === v);
 
 // รูปแบบภาษี — คิด "จ่ายจริง" จากเรทที่ตกลงกัน
@@ -3147,6 +3196,8 @@ function payOf(rate, type){
 // ค่าเดิมยังโชว์คำไทยเหมือนเดิม เพราะชื่ออังกฤษของมันยาวจนอ่านในช่องแคบไม่ไหว
 const ST_TH = Object.assign({ "":"—" },
   Object.fromEntries(STAGES.map(s => [s.v, s.v])),
+  { [ST_CANCEL]: ST_CANCEL,
+    "Cancel":"(เดิม) ยกเลิก", "ยกเลิก":"(เดิม) ยกเลิก", "ยกเลิกงาน":"(เดิม) ยกเลิกงาน" },
   { "Waiting to post":"(เดิม) รอโพสต์", "Waiting 1st Draft":"(เดิม) รอ Draft 1",
     "Waiting 2nd Draft":"(เดิม) รอ Draft 2",
     "Waiting Creators Update Script":"(เดิม) รอครีเอเตอร์แก้สคริป",
@@ -3161,13 +3212,15 @@ const ST_TH = Object.assign({ "":"—" },
     posted:"(เดิม) โพสต์แล้ว", paid:"(เดิม) จ่ายแล้ว" });
 
 // คำไทยไว้ขึ้น tooltip — ค่าใหม่เป็นตัวย่ออังกฤษ ไม่ใช่ทุกคนในทีมอ่านออกทันที
-const ST_HINT = Object.fromEntries(STAGES.map(s => [s.v, s.th]));
+const ST_HINT = Object.assign(Object.fromEntries(STAGES.map(s => [s.v, s.th])),
+  { [ST_CANCEL]:"ยกเลิกงาน — ไม่นับในความคืบหน้าและยอดเงิน" });
 
 // สีตามช่วงงาน — เขียว = ขั้นนั้นเสร็จแล้ว · ส้ม = ยังรออยู่ · ฟ้า = ฟีดแบคกลับไปแล้ว · ม่วง = เรื่องเงิน
 const ST_CLASS = Object.assign(
   Object.fromEntries(STAGES.map(s => [s.v, s.c])),
   { "Already Post":"s-done", posted:"s-done", confirmed:"s-done", shipped:"s-done",
-    "Waiting Payment Docs":"s-pay", "Waiting Payment":"s-pay", paid:"s-pay" });
+    "Waiting Payment Docs":"s-pay", "Waiting Payment":"s-pay", paid:"s-pay",
+    [ST_CANCEL]:"s-cancel", "Cancel":"s-cancel", "ยกเลิก":"s-cancel", "ยกเลิกงาน":"s-cancel" });
 const stClass = s => ST_CLASS[s || ""] || (s ? "s-wait" : "s-none");
 
 // ขีดฆ่าด้วย combining overlay (U+0336) — <option> ในเมนูของระบบไม่รับ text-decoration
@@ -3190,8 +3243,11 @@ function statusOptions(cur){
       esc(done ? strikeText(text) : text)}</option>`;
   };
   const legacy = LEGACY_STATUS.filter(v => v === cur);   // โชว์เฉพาะตัวที่แถวนี้ใช้อยู่จริง
+  // ยกเลิกแยกกลุ่มไว้ท้ายสุด ไม่ปนกับลำดับขั้น — มันไม่ใช่ขั้นถัดไปของใคร
+  // และไม่มีเลขนำหน้า เพราะเลขในเมนูนี้แปลว่า "ขั้นที่เท่าไหร่ของเส้นทาง"
   return `<option value=""${!cur ? " selected" : ""}>— ยังไม่เริ่ม —</option>` +
     STAGES.map((s, i) => one(s.v, s.v, i + 1)).join("") +
+    `<optgroup label="ออกจากงาน">${one(ST_CANCEL, ST_CANCEL, 0)}</optgroup>` +
     (legacy.length ? `<optgroup label="ค่าเดิมในชีต">${
       legacy.map(v => one(v, ST_TH[v] || v, 0)).join("")}</optgroup>` : "");
 }
@@ -4584,7 +4640,9 @@ function coordRow(r, i){
   // มี Command ของตัวเองกี่จุด — ติดจุดแดงไว้ จะได้รู้ว่าคนนี้ไม่ได้ใช้ข้อความต้นแบบ
   const oc = cmdOwnRead(r.project, r.handle);
   const ownCmd = Object.keys(oc.blocks || {}).length + Object.keys(oc.links || {}).length;
-  return `<tr draggable="true" data-row="${i}"${clips.length ? ' class="hasclips"' : ""}>
+  const cls = [clips.length ? "hasclips" : "", isCancelled(r) ? "cancelled" : ""]
+    .filter(Boolean).join(" ");
+  return `<tr draggable="true" data-row="${i}"${cls ? ` class="${cls}"` : ""}>
     <td class="w-move" title="ลากขึ้นลงเพื่อสลับลำดับ">⠿</td>
     <td class="who"><div class="wrapper">
       ${clips.length
@@ -5594,6 +5652,11 @@ function openCmd(proj, handle){
     .filter(k => k !== "net");                    // จ่ายจริงคิดเอง เติมตรงๆ ไม่ได้
 
   $("#cmdBody").innerHTML =
+    // ยกเลิกแล้วยังเปิด Command ได้อยู่ (บางทีต้องย้อนอ่านว่าคุยอะไรกันไว้)
+    // แต่ต้องเตือนก่อนเห็นข้อความ ไม่งั้นก๊อปส่งไปให้คนที่เลิกจ้างไปแล้ว
+    (isCancelled(r) ? `<div class="cmdcancel">✕ <b>ยกเลิกงานแล้ว</b> —
+       ข้อความข้างล่างเก็บไว้ให้ย้อนดู ไม่ควรส่งอีก
+       ถ้ากลับมาทำจริงให้เปลี่ยนสถานะกลับไปที่ขั้นที่ค้างอยู่ก่อน</div>` : "") +
     `<div class="cmdwho">
        <span class="nm">${esc(r.handle)}</span>
        <div class="tags">
@@ -5901,6 +5964,10 @@ const MAP_PHASES = [
   { k:"pay",   th:"ทำจ่าย",   sub:"Gencode + เบิกจ่าย",  from:16, to:18, c:"#E50914" },
 ];
 const MAP_NONE = { k:"none", th:"ยังไม่มีสถานะ", sub:"ยังไม่ได้ตั้งว่าอยู่ขั้นไหน", c:"#6E6E6E" };
+// ยกเลิกไม่ใช่ช่วงหนึ่งของงาน แต่ต้องมีที่ยืนบนแผนผัง ไม่งั้นคนที่ยกเลิกจะไปตกกอง
+// "ยังไม่มีสถานะ" ซึ่งอ่านแล้วเข้าใจผิดว่ายังต้องตามงานอยู่
+const MAP_CANCEL = { k:"cancel", th:"ยกเลิกงาน", sub:"ไม่นับในความคืบหน้าและยอดเงิน", c:"#9E5A5A" };
+const MAP_BUCKETS = [...MAP_PHASES, MAP_NONE, MAP_CANCEL];
 // สถานะชุดเก่ายังใช้กันอยู่เกือบทั้งชีต ถ้าอ่านไม่ออกแล้วโยนไปกอง "ยังไม่มีสถานะ"
 // แผนผังจะบอกว่าไม่มีใครมีสถานะเลย ซึ่งผิดและทำให้ไล่แก้ผิดจุด
 // แปลงตอนอ่านเท่านั้น ไม่เขียนทับของในชีต (การเขียนทับสถานะทั้งทีมต้องเป็นการกดเอง)
@@ -5911,6 +5978,7 @@ const mapStage = s => {
   return at >= 0 ? at : stageAt(STATUS_MIGRATE[v] || "");
 };
 function phaseOf(status){
+  if (isCancelSt(status)) return MAP_CANCEL;
   const at = mapStage(status);
   if (at < 0) return MAP_NONE;
   return MAP_PHASES.find(p => at >= p.from && at <= p.to) || MAP_NONE;
@@ -5933,35 +6001,43 @@ const ST_LAST   = STAGES.length - 1;                 // ส่งเรื่อ
 const mapPosted = r => mapStage(r && r.status) >= ST_POSTED;
 // ปิดงานคนนี้แล้ว — ข้อมูลที่ยังไม่ครบไม่ต้องทวงอีก จ่ายเงินไปแล้ว
 const mapDone = r => mapStage(r && r.status) >= ST_LAST;
+// ปิดเรื่องคนนี้แล้วไม่ว่าจะทางไหน — จ่ายจบ หรือ ยกเลิก
+const mapClosed = r => mapDone(r) || isCancelled(r);
 
 // ตัวเลขที่ใช้ซ้ำทุกแผ่น — นับจาก COORD สดๆ ไม่เก็บสำเนาไว้ที่ไหน
+// ยอดเงิน จำนวนคลิป และ % คืบหน้า คิดจาก "คนที่ยังอยู่ในงาน" เท่านั้น
+// นับคนที่ยกเลิกด้วยแปลว่าโปรเจกต์ไปไม่ถึง 100% ตลอดกาล และเรทรวมจะเป็นเงินที่ไม่ได้จ่าย
 function mapStats(rows){
-  const rate = rows.reduce((s, r) => s + (Number(r.rate) || 0), 0);
+  const live = rows.filter(r => !isCancelled(r));
+  const rate = live.reduce((s, r) => s + (Number(r.rate) || 0), 0);
   // ยอดที่บริษัทจ่ายจริง คนละตัวกับเรทที่ตกลงไว้ (NET บวก, หัก ณ ที่จ่าย ลบ)
-  const co = rows.reduce((s, r) => s + (coOf(r.rate, r.paytype) ?? Number(r.rate) ?? 0), 0);
-  const clips = rows.reduce((s, r) => s + clipCount(r), 0);
+  const co = live.reduce((s, r) => s + (coOf(r.rate, r.paytype) ?? Number(r.rate) ?? 0), 0);
+  const clips = live.reduce((s, r) => s + clipCount(r), 0);
   const by = {};
-  [...MAP_PHASES, MAP_NONE].forEach(p => by[p.k] = []);
+  MAP_BUCKETS.forEach(p => by[p.k] = []);
   rows.forEach(r => by[phaseOf(r.status).k].push(r));
-  return { n: rows.length, rate, co, clips, by,
+  const posted = live.filter(mapPosted).length;
+  return { n: rows.length, active: live.length, rate, co, clips, by,
     kol: rows.filter(r => (r.kind || "") === "KOL").length,
     koc: rows.filter(r => (r.kind || "") === "KOC").length,
-    noRate: rows.filter(r => r.rate == null).length,
-    noPay:  rows.filter(r => !r.paytype).length,
-    noSku:  rows.filter(r => !String(r.sku || "").trim()).length,
-    noSt:   rows.filter(r => !r.status).length,
+    cancel: rows.length - live.length,
+    // ช่องที่ยังว่าง — ไม่นับคนที่ยกเลิกแล้ว ไม่มีใครต้องไปตามเก็บของพวกนั้นอีก
+    noRate: live.filter(r => r.rate == null).length,
+    noPay:  live.filter(r => !r.paytype).length,
+    noSku:  live.filter(r => !String(r.sku || "").trim()).length,
+    noSt:   live.filter(r => !r.status).length,
     // อ่านออกแต่เป็นคำเก่า — ไม่ใช่ปัญหาของแผนผัง แต่ควรรู้ว่ายังมีค้างเท่าไหร่
     oldSt:  rows.filter(r => r.status && stageAt(r.status) < 0 && STATUS_MIGRATE[r.status]).length,
-    dupRate: rows.filter(r => (r.rate_all || []).length > 1).length,
+    dupRate: live.filter(r => (r.rate_all || []).length > 1).length,
     // โพสต์แล้วขึ้นไป = ถือว่างานนั้นเดินจบส่วนที่ลูกค้าเห็นแล้ว
-    posted: rows.filter(mapPosted).length,
-    pct: rows.length ? Math.round(rows.filter(mapPosted).length / rows.length * 100) : 0,
+    posted,
+    pct: live.length ? Math.round(posted / live.length * 100) : 0,
     done: rows.filter(mapDone).length };
 }
 // อะไรที่ทำให้คนนี้เดินต่อไม่ได้ — ใช้ทั้งบนใบและในแผ่น "ข้อมูลที่ยังขาด"
 // คนที่ส่งเรื่องจ่ายแล้วถือว่าจบ ไม่ต้องทวงข้อมูลย้อนหลัง เงินออกไปแล้ว
 function mapFlags(r){
-  if (mapDone(r)) return [];
+  if (mapClosed(r)) return [];
   const koc = kindOf(r) === "KOC";
   const f = [];
   // KOC ไม่ผ่านขั้นตอนหักภาษี/ทำจ่าย — ทวงรูปแบบภาษีคือทวงของที่ไม่ได้ใช้
@@ -6129,11 +6205,15 @@ function wireMapDrag(){
 function mapBar(s, small){
   const total = s.n;
   if (!total) return "";
-  const ps = [...MAP_PHASES, MAP_NONE].filter(p => s.by[p.k].length);
+  const ps = MAP_BUCKETS.filter(p => s.by[p.k].length);
+  // % คิดจากคนที่ยังอยู่ในงาน ส่วนแถบสัดส่วนโชว์ทุกคนรวมที่ยกเลิก
+  // สองตัวนี้ตั้งใจให้ฐานต่างกัน เลยบอกไว้ตรงๆ ว่าตัวไหนไม่นับใคร
   return `<div class="mapprog">
       <span class="pct${s.pct >= 100 ? " full" : ""}">${s.pct}<i>%</i></span>
-      <span class="lab">คืบหน้า<br><b>${s.posted}</b> จาก <b>${total}</b> คน โพสต์แล้วขึ้นไป</span>
-      <div class="track" title="โพสต์แล้วขึ้นไป ${s.posted}/${total} คน">
+      <span class="lab">คืบหน้า<br><b>${s.posted}</b> จาก <b>${s.active}</b> คน โพสต์แล้วขึ้นไป${
+        s.cancel ? `<br><span style="color:#C98A8A">ไม่นับที่ยกเลิก ${s.cancel} คน</span>` : ""}</span>
+      <div class="track" title="โพสต์แล้วขึ้นไป ${s.posted}/${s.active} คน${
+        s.cancel ? ` (ไม่นับที่ยกเลิก ${s.cancel} คน)` : ""}">
         <i style="width:${s.pct}%"></i></div>
     </div>
     <div class="mapbar">${ps.map(p =>
@@ -6151,18 +6231,22 @@ function mapBar(s, small){
 function mapLeaf(r, proj, color, drag){
   const flags = mapFlags(r);
   const clips = clipCount(r);
-  const done = mapDone(r);
+  const cancel = isCancelled(r);
+  const done = !cancel && mapDone(r);
   return `<span class="mapleafwrap">
-    <button class="mapleaf${flags.length ? " miss" : ""}${done ? " done" : ""}"
-      style="--pc:${color}"${drag ? ` draggable="true"` : ""}
+    <button class="mapleaf${flags.length ? " miss" : ""}${done ? " done" : ""}${
+      cancel ? " cancelled" : ""}"
+      style="--pc:${cancel ? MAP_CANCEL.c : color}"${drag ? ` draggable="true"` : ""}
       data-mapwho="${esc(r.handle)}" data-mapproj="${esc(proj)}"
       title="${esc(r.handle)}${flags.length ? " — " + esc(flags.join(" · ")) : ""}${
-        done ? " — ส่งเรื่องจ่ายแล้ว ปิดงาน" : ""}\nกดเพื่อเปิด Command${
+        done ? " — ส่งเรื่องจ่ายแล้ว ปิดงาน" : ""}${
+        cancel ? " — ยกเลิกงานแล้ว ไม่นับในความคืบหน้าและยอดเงิน" : ""}\nกดเพื่อเปิด Command${
         drag ? " · ลากไปวางที่ขั้นอื่นเพื่อเปลี่ยนสถานะ" : " · กด ▾ เพื่อเปลี่ยนสถานะ"}">
-      <span class="h">${done ? "✓ " : ""}${esc(r.handle)}</span>
+      <span class="h">${done ? "✓ " : ""}${cancel ? "✕ " : ""}${esc(r.handle)}</span>
       <span class="m"><span class="kk">${esc(r.kind || "?")}</span>
-        ${r.rate != null ? mBaht(r.rate) : `<span class="flag">ไม่มีเรท</span>`}
-        ${clips > 1 ? `· ${clips} ชุด` : ""}
+        ${cancel ? `<span class="flag">ยกเลิก</span>`
+          : r.rate != null ? mBaht(r.rate) : `<span class="flag">ไม่มีเรท</span>`}
+        ${clips > 1 && !cancel ? `· ${clips} ชุด` : ""}
         ${flags.length ? `<span class="flag" title="${esc(flags.join(" · "))}">⚑${flags.length}</span>` : ""}
       </span></button>
     <button class="mapst" data-mapst="${esc(r.handle)}" data-mapproj="${esc(proj)}"
@@ -6193,7 +6277,8 @@ function mapStatusMenu(proj, handle, host){
     `<div class="fhead">สถานะของ ${esc(normId(handle))}${
       at !== cur && cur ? ` <span style="color:var(--dim);font-weight:400">· ในชีตเป็น “${esc(cur)}”</span>` : ""}</div>
      <div class="flist">${
-       [{ v:"", th:"ยังไม่มีสถานะ", c:"" }].concat(STAGES).map(x => {
+       [{ v:"", th:"ยังไม่มีสถานะ", c:"" }].concat(STAGES,
+         [{ v:ST_CANCEL, th:"ยกเลิกงาน" }]).map(x => {
          const p = x.v ? phaseOf(x.v) : MAP_NONE;
          return `<label style="--pc:${p.c}"><input type="radio" name="mapst"
            value="${esc(x.v)}"${at === x.v ? " checked" : ""}>
@@ -6230,7 +6315,8 @@ function mapFlowSheet(proj){
       groups.get(key).push(r);
     });
     // ทุกขั้นของช่วงนี้ต้องมีที่ให้วาง ถึงจะยังไม่มีใครอยู่ — ขั้นที่ว่างซ่อนไว้จนกว่าจะเริ่มลาก
-    const stages = (p.k === "none" ? [""] : STAGES.slice(p.from, p.to + 1).map(x => x.v))
+    const stages = (p.k === "none" ? [""] : p.k === "cancel" ? [ST_CANCEL]
+                    : STAGES.slice(p.from, p.to + 1).map(x => x.v))
       .map(v => ({ v, drop:v, list: groups.get(v) || [] }));
     [...groups.keys()].forEach(v => {
       if (stages.some(x => x.v === v)) return;
@@ -6241,10 +6327,11 @@ function mapFlowSheet(proj){
       const A = mapStage(a.v), B = mapStage(b.v);
       return (A < 0 ? 99 : A) - (B < 0 ? 99 : B);
     });
+    // ยอดเงินใต้หัวช่วง — ช่วง "ยกเลิก" ไม่โชว์ เพราะเงินก้อนนั้นไม่ได้จ่ายและไม่ได้อยู่ในเรทรวม
     return `<div class="mapbranch${list.length ? "" : " empty"}" style="--pc:${p.c}">
-      <header data-drop="${esc(p.k === "none" ? "" : STAGES[p.from].v)}"
+      <header data-drop="${esc(p.k === "none" ? "" : p.k === "cancel" ? ST_CANCEL : STAGES[p.from].v)}"
         ><span class="n">${list.length}</span>${esc(p.th)}
-        <span class="sub">${esc(p.sub)}${list.length
+        <span class="sub">${esc(p.sub)}${list.length && p.k !== "cancel"
           ? `<br>${mBaht(list.reduce((a, r) => a + (Number(r.rate) || 0), 0))}` : ""}</span>
       </header>
       <div class="mapstages">${stages.map(st =>
@@ -6257,10 +6344,13 @@ function mapFlowSheet(proj){
 
   return `<div class="mapsum">
       <div class="mapstat"><div class="k">ครีเอเตอร์${
-        MAP_KIND === "all" ? "" : ` · เฉพาะ ${MAP_KIND}`}</div><div class="v">${s.n}</div>
-        <div class="s">${MAP_KIND === "all" ? `KOL ${s.kol} · KOC ${s.koc} · ` : ""}${s.clips} คลิป</div></div>
+        MAP_KIND === "all" ? "" : ` · เฉพาะ ${MAP_KIND}`}</div><div class="v">${s.active}${
+        s.cancel ? `<span style="font-size:.6em;color:var(--dim)">/${s.n}</span>` : ""}</div>
+        <div class="s">${MAP_KIND === "all" ? `KOL ${s.kol} · KOC ${s.koc} · ` : ""}${s.clips} คลิป${
+          s.cancel ? `<br><span style="color:#C98A8A">ยกเลิกไปแล้ว ${s.cancel} คน</span>` : ""}</div></div>
       <div class="mapstat"><div class="k">เรทรวม</div><div class="v">${mBaht(s.rate)}</div>
-        <div class="s">บริษัทจ่ายจริง ${mBaht(s.co)}</div></div>
+        <div class="s">บริษัทจ่ายจริง ${mBaht(s.co)}${
+          s.cancel ? `<br>ไม่รวมที่ยกเลิก ${s.cancel} คน` : ""}</div></div>
       <div class="mapstat"><div class="k">ปิดงานแล้ว</div><div class="v">${s.done}<span
         style="font-size:.6em;color:var(--dim)">/${s.n}</span></div>
         <div class="s">ส่งเรื่องจ่ายแล้ว</div></div>
@@ -6275,12 +6365,13 @@ function mapFlowSheet(proj){
     <div class="mapmind">
       <div class="maproot">
         <div class="t">${esc(proj)}</div>
-        <div class="r"><span>ครีเอเตอร์</span><b>${s.n}</b></div>
+        <div class="r"><span>ครีเอเตอร์</span><b>${s.active}</b></div>
+        ${s.cancel ? `<div class="r"><span>ยกเลิก</span><b style="color:#C98A8A">${s.cancel}</b></div>` : ""}
         <div class="r"><span>คลิป</span><b>${s.clips}</b></div>
         <div class="r"><span>เรทรวม</span><b>${mBaht(s.rate)}</b></div>
         <div class="r"><span>บริษัทจ่าย</span><b>${mBaht(s.co)}</b></div>
       </div>
-      <div class="mapbranches">${[...MAP_PHASES, MAP_NONE]
+      <div class="mapbranches">${MAP_BUCKETS
         .filter(p => p.k !== "none" || s.by.none.length)
         .map(branch).join("")}</div>
     </div>`;
@@ -6292,8 +6383,10 @@ function mapAllSheet(){
   if (!all.length) return `<div class="mapempty">ยังไม่มีข้อมูล — โหลดจากชีตก่อน</div>`;
   const g = mapStats(all);
   return `<div class="mapsum">
-      <div class="mapstat"><div class="k">รวมทุกโปรเจกต์</div><div class="v">${g.n}</div>
-        <div class="s">${PROJECTS.length} โปรเจกต์ · ${g.clips} คลิป</div></div>
+      <div class="mapstat"><div class="k">รวมทุกโปรเจกต์</div><div class="v">${g.active}${
+        g.cancel ? `<span style="font-size:.6em;color:var(--dim)">/${g.n}</span>` : ""}</div>
+        <div class="s">${PROJECTS.length} โปรเจกต์ · ${g.clips} คลิป${
+          g.cancel ? `<br><span style="color:#C98A8A">ยกเลิกไปแล้ว ${g.cancel} คน</span>` : ""}</div></div>
       <div class="mapstat"><div class="k">เรทรวม</div><div class="v">${mBaht(g.rate)}</div>
         <div class="s">บริษัทจ่ายจริง ${mBaht(g.co)}</div></div>
       <div class="mapstat"><div class="k">กำลังทำคลิป</div>
@@ -6309,13 +6402,14 @@ function mapAllSheet(){
       const flagged = rows.filter(r => mapFlags(r).length).length;
       return `<div class="mapcard${p === PROJ ? " on" : ""}">
         <h4>${esc(p)}${(projMeta(p) || {}).done ? `<span class="done">ปิดงานแล้ว</span>` : ""}</h4>
-        <div class="sub">${s.n} คน · ${s.clips} คลิป${
-          MAP_KIND === "all" ? ` · KOL ${s.kol} / KOC ${s.koc}` : ` · เฉพาะ ${MAP_KIND}`}</div>
+        <div class="sub">${s.active} คน · ${s.clips} คลิป${
+          MAP_KIND === "all" ? ` · KOL ${s.kol} / KOC ${s.koc}` : ` · เฉพาะ ${MAP_KIND}`}${
+          s.cancel ? ` · <span style="color:#C98A8A">ยกเลิก ${s.cancel}</span>` : ""}</div>
         ${s.n ? mapBar(s, true) : `<div style="font-size:.8rem;color:var(--dim)">ยังไม่มีใคร</div>`}
         <div class="rows">
           <div><span>เรทรวม</span><b>${mBaht(s.rate)}</b></div>
           <div><span>บริษัทจ่ายจริง</span><b>${mBaht(s.co)}</b></div>
-          <div><span>ส่งเรื่องจ่ายแล้ว</span><b>${s.done}/${s.n}</b></div>
+          <div><span>ส่งเรื่องจ่ายแล้ว</span><b>${s.done}/${s.active}</b></div>
           <div><span>ข้อมูลไม่ครบ</span><b style="color:${flagged ? "var(--warn)" : "var(--hi)"}"
             >${flagged}</b></div>
         </div>
@@ -6347,21 +6441,26 @@ function mapGapSheet(proj){
         !guideForSku(r.sku, 0) && !CMDLINKS.guide },
     { th:"ไม่มีสถานะ", why:"ไม่รู้ว่าคนนี้เดินไปถึงไหนแล้ว ตกจากทุกแถบสรุป",
       fix:"/status", test:r => !r.status },
-  // คนที่ส่งเรื่องจ่ายแล้วตัดออกทุกกลุ่ม — จบงานไปแล้ว ไล่เก็บข้อมูลย้อนหลังไม่มีประโยชน์
-  ].map(g => Object.assign({}, g, { list: rows.filter(r => !mapDone(r) && g.test(r)) }));
+  // คนที่ปิดเรื่องแล้วตัดออกทุกกลุ่ม — จ่ายจบหรือยกเลิกไปแล้ว ไล่เก็บข้อมูลย้อนหลังไม่มีประโยชน์
+  ].map(g => Object.assign({}, g, { list: rows.filter(r => !mapClosed(r) && g.test(r)) }));
 
-  const closed = rows.filter(mapDone).length;
+  const paid = rows.filter(mapDone).length;
+  const cancel = rows.filter(isCancelled).length;
+  const closed = paid + cancel;
   const open = rows.length - closed;
   const total = rows.filter(r => mapFlags(r).length).length;
+  // บอกแยกว่าไม่นับใครเพราะอะไร — "ไม่นับ 8 คน" เฉยๆ ทำให้สงสัยว่าตกหล่นหรือเปล่า
+  const skipNote = [paid ? `${paid} คนที่ส่งเรื่องจ่ายแล้ว` : "", cancel ? `${cancel} คนที่ยกเลิกงาน` : ""]
+    .filter(Boolean).join(" · ");
   return `<div class="mapsum">
       <div class="mapstat${total ? " warn" : ""}"><div class="k">คนที่ข้อมูลไม่ครบ</div>
         <div class="v">${total}<span style="font-size:.6em;color:var(--dim)">/${open}</span></div>
         <div class="s">${total ? "กดที่ชื่อเพื่อเปิด Command แล้วเติมตรงนั้น" : "ครบทุกคนที่ยังไม่ปิดงาน"}${
-          closed ? `<br>ไม่นับ ${closed} คนที่ส่งเรื่องจ่ายแล้ว` : ""}</div></div>
+          skipNote ? `<br>ไม่นับ ${skipNote}` : ""}</div></div>
     </div>` +
     (groups.every(g => !g.list.length)
       ? `<div class="mapgap ok"><h4><span class="n">✓</span>ข้อมูลครบทุกช่องของทุกคน</h4>
-         <div class="why">${closed ? `${closed} คนที่ส่งเรื่องจ่ายแล้วไม่ถูกนับ · ` : ""}ไม่มีอะไรค้างในโปรเจกต์นี้</div></div>`
+         <div class="why">${skipNote ? `${skipNote} ไม่ถูกนับ · ` : ""}ไม่มีอะไรค้างในโปรเจกต์นี้</div></div>`
       : groups.filter(g => g.list.length).map(g => `<div class="mapgap">
           <h4><span class="n">${g.list.length}</span>${esc(g.th)}</h4>
           <div class="why">${esc(g.why)} — แก้ทีเดียวหลายคนด้วย <code>${esc(g.fix)}</code></div>
@@ -6371,8 +6470,12 @@ function mapGapSheet(proj){
 
 // ─── แผ่น: เงิน ───
 function mapMoneySheet(proj){
-  const rows = mapRows(proj);
-  if (!rows.length) return `<div class="mapempty">${esc(proj)} ยังไม่มี${MAP_KIND === "all" ? "ใคร" : MAP_KIND} ในโปรเจกต์นี้</div>`;
+  const all = mapRows(proj);
+  if (!all.length) return `<div class="mapempty">${esc(proj)} ยังไม่มี${MAP_KIND === "all" ? "ใคร" : MAP_KIND} ในโปรเจกต์นี้</div>`;
+  // แผ่นนี้เป็นเรื่องเงินที่จะจ่ายจริง คนที่ยกเลิกไม่มีเงินก้อนนั้นแล้ว
+  // ตัดออกทั้งแผ่น ไม่ใช่แค่ไม่บวกยอด ไม่งั้นจะไปโผล่ในกอง "ยังไม่เลือกรูปแบบภาษี" ให้ตามเก็บเปล่าๆ
+  const rows = all.filter(r => !isCancelled(r));
+  const nCancel = all.length - rows.length;
   const s = mapStats(rows);
   const byPay = PAYTYPES.filter(t => t.id).map(t => ({ t, list: rows.filter(r => r.paytype === t.id) }))
     .concat([{ t:{ id:"", label:"ยังไม่เลือกรูปแบบภาษี" }, list: rows.filter(r => !r.paytype) }])
@@ -6383,7 +6486,8 @@ function mapMoneySheet(proj){
 
   return `<div class="mapsum">
       <div class="mapstat"><div class="k">เรทรวมที่ตกลงไว้</div><div class="v">${mBaht(s.rate)}</div>
-        <div class="s">${s.n} คน · ${s.clips} คลิป</div></div>
+        <div class="s">${s.n} คน · ${s.clips} คลิป${
+          nCancel ? `<br><span style="color:#C98A8A">ไม่รวมที่ยกเลิก ${nCancel} คน</span>` : ""}</div></div>
       <div class="mapstat"><div class="k">บริษัทจ่ายจริง</div><div class="v">${mBaht(s.co)}</div>
         <div class="s">รวมส่วนต่าง NET / หัก ณ ที่จ่าย</div></div>
       <div class="mapstat"><div class="k">เฉลี่ยต่อคลิป</div>
@@ -7930,7 +8034,7 @@ function readChanges(text){
   const changes = {};
   // ขั้นที่ตรงยาวที่สุดชนะ กัน "Waiting Draft 1" โดน "Waiting Draft" ตัวสั้นกว่าแย่งไป
   let best = null;
-  for (const s of STAGES){
+  for (const s of STAGE_MATCH){
     const hit = text.toLowerCase().includes(s.v.toLowerCase()) ? s.v.length
               : (s.a && s.a.test(text)) ? (text.match(s.a) || [""])[0].length : 0;
     if (hit && (!best || hit > best.n)) best = { v: s.v, n: hit };
@@ -8340,7 +8444,7 @@ function parseAddLine(line){
   let left = rest;
   projs.forEach(p => { left = left.slice(0, p.at) + " ".repeat(p.len) + left.slice(p.at + p.len); });
   QO_FIELDS.forEach(spec => { left = left.replace(spec.re, " "); });
-  STAGES.forEach(s => {
+  STAGE_MATCH.forEach(s => {
     left = left.replace(new RegExp(esc4re(s.v), "gi"), " ");
     if (s.a) left = left.replace(new RegExp(s.a.source, "gi"), " ");
   });
@@ -8376,7 +8480,8 @@ function parseAddLine(line){
 const SLASH_ROW = [
   { c:"rate",   f:"rate",     th:"เรท",          val:"num",   ex:"/rate cenakims : 12000  หรือ  : +500" },
   { c:"video",  f:"videos",   th:"จำนวนคลิป",     val:"num",   ex:"/video cenakims : 2" },
-  { c:"status", f:"status",   th:"สถานะ",         val:"stage", ex:"/status cenakims : รอ Draft 2" },
+  { c:"status", f:"status",   th:"สถานะ",         val:"stage",
+    ex:"/status cenakims : รอ Draft 2   ·   /status cenakims : ยกเลิก" },
   { c:"pay",    f:"paytype",  th:"รูปแบบภาษี",    val:"pay",   ex:"/pay cenakims : ชำระ3%" },
   { c:"kind",   f:"kind",     th:"กลุ่ม",         val:"kind",  ex:"/kind cenakims : KOC" },
   { c:"comm",   f:"commission", th:"Commission (KOC)", ex:"/comm cenakims : 10%" },
@@ -8440,9 +8545,9 @@ function slashValue(spec, raw){
     return m[1] ? { delta: m[1] === "-" ? -n : n } : { v:n };
   }
   if (spec.val === "stage"){
-    const hit = STAGES.find(x => x.v.toLowerCase() === s.toLowerCase()) ||
-                STAGES.find(x => s.toLowerCase().includes(x.v.toLowerCase())) ||
-                STAGES.find(x => x.a && x.a.test(s));
+    const hit = STAGE_MATCH.find(x => x.v.toLowerCase() === s.toLowerCase()) ||
+                STAGE_MATCH.find(x => s.toLowerCase().includes(x.v.toLowerCase())) ||
+                STAGE_MATCH.find(x => x.a && x.a.test(s));
     return hit ? { v: hit.v }
       : { err:`ไม่รู้จักสถานะ "${s}" — ดูรายชื่อได้ที่ปุ่มกรองสถานะบนหัวตาราง` };
   }
@@ -9028,7 +9133,8 @@ function aiPrompt(lines){
 ${handles.join(", ")}
 
 โปรเจกต์: ${PROJECTS.join(" | ")}
-สถานะที่ใช้ได้: ${STAGES.map(s => s.v).join(" | ")}
+สถานะที่ใช้ได้: ${STAGE_MATCH.map(s => s.v).join(" | ")}
+(${ST_CANCEL} = ยกเลิกงาน ใช้เมื่อครีเอเตอร์ถอนตัวหรือถูกยกเลิก ไม่ใช่ขั้นตอนปกติ)
 รูปแบบภาษี (ใช้ค่า id): ${PAYTYPES.filter(p => p.id).map(p => p.id + "=" + p.label).join(" | ")}
 โปรเจกต์ที่เปิดอยู่ตอนนี้: ${PROJ}
 
@@ -9088,7 +9194,7 @@ async function aiParse(lines){
 // ค่าไหนไม่อยู่ในลิสต์ที่อนุญาต ตัดทิ้งเงียบๆ ดีกว่าปล่อยให้ไปเขียนทับข้อมูลจริง
 function aiToQO(raw, lines){
   const idx = handleIndex();
-  const stageSet = new Set(STAGES.map(s => s.v));
+  const stageSet = new Set(STAGE_MATCH.map(s => s.v));
   const paySet = new Set(PAYTYPES.filter(p => p.id).map(p => p.id));
   const res = [];
 
@@ -9256,8 +9362,9 @@ function renderPick(){
   // คำสั่งด่วน — กดแล้วต่อท้ายชื่อที่เลือกให้เลย ไม่ต้องพิมพ์
   // 28 ปุ่มเรียงเป็นพืดคือที่มาของความรก แบ่งกลุ่มแล้วพับเก็บ เปิดค้างเฉพาะกลุ่มที่ใช้
   $("#pickQuick").innerHTML = PICK.size
-    ? fold("qstage", "เปลี่ยนสถานะ", `${STAGES.length} ขั้น`,
-        STAGES.map(s => `<button data-pq="/status : ${esc(s.v)}">${esc(ST_TH[s.v] || s.v)}</button>`).join(""), false)
+    ? fold("qstage", "เปลี่ยนสถานะ", `${STAGES.length} ขั้น + ยกเลิก`,
+        STAGES.map(s => `<button data-pq="/status : ${esc(s.v)}">${esc(ST_TH[s.v] || s.v)}</button>`).join("")
+        + `<button class="cancelbtn" data-pq="/status : ${esc(ST_CANCEL)}">✕ ยกเลิกงาน</button>`, false)
       + fold("qpay", "รูปแบบภาษี", `${PAYTYPES.filter(t=>t.id).length} แบบ`,
         PAYTYPES.filter(t => t.id).map(t =>
           `<button data-pq="/pay : ${esc(t.id)}">${esc(t.label.replace(/\s*\(.*/, ""))}</button>`).join(""), false)
