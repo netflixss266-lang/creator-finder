@@ -16,7 +16,8 @@
   font-src https://fonts.gstatic.com;
   img-src 'self' https: data:;
   connect-src 'self' https://docs.google.com https://api.anthropic.com
-              https://script.google.com https://*.googleusercontent.com;
+              https://script.google.com https://*.googleusercontent.com
+              https://sosfberpszbqvghyymzi.supabase.co;
   form-action 'none';
   base-uri 'none';
   object-src 'none'">
@@ -152,6 +153,9 @@ body[data-view="home"] .srcchip{display:none}
 .pin input:focus{border-color:var(--accent);background:var(--surface2)}
 .pin input.filled{border-color:var(--accent);color:var(--accent)}
 @media(max-width:400px){.pin input{width:38px;height:48px;font-size:1.2rem}}
+/* ช่องอีเมลตอน login */
+.lockemail{width:100%;margin-bottom:10px;text-align:center;letter-spacing:.02em}
+.lockemail[hidden]{display:none}
 /* ช่องรหัสแบบพิมพ์ + ปุ่มลืมตาดูรหัส */
 .pwrow{display:flex;gap:8px;margin-bottom:12px}
 .pwrow input{flex:1}
@@ -1516,8 +1520,9 @@ tr.subrow td.w-status select{width:14.6em}
     <h2 id="lockTitle">ใส่รหัสเพื่อเข้าใช้งาน</h2>
     <p class="lockhint" id="lockHint"></p>
     <div class="pin" id="lockPin" hidden></div>
+    <input id="lockEmail" type="email" autocomplete="username" placeholder="อีเมล" class="lockemail" hidden>
     <div class="pwrow" id="lockPwRow">
-      <input id="lockPw" type="password" autocomplete="off" placeholder="รหัสผ่าน">
+      <input id="lockPw" type="password" autocomplete="current-password" placeholder="รหัสผ่าน">
       <button type="button" class="eye" id="lockEye" aria-label="ดู/ซ่อนรหัส"
               title="ดู/ซ่อนรหัส">👁</button>
     </div>
@@ -6551,12 +6556,13 @@ $("#syncBtn").onclick = () => syncCoord(true);
 
 // ล็อกเองได้โดยไม่ต้องปิดแท็บ — ลุกจากโต๊ะแล้วกดทีนึง
 $("#lockBtn").onclick = async () => {
-  GATE_OK = {};
+  GATE_OK = {};                 // ล้างประตูชั้นใน (coord) ด้วย
   $("#cmdPanel").classList.remove("on");
   $("#cart").classList.remove("on");
   $("#settings").hidden = true;
   $("#addPanel").hidden = true;
-  await askGate("site");
+  await sbLogout();             // ออกจากระบบจริง ล้าง session
+  await requireLogin();
   setView("home");
 };
 
@@ -6581,6 +6587,136 @@ document.addEventListener("keydown", e => {
 // สิ่งที่มันกันได้จริง: คนเดินมาเจอจอที่เปิดค้างไว้ / คนที่บังเอิญเจอ URL
 // สิ่งที่มันกันไม่ได้: คนที่ตั้งใจจะเอาข้อมูล — ตัวที่กันคนพวกนั้นคือชีตที่ปิด + token
 // เก็บเป็น PBKDF2 hash ไม่ใช่รหัสตัวจริง จะได้ไม่เอารหัสไปแปะไว้ให้คนอ่าน
+/* ═══════════════════════════════════════════════════════════════════════
+   Supabase Auth — login รายบุคคลจริง (แทนรหัสรวมเดิม)
+   ตรวจรหัสที่เซิร์ฟเวอร์ Supabase ไม่ใช่ที่เบราว์เซอร์ → คนไม่มีบัญชีเข้าไม่ได้
+   แต่ละคนมีอีเมล+รหัสของตัวเอง แอดมินเปิด/ปิด/ระงับได้ทีละคน (app_users.is_active)
+   publishable key ปลอดภัยที่จะฝังในหน้าเว็บ เพราะข้อมูลถูกกันด้วย RLS ฝั่ง Supabase
+   ═══════════════════════════════════════════════════════════════════════ */
+const SB_URL = "https://sosfberpszbqvghyymzi.supabase.co";
+const SB_KEY = "sb_publishable_hucMkquwdBpVLWC6dx_o9w_ZGF2iMO5";
+const LS_SESSION = "cf_session_v1";
+let SESSION = null;    // { access_token, refresh_token, expires_at, user }
+let PROFILE = null;    // { display_name, role, is_active }
+
+function sbHeaders(auth){
+  const h = { apikey: SB_KEY, "Content-Type": "application/json" };
+  if (auth && SESSION && SESSION.access_token) h.Authorization = "Bearer " + SESSION.access_token;
+  return h;
+}
+function saveSession(s){
+  SESSION = s;
+  try {
+    if (s) localStorage.setItem(LS_SESSION, JSON.stringify(s));
+    else   localStorage.removeItem(LS_SESSION);
+  } catch(e){}
+}
+function loadSession(){
+  try { const r = localStorage.getItem(LS_SESSION); SESSION = r ? JSON.parse(r) : null; }
+  catch(e){ SESSION = null; }
+  return SESSION;
+}
+function sbStore(j){
+  saveSession({ access_token:j.access_token, refresh_token:j.refresh_token,
+                expires_at: Date.now() + ((j.expires_in || 3600) * 1000), user:j.user });
+}
+async function sbLogin(email, password){
+  const r = await fetch(SB_URL + "/auth/v1/token?grant_type=password",
+    { method:"POST", headers: sbHeaders(false), body: JSON.stringify({ email, password }) });
+  const j = await r.json().catch(() => ({}));
+  if (!r.ok) throw new Error(j.error_description || j.msg || j.error || ("เข้าสู่ระบบไม่สำเร็จ (" + r.status + ")"));
+  sbStore(j);
+  return j;
+}
+async function sbRefresh(){
+  if (!SESSION || !SESSION.refresh_token) return false;
+  const r = await fetch(SB_URL + "/auth/v1/token?grant_type=refresh_token",
+    { method:"POST", headers: sbHeaders(false), body: JSON.stringify({ refresh_token: SESSION.refresh_token }) });
+  if (!r.ok){ saveSession(null); return false; }
+  const j = await r.json().catch(() => null);
+  if (!j || !j.access_token){ saveSession(null); return false; }
+  sbStore(j);
+  return true;
+}
+async function sbValidSession(){
+  if (!SESSION || !SESSION.access_token) return false;
+  if (Date.now() > (SESSION.expires_at || 0) - 60000) return await sbRefresh();   // ใกล้หมดอายุ → ต่ออายุ
+  return true;
+}
+async function sbLogout(){
+  try { if (SESSION) await fetch(SB_URL + "/auth/v1/logout", { method:"POST", headers: sbHeaders(true) }); }
+  catch(e){}
+  saveSession(null); PROFILE = null;
+}
+async function sbProfile(){
+  if (!SESSION || !SESSION.user) return null;
+  const uid = SESSION.user.id;
+  const r = await fetch(SB_URL + "/rest/v1/app_users?id=eq." + encodeURIComponent(uid) +
+    "&select=display_name,role,is_active", { headers: sbHeaders(true) });
+  if (!r.ok) return null;
+  const rows = await r.json().catch(() => []);
+  PROFILE = rows[0] || null;
+  return PROFILE;
+}
+
+// แสดงกล่อง login (อีเมล+รหัส) — คืนค่าเมื่อเข้าสำเร็จเท่านั้น ประตูหน้าเว็บไม่มีทางถอย
+function askLogin(){
+  $("#lockTitle").textContent = "เข้าสู่ระบบ";
+  $("#lockHint").textContent  = "Creator Finder — ใช้อีเมลและรหัสผ่านของทีม";
+  $("#lockPin").hidden = true;
+  $("#lockEmail").hidden = false;
+  $("#lockPwRow").hidden = false;
+  $("#lockCancel").hidden = true;
+  $("#lockEmail").value = "";
+  $("#lockPw").value = "";
+  $("#lockPw").placeholder = "รหัสผ่าน";
+  $("#lockGo").textContent = "เข้าสู่ระบบ";
+  $("#lockMsg").className = "lockmsg";
+  $("#lockMsg").textContent = "";
+  $("#lockView").hidden = false;
+  applyGateShow();
+  setTimeout(() => $("#lockEmail").focus(), 50);
+
+  return new Promise(resolve => {
+    $("#lockEye").onclick = () => { GATE_SHOW = !GATE_SHOW; applyGateShow(); };
+    $("#lockCancel").onclick = null;
+    $("#lockForm").onsubmit = async e => {
+      e.preventDefault();
+      const email = $("#lockEmail").value.trim();
+      const pw = $("#lockPw").value;
+      if (!email || !pw) return;
+      $("#lockGo").disabled = true;
+      $("#lockMsg").className = "lockmsg busy";
+      $("#lockMsg").textContent = "กำลังเข้าสู่ระบบ...";
+      try {
+        await sbLogin(email, pw);
+        const p = await sbProfile();
+        if (!p) throw new Error("เข้าสู่ระบบได้ แต่ยังไม่มีสิทธิ์ใช้งาน — ติดต่อแอดมิน");
+        if (!p.is_active){ await sbLogout(); throw new Error("บัญชีนี้ถูกระงับการใช้งาน"); }
+        $("#lockGo").disabled = false;
+        $("#lockView").hidden = true;
+        resolve(true);
+      } catch(err){
+        $("#lockGo").disabled = false;
+        $("#lockMsg").className = "lockmsg err";
+        $("#lockMsg").textContent = (err && err.message) || "เข้าสู่ระบบไม่สำเร็จ";
+        $("#lockPw").select();
+      }
+    };
+  });
+}
+
+// ประตูหน้าเว็บ: มี session ที่ยังใช้ได้ + บัญชี active → เข้าเลย, ไม่งั้นขอ login
+async function requireLogin(){
+  loadSession();
+  if (await sbValidSession()){
+    const p = await sbProfile();
+    if (p && p.is_active) return true;
+    await sbLogout();     // session ค้างแต่บัญชีถูกระงับ/ลบสิทธิ์ → ล้างแล้วขอใหม่
+  }
+  return await askLogin();
+}
+
 const GATES = {"site":{"s":"436z7tnu7UitzNDe6iLyoA==","h":"pKsflTxpW4Eg9aLRiyXvVBG56XutM6hzv0JLHEDJeTU="},"coord":{"s":"z3g0CKrdGkKycgtebTsEBA==","h":"7wNoJIcNNVgBaL+sPvSf1QA0rmHNtMZBg0XDLXQ8wTs="}};
 const GATE_ITER = 250000;
 const GATE_LABEL = { site: ["ใส่รหัสเพื่อเข้าใช้งาน", "Creator Finder — เครื่องมือภายในทีม"],
@@ -9762,7 +9898,7 @@ updateCartBtn();
 renderCrit();
 // ประตูหน้าแรกก่อน แล้วเข้าหน้าที่ทำค้างไว้เลย ไม่ต้องเดินผ่านการ์ดสองใบซ้ำทุกครั้ง
 // หน้า Coordinator ยังถามรหัสของมันเองอยู่ ถ้ากดยกเลิกจะตกมาที่หน้าแรก
-askGate("site").then(async () => {
+requireLogin().then(async () => {
   let last = "home";
   try { last = localStorage.getItem(LS_VIEW) || "home"; } catch(e){}
   if (!["find","coord","home"].includes(last)) last = "home";
