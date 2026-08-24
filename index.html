@@ -535,13 +535,23 @@ body:not([data-view="coord"]) #gearBtn{display:none}
 .tag.job.j-c{color:#d0d5a8;border-color:rgba(208,213,168,.35);background:rgba(208,213,168,.1)}
 .tag.job.j-x{color:var(--mute)}
 
-/* ── ตรึง 2 คอลัมน์แรกไว้ตอนเลื่อนขวา ── */
+/* ── ตรึง 4 คอลัมน์แรกไว้ตอนเลื่อนขวา ──
+   เดิมตรึงแค่ลาก+ชื่อ 2 คอลัมน์ แต่ชื่อขยายกว้างขึ้นไปแล้ว (218px+) กว้างกว่าคอลัมน์วิดีโอ+กลุ่ม
+   รวมกันเสียอีก — เลื่อนแล้วสองคอลัมน์นั้นเลยมุดหายสนิทใต้คอลัมน์ชื่อ ไม่มีตำแหน่งเลื่อนไหนเห็นได้เลย
+   ตรึงตามให้ทันเป็นขบวนเดียวกัน เหลือ "สถานะ" เป็นคอลัมน์แรกที่เลื่อนได้จริง */
 .ctable th:nth-child(1),.ctable td:nth-child(1){position:sticky;left:0;z-index:3}
 .ctable th:nth-child(2),.ctable td:nth-child(2){position:sticky;left:var(--col1,26px);z-index:3}
-.ctable td:nth-child(1),.ctable td:nth-child(2){background:var(--surface)}
-.ctable th:nth-child(1),.ctable th:nth-child(2){z-index:5;background:var(--bg)}
-.ctable tr:hover td:nth-child(1),.ctable tr:hover td:nth-child(2){background:var(--surface2)}
-.ctable td:nth-child(2){box-shadow:1px 0 0 var(--line)}
+.ctable th:nth-child(3),.ctable td:nth-child(3){position:sticky;
+  left:calc(var(--col1,26px) + var(--col2,190px));z-index:3}
+.ctable th:nth-child(4),.ctable td:nth-child(4){position:sticky;
+  left:calc(var(--col1,26px) + var(--col2,190px) + var(--col3,58px));z-index:3}
+.ctable td:nth-child(1),.ctable td:nth-child(2),.ctable td:nth-child(3),.ctable td:nth-child(4)
+  {background:var(--surface)}
+.ctable th:nth-child(1),.ctable th:nth-child(2),.ctable th:nth-child(3),.ctable th:nth-child(4)
+  {z-index:5;background:var(--bg)}
+.ctable tr:hover td:nth-child(1),.ctable tr:hover td:nth-child(2),
+.ctable tr:hover td:nth-child(3),.ctable tr:hover td:nth-child(4){background:var(--surface2)}
+.ctable td:nth-child(4){box-shadow:1px 0 0 var(--line)}
 .ctable th:nth-child(2){box-shadow:1px 0 0 var(--line)}
 
 /* ── สีตามช่วงงาน ── ส้ม = ยังรอ · เขียว = ขั้นนั้นเสร็จ · ฟ้า = ฟีดแบคกลับไปแล้ว · ม่วง = เรื่องเงิน */
@@ -3800,13 +3810,17 @@ function skuCell(r, i){
 }
 
 // การ์ดบรีฟในตาราง — ต่างจาก SKU ตรงที่แต่ละอันเปิดลิงก์ได้เลย ไม่ใช่แค่ป้ายข้อความ
+// ป้ายชื่อการ์ดบอกว่าเป็นบรีฟของ SKU ตัวไหน (จับคู่ตามลำดับ เหมือนที่ cmdValues ใช้จริง)
+// ไม่มี SKU ตรงตำแหน่งนั้น (บรีฟมาก่อนใส่ SKU, หรือใส่บรีฟเกินจำนวน SKU) ก็ถอยไปเรียก "บรีฟ N" เฉยๆ
 function briefCell(r, i){
   const parts = briefParts(r.brief);
+  const skus = skuParts(r.sku);
   return `<div class="skucell">${
     parts.map((p, n) => { const url = safeLinkUrl(p);
-      return `<span class="skuchip" title="${esc(p)}">${
-        url ? `<a class="t" href="${esc(url)}" target="_blank" rel="noopener noreferrer">บรีฟ ${n + 1}</a>`
-            : `<span class="t">บรีฟ ${n + 1}</span>`
+      const label = skus[n] ? skuShort(skus[n]) : `บรีฟ ${n + 1}`;
+      return `<span class="skuchip" title="${esc(p)}${skus[n] ? ` — ${esc(skus[n])}` : ""}">${
+        url ? `<a class="t" href="${esc(url)}" target="_blank" rel="noopener noreferrer">${esc(label)}</a>`
+            : `<span class="t">${esc(label)}</span>`
         }<button data-briefdel="${i}" data-v="${esc(p)}" title="เอาออก">✕</button></span>`; }).join("")
     }<button class="skuadd" data-briefadd="${i}" title="เพิ่มลิงก์บรีฟ">${
       parts.length ? "＋" : "＋ วางลิงก์บรีฟ"}</button></div>`;
@@ -4030,9 +4044,11 @@ function renderDetail(){
 
       <div class="dfield wide2"><label>ลิงก์บรีฟ — ใส่ได้หลายอัน (คนทำหลายคลิปคนละใบ)</label>
         <div class="dsku" id="dBrief">${briefParts(r.brief).map((p, n) => { const url = safeLinkUrl(p);
-          return `<span class="skuchip" title="${esc(p)}">${
-            url ? `<a class="t" href="${esc(url)}" target="_blank" rel="noopener noreferrer">บรีฟ ${n + 1}</a>`
-                : `<span class="t">บรีฟ ${n + 1}</span>`
+          const dskus = skuParts(r.sku);
+          const label = dskus[n] ? skuShort(dskus[n]) : `บรีฟ ${n + 1}`;
+          return `<span class="skuchip" title="${esc(p)}${dskus[n] ? ` — ${esc(dskus[n])}` : ""}">${
+            url ? `<a class="t" href="${esc(url)}" target="_blank" rel="noopener noreferrer">${esc(label)}</a>`
+                : `<span class="t">${esc(label)}</span>`
             }<button data-dbriefdel="${esc(p)}" title="เอาออก">✕</button></span>`; }).join("")
           }<button class="skuadd" id="dBriefAdd">＋ วางลิงก์บรีฟ</button></div></div>
       <div class="dfield wide2"><label>โน้ต</label>
@@ -4577,15 +4593,19 @@ function renderCoord(){
   measureStickyCols();
 }
 
-// ── ตรึงคอลัมน์ที่สอง ──
-// ระยะที่คอลัมน์ชื่อไปเกาะต้องเท่ากับความกว้างจริงของคอลัมน์แรก
-// เดิมเขียนตายตัวไว้ 26px แต่คอลัมน์แรกกว้างเป็น em โตตามขนาดตัวอักษร
-// ห่างกันเมื่อไหร่ก็เกิดร่องให้คอลัมน์ที่เลื่อนอยู่ข้างหลังโผล่ทะลุขึ้นมาให้เห็น
+// ── ตรึงคอลัมน์ 2-4 (ชื่อ · วิดีโอ · กลุ่ม) ──
+// ระยะที่แต่ละคอลัมน์ไปเกาะต้องเท่ากับความกว้างจริงของคอลัมน์ก่อนหน้าทั้งหมดรวมกัน
+// เดิมเขียนตายตัวไว้ 26px แต่คอลัมน์กว้างเป็น em โตตามขนาดตัวอักษรและเนื้อหา
+// ห่างกันเมื่อไหร่คอลัมน์ที่ตรึงจะกว้างเกินระยะเกาะของคอลัมน์ถัดไป แล้วทับมันมิดจนหาไม่เจอเลย
+// ไม่ใช่แค่ "ร่อง" แบบเดิม — คราวนี้คอลัมน์ทั้งคอลัมน์หายไปไม่มีตำแหน่งเลื่อนไหนเห็นได้
 function measureStickyCols(){
-  const th = document.querySelector("#coordBody .ctable thead th");
-  if (!th) return;
-  const w = th.getBoundingClientRect().width;
-  if (w > 0) th.closest("table").style.setProperty("--col1", Math.round(w) + "px");
+  const heads = document.querySelectorAll("#coordBody .ctable thead th");
+  if (!heads.length) return;
+  const table = heads[0].closest("table");
+  for (let i = 0; i < 3 && i < heads.length; i++){
+    const w = heads[i].getBoundingClientRect().width;
+    if (w > 0) table.style.setProperty(`--col${i + 1}`, Math.round(w) + "px");
+  }
 }
 // ความกว้างคอลัมน์เปลี่ยนตามจอและขนาดตัวอักษร วัดใหม่ทุกครั้งที่ขนาดขยับ
 addEventListener("resize", measureStickyCols);
