@@ -3831,11 +3831,19 @@ const briefJoin = a => a.join(" + ");
 // (SKU อย่าง "OBSBOT Tiny 3 Lite" ไม่มีขีดคั่น เลยไม่โดนแตะ)
 const skuShort = p => String(p || "").replace(/^[^-]{1,24}\s+-\s+/, "");
 
+// เรียง A-Z แบบเดียวกันทุกที่ที่โชว์ตัวเลือก SKU
+// numeric:true ให้ CP301 มาก่อน CP303 และ LB40 มาก่อน LB400 — เรียงแบบตัวอักษรล้วนจะสลับกัน
+// ชื่อไลน์เป็นคำนำหน้าอยู่แล้ว เรียง A-Z จึงยังเกาะกลุ่มตามไลน์เหมือนเดิม แค่เฉดในไลน์เรียงตามตัวอักษร
+const skuSort = a => a.slice().sort((x, y) =>
+  String(x).localeCompare(String(y), "th", { numeric:true, sensitivity:"base" }));
+
 function skuOptions(){
   const list = skuListFor(PROJ);
-  if (list) return list;
+  // ลิสต์ตายตัวของโปรเจกต์เขียนไว้แบบจัดกลุ่มตามไลน์ ไม่ได้เรียงตัวอักษร — เรียงตอนโชว์
+  // ไม่ไปเรียงในตัวลิสต์เอง เพราะลำดับในนั้นคือลำดับที่ทีมเขียนไว้ ไม่ควรถูกแตะ
+  if (list) return skuSort(list);
   // โปรเจกต์ที่ไม่มีลิสต์ตายตัว ใช้ของที่เคยกรอกในโปรเจกต์นั้นเป็นตัวเลือก
-  return [...new Set((COORD[PROJ] || []).flatMap(r => skuParts(r.sku)))].sort();
+  return skuSort([...new Set((COORD[PROJ] || []).flatMap(r => skuParts(r.sku)))]);
 }
 
 function skuCell(r, i){
@@ -3913,7 +3921,8 @@ function openSkuPicker(r, host, after){
   if (!r) return;
   after = after || renderCoord;
   const cur = skuParts(r.sku);
-  const opts = [...new Set(skuOptions().concat(cur))];
+  // เรียงรวมหลังรวมกับที่เลือกอยู่แล้ว — SKU ที่คนนี้มีแต่ไม่อยู่ในลิสต์จะได้ไม่ไปต่อท้ายแถวเดียวโดด
+  const opts = skuSort([...new Set(skuOptions().concat(cur))]);
   const pop = document.createElement("div");
   pop.className = "fpop skupop";
   pop.innerHTML =
@@ -7680,7 +7689,7 @@ function renderSkuGuide(){
   // ตัวเลือกให้พิมพ์ง่าย: SKU ที่ใช้จริงในทุกโปรเจกต์ + ชื่อไลน์ที่ตัดมาจากหน้า SKU
   const used = [...new Set(all.flatMap(r => skuParts(r.sku)))];
   const lines = [...new Set(used.map(s => s.split(/\s*-\s*/)[0].trim()).filter(Boolean))];
-  $("#skuGuideOpts").innerHTML = [...new Set(lines.concat(used))]
+  $("#skuGuideOpts").innerHTML = skuSort([...new Set(lines.concat(used))])
     .map(v => `<option value="${esc(v)}">`).join("");
 
   box.querySelectorAll("[data-sg]").forEach(inp => inp.onchange = () => {
