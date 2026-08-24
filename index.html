@@ -6895,11 +6895,46 @@ function sbRowToPool(row){
   };
 }
 
+// 401 มีสองความหมายคนละเรื่อง ต้องแยกให้ออกก่อนตัดสินใจ
+//   1) โทเคนหมดอายุ/ใช้ไม่ได้ → ต่ออายุแล้วยิงใหม่ ผู้ใช้ไม่ต้องรู้ด้วยซ้ำ
+//   2) RLS ไม่อนุญาต (เช่น viewer กดเพิ่มคน) → เป็นเรื่องสิทธิ์ ไม่ใช่เรื่องโทเคน
+// เหมารวมเป็นอย่างเดียวเมื่อไหร่ คนที่แค่ไม่มีสิทธิ์จะโดนเตะออกจากระบบทุกครั้งที่กด
+// และข้อความจริงที่บอกว่า "ทำไมไม่ได้" ก็หายไปด้วย
+async function sbAuthProblem(r){
+  try {
+    const j = await r.clone().json();
+    if (j.code === "42501") return false;      // RLS ปฏิเสธ — เรื่องสิทธิ์ ห้ามไปยุ่งกับโทเคน
+    if (j.code === "PGRST301") return true;    // PostgREST: โทเคนหมดอายุ/ถอดรหัสไม่ได้
+    // ต้องอ่าน details ด้วย ไม่ใช่แค่ message — ตอนโทเคนเสีย PostgREST เขียนคำว่า JWT ไว้ใน details
+    // ส่วน message เป็น "No suitable key or wrong key type" ซึ่งไม่มีคำว่า JWT เลยสักคำ
+    const m = [j.message, j.msg, j.error, j.error_description, j.details]
+      .filter(Boolean).join(" ").toLowerCase();
+    return /jwt|token|expired|invalid claim|not authenticated/.test(m);
+  } catch(e){ return false; }
+}
+
+// ยิงคำขอที่ต้องล็อกอิน — ต่ออายุโทเคนให้เองทั้งก่อนยิงและตอนโดนตีกลับ
+// access token อายุ 1 ชม. เปิดเว็บค้างไว้แล้วกดอะไรทีหลังจะเจอ "JWT expired" ถ้าไม่มีตรงนี้
+// สร้าง header ใหม่ทุกครั้งที่ยิง (ไม่ reuse ก้อนเดิม) ไม่งั้นรอบ retry จะแนบโทเคนใบเก่าที่หมดอายุไปอีก
+// ห้ามเรียกจาก sbProfile — requireLogin เรียก sbProfile อยู่ จะวนไม่รู้จบ
+async function sbAuthed(url, opts){
+  const o = opts || {};
+  if (!(await sbValidSession())) await requireLogin();
+  const go = () => fetch(url, Object.assign({}, o,
+    { headers: Object.assign({}, sbHeaders(true), o.headers) }));
+  let r = await go();
+  if (r.status !== 401 || !(await sbAuthProblem(r))) return r;
+  if (await sbRefresh()){                       // ต่ออายุด้วย refresh token ก่อน
+    r = await go();
+    if (r.status !== 401 || !(await sbAuthProblem(r))) return r;
+  }
+  await sbLogout(); await requireLogin();       // ต่อไม่ได้จริงๆ ค่อยขอล็อกอินใหม่
+  return await go();
+}
+
 async function fetchPoolSB(){
-  if (!(await sbValidSession())){ await requireLogin(); }
-  const r = await fetch(SB_URL + "/rest/v1/pool?select=" + SB_POOL_COLS + "&order=handle.asc",
-    { headers: sbHeaders(true), cache: "no-store" });
-  if (r.status === 401){ await sbLogout(); await requireLogin(); return fetchPoolSB(); }
+  const r = await sbAuthed(SB_URL + "/rest/v1/pool?select=" + SB_POOL_COLS + "&order=handle.asc",
+    { cache: "no-store" });
   if (!r.ok) throw new Error("โหลดข้อมูลจาก Supabase ไม่สำเร็จ (HTTP " + r.status + ")");
   const data = await r.json().catch(() => []);
   return data.filter(x => (x.handle || "").trim()).map(sbRowToPool);
@@ -6915,8 +6950,8 @@ async function sbAddCreator(it){
     follower: it.follower != null ? String(it.follower) : "",
     rate: it.rate != null ? String(it.rate) : "",
   };
-  const r = await fetch(SB_URL + "/rest/v1/pool",
-    { method:"POST", headers: Object.assign(sbHeaders(true), { Prefer:"return=minimal" }), body: JSON.stringify(body) });
+  const r = await sbAuthed(SB_URL + "/rest/v1/pool",
+    { method:"POST", headers:{ Prefer:"return=minimal" }, body: JSON.stringify(body) });
   if (!r.ok){
     const j = await r.json().catch(() => ({}));
     throw new Error(j.message || j.hint || ("เพิ่มไม่สำเร็จ (HTTP " + r.status + ")"));
