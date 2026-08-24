@@ -5155,14 +5155,12 @@ const LS_SKUGUIDE = "cf_skuguide_v1";
 // ─── คู่มือตั้งต้นของทีม ───
 // ผูกกับ SKU ไม่ใช่ผูกกับคน — ตั้งที่เดียว ทุกคนที่ได้ SKU นั้นได้คู่มือใบเดียวกันเองทั้งโปรเจกต์
 // ชื่อคีย์ใช้ชื่อที่ทีมเรียกกันจริง ไม่ต้องพิมพ์ให้ตรงกับ SKU เป๊ะ (ตัวจับคู่เทียบระดับคำให้แล้ว)
-// ⚠️ คีย์ที่มี " - " ตั้งใจให้คุมเฉพาะเฉดนั้น (ตัวจับคู่ข้ามมันในการเทียบระดับไลน์)
-//    ของ Moomin ต้องเขียนแบบนี้ ไม่ใช่ "cream blush moomin" ลอยๆ — เทสต์แล้วคีย์ลอยๆ
-//    ไปคุมบลัชทั้งไลน์ รวม Haelyn / Lekui / Liben ที่ไม่ใช่ Moomin ด้วย = ส่งคู่มือผิดใบ
-//    ไลน์ที่ยังไม่มีคู่มือปล่อยให้ขึ้น ⚑ ในตารางไปก่อน เห็นว่าขาดดีกว่าได้ใบที่ผิด
+// คีย์ลอยๆ (ไม่มี " - ") คุมทั้งไลน์ — Jibli ยืนยันว่าบลัชกับลิปใช้ใบเดียวกันหมดทั้งไลน์
+// ถ้าวันไหนบางเฉดต้องใช้คนละใบ ให้เพิ่มคีย์แบบเต็ม "Blush - Haelyn (40)" เข้าไป
+// คีย์ที่มี " - " ตรงเฉดชนะคีย์ระดับไลน์เสมอ จึงแทรกเฉพาะเฉดได้โดยไม่ต้องรื้อของเดิม
 const DEFAULT_SKUGUIDE = {
-  "Blush - Gemi（Moomin)": "https://canva.link/xx88hxk9cdkltsd",
-  "Blush - Minki（Moomin)": "https://canva.link/xx88hxk9cdkltsd",
-  "Lip - Moomin": "https://canva.link/58tjyi9c3aiyai9",
+  "cream blush moomin": "https://canva.link/xx88hxk9cdkltsd",
+  "moomin lip": "https://canva.link/58tjyi9c3aiyai9",
   "eyeshadow": "https://canva.link/50gmx9mgqeo65mc",
   "Contour": "https://canva.link/fjtpr4iodv1bzc1",
   "Featherlight Eyeshadow Palette": "https://canva.link/993k5e6ibvnh7a5",
