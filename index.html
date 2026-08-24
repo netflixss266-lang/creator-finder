@@ -726,6 +726,13 @@ tr.dropover td{border-top:2px solid var(--accent)}
 .skuadd{background:none;border:1px dashed var(--line);color:var(--dim);
   border-radius:6px;padding:.4em .8em;font-size:.84rem;font-weight:600}
 .skuadd:hover{border-color:var(--accent);color:var(--accent)}
+/* SKU ที่คู่มือใบนี้คุมอยู่จริง — ตั้งกว้างไปจะเห็นทันที ไม่ต้องรอให้ส่งผิดใบก่อน */
+.sgunder{flex-basis:100%;display:flex;flex-wrap:wrap;gap:5px;align-items:center;
+  font-size:.72rem;color:var(--dim);padding-left:2px}
+.sgunder span{background:var(--surface2);border:1px solid var(--line);border-radius:5px;
+  padding:1px 7px;color:var(--mute)}
+.sgunder span.none{background:none;border:0;color:var(--warn);padding-left:0}
+#sgBulkText{width:100%;font-size:.82rem;font-family:'IBM Plex Mono',monospace;line-height:1.6}
 
 .paycell{display:flex;align-items:center}
 .ctable td.vid{text-align:center}
@@ -2086,8 +2093,10 @@ tr.subrow td.w-status select{width:14.6em}
     <details class="sect" id="skuGuideSect">
       <summary><h3>คู่มือถ่ายทำ ตาม SKU</h3></summary>
       <p class="sect-sub">
-        ใส่ <b>ชื่อไลน์</b> (<code>Blush</code> · <code>Lip</code> · <code>Eyeshadow</code>)
-        = ใช้กับทุกเฉดในไลน์นั้น · ใส่ <b>SKU เต็ม</b> = ใช้เฉพาะเฉดนั้น (ชนะชื่อไลน์เสมอ)<br>
+        ตั้งทีเดียวต่อไลน์สินค้า — <b>ไม่ต้องไปกรอกรายคน</b> ทุกคนที่ได้ SKU ในไลน์นั้นจะได้คู่มือถูกใบเอง
+        และคนที่ได้หลาย SKU จะได้คู่มือแยกใบตามคลิป<br>
+        ชื่อคู่มือเขียนแบบที่ทีมเรียกกันได้เลย (<code>cream blush moomin</code>) ไม่ต้องเขียนให้ตรง SKU เป๊ะ —
+        ระบบเทียบระดับคำให้ · ใส่ <b>SKU เต็ม</b> = ใช้เฉพาะเฉดนั้น (ชนะชื่อไลน์เสมอ)<br>
         <span style="color:var(--dim)">เข้าไปที่ <code>{{guide}}</code> ใน Command และเป็นตัวสำรองของ
         <code>{{brief}}</code> เมื่อชีตไม่ได้กรอกบรีฟไว้ · สั่งจากช่องคำสั่งได้ด้วย
         <code>/skuguide Blush : https://…</code></span>
@@ -2100,6 +2109,20 @@ tr.subrow td.w-status select{width:14.6em}
         <button type="button" class="run" id="skuGuideAdd">เพิ่ม</button>
       </div>
       <div class="addmsg" id="skuGuideMsg"></div>
+
+      <!-- วางทั้งลิสต์ทีเดียว — ตอนเปิดโปรเจกต์ใหม่มีคู่มือมาเป็นชุด ไม่ควรต้องกดเพิ่มทีละใบ -->
+      <details class="sect" id="sgBulkSect" style="margin-top:12px">
+        <summary><h3 style="font-size:.9rem">วางทั้งลิสต์ทีเดียว</h3></summary>
+        <p class="sect-sub">บรรทัดละใบ <code>ชื่อ : ลิงก์</code> — ขึ้นต้นด้วย <code>*</code> หรือ <code>-</code>
+          ก็ได้ และใช้ <code>=</code> แทน <code>:</code> ก็ได้ (ก๊อปจากแชตมาวางได้เลย)</p>
+        <textarea id="sgBulkText" rows="6" spellcheck="false"
+          placeholder="moomin lip : https://canva.link/...&#10;cream blush moomin : https://canva.link/..."></textarea>
+        <div class="skuadd-row">
+          <button type="button" class="run" id="sgBulkParse">ตรวจก่อน</button>
+        </div>
+        <div id="sgBulkPreview"></div>
+        <div class="addmsg" id="sgBulkMsg"></div>
+      </details>
     </details>
 
     <details class="sect">
@@ -5107,19 +5130,64 @@ function loadSkuGuide(){
 function saveSkuGuide(){
   try { localStorage.setItem(LS_SKUGUIDE, JSON.stringify(SKUGUIDE)); } catch(e){}
 }
-// คืนลิงก์ของ SKU ก้อนเดียว (ไม่ใช่ทั้งช่องที่อาจมีหลายอันคั่นด้วย +)
-function guideForOne(one){
+// ─── จับคู่คู่มือกับ SKU ───
+// SKU เขียนเป็น "ไลน์ - เฉด (จำนวน)" เสมอ — ตัวที่ตัดสินว่าใช้คู่มือใบไหนคือ "ไลน์"
+// แต่ทีมตั้งชื่อคู่มือแบบที่คนอ่านรู้เรื่อง ("cream blush moomin") ไม่ได้ขึ้นต้นตรงกับ SKU
+// เทียบแบบ prefix อย่างเดียวเลยพลาด 12 จาก 15 SKU — ต้องเทียบระดับ "คำ" ด้วย
+const skuLine = s => String(s || "").split(/\s*-\s*/)[0].trim();
+const sgToks = s => String(s || "").toLowerCase().split(/[^a-z0-9฀-๿]+/).filter(t => t.length > 1);
+// ชื่อคู่มือครอบชื่อไลน์ไหม — ทุกคำในชื่อไลน์ต้องมีในชื่อคู่มือ
+// ยอมให้คำในชื่อคู่มือ "ยาวกว่า" ได้ (featherlight ครอบ feather) แต่ไม่ยอมทางกลับกัน
+// ไม่งั้น "eye" สั้นๆ จะไปครอบ "eyeshadow" ทั้งไลน์โดยไม่ได้ตั้งใจ
+const sgCovers = (keyT, lineT) => lineT.every(l => keyT.some(k => k === l || k.startsWith(l)));
+
+// คู่มือที่ใช้กับ SKU ก้อนนี้ — คืนคีย์ที่ชนะ (ไม่ใช่ลิงก์) ไว้ให้ UI บอกได้ว่าใครคุมใคร
+function guideKeyForOne(one){
   const s = String(one || "").trim();
   if (!s) return "";
-  if (SKUGUIDE[s]) return SKUGUIDE[s];
-  let best = "", bestLen = 0;
+  if (SKUGUIDE[s]) return s;                                  // 1) ใส่ SKU เต็มมา = ตรงตัวชนะเสมอ
   const low = s.toLowerCase();
-  for (const k in SKUGUIDE){
+  let best = "", bestLen = 0;
+  for (const k in SKUGUIDE){                                   // 2) ขึ้นต้นตรงกัน ยาวสุดชนะ (ของเดิม)
     const kl = k.trim().toLowerCase();
     if (!kl || !SKUGUIDE[k]) continue;
-    if (low.startsWith(kl) && kl.length > bestLen){ bestLen = kl.length; best = SKUGUIDE[k]; }
+    if (low.startsWith(kl) && kl.length > bestLen){ bestLen = kl.length; best = k; }
   }
-  return best;
+  if (best) return best;
+  // 3) เทียบระดับคำกับชื่อไลน์ — ตัวที่ "เกินมาน้อยที่สุด" ชนะ
+  //    กันเคส Eyeshadow ปะทะ Feather Eyeshadow: คีย์ "eyeshadow" ครอบไลน์ Feather Eyeshadow ไม่ได้
+  //    (ไม่มีคำว่า feather) ส่วนคีย์ "Featherlight Eyeshadow Palette" ครอบไลน์ Eyeshadow ได้ก็จริง
+  //    แต่มีคำเกินมา 2 คำ เลยแพ้คีย์ "eyeshadow" ที่พอดีเป๊ะ — ต่างคนต่างได้คู่มือของตัวเอง
+  const lineT = sgToks(skuLine(s));
+  if (!lineT.length) return "";
+  const skuT = sgToks(s);
+  let pick = "", pickExtra = Infinity, pickLen = -1;
+  for (const k in SKUGUIDE){
+    if (!SKUGUIDE[k]) continue;
+    // คีย์ที่เป็น "SKU เต็ม" (มี " - " คั่น) ตั้งใจให้ใช้เฉพาะเฉดนั้น — ห้ามให้มาชนะระดับคำ
+    // ไม่งั้นคู่มือของ Haelyn จะรั่วไปให้ Lekui ด้วย เพราะทั้งคู่อยู่ไลน์ Blush เหมือนกัน
+    if (/\s-\s/.test(k)) continue;
+    const kt = sgToks(k);
+    if (!sgCovers(kt, lineT)) continue;
+    const extra = kt.filter(t => !lineT.some(l => t === l || t.startsWith(l))
+                              && !skuT.includes(t)).length;
+    if (extra < pickExtra || (extra === pickExtra && k.length > pickLen)){
+      pickExtra = extra; pickLen = k.length; pick = k;
+    }
+  }
+  return pick;
+}
+// คืนลิงก์ของ SKU ก้อนเดียว (ไม่ใช่ทั้งช่องที่อาจมีหลายอันคั่นด้วย +)
+function guideForOne(one){
+  const k = guideKeyForOne(one);
+  return k ? (SKUGUIDE[k] || "") : "";
+}
+// SKU ทั้งหมดที่คู่มือใบนี้คุมอยู่จริง — ใช้โชว์ในหน้าตั้งค่า
+// ตั้งกว้างเกินไป (คู่มือของ Moomin ไปคุมเฉดที่ไม่ใช่ Moomin ด้วย) จะเห็นทันทีตั้งแต่ตอนตั้ง
+function skusUnderGuide(key){
+  const all = [...new Set(PROJECTS.flatMap(p => (COORD[p] || []).flatMap(r => skuParts(r.sku))))];
+  const pool = [...new Set(all.concat(skuListFor(PROJ) || []))];
+  return pool.filter(s => guideKeyForOne(s) === key).sort();
 }
 // n = คลิปที่เท่าไหร่ (1 = SKU ตัวแรก) · 0 = เอาอันแรกที่หาเจอจากทุก SKU ที่คนนี้ได้
 function guideForSku(sku, n){
@@ -7395,11 +7463,16 @@ function renderSkuGuide(){
   box.innerHTML = keys.length
     ? keys.map(k => {
         const n = hits(k);
+        // โชว์ SKU ที่ใบนี้คุมอยู่จริงๆ — ตั้งกว้างเกินไปจะเห็นตั้งแต่ตอนตั้ง ไม่ต้องรอให้ส่งผิดก่อน
+        const under = skusUnderGuide(k);
         return `<div class="skugrow">
           <b>${esc(k)}</b>
           <span class="n${n ? "" : " none"}">${n ? n + " คน" : "ยังไม่มีใครได้"}</span>
           <input data-sg="${esc(k)}" value="${esc(SKUGUIDE[k])}" spellcheck="false">
           <button type="button" data-sgdel="${esc(k)}" title="เอาออก">✕</button>
+          <div class="sgunder">${under.length
+            ? `คุม ${under.length} SKU: ` + under.map(s => `<span>${esc(s)}</span>`).join("")
+            : `<span class="none">ยังไม่ตรงกับ SKU ไหนเลย — เช็คชื่ออีกที</span>`}</div>
         </div>`; }).join("")
     : `<p class="hint">ยังไม่ได้ตั้งไว้ — ทุกคนจะได้คู่มือใบเดียวกันจาก “ลิงก์ที่ใช้ร่วมกัน”</p>`;
 
@@ -7420,6 +7493,55 @@ function renderSkuGuide(){
   });
 }
 function closeSettings(){ $("#settings").hidden = true; }
+
+// ─── วางลิสต์คู่มือทีเดียว ───
+// รูปแบบที่ทีมส่งกันมาจริง: "* ชื่อ : ลิงก์" บ้าง "ชื่อ = ลิงก์" บ้าง — รับให้หมด
+// ตรวจก่อนเสมอ ไม่เขียนทันทีที่วาง เพราะทับของเดิมที่ตั้งไว้แล้วได้
+let SGBULK = [];
+function sgBulkParse(){
+  const raw = ($("#sgBulkText").value || "").split(/\r?\n/);
+  SGBULK = [];
+  raw.forEach(line => {
+    const t = line.trim().replace(/^[*\-–•]\s*/, "");
+    if (!t) return;
+    // ตัดที่ ":" หรือ "=" ตัวแรกที่ตามด้วยลิงก์ — ชื่อคู่มือเองมี ":" ไม่ได้อยู่แล้ว
+    const m = t.match(/^(.+?)\s*[:=]\s*(https?:\/\/\S+)\s*$/i);
+    if (!m) return SGBULK.push({ line: t, ok:false, why:"อ่านไม่ออก — ต้องเป็น ชื่อ : ลิงก์" });
+    const key = m[1].trim(), url = safeLinkUrl(m[2].trim());
+    if (!key) return SGBULK.push({ line: t, ok:false, why:"ไม่มีชื่อคู่มือ" });
+    if (!url)  return SGBULK.push({ line: t, ok:false, why:"ลิงก์ใช้ไม่ได้" });
+    SGBULK.push({ line: t, ok:true, key, url, was: SKUGUIDE[key] || "" });
+  });
+  const good = SGBULK.filter(x => x.ok);
+  // ลองใส่ "ทั้งชุด" พร้อมกันแล้วค่อยดูว่าใครคุมอะไร — ต้องแข่งกันเองด้วย
+  // ใส่ทีละใบแล้ววัดจะได้ตัวเลขหลอก (ใบ Featherlight ดูเหมือนคุม Eyeshadow ธรรมดาด้วย
+  // ทั้งที่พอใส่ครบชุดจริง ใบ eyeshadow จะชิงกลับไป) — ตัวเลขในหน้าตรวจต้องเท่ากับของจริงหลังกดใช้
+  const backup = Object.assign({}, SKUGUIDE);
+  good.forEach(x => { SKUGUIDE[x.key] = x.url; });
+  const under = {};
+  good.forEach(x => { under[x.key] = skusUnderGuide(x.key); });
+  SKUGUIDE = backup;
+  $("#sgBulkPreview").innerHTML = SGBULK.map(x => x.ok
+    ? `<div class="qorow ok"><div class="q">${esc(x.key)}${
+        x.was ? ` <span style="color:var(--warn)">— ทับของเดิม</span>` : ""}</div>
+        <div class="w">${(under[x.key] || []).length
+          ? `คุม ${under[x.key].length} SKU: ${esc(under[x.key].join(" · "))}`
+          : `<span style="color:var(--warn)">ยังไม่ตรงกับ SKU ไหนเลย</span>`}</div></div>`
+    : `<div class="qorow err"><div class="q">${esc(x.line)}</div>
+       <div class="w">${esc(x.why)}</div></div>`).join("");
+  const msg = $("#sgBulkMsg");
+  msg.className = "addmsg on " + (good.length ? "ok" : "err");
+  msg.innerHTML = `อ่านได้ ${good.length}/${SGBULK.length} บรรทัด` +
+    (good.length ? ` <button class="export" id="sgBulkApply" style="margin-left:8px;padding:4px 12px">ใช้ ${good.length} ใบนี้</button>` : "");
+  const ap = $("#sgBulkApply");
+  if (ap) ap.onclick = () => {
+    SGBULK.filter(x => x.ok).forEach(x => { SKUGUIDE[x.key] = x.url; });
+    saveSkuGuide(); renderSkuGuide();
+    $("#sgBulkText").value = ""; $("#sgBulkPreview").innerHTML = "";
+    msg.className = "addmsg on ok";
+    msg.textContent = `ตั้งคู่มือแล้ว ${good.length} ใบ`;
+  };
+}
 
 async function addSheet(){
   const name = $("#newName").value.trim();
@@ -7981,6 +8103,7 @@ $("#skuGuideAdd").onclick = () => {
   say(n ? `เพิ่มแล้ว — มีผลกับ <b>${n}</b> คน`
         : `เพิ่มแล้ว แต่<b> ยังไม่มีใครได้ SKU นี้</b> เก็บไว้ใช้ทีหลัง`, n ? "ok" : "busy");
 };
+$("#sgBulkParse").onclick = sgBulkParse;
 $("#settings").onclick = e => { if (e.target.id === "settings") closeSettings(); };
 document.addEventListener("keydown", e => {
   if (e.key !== "Escape") return;
