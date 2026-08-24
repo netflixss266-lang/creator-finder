@@ -1337,7 +1337,11 @@ main{padding:22px 24px;overflow-y:auto;max-height:calc(100vh - 62px)}
 .cmdblk.sent > header{background:var(--bg)}
 .cmdblk.sent > header .no{background:var(--surface2);color:var(--dim)}
 .cmdblk > header .mark{margin-left:auto;font-size:.78rem;white-space:nowrap}
-.cmdblk > header .mark + button{margin-left:9px}
+/* ทุกปุ่มหลัง .mark ต้องเกาะกันเป็นกลุ่ม — กฎรวมของ header ให้ margin-left:auto กับปุ่มทุกตัว
+   ปุ่มที่สามขึ้นมาเมื่อไหร่จะโดนดันแยกออกไปเอง ถ้าไม่ล้างค่าให้ (เดิมเขียนไว้แค่ปุ่มถัดไปตัวเดียว) */
+.cmdblk > header .mark ~ button{margin-left:9px}
+.cmdblk > header button.rst{color:var(--dim)}
+.cmdblk > header button.rst:hover{border-color:var(--accent);color:var(--accent)}
 .cmdblk.sent > header .mark{border-color:var(--hi);color:var(--hi)}
 .cmdblk > header .no i{font-style:normal;font-size:.78em;opacity:.75}
 /* บล็อกที่ใช้เฉพาะกลุ่มเดียว — ในหน้าแก้ข้อความเห็นทั้ง 2 ใบพร้อมกัน ต้องบอกว่าใบไหนของใคร */
@@ -5979,7 +5983,15 @@ function openCmd(proj, handle){
         <button class="mark" data-sent="${j}"
           title="${b.sent ? "ยังไม่ได้ส่ง — กดเพื่อเอาเครื่องหมายออก" : "ทำเครื่องหมายว่าส่งบล็อกนี้ให้ " + esc(normId(handle)) + " แล้ว"}"
           >${b.sent ? "✓ ส่งแล้ว" : "ส่งแล้ว"}</button>
-        <button data-copy="${j}">คัดลอก</button></header>
+        <button data-copy="${j}">คัดลอก</button>${
+        // ปุ่มคืนต้นแบบขึ้นเฉพาะบล็อกที่คนนี้มีข้อความของตัวเอง — บล็อกที่ใช้ต้นแบบอยู่แล้วไม่มีอะไรให้คืน
+        // บล็อกที่แตกเป็นชุดรายคลิปใช้ข้อความก้อนเดียวกันทุกชุด ปุ่มจึงขึ้นที่ชุดแรกที่เดียว
+        // ไม่งั้นจะเห็นปุ่มเหมือนกัน 2-3 ปุ่มที่ทำสิ่งเดียวกันเป๊ะ
+        b.mine && (!b.clip || b.clip === 1)
+          ? `<button data-blkreset="${j}" class="rst"
+              title="คืนข้อความบล็อกนี้ให้เหมือนต้นแบบ — ทิ้งฉบับที่แก้ไว้เฉพาะ ${esc(normId(handle))}${
+                b.clip ? " (มีผลทุกชุด เพราะทุกชุดใช้ข้อความก้อนเดียวกัน)" : ""}">↺ ต้นแบบ</button>`
+          : ""}</header>
       <pre>${b.html}</pre></div>`).join("") + `</div>`;
 
   document.querySelectorAll("#cmdBody [data-copy]").forEach(btn => btn.onclick = () => {
@@ -5988,6 +6000,24 @@ function openCmd(proj, handle){
       setTimeout(() => { btn.textContent = "คัดลอก"; btn.classList.remove("done"); }, 1600);
     }).catch(() => { btn.textContent = "ก๊อปไม่ได้"; });
   });
+  // ── คืนบล็อกเดียวให้เหมือนต้นแบบ ──
+  // ถอดเฉพาะข้อความของบล็อกนั้นออก บล็อกอื่นที่แก้ไว้และเครื่องหมาย "ส่งแล้ว" ไม่ถูกแตะ
+  // (ปุ่มคืนทั้งหมดอยู่ในหน้าแก้ข้อความ ซึ่งล้างทีเดียวทุกบล็อก — คนละอันกับตรงนี้)
+  // ข้อความที่พิมพ์เองหายแล้วเอากลับไม่ได้ ถามก่อนหนึ่งครั้งเสมอ
+  document.querySelectorAll("#cmdBody [data-blkreset]").forEach(btn => btn.onclick = () => {
+    const b = blocks[+btn.dataset.blkreset];
+    const name = b.t.replace(/^\d+\.\s*/, "");
+    if (!confirm(`คืนข้อความบล็อก “${name}” ของ ${normId(handle)} ให้เหมือนต้นแบบ?\n\n` +
+                 `ฉบับที่แก้ไว้เฉพาะคนนี้จะหายไป เอากลับไม่ได้`)) return;
+    delete cmdOwn(proj, handle).blocks[b.id];
+    pruneCmdOwn(proj, handle); saveCmdOwn();
+    // วาดใหม่ทั้งหน้าเพราะข้อความเปลี่ยน แต่ต้องกลับมาที่บล็อกเดิม
+    // ไม่งั้นกดคืนบล็อกที่ 12 แล้วจอเด้งขึ้นบนสุด ต้องเลื่อนหาใหม่ทุกครั้ง
+    const top = $("#cmdBody").scrollTop;
+    openCmd(proj, handle);
+    $("#cmdBody").scrollTop = top;
+  });
+
   // ── ส่งแล้ว/ยังไม่ส่ง ── สลับที่ตัวบล็อกทันที ไม่ต้องวาดหน้าใหม่ทั้งหน้า
   // (วาดใหม่แล้วจอจะเด้งกลับไปบนสุด ทั้งที่กำลังไล่อ่านบล็อกที่ 12 อยู่)
   document.querySelectorAll("#cmdBody [data-sent]").forEach(btn => btn.onclick = () => {
