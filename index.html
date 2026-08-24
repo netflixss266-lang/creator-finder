@@ -266,7 +266,7 @@ body:not([data-view="coord"]) #gearBtn{display:none}
    ของที่ซ่อนไม่ได้หายไปไหน กด ⤢ ท้ายชื่อดูและแก้ได้ครบในลิ้นชัก
    คอลัมน์กลุ่มซ้ำกับปุ่ม KOL/KOC ที่อยู่เหนือตารางอยู่แล้ว เลยซ่อนด้วย */
 .ctable.lean th.opt,.ctable.lean td.opt{display:none}
-.ctable.lean .who{width:24.1em;max-width:24.1em}
+.ctable.lean .who{width:24.1em;max-width:24.1em;min-width:24.1em}
 /* SKU เป็นชิปที่ตัดบรรทัดเองได้ ไม่ต้องกว้างเท่าข้อความเต็ม — ชี้ที่ชิปมี tooltip เต็มอยู่แล้ว */
 .ctable.lean th.w-sku,.ctable.lean td.w-sku{min-width:8em;max-width:11em}
 
@@ -481,7 +481,11 @@ body:not([data-view="coord"]) #gearBtn{display:none}
    ไม่งั้นชื่อจะลอยไม่ตรงกับของช่องอื่น เพราะ input มี padding ของตัวเอง */
 /* ความกว้างต้องเผื่อลูกศร ปุ่ม ⤢ ✉ และ ↗ ที่อยู่ในช่องเดียวกันด้วย รวมกัน ~6em
    เคยตั้งไว้ 15em แล้วเหลือให้ชื่อจริงแค่ 65px — ชื่อ 24 จาก 26 คนโดนตัด */
-.ctable .who{font-weight:600;white-space:nowrap;width:24.5em;max-width:24.5em}
+/* ต้องมี min-width ด้วย ไม่ใช่แค่ width — ช่องนี้เป็น table-cell ที่คิดความกว้างจากเนื้อใน
+   แต่ช่องชื่อข้างในตั้ง min-width:0 ไว้ (เพื่อให้ตัด … ได้) ความกว้างที่มันเรียกร้องจึงเป็น 0
+   เหลือแต่ลูกศรกับไอคอนค้ำไว้ คอลัมน์เลยยุบจนชื่อเหลือตัวเดียว ถ้าไม่ล็อกขั้นต่ำไว้ */
+.ctable .who{font-weight:600;white-space:nowrap;
+  width:24.5em;max-width:24.5em;min-width:24.5em}
 /* ความสูงต้องเท่ากับ input/select ในแถวเดียวกัน ไม่งั้นชื่อลอยสูงกว่าเพื่อน */
 .ctable .who .wrapper{display:flex;align-items:center;gap:.35em;min-height:var(--rowh,2.6em)}
 /* ชื่อครีเอเตอร์คือสิ่งที่ต้องอ่านออกก่อนอย่างอื่นในแถว — ใหญ่กว่าช่องอื่นและหนากว่า
@@ -636,7 +640,7 @@ tr.subrow .clipsku{font-size:.78rem;color:var(--mute)}
    ยอมให้ชื่อยาวๆ ถูกตัดดีกว่ามีแต่ชื่อกับขอบจอ — กดที่ชื่อยังเห็นเต็มในช่องแก้
    ปุ่ม ↗ ตัดออกด้วย ลิงก์ TikTok มีอยู่แล้วในลิ้นชักที่กด ⤢ */
 @media(max-width:720px){
-  .ctable .who,.ctable.lean .who{width:14.6em;max-width:14.6em}
+  .ctable .who,.ctable.lean .who{width:14.6em;max-width:14.6em;min-width:14.6em}
   .ctable .who .go{display:none}
   .ctable .who .chev-gap{width:.5em}
   .ctable .who .icobtn{padding:.3em .25em;font-size:.98rem}
@@ -708,6 +712,14 @@ tr.dropover td{border-top:2px solid var(--accent)}
 .skuchip button{background:none;border:0;color:var(--mute);font-size:.88rem;
   padding:.25em .3em;line-height:1;flex:none}
 .skuchip button:hover{color:var(--lo)}
+/* ป้ายสถานะบรีฟบนชิป SKU — ✓ แปะเอง · ✦ ได้จากคู่มือของ SKU · ⚑ ยังไม่มี
+   สามสถานะไม่ใช่สองอย่าง เพราะ "มีบรีฟ" กับ "ได้คู่มืออัตโนมัติ" ต้องแยกออกจากกัน
+   ตัวที่ได้อัตโนมัติเปลี่ยนตามคู่มือกลางเมื่อไหร่ก็ได้ ส่วนตัวที่แปะเองไม่เปลี่ยนตามใคร */
+.bmark{font-style:normal;flex:none;font-size:.76rem;line-height:1}
+.bmark.own{color:var(--hi)}
+.bmark.auto{color:var(--info)}
+.bmark.no{color:var(--warn)}
+.skuchip.nobrief{border-color:rgba(var(--warn-rgb),.45)}
 /* ── คู่มือถ่ายทำ ตาม SKU (หน้าตั้งค่า) ── */
 .skugrow{display:flex;align-items:center;gap:9px;flex-wrap:wrap;padding:8px 0;
   border-bottom:1px solid var(--line)}
@@ -1175,7 +1187,11 @@ main{padding:22px 24px;overflow-y:auto;max-height:calc(100vh - 62px)}
 .card.incart .seenflag{background:var(--accent);color:var(--accent-ink)}
 .open.was{color:var(--dim);border-style:dashed}
 .card-top{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:9px}
-.who{display:flex;align-items:center;gap:10px;min-width:0}
+/* ต้องผูกกับ .card-top เสมอ — ชื่อคลาส .who ใช้ซ้ำกับ <td class="who"> ในตาราง Coordinator ด้วย
+   ปล่อยเป็น .who ลอยๆ เมื่อไหร่ display:flex จะไปโดน td นั้น แล้ว td หลุดจากการจัดวางแบบตาราง
+   ผลคือแถวไหนสูงกว่าปกติ (SKU 2 ชิปตัดบรรทัด / โน้ตยาว) ช่องชื่อจะไม่ยืดตามแถว
+   ค้างอยู่ 48px ที่ขอบบน ส่วนช่องอื่นจัดกลางที่ความสูงจริง — เหลื่อมกันทั้งแถว */
+.card-top .who{display:flex;align-items:center;gap:10px;min-width:0}
 .handle{font-weight:600;font-size:.98rem;word-break:break-all}
 
 /* รูปโปรไฟล์ — ถ้าไม่มี/โหลดไม่ขึ้น จะเหลือตัวย่อที่อยู่ข้างหลัง */
@@ -3823,9 +3839,22 @@ function skuCell(r, i){
   // ยังไม่มี SKU แต่มีตัวย่องานอยู่ — ตัวย่อคือของเดียวที่บอกว่าคนนี้ได้สินค้าอะไร
   // คอลัมน์ "งาน" เอาออกไปแล้ว ถ้าไม่โชว์ตรงนี้ข้อมูลของแถวพวกนี้จะหายไปจากตารางเลย
   const code = !parts.length && String(r.code || "").trim();
+  // ── ป้ายบอกว่า SKU ตัวนี้มีบรีฟให้ส่งหรือยัง ──
+  // คนทำ 2 คลิปมี SKU 2 ตัว ต้องดูออกว่าขาดของตัวไหน ไม่ใช่รู้แค่ "ยังไม่ครบ" รวมๆ
+  // ลำดับเดียวกับที่ Command ใช้จริง: บรีฟที่แปะเองมาก่อน ไม่มีค่อยตกไปใช้คู่มือของ SKU
+  const briefs = briefParts(r.brief);
   return `<div class="skucell">${
-    parts.map(p => `<span class="skuchip" title="${esc(p)}"><span class="t">${esc(skuShort(p))}</span><button
-      data-skudel="${i}" data-v="${esc(p)}" title="เอาออก">✕</button></span>`).join("")
+    parts.map((p, n) => {
+      const own = briefs[n] || "";
+      const key = own ? "" : guideKeyForOne(p);
+      const src = own ? "แปะบรีฟไว้เองแล้ว"
+                : key ? `ได้คู่มือจาก “${key}”`
+                : "ยังไม่มีบรีฟและยังไม่มีคู่มือของ SKU นี้";
+      return `<span class="skuchip${own || key ? "" : " nobrief"}"
+        title="${esc(p)} — ${esc(src)}"><span class="t">${esc(skuShort(p))}</span
+        ><i class="bmark ${own ? "own" : key ? "auto" : "no"}">${own ? "✓" : key ? "✦" : "⚑"}</i><button
+        data-skudel="${i}" data-v="${esc(p)}" title="เอาออก">✕</button></span>`;
+    }).join("")
     }${code ? `<span class="skuchip fromcode"
       title="ยังไม่ได้ใส่ SKU — นี่คือตัวย่องาน &quot;${esc(r.code)}&quot; ที่มาจากชีต แก้ได้ในลิ้นชัก ⤢"
       ><span class="t">${esc(codeLabel(r.code))}</span></span>` : ""
@@ -5123,9 +5152,36 @@ function saveCmdLinks(){
 // คีย์เป็นข้อความอิสระ: ใส่ SKU เต็ม ("Blush - Haelyn (40)") = ใช้เฉพาะเฉดนั้น
 // ใส่แค่ชื่อไลน์ ("Blush") = ใช้กับทุกเฉดในไลน์นั้น — ตรงเป๊ะชนะเสมอ ถ้าไม่ตรงเอาคีย์ที่ยาวที่สุดที่ขึ้นต้นตรงกัน
 const LS_SKUGUIDE = "cf_skuguide_v1";
+// ─── คู่มือตั้งต้นของทีม ───
+// ผูกกับ SKU ไม่ใช่ผูกกับคน — ตั้งที่เดียว ทุกคนที่ได้ SKU นั้นได้คู่มือใบเดียวกันเองทั้งโปรเจกต์
+// ชื่อคีย์ใช้ชื่อที่ทีมเรียกกันจริง ไม่ต้องพิมพ์ให้ตรงกับ SKU เป๊ะ (ตัวจับคู่เทียบระดับคำให้แล้ว)
+// ⚠️ คีย์ที่มี " - " ตั้งใจให้คุมเฉพาะเฉดนั้น (ตัวจับคู่ข้ามมันในการเทียบระดับไลน์)
+//    ของ Moomin ต้องเขียนแบบนี้ ไม่ใช่ "cream blush moomin" ลอยๆ — เทสต์แล้วคีย์ลอยๆ
+//    ไปคุมบลัชทั้งไลน์ รวม Haelyn / Lekui / Liben ที่ไม่ใช่ Moomin ด้วย = ส่งคู่มือผิดใบ
+//    ไลน์ที่ยังไม่มีคู่มือปล่อยให้ขึ้น ⚑ ในตารางไปก่อน เห็นว่าขาดดีกว่าได้ใบที่ผิด
+const DEFAULT_SKUGUIDE = {
+  "Blush - Gemi（Moomin)": "https://canva.link/xx88hxk9cdkltsd",
+  "Blush - Minki（Moomin)": "https://canva.link/xx88hxk9cdkltsd",
+  "Lip - Moomin": "https://canva.link/58tjyi9c3aiyai9",
+  "eyeshadow": "https://canva.link/50gmx9mgqeo65mc",
+  "Contour": "https://canva.link/fjtpr4iodv1bzc1",
+  "Featherlight Eyeshadow Palette": "https://canva.link/993k5e6ibvnh7a5",
+};
+// เติมให้ครั้งเดียวตลอดกาล ไม่ใช่ทุกครั้งที่โหลด — ทีมลบหรือแก้ทับทีหลังแล้วต้องอยู่กับที่
+// ถ้าเติมทุกรอบ คู่มือที่ตั้งใจลบทิ้งจะกลับมาเองทุกครั้งที่เปิดเว็บ โดยไม่มีอะไรบอก
+const LS_SKUSEED = "cf_skuguide_seed_v1";
 let SKUGUIDE = {};
 function loadSkuGuide(){
   try { SKUGUIDE = JSON.parse(localStorage.getItem(LS_SKUGUIDE) || "{}") || {}; } catch(e){}
+  let seeded = false;
+  try { seeded = localStorage.getItem(LS_SKUSEED) === "1"; } catch(e){}
+  if (seeded) return;
+  let added = 0;
+  // ไม่ทับของที่มีอยู่แล้ว — เครื่องที่ทีมตั้งเองไว้ก่อนหน้านี้ต้องไม่โดนกลบ
+  for (const k in DEFAULT_SKUGUIDE)
+    if (!SKUGUIDE[k]){ SKUGUIDE[k] = DEFAULT_SKUGUIDE[k]; added++; }
+  try { localStorage.setItem(LS_SKUSEED, "1"); } catch(e){}
+  if (added) saveSkuGuide();
 }
 function saveSkuGuide(){
   try { localStorage.setItem(LS_SKUGUIDE, JSON.stringify(SKUGUIDE)); } catch(e){}
