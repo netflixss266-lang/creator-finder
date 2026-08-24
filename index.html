@@ -5125,7 +5125,10 @@ const clipCount = r => Math.min(6, Math.max(1,
 const skuOf = (r, n) => skuParts(r && r.sku)[(n || 1) - 1] || "";
 
 function cmdValues(r){
-  const net = payOf(r.rate, r.paytype);
+  // {{net}} ปกติคือยอดที่ครีเอเตอร์ได้รับจริง (หลังหัก 3% ฯลฯ) — แต่แบบ NET ยอดนั้นเท่ากับเรทเป๊ะ
+  // ซ้ำกับบรรทัดเรทด้านบนพอดี ข้อความเลยไม่มีสาระ เปลี่ยนเป็นยอดที่บริษัทจ่ายจริง (rate/0.97) แทน
+  // เหมือนช่อง "จ่ายจริง" ในตาราง — coOf มีค่าเฉพาะ NET (paytype อื่นไม่มี cost fn) จึงใช้ ?? สลับกลับเองได้
+  const net = coOf(r.rate, r.paytype) ?? payOf(r.rate, r.paytype);
   const own = cmdOwnRead(r.project, r.handle).links || {};
   const L = k => (own[k] != null ? own[k] : CMDLINKS[k]) || "";
   // ─── ค่าแยกรายคลิป ───
