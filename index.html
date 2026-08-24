@@ -2111,16 +2111,16 @@ tr.subrow td.w-status select{width:14.6em}
     <!-- คู่มือถ่ายทำไม่ได้มีใบเดียว — คนได้บลัชกับคนได้ลิปถ่ายคนละแบบ
          ผูกไว้กับ SKU ทีเดียว แล้วทุกคนที่ได้ SKU นั้นได้คู่มือถูกใบเอง -->
     <details class="sect" id="skuGuideSect">
-      <summary><h3>คู่มือถ่ายทำ ตาม SKU</h3></summary>
+      <summary><h3>คู่มือ · แฮชแท็ก · ตะกร้า ตาม SKU</h3></summary>
       <p class="sect-sub">
-        ตั้งทีเดียวต่อไลน์สินค้า — <b>ไม่ต้องไปกรอกรายคน</b> ทุกคนที่ได้ SKU ในไลน์นั้นจะได้คู่มือถูกใบเอง
-        และคนที่ได้หลาย SKU จะได้คู่มือแยกใบตามคลิป<br>
-        ชื่อคู่มือเขียนแบบที่ทีมเรียกกันได้เลย (<code>cream blush moomin</code>) ไม่ต้องเขียนให้ตรง SKU เป๊ะ —
+        ตั้งทีเดียวต่อไลน์สินค้า — <b>ไม่ต้องไปกรอกรายคน</b> ทุกคนที่ได้ SKU ในไลน์นั้นจะได้ของถูกชุดเอง
+        และคนที่ได้หลาย SKU จะได้แยกชุดตามคลิป<br>
+        ชื่อเขียนแบบที่ทีมเรียกกันได้เลย (<code>cream blush moomin</code>) ไม่ต้องเขียนให้ตรง SKU เป๊ะ —
         ระบบเทียบระดับคำให้ · ใส่ <b>SKU เต็ม</b> = ใช้เฉพาะเฉดนั้น (ชนะชื่อไลน์เสมอ)<br>
-        <span style="color:var(--dim)">เข้าไปที่ <code>{{guide}}</code> ใน Command และเป็นตัวสำรองของ
-        <code>{{brief}}</code> เมื่อชีตไม่ได้กรอกบรีฟไว้ · สั่งจากช่องคำสั่งได้ด้วย
-        <code>/skuguide Blush : https://…</code></span>
+        <span style="color:var(--dim)">ที่แปะไว้เฉพาะรายคนยังชนะเสมอ — ตรงนี้เป็นค่าตั้งต้นให้คนที่ยังไม่ได้แปะเอง</span>
       </p>
+      <div class="tabs sub" id="skuBindTabs" style="margin-bottom:10px"></div>
+      <p class="sect-sub" id="skuBindNote" style="margin-top:0"></p>
       <div id="skuGuideList"></div>
       <div class="skuadd-row">
         <input id="skuGuideKey" list="skuGuideOpts" placeholder="SKU หรือชื่อไลน์ เช่น Blush">
@@ -5172,9 +5172,39 @@ const DEFAULT_SKUGUIDE = {
 // เติมให้ครั้งเดียวตลอดกาล ไม่ใช่ทุกครั้งที่โหลด — ทีมลบหรือแก้ทับทีหลังแล้วต้องอยู่กับที่
 // ถ้าเติมทุกรอบ คู่มือที่ตั้งใจลบทิ้งจะกลับมาเองทุกครั้งที่เปิดเว็บ โดยไม่มีอะไรบอก
 const LS_SKUSEED = "cf_skuguide_seed_v1";
-let SKUGUIDE = {};
+
+// ─── ของที่ผูกกับ SKU ได้ ───
+// หลักการเดียวกับคู่มือถ่ายทำเป๊ะ: ตั้งทีเดียวต่อไลน์ ไม่ต้องไปกรอกรายคน
+// แฮชแท็กกับตะกร้าก็เปลี่ยนตามสินค้าเหมือนกัน — คนได้บลัชกับคนได้ลิปใช้แท็ก/ตะกร้าคนละชุดอยู่แล้ว
+// url:false = ไม่ใช่ลิงก์ (แฮชแท็กเป็นข้อความ) ตัวตรวจตอนวางทั้งลิสต์ต้องไม่บังคับ https
+const SKU_BIND = [
+  { k:"guide",   ls:LS_SKUGUIDE,      th:"คู่มือถ่ายทำ",  url:true,
+    ph:"https://… ลิงก์คู่มือถ่ายทำ", ex:"cream blush moomin : https://canva.link/..." },
+  { k:"hashtag", ls:"cf_skuhash_v1",  th:"แฮชแท็ก",      url:false,
+    ph:"#tag1 #tag2 #tag3",           ex:"Blush : #altablush #ครีมบลัช" },
+  { k:"cart",    ls:"cf_skucart_v1",  th:"ลิงก์ตะกร้า",   url:true,
+    ph:"https://… ลิงก์ตะกร้า",       ex:"Blush : https://vt.tiktok.com/..." },
+];
+const SKU_BIND_BY = Object.fromEntries(SKU_BIND.map(b => [b.k, b]));
+// เก็บแยกคีย์ละก้อน ไม่ยุบรวมเป็นก้อนเดียว — ของเดิมใน cf_skuguide_v1 จะได้ไม่ต้องย้าย
+// และถ้าวันหลังเลิกใช้อันไหน ลบทีละก้อนได้โดยไม่แตะของที่เหลือ
+let SKUBIND = { guide:{}, hashtag:{}, cart:{} };
+let SKUGUIDE = {};                      // ตัวเดียวกับ SKUBIND.guide — ของเดิมอ้างชื่อนี้อยู่หลายที่
+function loadSkuBind(){
+  SKU_BIND.forEach(b => {
+    if (b.k === "guide") return;        // guide โหลดใน loadSkuGuide (มีเรื่อง seed ของตัวเอง)
+    try { SKUBIND[b.k] = JSON.parse(localStorage.getItem(b.ls) || "{}") || {}; } catch(e){ SKUBIND[b.k] = {}; }
+  });
+}
+function saveSkuBind(kind){
+  if (kind === "guide") return saveSkuGuide();
+  const b = SKU_BIND_BY[kind]; if (!b) return;
+  try { localStorage.setItem(b.ls, JSON.stringify(SKUBIND[kind] || {})); } catch(e){}
+}
 function loadSkuGuide(){
+  loadSkuBind();
   try { SKUGUIDE = JSON.parse(localStorage.getItem(LS_SKUGUIDE) || "{}") || {}; } catch(e){}
+  SKUBIND.guide = SKUGUIDE;
   let seeded = false;
   try { seeded = localStorage.getItem(LS_SKUSEED) === "1"; } catch(e){}
   if (seeded) return;
@@ -5200,15 +5230,17 @@ const sgToks = s => String(s || "").toLowerCase().split(/[^a-z0-9฀-๿]+/).fil
 const sgCovers = (keyT, lineT) => lineT.every(l => keyT.some(k => k === l || k.startsWith(l)));
 
 // คู่มือที่ใช้กับ SKU ก้อนนี้ — คืนคีย์ที่ชนะ (ไม่ใช่ลิงก์) ไว้ให้ UI บอกได้ว่าใครคุมใคร
-function guideKeyForOne(one){
+// รับ map เข้ามาเพื่อให้แฮชแท็ก/ตะกร้าใช้ตรรกะการจับคู่ตัวเดียวกันเป๊ะกับคู่มือ
+// ถ้าก๊อปตรรกะไปวางซ้ำ วันหลังแก้กับดักตัวใดตัวหนึ่งแล้วอีกสองที่จะเงียบๆ ผิดต่อไป
+function bindKeyForOne(MAP, one){
   const s = String(one || "").trim();
   if (!s) return "";
-  if (SKUGUIDE[s]) return s;                                  // 1) ใส่ SKU เต็มมา = ตรงตัวชนะเสมอ
+  if (MAP[s]) return s;                                       // 1) ใส่ SKU เต็มมา = ตรงตัวชนะเสมอ
   const low = s.toLowerCase();
   let best = "", bestLen = 0;
-  for (const k in SKUGUIDE){                                   // 2) ขึ้นต้นตรงกัน ยาวสุดชนะ (ของเดิม)
+  for (const k in MAP){                                        // 2) ขึ้นต้นตรงกัน ยาวสุดชนะ (ของเดิม)
     const kl = k.trim().toLowerCase();
-    if (!kl || !SKUGUIDE[k]) continue;
+    if (!kl || !MAP[k]) continue;
     if (low.startsWith(kl) && kl.length > bestLen){ bestLen = kl.length; best = k; }
   }
   if (best) return best;
@@ -5220,8 +5252,8 @@ function guideKeyForOne(one){
   if (!lineT.length) return "";
   const skuT = sgToks(s);
   let pick = "", pickExtra = Infinity, pickLen = -1;
-  for (const k in SKUGUIDE){
-    if (!SKUGUIDE[k]) continue;
+  for (const k in MAP){
+    if (!MAP[k]) continue;
     // คีย์ที่เป็น "SKU เต็ม" (มี " - " คั่น) ตั้งใจให้ใช้เฉพาะเฉดนั้น — ห้ามให้มาชนะระดับคำ
     // ไม่งั้นคู่มือของ Haelyn จะรั่วไปให้ Lekui ด้วย เพราะทั้งคู่อยู่ไลน์ Blush เหมือนกัน
     if (/\s-\s/.test(k)) continue;
@@ -5235,18 +5267,31 @@ function guideKeyForOne(one){
   }
   return pick;
 }
-// คืนลิงก์ของ SKU ก้อนเดียว (ไม่ใช่ทั้งช่องที่อาจมีหลายอันคั่นด้วย +)
-function guideForOne(one){
-  const k = guideKeyForOne(one);
-  return k ? (SKUGUIDE[k] || "") : "";
+// คู่มือถ่ายทำยังเรียกด้วยชื่อเดิม — ของเดิมอ้างชื่อนี้อยู่หลายที่ ไม่ต้องไล่แก้
+const guideKeyForOne = one => bindKeyForOne(SKUGUIDE, one);
+// คืนค่าของ SKU ก้อนเดียว (ไม่ใช่ทั้งช่องที่อาจมีหลายอันคั่นด้วย +)
+function bindValForOne(kind, one){
+  const MAP = SKUBIND[kind] || {};
+  const k = bindKeyForOne(MAP, one);
+  return k ? (MAP[k] || "") : "";
+}
+function guideForOne(one){ return bindValForOne("guide", one); }
+// n = SKU ตัวที่เท่าไหร่ (1 = ตัวแรก) · 0 = เอาอันแรกที่หาเจอจากทุก SKU ที่คนนี้ได้
+function bindForSku(kind, sku, n){
+  const parts = skuParts(sku);
+  if (n) return bindValForOne(kind, parts[n - 1]);
+  for (const p of parts){ const v = bindValForOne(kind, p); if (v) return v; }
+  return "";
 }
 // SKU ทั้งหมดที่คู่มือใบนี้คุมอยู่จริง — ใช้โชว์ในหน้าตั้งค่า
 // ตั้งกว้างเกินไป (คู่มือของ Moomin ไปคุมเฉดที่ไม่ใช่ Moomin ด้วย) จะเห็นทันทีตั้งแต่ตอนตั้ง
-function skusUnderGuide(key){
+function skusUnderKey(kind, key){
   const all = [...new Set(PROJECTS.flatMap(p => (COORD[p] || []).flatMap(r => skuParts(r.sku))))];
   const pool = [...new Set(all.concat(skuListFor(PROJ) || []))];
-  return pool.filter(s => guideKeyForOne(s) === key).sort();
+  const MAP = SKUBIND[kind] || {};
+  return pool.filter(s => bindKeyForOne(MAP, s) === key).sort();
 }
+const skusUnderGuide = key => skusUnderKey("guide", key);
 // n = คลิปที่เท่าไหร่ (1 = SKU ตัวแรก) · 0 = เอาอันแรกที่หาเจอจากทุก SKU ที่คนนี้ได้
 function guideForSku(sku, n){
   const parts = skuParts(sku);
@@ -5348,8 +5393,9 @@ function cmdValues(r){
   DOCS.forEach(d => {
     for (let n = 1; n <= clips; n++){
       const k = d.k + n;
-      // คู่มือถ่ายทำเลือกตาม SKU ของคลิปนั้น — คลิป 2 ได้คนละ SKU ก็ได้คนละคู่มือ
-      const bySku = d.k === "guide" ? guideForSku(r.sku, n) : "";
+      // คู่มือ / แฮชแท็ก / ตะกร้า เลือกตาม SKU ของคลิปนั้น — คลิป 2 ได้คนละ SKU ก็ได้คนละชุด
+      // ลำดับ: ที่แปะไว้เฉพาะคนนี้ → ที่ผูกไว้กับ SKU → ลิงก์ที่ใช้ร่วมกันทุกคน
+      const bySku = SKU_BIND_BY[d.k] ? bindForSku(d.k, r.sku, n) : "";
       perClip[k] = own[k] != null ? own[k]
                  : bySku || (n === 1 ? L(d.k) : (CMDLINKS[k] || ""));
     }
@@ -5392,6 +5438,11 @@ function cmdValues(r){
     feedback: fb(1),                       // ชื่อเดิม เผื่อมีคนแก้ต้นแบบไว้เองแล้วยังใช้อยู่
     // เอกสารทุกชนิดใน DOCS ใช้เป็นตัวแปรใน Command ได้หมด {{sg}} {{agreement}} ฯลฯ
     ...Object.fromEntries(DOCS.map(d => [d.k, L(d.k)])),
+    // ชนิดที่ผูกกับ SKU ได้ ต้องถามตาม SKU ก่อนจะตกไปใช้ลิงก์ร่วม — ไม่งั้น {{hashtag}} / {{cart}}
+    // ในบล็อกที่ไม่ได้แตกเป็นชุด จะได้ของกลางทั้งที่ตั้งผูกกับ SKU ไว้แล้ว
+    // (guide มีบรรทัดของตัวเองอยู่ล่างสุดแล้ว จึงข้ามตรงนี้ไป)
+    ...Object.fromEntries(SKU_BIND.filter(b => b.k !== "guide").map(b =>
+      [b.k, own[b.k] != null ? own[b.k] : (bindForSku(b.k, r.sku, 0) || L(b.k))])),
     ...perClip,
     guide,
     clips,
@@ -7571,29 +7622,60 @@ function openSettings(){
 
 // ─── ตารางคู่มือถ่ายทำ ตาม SKU ───
 // บอกด้วยว่าแต่ละแถวมีผลกับกี่คน — ตั้งไว้แล้วไม่มีใครได้ SKU นั้นคือตั้งผิด และเงียบมาก
+// หน้าเดียวใช้ได้ทั้งคู่มือ / แฮชแท็ก / ตะกร้า — สลับด้วยแท็บด้านบน
+// ทำเป็นหน้าเดียวแทนที่จะก๊อปสามชุด เพราะทั้งสามใช้ตรรกะจับคู่ตัวเดียวกัน
+// แยกเป็นสามหน้าเมื่อไหร่ วันหลังแก้ตรรกะแล้วจะลืมแก้ให้ครบทุกหน้า
+let SKU_BIND_KIND = "guide";
 function renderSkuGuide(){
   const box = $("#skuGuideList");
   if (!box) return;
   loadSkuGuide();
+  const kind = SKU_BIND_KIND;
+  const meta = SKU_BIND_BY[kind] || SKU_BIND_BY.guide;
+  const MAP = SKUBIND[kind] || (SKUBIND[kind] = {});
+
+  const tabs = $("#skuBindTabs");
+  if (tabs){
+    tabs.innerHTML = SKU_BIND.map(b => {
+      const n = Object.keys(SKUBIND[b.k] || {}).length;
+      return `<button role="tab" data-skubind="${b.k}" aria-selected="${b.k === kind}"
+        >${esc(b.th)}<span class="n">${n}</span></button>`;
+    }).join("");
+    tabs.querySelectorAll("[data-skubind]").forEach(b => b.onclick = () => {
+      SKU_BIND_KIND = b.dataset.skubind;
+      $("#sgBulkText").value = ""; $("#sgBulkPreview").innerHTML = "";
+      $("#sgBulkMsg").className = "addmsg"; $("#sgBulkMsg").textContent = "";
+      $("#skuGuideMsg").className = "addmsg"; $("#skuGuideMsg").textContent = "";
+      renderSkuGuide();
+    });
+  }
+  const note = $("#skuBindNote");
+  if (note) note.innerHTML = kind === "guide"
+    ? `เข้าไปที่ <code>{{guide}}</code> ใน Command และเป็นตัวสำรองของ <code>{{brief}}</code>
+       เมื่อชีตไม่ได้กรอกบรีฟไว้ · สั่งจากช่องคำสั่งได้ด้วย <code>/skuguide Blush : https://…</code>`
+    : `เข้าไปที่ <code>{{${esc(kind)}}}</code> ใน Command · คนทำหลายคลิปจะได้
+       <code>{{${esc(kind)}1}}</code> <code>{{${esc(kind)}2}}</code> แยกตาม SKU ของคลิปนั้น`;
+  $("#skuGuideUrl").placeholder = meta.ph;
+
   const all = PROJECTS.flatMap(p => (COORD[p] || []));
   const hits = key => all.filter(r => skuParts(r.sku).some(x =>
     x === key || x.toLowerCase().startsWith(String(key).trim().toLowerCase()))).length;
-  const keys = Object.keys(SKUGUIDE).sort();
+  const keys = Object.keys(MAP).sort();
   box.innerHTML = keys.length
     ? keys.map(k => {
         const n = hits(k);
         // โชว์ SKU ที่ใบนี้คุมอยู่จริงๆ — ตั้งกว้างเกินไปจะเห็นตั้งแต่ตอนตั้ง ไม่ต้องรอให้ส่งผิดก่อน
-        const under = skusUnderGuide(k);
+        const under = skusUnderKey(kind, k);
         return `<div class="skugrow">
           <b>${esc(k)}</b>
           <span class="n${n ? "" : " none"}">${n ? n + " คน" : "ยังไม่มีใครได้"}</span>
-          <input data-sg="${esc(k)}" value="${esc(SKUGUIDE[k])}" spellcheck="false">
+          <input data-sg="${esc(k)}" value="${esc(MAP[k])}" spellcheck="false">
           <button type="button" data-sgdel="${esc(k)}" title="เอาออก">✕</button>
           <div class="sgunder">${under.length
             ? `คุม ${under.length} SKU: ` + under.map(s => `<span>${esc(s)}</span>`).join("")
             : `<span class="none">ยังไม่ตรงกับ SKU ไหนเลย — เช็คชื่ออีกที</span>`}</div>
         </div>`; }).join("")
-    : `<p class="hint">ยังไม่ได้ตั้งไว้ — ทุกคนจะได้คู่มือใบเดียวกันจาก “ลิงก์ที่ใช้ร่วมกัน”</p>`;
+    : `<p class="hint">ยังไม่ได้ตั้งไว้ — ทุกคนจะได้${esc(meta.th)}ชุดเดียวกันจาก “ลิงก์ที่ใช้ร่วมกัน”</p>`;
 
   // ตัวเลือกให้พิมพ์ง่าย: SKU ที่ใช้จริงในทุกโปรเจกต์ + ชื่อไลน์ที่ตัดมาจากหน้า SKU
   const used = [...new Set(all.flatMap(r => skuParts(r.sku)))];
@@ -7603,12 +7685,12 @@ function renderSkuGuide(){
 
   box.querySelectorAll("[data-sg]").forEach(inp => inp.onchange = () => {
     const v = inp.value.trim();
-    if (v) SKUGUIDE[inp.dataset.sg] = v; else delete SKUGUIDE[inp.dataset.sg];
-    saveSkuGuide(); renderSkuGuide();
+    if (v) MAP[inp.dataset.sg] = v; else delete MAP[inp.dataset.sg];
+    saveSkuBind(kind); renderSkuGuide();
   });
   box.querySelectorAll("[data-sgdel]").forEach(b => b.onclick = () => {
-    delete SKUGUIDE[b.dataset.sgdel];
-    saveSkuGuide(); renderSkuGuide();
+    delete MAP[b.dataset.sgdel];
+    saveSkuBind(kind); renderSkuGuide();
   });
 }
 function closeSettings(){ $("#settings").hidden = true; }
@@ -7618,28 +7700,38 @@ function closeSettings(){ $("#settings").hidden = true; }
 // ตรวจก่อนเสมอ ไม่เขียนทันทีที่วาง เพราะทับของเดิมที่ตั้งไว้แล้วได้
 let SGBULK = [];
 function sgBulkParse(){
+  const kind = SKU_BIND_KIND;
+  const meta = SKU_BIND_BY[kind] || SKU_BIND_BY.guide;
+  const MAP = SKUBIND[kind] || (SKUBIND[kind] = {});
   const raw = ($("#sgBulkText").value || "").split(/\r?\n/);
   SGBULK = [];
   raw.forEach(line => {
     const t = line.trim().replace(/^[*\-–•]\s*/, "");
     if (!t) return;
-    // ตัดที่ ":" หรือ "=" ตัวแรกที่ตามด้วยลิงก์ — ชื่อคู่มือเองมี ":" ไม่ได้อยู่แล้ว
-    const m = t.match(/^(.+?)\s*[:=]\s*(https?:\/\/\S+)\s*$/i);
-    if (!m) return SGBULK.push({ line: t, ok:false, why:"อ่านไม่ออก — ต้องเป็น ชื่อ : ลิงก์" });
-    const key = m[1].trim(), url = safeLinkUrl(m[2].trim());
-    if (!key) return SGBULK.push({ line: t, ok:false, why:"ไม่มีชื่อคู่มือ" });
-    if (!url)  return SGBULK.push({ line: t, ok:false, why:"ลิงก์ใช้ไม่ได้" });
-    SGBULK.push({ line: t, ok:true, key, url, was: SKUGUIDE[key] || "" });
+    // ตัดที่ ":" หรือ "=" ตัวแรก — ชื่อเองมี ":" ไม่ได้อยู่แล้ว
+    // ชนิดที่เป็นลิงก์บังคับ http เหมือนเดิม · แฮชแท็กเป็นข้อความ รับอะไรก็ได้หลังตัวคั่น
+    const m = t.match(meta.url ? /^(.+?)\s*[:=]\s*(https?:\/\/\S+)\s*$/i
+                               : /^(.+?)\s*[:=]\s*(\S.*)$/);
+    if (!m) return SGBULK.push({ line: t, ok:false,
+      why: meta.url ? "อ่านไม่ออก — ต้องเป็น ชื่อ : ลิงก์" : "อ่านไม่ออก — ต้องเป็น ชื่อ : ค่า" });
+    const key = m[1].trim();
+    const url = meta.url ? safeLinkUrl(m[2].trim()) : m[2].trim();
+    if (!key) return SGBULK.push({ line: t, ok:false, why:"ไม่มีชื่อ" });
+    if (!url)  return SGBULK.push({ line: t, ok:false, why:"ค่าใช้ไม่ได้" });
+    SGBULK.push({ line: t, ok:true, key, url, was: MAP[key] || "" });
   });
   const good = SGBULK.filter(x => x.ok);
   // ลองใส่ "ทั้งชุด" พร้อมกันแล้วค่อยดูว่าใครคุมอะไร — ต้องแข่งกันเองด้วย
   // ใส่ทีละใบแล้ววัดจะได้ตัวเลขหลอก (ใบ Featherlight ดูเหมือนคุม Eyeshadow ธรรมดาด้วย
   // ทั้งที่พอใส่ครบชุดจริง ใบ eyeshadow จะชิงกลับไป) — ตัวเลขในหน้าตรวจต้องเท่ากับของจริงหลังกดใช้
-  const backup = Object.assign({}, SKUGUIDE);
-  good.forEach(x => { SKUGUIDE[x.key] = x.url; });
+  const backup = Object.assign({}, MAP);
+  good.forEach(x => { MAP[x.key] = x.url; });
   const under = {};
-  good.forEach(x => { under[x.key] = skusUnderGuide(x.key); });
-  SKUGUIDE = backup;
+  good.forEach(x => { under[x.key] = skusUnderKey(kind, x.key); });
+  // คืนค่าโดยล้างแล้วเติมในก้อนเดิม ไม่ใช่ชี้ไปก้อนใหม่ — SKUGUIDE กับ SKUBIND.guide เป็นก้อนเดียวกัน
+  // ถ้าชี้ก้อนใหม่ สองตัวจะหลุดจากกันเงียบๆ แล้วที่แก้ทีหลังจะไปไม่ถึงอีกฝั่ง
+  Object.keys(MAP).forEach(k => delete MAP[k]);
+  Object.assign(MAP, backup);
   $("#sgBulkPreview").innerHTML = SGBULK.map(x => x.ok
     ? `<div class="qorow ok"><div class="q">${esc(x.key)}${
         x.was ? ` <span style="color:var(--warn)">— ทับของเดิม</span>` : ""}</div>
@@ -7654,11 +7746,11 @@ function sgBulkParse(){
     (good.length ? ` <button class="export" id="sgBulkApply" style="margin-left:8px;padding:4px 12px">ใช้ ${good.length} ใบนี้</button>` : "");
   const ap = $("#sgBulkApply");
   if (ap) ap.onclick = () => {
-    SGBULK.filter(x => x.ok).forEach(x => { SKUGUIDE[x.key] = x.url; });
-    saveSkuGuide(); renderSkuGuide();
+    SGBULK.filter(x => x.ok).forEach(x => { MAP[x.key] = x.url; });
+    saveSkuBind(kind); renderSkuGuide();
     $("#sgBulkText").value = ""; $("#sgBulkPreview").innerHTML = "";
     msg.className = "addmsg on ok";
-    msg.textContent = `ตั้งคู่มือแล้ว ${good.length} ใบ`;
+    msg.textContent = `ตั้ง${meta.th}แล้ว ${good.length} รายการ`;
   };
 }
 
@@ -8212,9 +8304,14 @@ $("#skuGuideAdd").onclick = () => {
   const msg = $("#skuGuideMsg");
   const say = (t, kind) => { msg.className = "addmsg on " + kind; msg.innerHTML = t; };
   if (!k) return say("ใส่ SKU หรือชื่อไลน์ก่อน", "err");
-  if (!/^https?:\/\//i.test(u)) return say("คู่มือต้องเป็นลิงก์ ขึ้นต้นด้วย http", "err");
+  const meta = SKU_BIND_BY[SKU_BIND_KIND] || SKU_BIND_BY.guide;
+  if (!u) return say(`ใส่${meta.th}ก่อน`, "err");
+  // แฮชแท็กเป็นข้อความ ไม่ใช่ลิงก์ — บังคับ http เฉพาะชนิดที่เป็นลิงก์จริงเท่านั้น
+  if (meta.url && !/^https?:\/\//i.test(u))
+    return say(`${meta.th}ต้องเป็นลิงก์ ขึ้นต้นด้วย http`, "err");
   loadSkuGuide();
-  SKUGUIDE[k] = u; saveSkuGuide();
+  (SKUBIND[SKU_BIND_KIND] || (SKUBIND[SKU_BIND_KIND] = {}))[k] = u;
+  saveSkuBind(SKU_BIND_KIND);
   $("#skuGuideKey").value = ""; $("#skuGuideUrl").value = "";
   renderSkuGuide();
   const n = PROJECTS.flatMap(p => COORD[p] || []).filter(r =>
