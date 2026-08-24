@@ -3768,6 +3768,11 @@ const skuListFor = proj => proj === "Red Chamber Phase 2" ? SKU_RC2 : null;
 // ไม่ต้องเพิ่มคอลัมน์ในชีต และของเก่าที่พิมพ์ไว้แบบผสมก็ยังใช้ได้
 const skuParts = v => String(v || "").split(/\s*\+\s*/).map(s => s.trim()).filter(Boolean);
 const skuJoin = a => a.join(" + ");
+
+// ─── บรีฟหลายลิงก์ต่อคน ─── คนทำ 2-3 คลิปมักได้บรีฟคนละใบ
+// เก็บคั่นด้วย " + " แบบเดียวกับ SKU — ไม่ต้องเพิ่มคอลัมน์ในชีต ของเก่าที่มีลิงก์เดียวยังอ่านได้เหมือนเดิม
+const briefParts = v => String(v || "").split(/\s*\+\s*/).map(s => s.trim()).filter(Boolean);
+const briefJoin = a => a.join(" + ");
 // ข้อความที่โชว์ในตาราง — ตัดชื่อไลน์หน้า " - " ทิ้ง เหลือเฉด/รหัสที่เป็นตัวแยกจริง
 // ค่าที่เก็บไม่เปลี่ยน ตัดเฉพาะตอนแสดง และเฉพาะรูปแบบ "ไลน์ - เฉด" เท่านั้น
 // (SKU อย่าง "OBSBOT Tiny 3 Lite" ไม่มีขีดคั่น เลยไม่โดนแตะ)
@@ -3792,6 +3797,44 @@ function skuCell(r, i){
       title="ยังไม่ได้ใส่ SKU — นี่คือตัวย่องาน &quot;${esc(r.code)}&quot; ที่มาจากชีต แก้ได้ในลิ้นชัก ⤢"
       ><span class="t">${esc(codeLabel(r.code))}</span></span>` : ""
     }<button class="skuadd" data-sku="${i}" title="เพิ่ม SKU">${parts.length ? "＋" : "＋ เพิ่ม SKU"}</button></div>`;
+}
+
+// การ์ดบรีฟในตาราง — ต่างจาก SKU ตรงที่แต่ละอันเปิดลิงก์ได้เลย ไม่ใช่แค่ป้ายข้อความ
+function briefCell(r, i){
+  const parts = briefParts(r.brief);
+  return `<div class="skucell">${
+    parts.map((p, n) => { const url = safeLinkUrl(p);
+      return `<span class="skuchip" title="${esc(p)}">${
+        url ? `<a class="t" href="${esc(url)}" target="_blank" rel="noopener noreferrer">บรีฟ ${n + 1}</a>`
+            : `<span class="t">บรีฟ ${n + 1}</span>`
+        }<button data-briefdel="${i}" data-v="${esc(p)}" title="เอาออก">✕</button></span>`; }).join("")
+    }<button class="skuadd" data-briefadd="${i}" title="เพิ่มลิงก์บรีฟ">${
+      parts.length ? "＋" : "＋ วางลิงก์บรีฟ"}</button></div>`;
+}
+
+// วางลิงก์เพิ่ม — ไม่มีลิสต์ให้เลือกเหมือน SKU เพราะบรีฟเป็นลิงก์ใหม่ทุกครั้ง แค่ช่องพิมพ์เดียว
+function openBriefAdd(r, host, after){
+  document.querySelectorAll(".fpop").forEach(p => p.remove());
+  if (!r) return;
+  after = after || renderCoord;
+  const cur = briefParts(r.brief);
+  const pop = document.createElement("div");
+  pop.className = "fpop skupop";
+  pop.innerHTML = `<div class="fhead">วางลิงก์บรีฟ${cur.length ? ` — มีอยู่แล้ว ${cur.length}` : ""}</div>
+     <div class="fadd"><input placeholder="วางลิงก์แล้วกด Enter"></div>`;
+  host.appendChild(pop);
+  const add = pop.querySelector(".fadd input");
+  add.onkeydown = e => {
+    if (e.key !== "Enter") return;
+    e.preventDefault();
+    const v = add.value.trim();
+    if (!v) return;
+    setField(r, "brief", briefJoin(cur.concat(v)));
+    after();
+  };
+  pop.onclick = e => e.stopPropagation();
+  setTimeout(() => { add.focus(); document.addEventListener("click", function close(){
+    pop.remove(); document.removeEventListener("click", close); }); }, 0);
 }
 
 // after = สิ่งที่ต้องวาดใหม่หลังเลือกเสร็จ — ตารางกับลิ้นชักรายละเอียดใช้ตัวเดียวกัน
@@ -3985,8 +4028,13 @@ function renderDetail(){
              data-dskudel="${esc(p)}" title="เอาออก">✕</button></span>`).join("")
           }<button class="skuadd" id="dSkuAdd">＋ เพิ่ม SKU</button></div></div>
 
-      <div class="dfield wide2"><label>ลิงก์บรีฟ</label>
-        <input data-d="brief" value="${esc(r.brief || "")}" placeholder="วางลิงก์บรีฟ"></div>
+      <div class="dfield wide2"><label>ลิงก์บรีฟ — ใส่ได้หลายอัน (คนทำหลายคลิปคนละใบ)</label>
+        <div class="dsku" id="dBrief">${briefParts(r.brief).map((p, n) => { const url = safeLinkUrl(p);
+          return `<span class="skuchip" title="${esc(p)}">${
+            url ? `<a class="t" href="${esc(url)}" target="_blank" rel="noopener noreferrer">บรีฟ ${n + 1}</a>`
+                : `<span class="t">บรีฟ ${n + 1}</span>`
+            }<button data-dbriefdel="${esc(p)}" title="เอาออก">✕</button></span>`; }).join("")
+          }<button class="skuadd" id="dBriefAdd">＋ วางลิงก์บรีฟ</button></div></div>
       <div class="dfield wide2"><label>โน้ต</label>
         <input data-d="note" value="${esc(r.note || "")}" placeholder="โน้ต"></div>
     </div>
@@ -4040,6 +4088,14 @@ function renderDetail(){
   $("#dSkuAdd").onclick = e => {
     e.stopPropagation();
     openSkuPicker(r, $("#dSku"), () => { renderCoord(); renderDetail(); });
+  };
+  body.querySelectorAll("[data-dbriefdel]").forEach(b => b.onclick = () => {
+    setField(r, "brief", briefJoin(briefParts(r.brief).filter(v => v !== b.dataset.dbriefdel)));
+    renderCoord(); renderDetail();
+  });
+  $("#dBriefAdd").onclick = e => {
+    e.stopPropagation();
+    openBriefAdd(r, $("#dBrief"), () => { renderCoord(); renderDetail(); });
   };
   $("#dCmd").onclick = () => openCmd(r.project, normId(r.handle));
   $("#dDel").onclick = () => {
@@ -4418,6 +4474,17 @@ function renderCoord(){
     renderCoord();
   });
 
+  document.querySelectorAll("#coordBody [data-briefadd]").forEach(b => b.onclick = e => {
+    e.stopPropagation();
+    openBriefAdd((COORD[PROJ] || [])[+b.dataset.briefadd], b.parentElement);
+  });
+  document.querySelectorAll("#coordBody [data-briefdel]").forEach(b => b.onclick = () => {
+    const r = (COORD[PROJ] || [])[+b.dataset.briefdel];
+    if (!r) return;
+    setField(r, "brief", briefJoin(briefParts(r.brief).filter(v => v !== b.dataset.v)));
+    renderCoord();
+  });
+
   document.querySelectorAll("#coordBody [data-exp]").forEach(b => b.onclick = () => {
     const r = (COORD[PROJ] || [])[+b.dataset.exp];
     if (!r) return;
@@ -4645,7 +4712,6 @@ function coordRow(r, i){
   const noRate = r.rate == null;
   // KOC ส่วนใหญ่เป็นของแลก ไม่มีเงิน — ช่องว่างจึงเป็นเรื่องปกติ ไม่ต้องติดธงเตือน
   const isKOC = (r.kind || "") === "KOC";
-  const link = safeLinkUrl(r.brief);
   const clips = clipsOf(r);
   const open = EXPANDED.has(ekey(r));
   // มี Command ของตัวเองกี่จุด — ติดจุดแดงไว้ จะได้รู้ว่าคนนี้ไม่ได้ใช้ข้อความต้นแบบ
@@ -4697,10 +4763,7 @@ function coordRow(r, i){
         placeholder="-" style="width:100px"></td>
     <td class="opt"><input data-i="${i}" data-f="deadline" value="${esc(r.deadline || "")}"
         placeholder="-" style="width:100px" title="ไทม์ไลน์ที่ตกลงในบรีฟ"></td>
-    <td class="w-brief opt"><input data-i="${i}" data-f="brief" value="${esc(r.brief || "")}"
-        placeholder="วางลิงก์บรีฟ" style="width:118px">
-      ${link ? `<a href="${esc(link)}" target="_blank" rel="noopener noreferrer"
-        class="go" title="เปิดบรีฟ">↗</a>` : ""}</td>
+    <td class="w-brief opt">${briefCell(r, i)}</td>
     <td class="w-note opt"><input data-i="${i}" data-f="note" value="${esc(r.note || "")}"
         placeholder="โน้ต"></td>
     <td class="w-comm opt"><input data-i="${i}" data-f="commission"
@@ -5155,10 +5218,12 @@ function cmdValues(r){
   for (let d = 1; d <= 3; d++)
     for (let n = 2; n <= clips; n++)
       perClip[`feedback${d}_${n}`] = own[`feedback${d}_${n}`] || "";
-  // บรีฟของชุดที่ 2 ขึ้นไปเอาคู่มือของ SKU ตัวนั้นก่อน ชีตมีบรีฟช่องเดียวใช้ร่วมไม่ได้
+  // บรีฟหลายลิงก์ (คั่น " + " เหมือน SKU) ตัวไหนมีก็ใช้ตัวนั้นตรงๆ ตามลำดับคลิป
+  // ถ้าใส่มาลิงก์เดียว (ของเก่าก็เข้าเงื่อนไขนี้) ชุดที่ 2 ขึ้นไปถอยไปใช้คู่มือของ SKU ตัวนั้นก่อน
+  const briefList = briefParts(r.brief);
   for (let n = 1; n <= clips; n++)
-    perClip["brief" + n] = n === 1 ? (r.brief || guide)
-                                   : (perClip["guide" + n] || r.brief || "");
+    perClip["brief" + n] = briefList[n - 1] || (n === 1 ? (r.brief || guide)
+                                                         : (perClip["guide" + n] || r.brief || ""));
   // ฟีดแบคเป็นของใครของมันเสมอ ไม่มีตัวกลาง — แต่ละ Draft ก็คนละข้อความ
   // (เดิมทั้ง 3 Draft ใช้ตัวแปรเดียวกัน แก้ Draft 2 แล้ว Draft 1 เปลี่ยนตาม)
   const fb = n => own["feedback" + n] || "";
@@ -5176,7 +5241,7 @@ function cmdValues(r){
     brandname: brandOf(r.project),
     // บล็อก 5 ส่ง {{brief}} เป็นคู่มือถ่ายทำ — ชีตไม่ได้กรอกบรีฟไว้ก็ตกมาใช้คู่มือของ SKU
     // ถ้าชีตกรอกไว้ถือว่าคนตั้งใจใส่ ของในชีตชนะเสมอ
-    brief: r.brief || guide,
+    brief: briefList[0] || guide,
     feedback1: fb(1), feedback2: fb(2), feedback3: fb(3),
     feedback: fb(1),                       // ชื่อเดิม เผื่อมีคนแก้ต้นแบบไว้เองแล้วยังใช้อยู่
     // เอกสารทุกชนิดใน DOCS ใช้เป็นตัวแปรใน Command ได้หมด {{sg}} {{agreement}} ฯลฯ
