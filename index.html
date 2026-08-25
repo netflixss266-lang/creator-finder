@@ -1611,6 +1611,9 @@ tr.subrow td.w-status select{width:14.6em}
     <!-- ชื่อที่จะโชว์ในทีม — ใช้เฉพาะตอนสมัคร ว่างได้ เดี๋ยวตัดจากอีเมลให้เอง -->
     <input id="lockName" type="text" autocomplete="name" placeholder="ชื่อที่ให้ทีมเห็น (เว้นว่างได้)"
            class="lockemail" hidden>
+    <!-- รหัสหน้า Coordinator ตั้งตอนสมัคร ไม่ใช่รหัสกลางของทีมอีกแล้ว — ของใครของมัน -->
+    <input id="lockCoord" type="password" inputmode="numeric" maxlength="6" autocomplete="off"
+           placeholder="ตั้งรหัส 6 หลักสำหรับหน้า Coordinator" class="lockemail" hidden>
     <div class="pwrow" id="lockPwRow">
       <input id="lockPw" type="password" autocomplete="current-password" placeholder="รหัสผ่าน">
       <button type="button" class="eye" id="lockEye" aria-label="ดู/ซ่อนรหัส"
@@ -2296,6 +2299,21 @@ tr.subrow td.w-status select{width:14.6em}
       <div id="usersList"></div>
     </details>
 
+    <details class="sect" id="coordPinSect">
+      <summary><h3>รหัสหน้า Coordinator ของคุณ</h3></summary>
+      <p class="sect-sub">
+        รหัส 6 หลักที่ตั้งไว้ตอนสมัคร — ของใครของมัน ไม่ใช่รหัสกลางของทีมแล้ว
+        <br><span style="color:var(--dim)">ลืมรหัสก็ตั้งใหม่ตรงนี้ได้เลยโดยไม่ต้องรู้ของเดิม
+        เพราะยืนยันตัวตนด้วยบัญชีที่ล็อกอินอยู่แล้ว · เก็บเป็น hash ที่เซิร์ฟเวอร์ ไม่มีใครอ่านตัวเลขจริงได้</span>
+      </p>
+      <div class="prow add">
+        <input id="coordPinNew" type="password" inputmode="numeric" maxlength="6"
+               autocomplete="off" placeholder="รหัสใหม่ 6 หลัก">
+        <button type="button" class="cmdbtn" id="coordPinSave">บันทึก</button>
+      </div>
+      <div class="addmsg" id="coordPinMsg"></div>
+    </details>
+
     <details class="sect" id="accentSect">
       <summary><h3>สีหลักของเว็บ</h3></summary>
       <p class="sect-sub">
@@ -2333,6 +2351,43 @@ tr.subrow td.w-status select{width:14.6em}
 </div>
 
 <script>
+// ═══ พื้นที่ทำงานของแต่ละบัญชี ═══
+// ทุกอย่างที่หน้านี้จำไว้ (โปรเจกต์ · ที่แก้ค้าง · Command · ตะกร้า · ตั้งค่า) อยู่ใน localStorage
+// ของเบราว์เซอร์ ไม่ได้อยู่บนเซิร์ฟเวอร์ — เครื่องเดียวหลายบัญชีเลยเคยปนกันหมด
+// ตอนนี้แต่ละบัญชีมีช่องของตัวเอง: คีย์ถูกเติมหน้าด้วย u<8 ตัวแรกของ user id>_
+// บัญชีแรกที่ล็อกอินบนเครื่องนี้เป็น "เจ้าของ" ได้ใช้คีย์เปล่าๆ ต่อไป — ของเดิมที่เคยเก็บไว้เลยไม่หาย
+const LS_OWNER = "cf_owner_v1";
+let NS = "";
+
+// อ่าน user id จาก access_token ตรงๆ ไม่ต้องยิงเน็ต — ต้องรู้ namespace ตั้งแต่ก่อนโค้ดข้างล่างจะโหลดอะไร
+function jwtSub(tok){
+  try {
+    const b = String(tok || "").split(".")[1];
+    if (!b) return "";
+    const j = JSON.parse(decodeURIComponent(escape(atob(b.replace(/-/g, "+").replace(/_/g, "/")))));
+    return (j && j.sub) || "";
+  } catch(e){ return ""; }
+}
+function nsFor(uid){
+  if (!uid) return "";
+  let owner = "";
+  try { owner = localStorage.getItem(LS_OWNER) || ""; } catch(e){}
+  if (!owner){ owner = uid; try { localStorage.setItem(LS_OWNER, owner); } catch(e){} }
+  return uid === owner ? "" : "u" + uid.slice(0, 8) + "_";
+}
+(function initNS(){
+  let uid = "";
+  try {
+    const r = localStorage.getItem("cf_session_v1");
+    if (r) uid = jwtSub((JSON.parse(r) || {}).access_token || "");
+  } catch(e){}
+  NS = nsFor(uid);          // ยังไม่ล็อกอิน = ยังไม่รู้ว่าใคร ค่อยเช็คซ้ำหลัง login แล้วรีโหลดถ้าคนละคน
+})();
+
+const lsGet = k => { try { return localStorage.getItem(NS + k); } catch(e){ return null; } };
+const lsSet = (k, v) => { try { localStorage.setItem(NS + k, v); } catch(e){} };
+const lsDel = k => { try { localStorage.removeItem(NS + k); } catch(e){} };
+
 const $ = s => document.querySelector(s);
 let POOL = [];          // ข้อมูลดิบจาก Sheet (คัดเฉพาะฝั่งที่เลือกอยู่แล้ว)
 let POOL_ALL = [];      // ทั้งชีตก่อนคัดฝั่ง — ชีตรวมสลับ KOL/KOC จากตรงนี้ ไม่ต้องโหลดใหม่
@@ -2397,24 +2452,24 @@ let CRIT = DEFAULT_CRIT.slice();
 
 function loadCrit(){
   try {
-    const a = JSON.parse(localStorage.getItem(LS_CRIT) || "null");
+    const a = JSON.parse(lsGet(LS_CRIT) || "null");
     if (Array.isArray(a) && a.length) CRIT = a.map(String);
   } catch(e){}
 }
 function saveCrit(){
-  try { localStorage.setItem(LS_CRIT, JSON.stringify(CRIT)); } catch(e){}
+  try { lsSet(LS_CRIT, JSON.stringify(CRIT)); } catch(e){}
 }
 
 function normId(s){ return String(s ?? "").trim().toLowerCase().replace(/^@/, ""); }
 
 function lsLoadSet(key){
   try {
-    const a = JSON.parse(localStorage.getItem(key) || "[]");
+    const a = JSON.parse(lsGet(key) || "[]");
     return new Set(Array.isArray(a) ? a.map(normId).filter(Boolean) : []);
   } catch(e){ return new Set(); }
 }
 function lsSaveSet(key, set){
-  try { localStorage.setItem(key, JSON.stringify([...set])); } catch(e){}
+  try { lsSet(key, JSON.stringify([...set])); } catch(e){}
 }
 
 // ดึงชื่อครีเอเตอร์ออกจากข้อความอะไรก็ได้ — CSV, ลิสต์, ลิงก์ที่ก๊อปมา
@@ -2456,7 +2511,7 @@ let KIND = KINDS[0];
 function loadSheets(){
   let arr = null;
   try {
-    const raw = localStorage.getItem(LS_KEY);
+    const raw = lsGet(LS_KEY);
     if (raw){
       const parsed = JSON.parse(raw);
       if (Array.isArray(parsed))
@@ -2518,7 +2573,7 @@ function activeKinds(){
 }
 
 function saveSheets(){
-  try { localStorage.setItem(LS_KEY, JSON.stringify(SHEETS)); }
+  try { lsSet(LS_KEY, JSON.stringify(SHEETS)); }
   catch(e){ return false; }
   return true;
 }
@@ -2875,7 +2930,7 @@ function foldSummaries(){
 const LS_FOLDS = "cf_folds_v1";
 function initFolds(){
   let st = {};
-  try { st = JSON.parse(localStorage.getItem(LS_FOLDS) || "{}") || {}; } catch(e){}
+  try { st = JSON.parse(lsGet(LS_FOLDS) || "{}") || {}; } catch(e){}
   document.querySelectorAll("aside .fold").forEach(d => {
     if (d.dataset.fold in st) d.open = !!st[d.dataset.fold];
     d.addEventListener("toggle", saveFolds);
@@ -2884,7 +2939,7 @@ function initFolds(){
 function saveFolds(){
   const st = {};
   document.querySelectorAll("aside .fold").forEach(d => st[d.dataset.fold] = d.open);
-  try { localStorage.setItem(LS_FOLDS, JSON.stringify(st)); } catch(e){}
+  try { lsSet(LS_FOLDS, JSON.stringify(st)); } catch(e){}
 }
 
 // ─── ค้นหา ───
@@ -3135,8 +3190,9 @@ const LS_COORD = "cf_coord_v1";       // เก็บเฉพาะที่แ
 // เก็บในเครื่อง เพิ่ม/ปิดงานได้เอง — PROJECTS คือชื่อทั้งหมด (ทั้งที่ทำอยู่และที่ปิดแล้ว)
 // เพราะโค้ดที่เหลือใช้มันตัดสินว่า "ชื่อนี้เป็นโปรเจกต์ที่รู้จักไหม" งานที่ปิดแล้วก็ยังต้องรู้จัก
 const LS_PROJ = "cf_projects_v1";
-const DEFAULT_PROJECTS = ["Red Chamber Phase 1", "Red Chamber Phase 2",
-                          "OBSBOT-KOL", "OBSBOT-KOC", "TikTok Live"];
+// เปล่าตั้งแต่ต้น — บัญชีใหม่ไม่ควรเปิดมาเจอชื่องานของคนอื่นค้างอยู่
+// ใครจะทำงานอะไรก็กด ⚙ เพิ่มเอง (ของเดิมที่เคยบันทึกไว้ในเครื่องยังอยู่ครบ ไม่ถูกแตะ)
+const DEFAULT_PROJECTS = [];
 // ชื่อแบรนด์เดาจากชื่อโปรเจกต์ได้พอสมควร แต่แก้ได้เสมอ และของใหม่ต้องกรอกเอง
 // ตัดส่วนที่เป็นเฟส/กลุ่มออก: "Red Chamber Phase 2" → "Red Chamber" · "OBSBOT-KOL" → "OBSBOT"
 const guessBrand = name => String(name || "")
@@ -3148,7 +3204,7 @@ let PROJECTS = PROJ_LIST.map(p => p.name);
 
 function loadProjects(){
   try {
-    const saved = JSON.parse(localStorage.getItem(LS_PROJ) || "null");
+    const saved = JSON.parse(lsGet(LS_PROJ) || "null");
     if (Array.isArray(saved) && saved.length && saved.every(p => p && typeof p.name === "string"))
       PROJ_LIST = saved.map(p => ({ name: p.name, done: !!p.done,
         // ของที่บันทึกไว้ก่อนมีช่องแบรนด์ เดาให้ครั้งแรก แล้วแก้เองได้
@@ -3157,13 +3213,13 @@ function loadProjects(){
   syncProjects();
 }
 function saveProjects(){
-  try { localStorage.setItem(LS_PROJ, JSON.stringify(PROJ_LIST)); } catch(e){}
+  try { lsSet(LS_PROJ, JSON.stringify(PROJ_LIST)); } catch(e){}
   syncProjects();
 }
 function syncProjects(){
   PROJECTS = PROJ_LIST.map(p => p.name);
   PROJ_LIST.forEach(p => { if (!COORD[p.name]) COORD[p.name] = []; });
-  if (!PROJECTS.includes(PROJ)) PROJ = activeProjects()[0] || PROJECTS[0];
+  if (!PROJECTS.includes(PROJ)) PROJ = activeProjects()[0] || PROJECTS[0] || "";
 }
 const activeProjects = () => PROJ_LIST.filter(p => !p.done).map(p => p.name);
 const doneProjects   = () => PROJ_LIST.filter(p => p.done).map(p => p.name);
@@ -3207,7 +3263,10 @@ function renameProject(from, to){
 
 // แท็บที่ Apps Script ยอมรับ — ของใหม่ที่เพิ่มเองจะยังซิงก์ไม่ได้จนกว่าจะไปเติมในสคริปต์
 // เตือนตรงจุดดีกว่าปล่อยให้กดซิงก์แล้วขึ้น error ที่อ่านไม่ออก
-const SCRIPT_KNOWN = DEFAULT_PROJECTS.slice();
+// เคยยืมชื่อมาจาก DEFAULT_PROJECTS แต่ตอนนี้ลิสต์นั้นว่างแล้ว (บัญชีใหม่เริ่มจากศูนย์)
+// สองอย่างนี้คนละเรื่องกัน: อันนี้คือชื่อที่ COORD_PROJECTS ในสคริปต์รู้จัก ต้องเขียนไว้ตรงๆ
+const SCRIPT_KNOWN = ["Red Chamber Phase 1", "Red Chamber Phase 2",
+                      "OBSBOT-KOL", "OBSBOT-KOC", "TikTok Live"];
 const needsScript = name => !SCRIPT_KNOWN.includes(name);
 // สถานะตามที่ทีมใช้จริงในชีต — ของเก่ายังอยู่ท้ายลิสต์ไว้ไม่ให้ค่าเดิมหาย
 // ─── ขั้นตอนงาน เรียงตามลำดับที่งานเดินจริง ───
@@ -3438,20 +3497,20 @@ let NEED_FORCE = [];
 let FORCE_PROJ = new Set();
 
 function loadNewRows(){
-  try { NEWROWS = JSON.parse(localStorage.getItem(LS_NEWROWS) || "[]") || []; } catch(e){}
-  try { DIRTY = !!localStorage.getItem(LS_DIRTY); } catch(e){}
+  try { NEWROWS = JSON.parse(lsGet(LS_NEWROWS) || "[]") || []; } catch(e){}
+  try { DIRTY = !!lsGet(LS_DIRTY); } catch(e){}
 }
 function saveNewRows(){
-  try { localStorage.setItem(LS_NEWROWS, JSON.stringify(NEWROWS)); } catch(e){}
+  try { lsSet(LS_NEWROWS, JSON.stringify(NEWROWS)); } catch(e){}
 }
 function markDirty(){
   DIRTY = true;
-  try { localStorage.setItem(LS_DIRTY, "1"); } catch(e){}
+  try { lsSet(LS_DIRTY, "1"); } catch(e){}
   updateSyncBar();
 }
 function clearDirty(){
   DIRTY = false; NEWROWS = [];
-  try { localStorage.removeItem(LS_DIRTY); localStorage.removeItem(LS_NEWROWS); } catch(e){}
+  try { lsDel(LS_DIRTY); lsDel(LS_NEWROWS); } catch(e){}
 }
 
 function canSync(){ return !!(HOOK.url && HOOK.token); }
@@ -3560,12 +3619,12 @@ function updateSyncBar(failed){
 
 function loadEdits(){
   try {
-    const o = JSON.parse(localStorage.getItem(LS_COORD) || "{}");
+    const o = JSON.parse(lsGet(LS_COORD) || "{}");
     if (o && typeof o === "object") EDITS = o;
   } catch(e){}
 }
 function saveEdits(){
-  try { localStorage.setItem(LS_COORD, JSON.stringify(EDITS)); } catch(e){}
+  try { lsSet(LS_COORD, JSON.stringify(EDITS)); } catch(e){}
 }
 
 // จำจำนวนคนตอนโหลดมา ใช้แยกว่า "ว่างเพราะลบไป" กับ "ว่างมาตั้งแต่แรก"
@@ -3577,6 +3636,7 @@ function shapeCoord(list){
   list.forEach(r => {
     if (!r || !r.handle) return;
     const p = PROJECTS.includes(r.project) ? r.project : PROJECTS[0];
+    if (!p) return;
     COORD[p].push(Object.assign({}, r, { project: p }, EDITS[ekey({...r, project:p})] || {}));
   });
   LOADED_COUNT = {};
@@ -3640,6 +3700,12 @@ async function loadCoordData(force){
           // แท็บรายโปรเจกต์ยังว่าง = ยังไม่เคยซิงก์ ตกไปอ่านแท็บ Coordinate เดิม
         }
       } catch(e){}
+    }
+    // เดิมคนที่ยังไม่ตั้ง Apps Script จะโดนดูดงานทั้งทีมจากชีตสาธารณะมาแสดงทันทีตั้งแต่เปิดครั้งแรก
+    // บัญชีใหม่ควรเริ่มจากกระดานเปล่าของตัวเอง — ต่อชีตเมื่อไหร่ค่อยเห็นของทีม
+    if (!HOOK.url){
+      COORD_SRC = "กระดานของคุณเอง — ยังไม่ได้ต่อชีตทีม (ตั้งค่าได้ที่ ⚙ → เชื่อมกับชีต)";
+      return;
     }
     const u = privateOn()
       ? `${HOOK.url}?token=${encodeURIComponent(HOOK.token)}&action=csv&tab=Coordinate`
@@ -3716,10 +3782,10 @@ const FORMAT_DEFAULT =
 
 let FORMATS = {};
 function loadFormats(){
-  try { FORMATS = JSON.parse(localStorage.getItem(LS_FORMAT) || "{}") || {}; } catch(e){}
+  try { FORMATS = JSON.parse(lsGet(LS_FORMAT) || "{}") || {}; } catch(e){}
 }
 function saveFormats(){
-  try { localStorage.setItem(LS_FORMAT, JSON.stringify(FORMATS)); } catch(e){}
+  try { lsSet(LS_FORMAT, JSON.stringify(FORMATS)); } catch(e){}
 }
 const formatOf = proj => FORMATS[proj] != null ? FORMATS[proj] : FORMAT_DEFAULT;
 // ค่าที่ใช้เติมช่องว่าง — จำนวนวิดีโอกับรายการสินค้าปรับได้ทุกครั้งก่อนส่ง
@@ -3848,7 +3914,7 @@ function openProjManager(){
       (n ? `\n\nมีครีเอเตอร์อยู่ ${n} คน — ข้อมูลจะหายจากหน้านี้` : "") +
       `\nแท็บในชีตไม่ถูกแตะ เพิ่มชื่อกลับมาใหม่ก็เห็นเหมือนเดิม`)) return;
     PROJ_LIST.splice(+b.dataset.drop, 1);
-    if (!PROJ_LIST.length) PROJ_LIST = DEFAULT_PROJECTS.map(name => ({ name, done:false }));
+    // ลบหมดก็ปล่อยให้ว่าง — หน้าจะขึ้นสถานะ "ยังไม่มีโปรเจกต์" ให้เพิ่มใหม่เอง
     saveProjects(); renderProjTabs(); renderCoord(); fillProjSelect(); openProjManager();
   });
   body.querySelectorAll("[data-brand]").forEach(inp => inp.onchange = () => {
@@ -4080,7 +4146,7 @@ let KINDSEG = "all";     // ทั้งหมด / KOL / KOC ในโปรเ
 // ตั้งเป็นค่าตั้งต้น เพราะ 4 ช่องนั้นแตะน้อยกว่าเรทกับสถานะมาก และยังแก้ได้ครบในลิ้นชัก
 const LS_LEAN = "cf_lean_v1";
 let LEAN = true;
-try { const v = localStorage.getItem(LS_LEAN); if (v !== null) LEAN = v === "1"; } catch(e){}
+try { const v = lsGet(LS_LEAN); if (v !== null) LEAN = v === "1"; } catch(e){}
 
 function renderColSeg(){
   $("#colSeg").innerHTML = [[true,"คอลัมน์หลัก"],[false,"ทุกคอลัมน์"]].map(([v,label]) =>
@@ -4089,7 +4155,7 @@ function renderColSeg(){
                   : "โชว์ทั้ง 15 คอลัมน์ ต้องเลื่อนไปทางขวา"}">${label}</button>`).join("");
   document.querySelectorAll("#colSeg button").forEach(b => b.onclick = () => {
     LEAN = b.dataset.lean === "true";
-    try { localStorage.setItem(LS_LEAN, LEAN ? "1" : "0"); } catch(e){}
+    try { lsSet(LS_LEAN, LEAN ? "1" : "0"); } catch(e){}
     renderColSeg(); renderCoord();
   });
 }
@@ -4564,6 +4630,16 @@ function migrateStatuses(){
 
 function renderCoord(){
   renderKindSeg(); renderColSeg();
+  if (!PROJECTS.length){
+    $("#coordSum").innerHTML = "";
+    $("#coordBody").innerHTML = `<div class="empty"><h3>ยังไม่มีโปรเจกต์</h3>
+      <div>เริ่มจากเพิ่มงานแรกของคุณ — ตั้งชื่อโปรเจกต์กับชื่อแบรนด์<br>
+      แล้วค่อยหยิบครีเอเตอร์จากหน้าค้นหาใส่เข้ามา</div>
+      <button class="export" id="coordFirstProj" style="margin-top:14px">เพิ่มโปรเจกต์แรก</button></div>`;
+    const b = $("#coordFirstProj");
+    if (b) b.onclick = openProjManager;
+    return;
+  }
   const all = COORD[PROJ] || [];
   const rows = (KINDSEG === "all" ? all : all.filter(r => (r.kind || "") === KINDSEG))
                  .filter(passFilter);
@@ -5262,13 +5338,13 @@ const CMD_DEFAULT_LINKS = {
 };
 let CMDLINKS = {};
 function loadCmdLinks(){
-  try { CMDLINKS = JSON.parse(localStorage.getItem(LS_CMDLINKS) || "{}") || {}; } catch(e){}
+  try { CMDLINKS = JSON.parse(lsGet(LS_CMDLINKS) || "{}") || {}; } catch(e){}
   // ยังไม่เคยตั้งเอง = ใช้ค่าตั้งต้น แต่ถ้าเคยแก้แล้วเคารพของที่แก้ (รวมถึงลบให้ว่าง)
   for (const k in CMD_DEFAULT_LINKS)
     if (!(k in CMDLINKS)) CMDLINKS[k] = CMD_DEFAULT_LINKS[k];
 }
 function saveCmdLinks(){
-  try { localStorage.setItem(LS_CMDLINKS, JSON.stringify(CMDLINKS)); } catch(e){}
+  try { lsSet(LS_CMDLINKS, JSON.stringify(CMDLINKS)); } catch(e){}
 }
 
 // ─── คู่มือถ่ายทำแยกตาม SKU ───
@@ -5313,30 +5389,30 @@ let SKUGUIDE = {};                      // ตัวเดียวกับ SKU
 function loadSkuBind(){
   SKU_BIND.forEach(b => {
     if (b.k === "guide") return;        // guide โหลดใน loadSkuGuide (มีเรื่อง seed ของตัวเอง)
-    try { SKUBIND[b.k] = JSON.parse(localStorage.getItem(b.ls) || "{}") || {}; } catch(e){ SKUBIND[b.k] = {}; }
+    try { SKUBIND[b.k] = JSON.parse(lsGet(b.ls) || "{}") || {}; } catch(e){ SKUBIND[b.k] = {}; }
   });
 }
 function saveSkuBind(kind){
   if (kind === "guide") return saveSkuGuide();
   const b = SKU_BIND_BY[kind]; if (!b) return;
-  try { localStorage.setItem(b.ls, JSON.stringify(SKUBIND[kind] || {})); } catch(e){}
+  try { lsSet(b.ls, JSON.stringify(SKUBIND[kind] || {})); } catch(e){}
 }
 function loadSkuGuide(){
   loadSkuBind();
-  try { SKUGUIDE = JSON.parse(localStorage.getItem(LS_SKUGUIDE) || "{}") || {}; } catch(e){}
+  try { SKUGUIDE = JSON.parse(lsGet(LS_SKUGUIDE) || "{}") || {}; } catch(e){}
   SKUBIND.guide = SKUGUIDE;
   let seeded = false;
-  try { seeded = localStorage.getItem(LS_SKUSEED) === "1"; } catch(e){}
+  try { seeded = lsGet(LS_SKUSEED) === "1"; } catch(e){}
   if (seeded) return;
   let added = 0;
   // ไม่ทับของที่มีอยู่แล้ว — เครื่องที่ทีมตั้งเองไว้ก่อนหน้านี้ต้องไม่โดนกลบ
   for (const k in DEFAULT_SKUGUIDE)
     if (!SKUGUIDE[k]){ SKUGUIDE[k] = DEFAULT_SKUGUIDE[k]; added++; }
-  try { localStorage.setItem(LS_SKUSEED, "1"); } catch(e){}
+  try { lsSet(LS_SKUSEED, "1"); } catch(e){}
   if (added) saveSkuGuide();
 }
 function saveSkuGuide(){
-  try { localStorage.setItem(LS_SKUGUIDE, JSON.stringify(SKUGUIDE)); } catch(e){}
+  try { lsSet(LS_SKUGUIDE, JSON.stringify(SKUGUIDE)); } catch(e){}
 }
 // ─── จับคู่คู่มือกับ SKU ───
 // SKU เขียนเป็น "ไลน์ - เฉด (จำนวน)" เสมอ — ตัวที่ตัดสินว่าใช้คู่มือใบไหนคือ "ไลน์"
@@ -5430,7 +5506,7 @@ let CMDOWN = {};
 const cmdKey = (proj, handle) => `${proj}|${normId(handle)}`;
 
 function loadCmdOwn(){
-  try { CMDOWN = JSON.parse(localStorage.getItem(LS_CMDOWN) || "{}") || {}; } catch(e){}
+  try { CMDOWN = JSON.parse(lsGet(LS_CMDOWN) || "{}") || {}; } catch(e){}
   dropLegacyOwn();
 }
 // สำเนาต้นแบบรุ่นเก่าที่ค้างอยู่รายคน — ถอดออกให้ได้ต้นแบบรุ่นใหม่ (ดู LEGACY_BODIES)
@@ -5454,7 +5530,7 @@ function dropLegacyOwn(){
   }
 }
 function saveCmdOwn(){
-  try { localStorage.setItem(LS_CMDOWN, JSON.stringify(CMDOWN)); } catch(e){}
+  try { lsSet(LS_CMDOWN, JSON.stringify(CMDOWN)); } catch(e){}
 }
 function cmdOwn(proj, handle){
   const k = cmdKey(proj, handle);
@@ -5717,11 +5793,11 @@ const cmdAddFor  = proj => CMDADD[proj] || [];
 const cmdHideFor = proj => new Set(CMDHIDE[proj] || []);
 
 function loadCmdEdit(){
-  try { CMDEDIT = JSON.parse(localStorage.getItem(LS_CMDEDIT) || "{}") || {}; } catch(e){}
-  try { CMDADD  = JSON.parse(localStorage.getItem(LS_CMDADD)  || "{}") || {}; } catch(e){}
-  try { CMDHIDE = JSON.parse(localStorage.getItem(LS_CMDHIDE) || "{}") || {}; } catch(e){}
+  try { CMDEDIT = JSON.parse(lsGet(LS_CMDEDIT) || "{}") || {}; } catch(e){}
+  try { CMDADD  = JSON.parse(lsGet(LS_CMDADD)  || "{}") || {}; } catch(e){}
+  try { CMDHIDE = JSON.parse(lsGet(LS_CMDHIDE) || "{}") || {}; } catch(e){}
   // ของเดิมชั้นเดียว — ยกมาเป็นถัง "*" ทุกครั้งที่โหลด ไม่แก้ไฟล์เดิม
-  try { CMDEDIT[ALLP] = JSON.parse(localStorage.getItem(LS_CMDEDIT_OLD) || "{}") || {}; } catch(e){}
+  try { CMDEDIT[ALLP] = JSON.parse(lsGet(LS_CMDEDIT_OLD) || "{}") || {}; } catch(e){}
   repairFeedbackBlocks();
   let n = 0;
   for (const proj in CMDEDIT)
@@ -5763,9 +5839,9 @@ function saveCmdEdit(){
   const out = {};
   for (const k in CMDEDIT) if (k !== ALLP && Object.keys(CMDEDIT[k]).length) out[k] = CMDEDIT[k];
   try {
-    localStorage.setItem(LS_CMDEDIT, JSON.stringify(out));
-    localStorage.setItem(LS_CMDADD,  JSON.stringify(CMDADD));
-    localStorage.setItem(LS_CMDHIDE, JSON.stringify(CMDHIDE));
+    lsSet(LS_CMDEDIT, JSON.stringify(out));
+    lsSet(LS_CMDADD,  JSON.stringify(CMDADD));
+    lsSet(LS_CMDHIDE, JSON.stringify(CMDHIDE));
   } catch(e){}
 }
 
@@ -7304,22 +7380,82 @@ async function sbSignUp(email, password, displayName){
   return j;
 }
 
+// ─── รหัสหน้า Coordinator รายบัญชี ───
+// เดิมเป็นรหัสกลางตัวเดียวฝังในโค้ด ใครได้ไปก็เข้าได้หมด และคนสมัครใหม่ไม่มีทางรู้
+// ตอนนี้แต่ละคนตั้งเองตอนสมัคร เก็บเป็น hash ที่ Supabase (คอลัมน์ coord_pin)
+// เกลือคือ user id ของเจ้าตัว — hash เดียวกันของคนละคนจึงไม่ซ้ำกันถึงจะตั้งเลขเดียวกัน
+// ฝั่งเซิร์ฟเวอร์ตอบแค่ ok/bad/none ไม่เคยส่ง hash กลับมา
+async function coordHash(pin){
+  const uid = jwtSub((SESSION || {}).access_token || "") || "anon";
+  const key = await crypto.subtle.importKey("raw", new TextEncoder().encode(String(pin)),
+    "PBKDF2", false, ["deriveBits"]);
+  const bits = await crypto.subtle.deriveBits({ name:"PBKDF2",
+    salt: new TextEncoder().encode("cf-coord-" + uid), iterations: GATE_ITER, hash:"SHA-256" },
+    key, 256);
+  return [...new Uint8Array(bits)].map(b => b.toString(16).padStart(2, "0")).join("");
+}
+// คืน "ok" | "bad" | "none" | "off" ("off" = ยังไม่ได้รัน SQL หรือเน็ตล่ม → ถอยไปใช้รหัสกลางเดิม)
+async function coordRpc(fn, body){
+  // ยิงเองไม่ผ่าน sbAuthed — sbAuthed จะเรียก requireLogin เมื่อ session เสีย
+  // ประตู coord ถูกเรียกตอนจอล็อกกำลังทำงานอยู่แล้ว ซ้อนอีกชั้นจะค้างกันเอง
+  if (!(await sbValidSession())) return "off";
+  try {
+    const r = await fetch(SB_URL + "/rest/v1/rpc/" + fn,
+      { method:"POST", headers: sbHeaders(true), body: JSON.stringify(body || {}) });
+    if (!r.ok) return "off";
+    return (await r.text()).trim().replace(/^"|"$/g, "");
+  } catch(e){ return "off"; }
+}
+
+// สำเนาในเครื่อง — ไว้ใช้ตอนฝั่งฐานข้อมูลยังไม่มีฟังก์ชัน (ยังไม่ได้รัน coord_pin.sql) หรือเน็ตล่ม
+// อยู่ในช่องของบัญชีนี้อยู่แล้ว เครื่องเดียวหลายคนจึงไม่ปนกัน · รัน SQL เมื่อไหร่ฝั่งเซิร์ฟเวอร์ชนะเสมอ
+const LS_COORDPIN = "cf_coordpin_v1";
+
+// คืน "sync" = เก็บขึ้นเซิร์ฟเวอร์แล้ว (ตามไปทุกเครื่อง) · "local" = เก็บได้แค่ในเครื่องนี้
+async function coordPinSet(pin){
+  const h = await coordHash(pin);
+  lsSet(LS_COORDPIN, h);
+  return await coordRpc("set_coord_pin", { p: h }) !== "off" ? "sync" : "local";
+}
+async function coordPinCheck(pin){
+  const h = await coordHash(pin);
+  const r = await coordRpc("check_coord_pin", { p: h });
+  if (r !== "off") return r;
+  const local = lsGet(LS_COORDPIN);
+  return local ? (local === h ? "ok" : "bad") : "off";
+}
+async function coordPinExists(){
+  const r = await coordRpc("has_coord_pin");
+  if (r === "true") return "yes";
+  if (r === "false") return "no";
+  return lsGet(LS_COORDPIN) ? "yes" : "off";
+}
+
+// บัญชีที่ล็อกอินอยู่ตรงกับช่องเก็บของที่หน้านี้เปิดใช้อยู่ไหม
+// ไม่ตรง = เพิ่งสลับบัญชี ของที่โหลดไว้ตอนเปิดหน้าเป็นของคนอื่น ต้องเปิดหน้าใหม่ให้อ่านช่องที่ถูก
+function nsStale(){
+  const uid = jwtSub((SESSION || {}).access_token || "");
+  return !!uid && nsFor(uid) !== NS;
+}
+
 let LOCK_MODE = "login";        // login | signup
 function askLogin(){
   const signup = LOCK_MODE === "signup";
   $("#lockTitle").textContent = signup ? "สมัครใช้งาน" : "เข้าสู่ระบบ";
   $("#lockHint").textContent  = signup
-    ? "สมัครเองได้เลย ไม่ต้องรอแอดมินเพิ่มให้ — สมัครเสร็จเข้าใช้งานได้ทันที"
+    ? "สมัครเองได้เลย ไม่ต้องรอแอดมินเพิ่มให้ — ตั้งรหัส 2 ชั้นตอนนี้ทีเดียว แล้วเข้าใช้งานได้ทันที"
     : "Creator Finder — ใช้อีเมลและรหัสผ่านของทีม";
   $("#lockPin").hidden = true;
   $("#lockEmail").hidden = false;
   $("#lockName").hidden = !signup;
+  $("#lockCoord").hidden = !signup;
   $("#lockPwRow").hidden = false;
   $("#lockCancel").hidden = true;
   $("#lockSwap").hidden = false;
   $("#lockSwap").textContent = signup ? "มีบัญชีอยู่แล้ว — เข้าสู่ระบบ" : "ยังไม่มีบัญชี — สมัครที่นี่";
   $("#lockEmail").value = "";
   $("#lockName").value = "";
+  $("#lockCoord").value = "";
   $("#lockPw").value = "";
   $("#lockPw").placeholder = signup ? "ตั้งรหัสผ่าน (อย่างน้อย 10 ตัว)" : "รหัสผ่าน";
   $("#lockPw").autocomplete = signup ? "new-password" : "current-password";
@@ -7342,7 +7478,15 @@ function askLogin(){
       e.preventDefault();
       const email = $("#lockEmail").value.trim();
       const pw = $("#lockPw").value;
+      const cpin = $("#lockCoord").value.replace(/\D/g, "");
       if (!email || !pw) return;
+      // รหัส Coordinator ตั้งพร้อมกันตรงนี้เลย จะได้ไม่ต้องไปหาใครขอทีหลัง
+      if (signup && cpin.length !== 6){
+        $("#lockMsg").className = "lockmsg err";
+        $("#lockMsg").textContent = "ตั้งรหัสหน้า Coordinator ให้ครบ 6 หลักก่อน";
+        $("#lockCoord").focus();
+        return;
+      }
       $("#lockGo").disabled = true;
       $("#lockMsg").className = "lockmsg busy";
       $("#lockMsg").textContent = signup ? "กำลังสมัคร..." : "กำลังเข้าสู่ระบบ...";
@@ -7357,7 +7501,10 @@ function askLogin(){
         const p = await sbProfile();
         if (!p) throw new Error("เข้าสู่ระบบได้ แต่ยังไม่มีสิทธิ์ใช้งาน — ติดต่อแอดมิน");
         if (!p.is_active){ await sbLogout(); throw new Error("บัญชีนี้ถูกระงับการใช้งาน"); }
+        if (signup) await coordPinSet(cpin);  // ล้มเหลว = ยังไม่ได้รัน SQL ฝั่งฐานข้อมูล ไม่บล็อกการสมัคร
         sbTouchSeen();                       // ไม่ต้องรอ ไม่ให้ถ่วงการเข้าใช้งาน
+        // สลับมาคนละบัญชีกับตอนเปิดหน้า — ของในเครื่องที่โหลดค้างไว้เป็นของคนก่อน เปิดหน้าใหม่ให้อ่านช่องที่ถูก
+        if (nsStale()){ $("#lockMsg").textContent = "กำลังเปิดพื้นที่ทำงานของคุณ..."; location.reload(); return; }
         $("#lockGo").disabled = false;
         $("#lockView").hidden = true;
         LOCK_MODE = "login";
@@ -7460,14 +7607,29 @@ function buildPin(n, onFull){
 }
 
 // คืนค่าเมื่อใส่รหัสถูก — ถ้าปิดไปก่อนก็ไม่ผ่าน
-function askGate(name){
-  if (gatePassed(name)) return Promise.resolve(true);
-  const [title, hint] = GATE_LABEL[name];
+// coord มี 3 โหมด: set = บัญชีนี้ยังไม่เคยตั้งรหัส · unlock = ตั้งไว้แล้ว ถามของจริง ·
+// legacy = ฝั่งฐานข้อมูลยังไม่มีฟังก์ชัน (ยังไม่ได้รัน coord_pin.sql) ถอยไปใช้รหัสกลางตัวเดิม
+async function askGate(name){
+  if (gatePassed(name)) return true;
+  let mode = "legacy";
+  if (name === "coord"){
+    const has = await coordPinExists();
+    mode = has === "yes" ? "unlock" : has === "no" ? "set" : "legacy";
+  }
+  const [title, hint] = mode === "set"
+    ? ["ตั้งรหัสหน้า Coordinator", "ตั้งรหัส 6 หลักของคุณเอง — ใช้ทุกครั้งที่เข้าหน้านี้ คนละตัวกับรหัสเข้าเว็บ"]
+    : GATE_LABEL[name];
   $("#lockTitle").textContent = title;
   $("#lockHint").textContent = hint;
   $("#lockPw").value = "";
   $("#lockMsg").className = "lockmsg";
   $("#lockMsg").textContent = "";
+  // ช่องของฟอร์มสมัคร/ล็อกอินยังค้างอยู่จากรอบก่อน ประตูชั้นในไม่ได้ใช้ ต้องเก็บก่อน
+  $("#lockEmail").hidden = true;
+  $("#lockName").hidden = true;
+  $("#lockCoord").hidden = true;
+  $("#lockSwap").hidden = true;
+  $("#lockGo").textContent = mode === "set" ? "ตั้งรหัสแล้วเข้าใช้งาน" : "เข้าใช้งาน";
 
   const pinLen = GATE_PIN[name] || 0;
   $("#lockPin").hidden = !pinLen;
@@ -7493,11 +7655,20 @@ function askGate(name){
       $("#lockGo").disabled = true;
       $("#lockMsg").className = "lockmsg busy";
       $("#lockMsg").textContent = "กำลังตรวจ...";
-      const ok = await gateCheck(name, pw).catch(() => false);
+      let ok = false, why = "รหัสไม่ถูกต้อง";
+      if (mode === "set"){
+        ok = !!(await coordPinSet(pw));
+      } else if (mode === "unlock"){
+        const r = await coordPinCheck(pw);
+        if (r === "off") ok = await gateCheck(name, pw).catch(() => false);   // เน็ตสะดุด ยังมีทางเข้า
+        else ok = r === "ok";
+      } else {
+        ok = await gateCheck(name, pw).catch(() => false);
+      }
       $("#lockGo").disabled = false;
       if (!ok){
         $("#lockMsg").className = "lockmsg err";
-        $("#lockMsg").textContent = "รหัสไม่ถูกต้อง";
+        $("#lockMsg").textContent = why;
         if (pinEls.length){
           pinEls.forEach(x => { x.value = ""; x.classList.remove("filled"); });
           pinEls[0].focus();
@@ -7521,7 +7692,7 @@ async function setView(v){
   document.body.dataset.view = v;
   document.querySelectorAll(".nav button").forEach(b =>
     b.setAttribute("aria-current", b.dataset.go === v ? "page" : "false"));
-  try { localStorage.setItem(LS_VIEW, v); } catch(e){}
+  try { lsSet(LS_VIEW, v); } catch(e){}
   updateSrcChip();
   window.scrollTo(0, 0);
   // pool มักโหลดเสร็จก่อนจะเข้าหน้านี้ ตอนนั้น runLive() ยังไม่ทำงานเพราะยังไม่ได้อยู่หน้า find
@@ -7535,7 +7706,7 @@ async function setView(v){
   // เข้าหน้า Coordinate มาเจอแผนผังรวมทุกโปรเจกต์ก่อน — คำถามแรกของวันคือ "งานทั้งกองอยู่ตรงไหน"
   // ไม่ใช่ "แถวที่ 14 ของโปรเจกต์ที่เปิดค้างไว้เมื่อวานเขียนว่าอะไร"
   // ปิดแผนผังเมื่อไหร่ก็เจอตารางที่อยู่ข้างหลัง กด ◈ Map กลับมาได้ตลอด
-  if (v === "coord"){ measureStick(); openMap(null); }
+  if (v === "coord"){ measureStick(); if (PROJECTS.length) openMap(null); }
   if (v === "home") homeCounts();
 }
 
@@ -7546,7 +7717,8 @@ function homeCounts(){
   const n = PROJECTS.reduce((s, p) => s + (COORD[p] || []).length, 0);
   $("#homeCoordN").innerHTML = n
     ? `<b>${n}</b> คนใน ${PROJECTS.length} โปรเจกต์`
-    : `${PROJECTS.length} โปรเจกต์`;
+    : PROJECTS.length ? `${PROJECTS.length} โปรเจกต์`
+    : `ยังไม่มีโปรเจกต์ — เพิ่มงานแรกได้เลย`;
 }
 
 function scoreClass(s){ return s>=8 ? "hi" : s>=5 ? "mid" : "lo"; }
@@ -7602,12 +7774,12 @@ function cardHTML(p){
 // ─── ตะกร้า ───
 function loadCart(){
   try {
-    const a = JSON.parse(localStorage.getItem(LS_CART) || "[]");
+    const a = JSON.parse(lsGet(LS_CART) || "[]");
     if (Array.isArray(a)) a.forEach(p => { if (p && p.id) CART.set(normId(p.id), p); });
   } catch(e){}
 }
 function saveCart(){
-  try { localStorage.setItem(LS_CART, JSON.stringify([...CART.values()])); } catch(e){}
+  try { lsSet(LS_CART, JSON.stringify([...CART.values()])); } catch(e){}
 }
 
 function toggleCart(id, btn){
@@ -8085,10 +8257,10 @@ const addTab = () => SHEETS.some(isMerged) ? MERGED_TAB : ADD_KIND;
 const SS_TOKEN = "cf_hook_token";
 const LS_PRIVATE = "cf_private_v1";
 let PRIVATE = false;
-try { PRIVATE = !!localStorage.getItem(LS_PRIVATE); } catch(e){}
+try { PRIVATE = !!lsGet(LS_PRIVATE); } catch(e){}
 function loadHook(){
   let saved = {};
-  try { saved = JSON.parse(localStorage.getItem(LS_HOOK) || "{}") || {}; } catch(e){}
+  try { saved = JSON.parse(lsGet(LS_HOOK) || "{}") || {}; } catch(e){}
   let sessTok = "";
   try { sessTok = sessionStorage.getItem(SS_TOKEN) || ""; } catch(e){}
   HOOK.url = saved.url || "";
@@ -8101,7 +8273,7 @@ function loadHook(){
 
 $("#privateMode").onchange = e => {
   PRIVATE = e.target.checked;
-  try { localStorage.setItem(LS_PRIVATE, PRIVATE ? "1" : ""); } catch(err){}
+  try { lsSet(LS_PRIVATE, PRIVATE ? "1" : ""); } catch(err){}
   saveHook();
   if (PRIVATE && !(HOOK.url && HOOK.token))
     return setHookMsg("เปิดโหมดชีตปิดแล้ว แต่ยังไม่มี URL/token — ใส่ให้ครบก่อน ไม่งั้นจะโหลดชีตไม่ได้", "err");
@@ -8116,7 +8288,7 @@ function saveHook(){
   HOOK = { url: $("#hookUrl").value.trim(), token: $("#hookToken").value.trim() };
   const keep = $("#hookKeep").checked;
   try {
-    localStorage.setItem(LS_HOOK, JSON.stringify(
+    lsSet(LS_HOOK, JSON.stringify(
       keep ? HOOK : { url: HOOK.url }));
     if (keep) sessionStorage.removeItem(SS_TOKEN);
     else sessionStorage.setItem(SS_TOKEN, HOOK.token);
@@ -8129,7 +8301,10 @@ $("#wipeAll").onclick = () => {
                "รายการชีต · แนวที่ชอบ · ลิสต์ที่เคยใช้ · คนที่เปิดแล้ว · ตะกร้า · เกณฑ์ · token\n" +
                "เอากลับไม่ได้")) return;
   try {
-    Object.keys(localStorage).filter(k => k.startsWith("cf_"))
+    // ล้างเฉพาะช่องของบัญชีที่ล็อกอินอยู่ ไม่ไปแตะของบัญชีอื่นที่ใช้เครื่องเดียวกัน
+    Object.keys(localStorage)
+      .filter(k => k.startsWith(NS + "cf_") && k !== LS_OWNER)
+      .filter(k => NS || !/^u[0-9a-f]{8}_cf_/.test(k))
       .forEach(k => localStorage.removeItem(k));
     sessionStorage.removeItem(SS_TOKEN);
   } catch(e){}
@@ -8535,7 +8710,7 @@ $("#likeClear").onclick = () => {
 
 $("#hideLiked").onchange = e => {
   HIDE_LIKED = e.target.checked;
-  try { localStorage.setItem(LS_HIDELIKED, HIDE_LIKED ? "1" : ""); } catch(err){}
+  try { lsSet(LS_HIDELIKED, HIDE_LIKED ? "1" : ""); } catch(err){}
   runLive();
 };
 
@@ -8547,10 +8722,10 @@ $("#catNone").onclick = () => {
 $("#foldBtn").onclick = () => {
   const folded = document.querySelector(".wrap").classList.toggle("folded");
   $("#foldBtn").setAttribute("aria-expanded", String(!folded));
-  try { localStorage.setItem("cf_folded", folded ? "1" : ""); } catch(e){}
+  try { lsSet("cf_folded", folded ? "1" : ""); } catch(e){}
 };
 try {
-  if (localStorage.getItem("cf_folded")){
+  if (lsGet("cf_folded")){
     document.querySelector(".wrap").classList.add("folded");
     $("#foldBtn").setAttribute("aria-expanded", "false");
   }
@@ -8641,7 +8816,7 @@ function applyAccent(hex){
   // ตายตัวเป็นขาวไม่ได้ สีสว่างอย่างมิ้นต์/เหลืองจะได้ contrast แค่ ~1.9 คืออ่านไม่ออกเลย
   st.setProperty("--accent-ink", contrast("#FFFFFF", h) >= contrast("#06231F", h) ? "#FFFFFF" : "#06231F");
 }
-function saveAccent(){ try { localStorage.setItem(LS_ACCENT, ACCENT); } catch(e){} }
+function saveAccent(){ try { lsSet(LS_ACCENT, ACCENT); } catch(e){} }
 
 function renderAccent(){
   const box = $("#accentSwatches");
@@ -8671,7 +8846,7 @@ function renderAccent(){
     : "";
 }
 
-try { const v = localStorage.getItem(LS_ACCENT); if (v) ACCENT = v; } catch(e){}
+try { const v = lsGet(LS_ACCENT); if (v) ACCENT = v; } catch(e){}
 applyAccent(ACCENT);
 
 // input จะยิง input ถี่มากระหว่างลากในวงสี — ทาสีทันทีให้เห็นผลสด แต่เพิ่งบันทึกตอนปล่อย
@@ -8681,6 +8856,24 @@ $("#accentPick").onchange = e => { applyAccent(e.target.value); saveAccent(); re
 $("#accentReset").onclick = () => { applyAccent(ACCENT_DEFAULT); saveAccent(); renderAccent(); };
 // โหลดเมื่อกดเท่านั้น ไม่ยิงตอนเปิดตั้งค่า — คนส่วนใหญ่เปิดมาทำอย่างอื่น
 $("#usersReload").onclick = renderUsers;
+
+// เปลี่ยนรหัสหน้า Coordinator — ไม่ถามรหัสเดิม เพราะการล็อกอินอยู่ก็คือการยืนยันตัวตนแล้ว
+$("#coordPinSave").onclick = async () => {
+  const el = $("#coordPinMsg");
+  const pin = $("#coordPinNew").value.replace(/\D/g, "");
+  if (pin.length !== 6){
+    el.className = "addmsg on err"; el.textContent = "ใส่ตัวเลข 6 หลัก";
+    return;
+  }
+  el.className = "addmsg on"; el.textContent = "กำลังบันทึก...";
+  const how = await coordPinSet(pin);
+  el.className = "addmsg on ok";
+  el.textContent = how === "sync"
+    ? "ตั้งรหัสใหม่แล้ว — ใช้ได้ครั้งถัดไปที่เข้าหน้า Coordinator"
+    : "ตั้งรหัสใหม่แล้ว แต่เก็บได้แค่ในเบราว์เซอร์นี้ — เปิดเครื่องอื่นต้องตั้งซ้ำ " +
+      "(ให้ตามไปทุกเครื่องต้องรัน coord_pin.sql ที่ Supabase ก่อน)";
+  $("#coordPinNew").value = ""; delete GATE_OK.coord;
+};
 $("#usersSect").addEventListener("toggle", function(){ if (this.open) renderUsers(); });
 
 // ─── ขนาดตัวอักษร ───
@@ -8693,10 +8886,10 @@ function applyUI(){
   $("#uiBtn").title = `ขนาดตัวอักษร: ${UI_SIZES[UI_I][0]} — กดเพื่อสลับ`;
   measureStick();
 }
-try { const v = +localStorage.getItem(LS_UI); if (UI_SIZES[v]) UI_I = v; } catch(e){}
+try { const v = +lsGet(LS_UI); if (UI_SIZES[v]) UI_I = v; } catch(e){}
 $("#uiBtn").onclick = () => {
   UI_I = (UI_I + 1) % UI_SIZES.length;
-  try { localStorage.setItem(LS_UI, UI_I); } catch(e){}
+  try { lsSet(LS_UI, UI_I); } catch(e){}
   applyUI();
 };
 applyUI();
@@ -10042,7 +10235,7 @@ function applyQuickOrder(){
       case "migrate": after = migrateStatuses; break;
       case "filter":  clearFilters(); break;
       case "cols":    LEAN = !LEAN;
-        try { localStorage.setItem(LS_LEAN, LEAN ? "1" : "0"); } catch(e){} break;
+        try { lsSet(LS_LEAN, LEAN ? "1" : "0"); } catch(e){} break;
       case "setting": after = openSettings; break;
       case "export":  after = () => $("#coordExport").click(); break;
       case "reload":  after = () => $("#coordReload").click(); break;
@@ -10081,7 +10274,7 @@ let AI = { on: false, key: "" };
 
 function loadAI(){
   let saved = {};
-  try { saved = JSON.parse(localStorage.getItem(LS_AI) || "{}") || {}; } catch(e){}
+  try { saved = JSON.parse(lsGet(LS_AI) || "{}") || {}; } catch(e){}
   let sess = "";
   try { sess = sessionStorage.getItem(SS_AIKEY) || ""; } catch(e){}
   AI.on = !!saved.on;
@@ -10095,7 +10288,7 @@ function saveAI(){
   AI.key = $("#aiKey").value.trim();
   const keep = $("#aiKeep").checked;
   try {
-    localStorage.setItem(LS_AI, JSON.stringify(keep ? { on: AI.on, key: AI.key } : { on: AI.on }));
+    lsSet(LS_AI, JSON.stringify(keep ? { on: AI.on, key: AI.key } : { on: AI.on }));
     if (keep) sessionStorage.removeItem(SS_AIKEY);
     else if (AI.key) sessionStorage.setItem(SS_AIKEY, AI.key);
   } catch(e){}
@@ -10282,7 +10475,7 @@ let PICK_STATUS = null;    // กรองตามสถานะ
 const LS_PICKOPEN = "cf_pickopen_v1";
 let PICK_OPEN = { qstage:true };
 try { PICK_OPEN = Object.assign(PICK_OPEN,
-  JSON.parse(localStorage.getItem(LS_PICKOPEN) || "{}")); } catch(e){}
+  JSON.parse(lsGet(LS_PICKOPEN) || "{}")); } catch(e){}
 
 const pickProj = () => PICK_PROJ || PROJ;
 
@@ -10362,7 +10555,7 @@ function renderPick(){
 
   document.querySelectorAll("#pickBox [data-fold]").forEach(b => b.onclick = () => {
     PICK_OPEN[b.dataset.fold] = !PICK_OPEN[b.dataset.fold];
-    try { localStorage.setItem(LS_PICKOPEN, JSON.stringify(PICK_OPEN)); } catch(e){}
+    try { lsSet(LS_PICKOPEN, JSON.stringify(PICK_OPEN)); } catch(e){}
     renderPick();
   });
   document.querySelectorAll("#pickList [data-ph]").forEach(b => b.onclick = () => {
@@ -10515,11 +10708,11 @@ const SLASH_HOT = ["status","rate","fb1","hashtag","cart","pay","sku","fb2","not
                    "sg","agreement","video","del","move","add","sync"];
 const LS_CMDUSE = "cf_cmduse_v1";
 let CMDUSE = {};
-try { CMDUSE = JSON.parse(localStorage.getItem(LS_CMDUSE) || "{}") || {}; } catch(e){}
+try { CMDUSE = JSON.parse(lsGet(LS_CMDUSE) || "{}") || {}; } catch(e){}
 function bumpUse(c){
   if (!c) return;
   CMDUSE[c] = (CMDUSE[c] || 0) + 1;
-  try { localStorage.setItem(LS_CMDUSE, JSON.stringify(CMDUSE)); } catch(e){}
+  try { lsSet(LS_CMDUSE, JSON.stringify(CMDUSE)); } catch(e){}
 }
 const useRank = c => (CMDUSE[c] || 0) * 100 +
   (SLASH_HOT.indexOf(c) < 0 ? 0 : SLASH_HOT.length - SLASH_HOT.indexOf(c));
@@ -10733,7 +10926,7 @@ document.querySelector("aside").addEventListener("input", e => {
 EXCLUDE = lsLoadSet(LS_EX);
 SEEN = lsLoadSet(LS_SEEN);
 LIKED = lsLoadSet(LS_LIKED);
-try { HIDE_LIKED = !!localStorage.getItem(LS_HIDELIKED); } catch(e){}
+try { HIDE_LIKED = !!lsGet(LS_HIDELIKED); } catch(e){}
 $("#hideLiked").checked = HIDE_LIKED;
 loadProjects();
 loadCrit();
@@ -10762,7 +10955,7 @@ foldSummaries();
 requireLogin().then(async () => {
   await selectSheet();          // โหลด Creator Pool จาก Supabase
   let last = "home";
-  try { last = localStorage.getItem(LS_VIEW) || "home"; } catch(e){}
+  try { last = lsGet(LS_VIEW) || "home"; } catch(e){}
   if (!["find","coord","home"].includes(last)) last = "home";
   await setView(last);
   if (document.body.dataset.view !== last) await setView("home");
