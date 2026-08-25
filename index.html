@@ -28,15 +28,23 @@
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Thai:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&family=Bebas+Neue&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
 /* ── ธีม Netflix ──
-   ดำสนิท + แดง #E50914 อันเดียว ที่เหลือเป็นเทาไล่ระดับ
+   ดำสนิท + เขียวมิ้นต์ #2DD4BF อันเดียว ที่เหลือเป็นเทาไล่ระดับ
    สีที่บอกความหมาย (เขียว/ส้ม/ม่วง/ฟ้า) ยังอยู่ครบ แต่หรี่ให้แดงเป็นตัวเด่นตัวเดียว
    เก็บเป็น RGB ด้วย เพราะทั้งไฟล์ใช้ rgba(var(--x), .12) ทำพื้นจางๆ */
 :root{
   --bg:#0B0B0B; --surface:#181818; --surface2:#232323; --line:#333;
   --ink:#FFF; --mute:#B3B3B3; --dim:#777;
-  --accent:#E50914;           /* แดง Netflix — ตัวเดียวที่ใช้เน้น */
-  --accent-ink:#FFF;
-  --accent-rgb:229,9,20;
+  /* ─── สีหลัก ───
+     เคยเป็นแดง Netflix #E50914 — วัดจริงแล้วได้ contrast แค่ 4.11 บนพื้น #0B0B0B
+     ต่ำกว่าเกณฑ์อ่านง่าย (4.5) ทั้งที่ความอิ่มสีสูงถึง 92% คือจ้าแต่ไม่ชัด
+     แดงยังเป็นสีที่ตาโฟกัสยากที่สุดบนพื้นดำ (คลื่นยาวตกโฟกัสหลังจอตา ตาเลยเพ่งหาระยะตลอด)
+     และซ้ำกับสีข้อผิดพลาด --lo ที่เป็นแดงเหมือนกัน — "ปุ่มหลัก" กับ "พัง" เลยหน้าตาเหมือนกัน
+     ย้ายมาโทนเขียวมิ้นต์: contrast 10.57 (ดีขึ้น 2.5 เท่า) และปล่อยให้แดงแปลว่าผิดอย่างเดียว
+     จะกลับไปเป็นแดง แก้ 3 บรรทัดนี้พอ ทั้งเว็บตามเอง */
+  --accent:#2DD4BF;
+  /* ตัวหนังสือบนพื้นสีหลัก — ต้องเป็นสีเข้ม ขาวบนมิ้นต์ได้ contrast แค่ 1.86 คืออ่านไม่ออก */
+  --accent-ink:#06231F;
+  --accent-rgb:45,212,191;
   --hi:#46D369;  --hi-rgb:70,211,105;      /* ผ่าน / เสร็จ */
   --lo:#FF5C5C;  --lo-rgb:255,92,92;       /* พลาด / ต้องแก้ */
   --warn:#F5B546; --warn-rgb:245,181,70;   /* รอ / ยังไม่ปิด */
@@ -62,6 +70,9 @@ body > header{display:flex;align-items:center;gap:18px;position:sticky;top:0;z-i
   padding:12px 26px;flex-wrap:wrap;
   background:linear-gradient(180deg,#0B0B0B 0%,rgba(11,11,11,.94) 70%,rgba(11,11,11,.72) 100%);
   border-bottom:1px solid rgba(255,255,255,.06)}
+/* สีโลโก้มาจากตัวแปรเดียวกับทั้งเว็บ — เดิมฝัง hex ไว้ในแอตทริบิวต์ของ <path>
+   เปลี่ยนสีหลักแล้วโลโก้ค้างเป็นสีเดิมอยู่ชิ้นเดียว */
+.brand .mark path{fill:var(--accent)}
 .brand{display:flex;align-items:center;gap:10px;flex:none;
   background:none;border:0;padding:0;font-family:inherit;color:inherit;cursor:pointer}
 .brand:hover h1{color:#F6121D}
@@ -1536,7 +1547,7 @@ tr.subrow td.w-status select{width:14.6em}
 <header>
   <button class="brand" id="brandBtn" title="กลับหน้าแรก">
     <svg class="mark" viewBox="0 0 32 32" aria-hidden="true">
-      <path d="M6 3h6.4l7.2 16.1V3H26v26h-6.2L12.4 12v17H6Z" fill="#E50914"/>
+      <path d="M6 3h6.4l7.2 16.1V3H26v26h-6.2L12.4 12v17H6Z"/>
     </svg>
     <h1>Creator Finder</h1>
     <span class="sub">Alta Global Commerce</span>
