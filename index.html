@@ -53,8 +53,12 @@ body{background:var(--bg);color:var(--ink);
 a{color:inherit;text-decoration:none}
 button{font-family:inherit;cursor:pointer}
 
-/* แถบบน — ดำทึบ ติดบนตลอด ไม่ต้องเลื่อนขึ้นมาหา */
-header{display:flex;align-items:center;gap:18px;position:sticky;top:0;z-index:40;
+/* แถบบน — ดำทึบ ติดบนตลอด ไม่ต้องเลื่อนขึ้นมาหา
+   ⚠️ ต้องผูกกับ body > เสมอ ห้ามเขียน header{} ลอยๆ — ในหน้านี้มี <header> อีก 5 จุด
+   (หัวกล่อง Command · หัวช่วงงานในแผนผัง · หัวกลุ่มในแผ่นเงิน) ที่ไม่ได้ตั้งใจให้ติดบนจอ
+   ปล่อยลอยเมื่อไหร่ หัวพวกนั้นจะกลายเป็น sticky z40 ตามไปด้วย แล้วไปกองทับกันเองบนขอบบน
+   และทับเมนูเลือกสถานะ (z20) จนกดไม่ได้ */
+body > header{display:flex;align-items:center;gap:18px;position:sticky;top:0;z-index:40;
   padding:12px 26px;flex-wrap:wrap;
   background:linear-gradient(180deg,#0B0B0B 0%,rgba(11,11,11,.94) 70%,rgba(11,11,11,.72) 100%);
   border-bottom:1px solid rgba(255,255,255,.06)}
@@ -84,7 +88,7 @@ body[data-view="home"] .nav{display:none}
    หัวเว็บที่ขึ้นบรรทัดใหม่กินความสูงเป็นสองเท่า แล้วไปดันตารางตกจอ
    ตัดของที่ยังเดาได้จากบริบทออกก่อน: ชื่อรอง · ป้ายบอกที่มาข้อมูล · คำบนปุ่ม */
 @media(max-width:900px){
-  header{padding:9px 14px;gap:10px}
+  body > header{padding:9px 14px;gap:10px}
   .nav button{padding:6px 9px;font-size:.84rem}
   .hgroup{gap:5px}
   .gear{padding:6px 9px}
@@ -1078,7 +1082,10 @@ details.sect .field:first-of-type{margin-top:13px}
   border-color:var(--accent)}
 
 /* ── ตัวกรอง ── */
-aside{border-right:1px solid var(--line);padding:22px;overflow-y:auto;
+/* ⚠️ ผูกกับ .wrap > เสมอ ห้ามเขียน aside{} ลอยๆ — ลิ้นชักทั้งสาม (รายละเอียด · Command · ตะกร้า)
+   ก็เป็น <aside> เหมือนกัน ปล่อยลอยแล้วมันจะได้ padding ซ้อนกับของ .drawer-head/.drawer-body
+   และได้ overflow-y:auto กลายเป็นกล่องเลื่อนซ้อนกล่องเลื่อนอีกชั้น ซึ่งคือต้นเหตุอาการเลื่อนแปลกๆ */
+.wrap > aside{border-right:1px solid var(--line);padding:22px;overflow-y:auto;
   position:sticky;top:0;align-self:start;max-height:calc(100vh - 62px)}
 .field{margin-bottom:22px}
 .field > label{display:block;font-size:.79rem;text-transform:uppercase;letter-spacing:.08em;
@@ -1153,7 +1160,7 @@ textarea{resize:vertical;min-height:74px;line-height:1.5}
   font-family:'Space Grotesk','IBM Plex Sans Thai',sans-serif;transition:background .13s}
 .run:hover{background:#F6121D}
 .run:disabled{opacity:.5;cursor:not-allowed}
-aside .run{margin-top:18px}
+.wrap > aside .run{margin-top:18px}
 
 /* ── ผลลัพธ์ ── */
 main{padding:22px 24px;overflow-y:auto;max-height:calc(100vh - 62px)}
