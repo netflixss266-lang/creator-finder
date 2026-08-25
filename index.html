@@ -4866,11 +4866,12 @@ const CMD_BLOCKS = [
   // ไม่แยกรายชุด — ข้อความนี้ถือเรทรวมของทั้งดีล แยกเมื่อไหร่จะกลายเป็นแจ้งเรทเต็มสองรอบ
   // ครีเอเตอร์ได้กี่ SKU ก็ขึ้นครบในบรรทัดเดียว จำนวน video เดินตามช่องในตาราง
   // kind = โชว์เฉพาะกลุ่มนี้ — KOC ตกลงกันด้วย Commission ไม่ใช่เรทเหมา ใช้ข้อความคนละใบ
-  { t:"1. ขอคอนเฟิร์มการร่วมงาน", kind:"KOL", b:
+  { t:"1. ขอคอนเฟิร์มการร่วมงาน", pay:true, b:
 `สวัสดีครับ🙏😊 แอดมินจาก Alta Global Commerce นะครับ ขออนุญาต Confirm✅ การร่วมงาน
 
 สำหรับแบรนด์: {{brandname}} ({{sku}})
 โดยเรทราคา {{videos}} video + gencode 60 days + ติดตะกร้า = {{rate}} บาท
+💰Commission = {{commission?}}
 
 หากครีเอเตอร์คอนเฟิร์มการร่วมงาน กรุณาตอบกลับ “Confirm” เพื่อร่วมงานครับ` },
 
@@ -4879,12 +4880,13 @@ const CMD_BLOCKS = [
 
 💬สามารถทักไลน์โดยการแคปหลักฐานการคอนเฟิร์มขั้นต้นได้เลยนะค้าบบ😊` },
 
-  { t:"3. คอนเฟิร์มเรท + รูปแบบนำจ่าย", kind:"KOL", b:
+  { t:"3. คอนเฟิร์มเรท + รูปแบบนำจ่าย", pay:true, b:
 `ขออนุญาตคอนเฟิร์มเรทราคา + รูปแบบนำจ่ายนะครับ😀
 สำหรับแบรนด์: {{brandname}} ({{sku}})
 
 โดยเรทราคา {{videos}} video + gencode 60 days + ติดตะกร้า = {{rate}} บาท
 รูปแบบการชำระ: {{paytype}}✅= {{net}} บาท
+💰Commission = {{commission?}}
 
 หากครีเอเตอร์คอนเฟิร์มการร่วมงาน กรุณาตอบกลับ “Confirm”` },
 
@@ -4909,7 +4911,7 @@ const CMD_BLOCKS = [
 📢เอกสารสำคัญสำหรับร่วมงาน:
 {{docs}}` },
 
-  { t:"6. ถามรูปแบบการชำระเงิน", kind:"KOL", b:
+  { t:"6. ถามรูปแบบการชำระเงิน", pay:true, b:
 `ขออนุญาตสอบถามครีเอเตอร์ต้องการรูปแบบการชำระเงินรูปแบบไหนครับ💵😀
 ✅ณ ที่จ่าย 3%
 ✅จ่าย NET
@@ -4979,7 +4981,7 @@ Hashtag:📱
 
   // ฟอร์มกับใบรับเงินเป็นคนละขั้นตอนและคนละเวลา — ฟอร์มกรอกครั้งเดียวตอนเริ่ม
   // ใบรับเงินเซ็นตอนจะเบิกจ่าย รวมไว้ก้อนเดียวแล้วส่งซ้ำทั้งก้อนทุกครั้ง
-  { t:"14. ฟอร์มเอกสารหัก ณ ที่จ่าย", kind:"KOL", b:
+  { t:"14. ฟอร์มเอกสารหัก ณ ที่จ่าย", pay:true, b:
 `สวัสดีครับ😊
 แอดมินรบกวนครีเอเตอร์กรอกข้อมูลสำหรับออกเอกสารหัก ณ ที่จ่าย และเอกสารอื่น ๆ ประกอบการทำจ่ายในลิ้งด้านล่างนี้นะค้าบ (กรอกเพียงครั้งเดียว✅)
 
@@ -4989,7 +4991,7 @@ Hashtag:📱
 
 📢หากกรอกเสร็จแล้วรบกวนแคปให้แอดมินด้วยนะครับ` },
 
-  { t:"15. ใบรับเงิน Acknowledgement of Receipt", kind:"KOL", b:
+  { t:"15. ใบรับเงิน Acknowledgement of Receipt", pay:true, b:
 `แอดมินขออนุญาตส่งใบรับเงิน Acknowledgement of Receipt เพื่อทำการเบิกจ่ายนะครับ😊
 
 📦สำหรับแบรนด์: {{brandname}} ({{sku}})
@@ -5004,7 +5006,7 @@ Hashtag:📱
   // ── ต่อท้ายลิสต์ ไม่แทรกกลาง ── เลขบล็อกคือคีย์ที่ใช้เก็บของที่แก้ไว้ (CMDEDIT/CMDOWN)
   // แทรกกลางเมื่อไหร่ ข้อความที่ทุกคนแก้ไว้จะเลื่อนไปผิดบล็อกทั้งแถบ
   // ord บอกว่าให้ไปโผล่ตรงไหนตอนแสดงผล — อันนี้ยืนแทนบล็อก 1 ของฝั่ง KOC
-  { t:"1. ขอคอนเฟิร์มการร่วมงาน (KOC)", kind:"KOC", ord:0, b:
+  { t:"1. ขอคอนเฟิร์มการร่วมงาน (ไม่มีเรทชำระ)", pay:false, ord:0, b:
 `สวัสดีครับ🙏😊 แอดมินจาก Alta Global Commerce นะครับ ขออนุญาต Confirm✅ การร่วมงาน
 
 สำหรับแบรนด์: {{brandname}} ({{sku}})
@@ -5055,11 +5057,26 @@ Hashtag:📱
   0: [{ t:"1. ขอคอนเฟิร์มการร่วมงาน", b:
 `สวัสดีครับ🙏😊 แอดมินจาก Alta Global Commerce นะครับ ขออนุญาต Confirm✅ การร่วมงาน
 
+สำหรับแบรนด์: {{brandname}} ({{sku}})
+โดยเรทราคา {{videos}} video + gencode 60 days + ติดตะกร้า = {{rate}} บาท
+
+หากครีเอเตอร์คอนเฟิร์มการร่วมงาน กรุณาตอบกลับ “Confirm” เพื่อร่วมงานครับ` },
+   { t:"1. ขอคอนเฟิร์มการร่วมงาน", b:
+`สวัสดีครับ🙏😊 แอดมินจาก Alta Global Commerce นะครับ ขออนุญาต Confirm✅ การร่วมงาน
+
 สำหรับแบรนด์: Red Chamber ({{sku}})
 โดยเรทราคา 1 video + gencode 60 days + ติดตะกร้า = {{rate}} บาท
 
 หากครีเอเตอร์คอนเฟิร์มการร่วมงาน กรุณาตอบกลับ “Confirm” เพื่อร่วมงานครับ` }],
   2: [{ t:"3. คอนเฟิร์มเรท + รูปแบบนำจ่าย", b:
+`ขออนุญาตคอนเฟิร์มเรทราคา + รูปแบบนำจ่ายนะครับ😀
+สำหรับแบรนด์: {{brandname}} ({{sku}})
+
+โดยเรทราคา {{videos}} video + gencode 60 days + ติดตะกร้า = {{rate}} บาท
+รูปแบบการชำระ: {{paytype}}✅= {{net}} บาท
+
+หากครีเอเตอร์คอนเฟิร์มการร่วมงาน กรุณาตอบกลับ “Confirm”` },
+   { t:"3. คอนเฟิร์มเรท + รูปแบบนำจ่าย", b:
 `ขออนุญาตคอนเฟิร์มเรทราคา + รูปแบบนำจ่ายนะครับ😀
 สำหรับแบรนด์: Red Chamber ({{sku}})
 
@@ -5516,23 +5533,31 @@ function fbCount(proj, handle, clips){
 
 // คืน 2 แบบ: ข้อความจริงไว้ก๊อป กับ HTML ที่ไฮไลต์ให้เห็นว่าตรงไหนยังว่าง
 // clip = บล็อกนี้เป็นของคลิปที่เท่าไหร่ (>1 = เอกสารในบล็อกนี้อ่านจากช่องของคลิปนั้น)
+// ─── ตัวแปรแบบไม่บังคับ ───
+// {{key?}} = ไม่มีค่าก็ไม่เป็นไร — ทั้งบรรทัดหายไปเงียบๆ ไม่ขึ้นช่องแดงและไม่นับว่าข้อมูลขาด
+// จำเป็นเพราะบางบรรทัดมีเฉพาะบางดีล (Commission มีเฉพาะคนที่ตกลงส่วนแบ่งไว้)
+// ถ้าใช้ {{key}} ธรรมดา คนที่ไม่มีจะได้ช่องแดงคาไว้กลางข้อความคอนเฟิร์มทุกคน
+const DROP = " drop ";
+const cutDropped = s => s.split("\n").filter(l => l.indexOf(DROP) < 0).join("\n");
+
 function fillBlock(body, vals, clip){
   let missing = 0;
   // แยกรายคลิป: เอกสาร · SKU · บรีฟ · ฟีดแบคแต่ละดราฟต์
   // ไม่แยก: เรท/รูปแบบภาษี/จ่ายจริง — ตกลงกันเป็นก้อนเดียวทั้งงาน ไม่ได้แยกตามคลิป
   const key = k => clipKey(k, clip);
-  const text = body.replace(/\{\{(\w+)\}\}/g, (_, k) =>
-    vals[key(k)] || `…..${gapLabel(key(k))}…..`);
+  const text = cutDropped(body.replace(/\{\{(\w+)(\?)?\}\}/g, (_, k, opt) =>
+    vals[key(k)] || (opt ? DROP : `…..${gapLabel(key(k))}…..`)));
   const gaps = [];
-  const html = esc(body).replace(/\{\{(\w+)\}\}/g, (_, k) => {
+  const html = cutDropped(esc(body).replace(/\{\{(\w+)(\?)?\}\}/g, (_, k, opt) => {
     const g = key(k);
     if (vals[g]) return `<span class="fill">${esc(vals[g])}</span>`;
+    if (opt) return DROP;                 // ไม่บังคับ = ไม่นับเป็นช่องว่างที่ต้องไปเติม
     missing++;
     if (!gaps.includes(g)) gaps.push(g);
     // กดที่ตัวแดงเพื่อเติมค่าตรงนั้นเลย ไม่ต้องไปหาว่าช่องนี้อยู่ตรงไหนของตาราง
     return `<button class="gap" data-gap="${esc(g)}"
       title="กดเพื่อเติม${esc(gapLabel(g))}">…..${esc(gapLabel(g))}…..</button>`;
-  });
+  }));
   return { text, html, missing, gaps };
 }
 
@@ -5622,8 +5647,10 @@ function cmdBlocksAll(proj){
   const mk = (id, def, ord, custom) => {
     const ed = cmdEditOne(proj, id);
     return { id, t:(ed && ed.t) || def.t, b:(ed && ed.b != null) ? ed.b : def.b,
-             clip: !!def.clip, kind: def.kind || "", ord, custom, edited: !!ed,
-             hidden: hid.has(id), base: def };
+             clip: !!def.clip, kind: def.kind || "",
+             // null = ได้ทุกคน · ต้องส่งต่อจากต้นแบบ ไม่งั้นตัวกรอง "มีเรทชำระไหม" จะไม่เห็นค่านี้เลย
+             pay: def.pay == null ? null : !!def.pay,
+             ord, custom, edited: !!ed, hidden: hid.has(id), base: def };
   };
   return CMD_BLOCKS.map((b, i) => mk(String(i), b, b.ord ?? i, false))
     .concat(cmdAddFor(proj).map(x => mk(x.id, x, x.ord, true)))
@@ -5643,7 +5670,15 @@ function cmdBlocksFor(proj, handle){
 // KOL / KOC ใช้ข้อความบางบล็อกคนละใบ — ไม่ระบุกลุ่มถือว่าใช้ได้ทั้งคู่
 // แถวที่ยังไม่ได้เลือกกลุ่มถือเป็น KOL เพราะเป็นค่าที่ทีมใช้เป็นหลัก
 const kindOf = r => (r && (r.kind || "").toUpperCase() === "KOC") ? "KOC" : "KOL";
-const blockForKind = (b, k) => !b.kind || b.kind === k;
+// ─── ใครได้กล่องเรื่องเงินบ้าง ───
+// เดิมกรองด้วยกลุ่ม KOL/KOC ซึ่งใช้ไม่ได้จริง — KOC ที่ตกลงเป็นเงินสดก็ต้องคอนเฟิร์มเรท
+// ถามรูปแบบชำระ และทำเอกสารหัก ณ ที่จ่ายเหมือนกันทุกอย่าง แต่กลับไม่ได้กล่องพวกนั้นเลย
+// ตัวตัดสินจริงคือ "มีเรทที่ต้องจ่ายไหม" ไม่ใช่ป้ายกลุ่ม
+const hasPayRate = r => Number(r && r.rate) > 0;
+// pay:true = เฉพาะคนมีเรทชำระ · pay:false = เฉพาะคนไม่มีเรท (ดีลแบบ Barter/คอมมิชชันล้วน)
+// ไม่ระบุ = ได้ทุกคน · kind ยังรองรับอยู่เผื่อบล็อกที่ทีมเพิ่มเองเคยตั้งไว้
+const blockForPay = (b, paid, k) =>
+  (b.pay == null || b.pay === paid) && (!b.kind || b.kind === k);
 
 // เขียนทับเฉพาะคนนี้ — เหมือนต้นแบบเป๊ะเมื่อไหร่ก็ถอดออก ไม่เก็บของซ้ำ
 function setCmdOwnBlock(proj, handle, rawId, key, val){
@@ -5762,6 +5797,8 @@ function renderCmdEditor(proj, handle){
     list.map((b, i) => `<div class="cmdblk${(mine ? b.mine : b.edited) ? " edited" : ""}${
       b.hidden ? " hiddenblk" : ""}">
       <header><span class="no">${i+1}</span>
+        ${b.pay != null ? `<span class="kindtag">${
+          b.pay ? "เฉพาะคนมีเรทชำระ" : "เฉพาะคนไม่มีเรทชำระ"}</span>` : ""}
         ${b.kind ? `<span class="kindtag">เฉพาะ ${esc(b.kind)}</span>` : ""}
         ${b.custom ? `<span class="kindtag add">เพิ่มเอง</span>` : ""}
         ${b.hidden ? `<span class="kindtag off">ซ่อนอยู่</span>` : ""}
@@ -5913,8 +5950,9 @@ function openCmd(proj, handle){
   const clipDocs = new Set();          // เอกสารชนิดไหนบ้างที่ต้องมีชุดของคลิป 2, 3, …
   // เอาเฉพาะบล็อกของกลุ่มนี้ แล้วเรียงตามที่ควรเห็น (ord ทับลำดับดิบได้)
   const K = kindOf(r);
+  const paid = hasPayRate(r);
   cmdBlocksFor(proj, handle)
-    .filter(bl => blockForKind(bl, K))
+    .filter(bl => blockForPay(bl, paid, K))
     .forEach(bl => {
     const id = bl.id;
     if (bl.clip) (bl.b.match(/\{\{(\w+)\}\}/g) || [])
@@ -6351,12 +6389,15 @@ function mapFlags(r){
   if (mapClosed(r)) return [];
   const koc = kindOf(r) === "KOC";
   const f = [];
-  // KOC ไม่ผ่านขั้นตอนหักภาษี/ทำจ่าย — ทวงรูปแบบภาษีคือทวงของที่ไม่ได้ใช้
-  if (koc){
+  // ถามตาม "มีเรทชำระไหม" ให้ตรงกับตัวกรองของ Command — ไม่ใช่ถามตามกลุ่ม KOL/KOC
+  // KOC ที่ตกลงเป็นเงินสดก็ต้องเลือกรูปแบบภาษี เพราะเขาได้กล่องทำจ่ายเหมือนกันแล้ว
+  // ถ้าปล่อยให้ยึดกลุ่มไว้ แผนผังจะทวง Commission ทั้งที่ Command กำลังถามรูปแบบภาษีอยู่
+  if (hasPayRate(r)){
+    if (!r.paytype) f.push("ไม่ได้เลือกรูปแบบภาษี");
+  } else if (koc){
     if (!String(r.commission || "").trim()) f.push("ไม่มี Commission");
   } else {
-    if (r.rate == null) f.push("ไม่มีเรท");
-    if (!r.paytype) f.push("ไม่ได้เลือกรูปแบบภาษี");
+    f.push("ไม่มีเรท");
   }
   if ((r.rate_all || []).length > 1) f.push("เรทไม่ตรงกันในชีต");
   if (!String(r.sku || "").trim()) f.push("ไม่มี SKU");
@@ -6737,14 +6778,14 @@ function mapGapSheet(proj){
   const rows = mapRows(proj);
   if (!rows.length) return `<div class="mapempty">${esc(proj)} ยังไม่มี${MAP_KIND === "all" ? "ใคร" : MAP_KIND} ในโปรเจกต์นี้</div>`;
   const groups = [
-    { th:"ไม่มีเรท (KOL)", why:"ยังตกลงราคาไม่ได้ หรือชีตยังไม่ได้กรอก — คิดยอดจ่ายไม่ได้",
-      fix:"/rate", test:r => kindOf(r) !== "KOC" && r.rate == null },
-    { th:"KOC ยังไม่มี Commission", why:"ข้อความคอนเฟิร์มของ KOC อ่านส่วนแบ่งจากช่องนี้ ว่างอยู่จะส่งไม่ได้",
-      fix:"/comm", test:r => kindOf(r) === "KOC" && !String(r.commission || "").trim() },
+    { th:"ไม่มีเรท และไม่ใช่ดีล Commission", why:"ยังตกลงราคาไม่ได้ หรือชีตยังไม่ได้กรอก — คิดยอดจ่ายไม่ได้",
+      fix:"/rate", test:r => !hasPayRate(r) && kindOf(r) !== "KOC" },
+    { th:"ไม่มีเรทและไม่มี Commission", why:"ข้อความคอนเฟิร์มของคนที่ไม่มีเรทอ่านส่วนแบ่งจากช่องนี้ ว่างอยู่จะส่งไม่ได้",
+      fix:"/comm", test:r => !hasPayRate(r) && kindOf(r) === "KOC" && !String(r.commission || "").trim() },
     { th:"เรทในชีตไม่ตรงกัน", why:"เจอหลายค่าในชีตสำหรับคนเดียวกัน ต้องเลือกให้ชัดก่อนทำจ่าย",
       fix:"/rate", test:r => (r.rate_all || []).length > 1 },
-    { th:"ไม่ได้เลือกรูปแบบภาษี (KOL)", why:"คิดยอดที่บริษัทจ่ายจริงไม่ได้ และออกเอกสารไม่ได้",
-      fix:"/pay", test:r => kindOf(r) !== "KOC" && !r.paytype },
+    { th:"มีเรทแต่ยังไม่ได้เลือกรูปแบบภาษี", why:"คิดยอดที่บริษัทจ่ายจริงไม่ได้ และออกเอกสารไม่ได้",
+      fix:"/pay", test:r => hasPayRate(r) && !r.paytype },
     { th:"ไม่มี SKU", why:"ไม่รู้ว่าส่งของอะไรให้ และเลือกคู่มือถ่ายทำไม่ได้",
       fix:"/sku", test:r => !String(r.sku || "").trim() },
     { th:"SKU นี้ยังไม่มีคู่มือถ่ายทำ", why:"มี SKU แล้วแต่ยังไม่ได้ผูกคู่มือของไลน์นั้นไว้",
