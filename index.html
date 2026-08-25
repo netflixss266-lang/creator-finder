@@ -184,6 +184,12 @@ body[data-view="home"] .srcchip{display:none}
   color:var(--dim);font-family:inherit;font-size:.8rem;padding:8px}
 .lockcancel[hidden]{display:none}
 .lockcancel:hover{color:var(--mute);text-decoration:underline}
+/* สลับระหว่างเข้าสู่ระบบกับสมัคร — เด่นกว่าปุ่มยกเลิก เพราะเป็นทางที่คนใหม่ต้องใช้ */
+.lockswap{display:block;width:100%;margin-top:12px;background:none;
+  border:1px solid var(--line);border-radius:8px;
+  color:var(--accent);font-family:inherit;font-size:.84rem;font-weight:600;padding:9px}
+.lockswap[hidden]{display:none}
+.lockswap:hover{border-color:var(--accent);background:rgba(var(--accent-rgb),.1)}
 .lockmsg{font-size:.82rem;margin-top:11px;min-height:1.2em}
 .lockmsg.err{color:var(--lo)}
 .lockmsg.busy{color:var(--mute)}
@@ -1602,12 +1608,16 @@ tr.subrow td.w-status select{width:14.6em}
     <p class="lockhint" id="lockHint"></p>
     <div class="pin" id="lockPin" hidden></div>
     <input id="lockEmail" type="email" autocomplete="username" placeholder="อีเมล" class="lockemail" hidden>
+    <!-- ชื่อที่จะโชว์ในทีม — ใช้เฉพาะตอนสมัคร ว่างได้ เดี๋ยวตัดจากอีเมลให้เอง -->
+    <input id="lockName" type="text" autocomplete="name" placeholder="ชื่อที่ให้ทีมเห็น (เว้นว่างได้)"
+           class="lockemail" hidden>
     <div class="pwrow" id="lockPwRow">
       <input id="lockPw" type="password" autocomplete="current-password" placeholder="รหัสผ่าน">
       <button type="button" class="eye" id="lockEye" aria-label="ดู/ซ่อนรหัส"
               title="ดู/ซ่อนรหัส">👁</button>
     </div>
     <button class="run" type="submit" id="lockGo">เข้าใช้งาน</button>
+    <button type="button" class="lockswap" id="lockSwap" hidden>ยังไม่มีบัญชี — สมัครที่นี่</button>
     <button type="button" class="lockcancel" id="lockCancel" hidden>ไม่รู้รหัส — กลับหน้าแรก</button>
     <div class="lockmsg" id="lockMsg"></div>
   </form>
@@ -7260,17 +7270,41 @@ async function sbAddCreator(it){
 }
 
 // แสดงกล่อง login (อีเมล+รหัส) — คืนค่าเมื่อเข้าสำเร็จเท่านั้น ประตูหน้าเว็บไม่มีทางถอย
+// สมัครสมาชิกเอง — สิทธิ์ที่ได้ถูกกำหนดโดย trigger ฝั่งฐานข้อมูล (handle_new_auth_user)
+// ไม่ได้ส่งมาจากหน้าเว็บ ต่อให้แก้โค้ดหน้านี้ให้ส่ง role:'admin' ไปก็ไม่มีผล
+// ส่งไปแค่ชื่อที่จะให้ทีมเห็น ที่เหลือฝั่งเซิร์ฟเวอร์ตัดสินเองทั้งหมด
+async function sbSignUp(email, password, displayName){
+  const body = { email, password };
+  if (displayName) body.data = { display_name: displayName };
+  const r = await fetch(SB_URL + "/auth/v1/signup",
+    { method:"POST", headers: sbHeaders(false), body: JSON.stringify(body) });
+  const j = await r.json().catch(() => ({}));
+  if (!r.ok) throw new Error(j.error_description || j.msg || j.error || `สมัครไม่สำเร็จ (${r.status})`);
+  // ปิดยืนยันอีเมลไว้ = ได้ session กลับมาเลย · ถ้าเปิดไว้จะยังไม่มี ต้องไปกดลิงก์ในเมลก่อน
+  if (j.access_token) sbStore(j);
+  return j;
+}
+
+let LOCK_MODE = "login";        // login | signup
 function askLogin(){
-  $("#lockTitle").textContent = "เข้าสู่ระบบ";
-  $("#lockHint").textContent  = "Creator Finder — ใช้อีเมลและรหัสผ่านของทีม";
+  const signup = LOCK_MODE === "signup";
+  $("#lockTitle").textContent = signup ? "สมัครใช้งาน" : "เข้าสู่ระบบ";
+  $("#lockHint").textContent  = signup
+    ? "สมัครเองได้เลย ไม่ต้องรอแอดมินเพิ่มให้ — สมัครเสร็จเข้าใช้งานได้ทันที"
+    : "Creator Finder — ใช้อีเมลและรหัสผ่านของทีม";
   $("#lockPin").hidden = true;
   $("#lockEmail").hidden = false;
+  $("#lockName").hidden = !signup;
   $("#lockPwRow").hidden = false;
   $("#lockCancel").hidden = true;
+  $("#lockSwap").hidden = false;
+  $("#lockSwap").textContent = signup ? "มีบัญชีอยู่แล้ว — เข้าสู่ระบบ" : "ยังไม่มีบัญชี — สมัครที่นี่";
   $("#lockEmail").value = "";
+  $("#lockName").value = "";
   $("#lockPw").value = "";
-  $("#lockPw").placeholder = "รหัสผ่าน";
-  $("#lockGo").textContent = "เข้าสู่ระบบ";
+  $("#lockPw").placeholder = signup ? "ตั้งรหัสผ่าน (อย่างน้อย 10 ตัว)" : "รหัสผ่าน";
+  $("#lockPw").autocomplete = signup ? "new-password" : "current-password";
+  $("#lockGo").textContent = signup ? "สมัครและเข้าใช้งาน" : "เข้าสู่ระบบ";
   $("#lockMsg").className = "lockmsg";
   $("#lockMsg").textContent = "";
   $("#lockView").hidden = false;
@@ -7280,6 +7314,11 @@ function askLogin(){
   return new Promise(resolve => {
     $("#lockEye").onclick = () => { GATE_SHOW = !GATE_SHOW; applyGateShow(); };
     $("#lockCancel").onclick = null;
+    // สลับโหมดแล้ววาดใหม่ แต่ต้องส่งต่อ resolve ตัวเดิม ไม่งั้นคนที่รอ requireLogin อยู่จะค้าง
+    $("#lockSwap").onclick = () => {
+      LOCK_MODE = signup ? "login" : "signup";
+      askLogin().then(resolve);
+    };
     $("#lockForm").onsubmit = async e => {
       e.preventDefault();
       const email = $("#lockEmail").value.trim();
@@ -7287,19 +7326,26 @@ function askLogin(){
       if (!email || !pw) return;
       $("#lockGo").disabled = true;
       $("#lockMsg").className = "lockmsg busy";
-      $("#lockMsg").textContent = "กำลังเข้าสู่ระบบ...";
+      $("#lockMsg").textContent = signup ? "กำลังสมัคร..." : "กำลังเข้าสู่ระบบ...";
       try {
-        await sbLogin(email, pw);
+        if (signup){
+          await sbSignUp(email, pw, $("#lockName").value.trim());
+          // ยังไม่ได้ session = ระบบตั้งให้ต้องยืนยันอีเมลก่อน ล็อกอินต่อทันทีไม่ได้
+          if (!SESSION) throw new Error("สมัครแล้ว — เปิดอีเมลกดยืนยันก่อน แล้วค่อยเข้าสู่ระบบ");
+        } else {
+          await sbLogin(email, pw);
+        }
         const p = await sbProfile();
         if (!p) throw new Error("เข้าสู่ระบบได้ แต่ยังไม่มีสิทธิ์ใช้งาน — ติดต่อแอดมิน");
         if (!p.is_active){ await sbLogout(); throw new Error("บัญชีนี้ถูกระงับการใช้งาน"); }
         $("#lockGo").disabled = false;
         $("#lockView").hidden = true;
+        LOCK_MODE = "login";
         resolve(true);
       } catch(err){
         $("#lockGo").disabled = false;
         $("#lockMsg").className = "lockmsg err";
-        $("#lockMsg").textContent = (err && err.message) || "เข้าสู่ระบบไม่สำเร็จ";
+        $("#lockMsg").textContent = (err && err.message) || (signup ? "สมัครไม่สำเร็จ" : "เข้าสู่ระบบไม่สำเร็จ");
         $("#lockPw").select();
       }
     };
