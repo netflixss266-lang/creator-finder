@@ -511,12 +511,14 @@ body:not([data-view="coord"]) #gearBtn{display:none}
 .ctable select.pay.p-wht{border-left-color:var(--info);color:var(--info)}
 .ctable select.pay.p-net{border-left-color:var(--accent);color:var(--accent)}
 .ctable select.pay.p-vat{border-left-color:var(--hi);color:var(--hi)}
+.ctable select.pay.p-full{border-left-color:var(--warn);color:var(--warn)}
 .paydot{display:inline-block;width:9px;height:9px;border-radius:50%;flex:none;
   margin-right:6px;vertical-align:middle}
 .paydot.p-none{background:var(--line)}
 .paydot.p-wht{background:var(--info)}
 .paydot.p-net{background:var(--accent)}
 .paydot.p-vat{background:var(--hi)}
+.paydot.p-full{background:var(--warn)}
 /* สีในลิสต์ตัวเลือกของ dropdown ภาษี — เห็นสีตั้งแต่ตอนกางเลือก */
 .ctable select.pay option{background:var(--surface2)}
 .ctable select.pay option[value=""]{color:var(--dim)}
@@ -529,6 +531,7 @@ body:not([data-view="coord"]) #gearBtn{display:none}
 .ctable select.pay.p-wht{background:rgba(var(--info-rgb),.1)}
 .ctable select.pay.p-net{background:rgba(var(--accent-rgb),.1)}
 .ctable select.pay.p-vat{background:rgba(var(--hi-rgb),.1)}
+.ctable select.pay.p-full{background:rgba(var(--warn-rgb),.1)}
 
 /* สีของงาน */
 .tag.job{font-weight:600;border-width:1px}
@@ -3213,6 +3216,11 @@ const PAYTYPES = [
     alias:/(?:หัก(?:\s*ณ\s*ที่จ่าย)?|ชำระ|จ่าย|wht)\s*3\s*%?/i },
   { id:"net",     label:"จ่าย NET (เราออกภาษีให้)",       f:r => r,          cost:r => r / 0.97,
     alias:/\bNET\b|เน็ต/i },
+  // ไม่หัก ณ ที่จ่ายเลย — ครีเอเตอร์รับเต็ม และบริษัทก็จ่ายเท่าเรทพอดี ไม่มีภาษีเข้ามาเกี่ยว
+  // ต่างจาก NET ตรงที่ NET บริษัทออกภาษีให้ ต้นทุนจึงสูงกว่าเรท (rate/0.97) — อันนี้ไม่มีส่วนต่าง
+  // วางไว้หลัง wht3 เพราะตัวหลังทับตัวหน้า: "ไม่หัก ณ ที่จ่าย 3%" ต้องออกมาเป็นไม่หัก ไม่ใช่หัก
+  { id:"nowht",   label:"ไม่หัก ณ ที่จ่าย (จ่ายเต็ม)",     f:r => r,
+    alias:/ไม่\s*หัก(?:\s*ณ\s*ที่จ่าย)?|no\s*-?\s*wht|ไม่มี\s*wht|ไม่\s*มี\s*หัก/i },
   { id:"corpvat", label:"นิติบุคคล จด VAT (+7% −3%)",     f:r => r * 1.04,
     alias:/นิติ(?:บุคคล)?[^\n]{0,10}(?<!ไม่)จด\s*VAT/i },
   { id:"corp",    label:"นิติบุคคล ไม่จด VAT (−3%)",      f:r => r * 0.97,
@@ -3223,9 +3231,11 @@ const PAYTYPES = [
     alias:/บุคคล\s*ธรรมดา[^\n]{0,10}ไม่\s*จด\s*VAT/i },
 ];
 const payType = id => PAYTYPES.find(p => p.id === (id || "")) || PAYTYPES[0];
-// จัดกลุ่มสี: ไม่เลือก / หัก 3% ล้วน / NET / มี VAT
+// จัดกลุ่มสี: ไม่เลือก / หัก 3% ล้วน / NET / มี VAT / ไม่หักเลย
+// ไม่หักเลยต้องมีสีของตัวเอง ไม่ใช่ไปรวมกับกลุ่มหัก 3% — กวาดตาดูคอลัมน์แล้วต้องแยกออกทันที
+// ว่าใครไม่มีภาษีเกี่ยวข้อง เพราะเอกสารที่ต้องเตรียมคนละชุดกัน
 const PAY_CLASS = { "":"p-none", wht3:"p-wht", corp:"p-wht", pers:"p-wht",
-                    net:"p-net", corpvat:"p-vat", persvat:"p-vat" };
+                    net:"p-net", corpvat:"p-vat", persvat:"p-vat", nowht:"p-full" };
 const payClass = id => PAY_CLASS[id || ""] || "p-none";
 
 // คืน null ถ้าคำนวณไม่ได้ ดีกว่าโชว์เลขที่ไม่มีที่มา
