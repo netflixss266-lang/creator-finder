@@ -2285,6 +2285,17 @@ tr.subrow td.w-status select{width:14.6em}
       <div class="addmsg" id="aiMsg"></div>
     </details>
 
+    <details class="sect" id="usersSect">
+      <summary><h3>คนที่เข้าใช้เว็บนี้</h3></summary>
+      <p class="sect-sub">
+        ใครสมัครเองก็ขึ้นตรงนี้ — เรียงตามคนที่เข้าใช้ล่าสุด
+        <br><span style="color:var(--dim)">สมัครใหม่จะได้สิทธิ์ <b>editor</b> (เพิ่ม/แก้ครีเอเตอร์ได้ แต่ลบไม่ได้)
+        · เปลี่ยนสิทธิ์หรือระงับบัญชีทำที่ Supabase Dashboard → Table editor → app_users</span>
+      </p>
+      <button type="button" class="export" id="usersReload">โหลดรายชื่อ</button>
+      <div id="usersList"></div>
+    </details>
+
     <details class="sect" id="accentSect">
       <summary><h3>สีหลักของเว็บ</h3></summary>
       <p class="sect-sub">
@@ -7174,6 +7185,14 @@ async function sbLogout(){
   catch(e){}
   saveSession(null); PROFILE = null;
 }
+// บันทึกว่าเข้าใช้เมื่อไหร่ — ผ่านฟังก์ชันฝั่งฐานข้อมูลที่แก้ได้เฉพาะแถวของคนที่เรียกเอง
+// เขียนตรงจากหน้าเว็บไม่ได้ (นโยบายให้แอดมินแก้ตารางนี้เท่านั้น) และไม่ควรได้ด้วย
+// ไม่งั้นเปิดช่องให้แก้ role ของตัวเองไปพร้อมกัน
+// ล้มก็ปล่อยผ่าน — พลาดเวลาเข้าใช้ไปครั้งนึงไม่ใช่เหตุให้ล็อกอินไม่สำเร็จ
+async function sbTouchSeen(){
+  try { await sbAuthed(SB_URL + "/rest/v1/rpc/touch_last_seen", { method:"POST", body:"{}" }); }
+  catch(e){}
+}
 async function sbProfile(){
   if (!SESSION || !SESSION.user) return null;
   const uid = SESSION.user.id;
@@ -7338,6 +7357,7 @@ function askLogin(){
         const p = await sbProfile();
         if (!p) throw new Error("เข้าสู่ระบบได้ แต่ยังไม่มีสิทธิ์ใช้งาน — ติดต่อแอดมิน");
         if (!p.is_active){ await sbLogout(); throw new Error("บัญชีนี้ถูกระงับการใช้งาน"); }
+        sbTouchSeen();                       // ไม่ต้องรอ ไม่ให้ถ่วงการเข้าใช้งาน
         $("#lockGo").disabled = false;
         $("#lockView").hidden = true;
         LOCK_MODE = "login";
@@ -7357,7 +7377,7 @@ async function requireLogin(){
   loadSession();
   if (await sbValidSession()){
     const p = await sbProfile();
-    if (p && p.is_active) return true;
+    if (p && p.is_active){ sbTouchSeen(); return true; }
     await sbLogout();     // session ค้างแต่บัญชีถูกระงับ/ลบสิทธิ์ → ล้างแล้วขอใหม่
   }
   return await askLogin();
@@ -8542,6 +8562,44 @@ $("#resetSheets").onclick = () => {
   saveSheets(); renderSheetList(); renderKindTabs(); renderSheetSelect(); selectSheet();
 };
 
+// ─── ใครเข้าใช้เว็บนี้บ้าง ───
+// อ่านจาก app_users ตรงๆ — นโยบายฝั่งฐานข้อมูลให้คนที่ล็อกอินแล้วอ่านรายชื่อได้
+// ไม่ได้เก็บประวัติทุกครั้งที่เข้า เก็บแค่ครั้งล่าสุด (ประวัติเต็มดูได้ที่ Dashboard → Authentication)
+const seenText = t => {
+  if (!t) return "ยังไม่เคยเข้า";
+  const d = new Date(t), diff = (Date.now() - d.getTime()) / 60000;
+  if (diff < 1) return "เมื่อสักครู่";
+  if (diff < 60) return `${Math.floor(diff)} นาทีที่แล้ว`;
+  if (diff < 1440) return `${Math.floor(diff / 60)} ชม.ที่แล้ว`;
+  if (diff < 43200) return `${Math.floor(diff / 1440)} วันที่แล้ว`;
+  return d.toLocaleDateString("th-TH", { day:"numeric", month:"short", year:"2-digit" });
+};
+async function renderUsers(){
+  const box = $("#usersList");
+  if (!box) return;
+  box.innerHTML = `<p class="hint">กำลังโหลด...</p>`;
+  try {
+    const r = await sbAuthed(SB_URL +
+      "/rest/v1/app_users?select=email,display_name,role,is_active,created_at,last_seen_at" +
+      "&order=last_seen_at.desc.nullslast", { cache:"no-store" });
+    if (!r.ok) throw new Error("HTTP " + r.status);
+    const rows = await r.json();
+    box.innerHTML = rows.length ? rows.map(u => `<div class="skugrow">
+        <b>${esc(u.display_name || "(ไม่มีชื่อ)")}</b>
+        <span class="n${u.is_active ? "" : " none"}">${u.is_active ? esc(u.role) : "ถูกระงับ"}</span>
+        <span style="flex:1;min-width:12em;font-size:.82rem;color:var(--mute);
+          font-family:'IBM Plex Mono',monospace;overflow:hidden;text-overflow:ellipsis"
+          >${esc(u.email || "—")}</span>
+        <span style="font-size:.78rem;color:var(--dim);white-space:nowrap"
+          title="สมัคร ${esc(new Date(u.created_at).toLocaleString("th-TH"))}"
+          >เข้าใช้ ${esc(seenText(u.last_seen_at))}</span>
+      </div>`).join("")
+      : `<p class="hint">ยังไม่มีใครในระบบ</p>`;
+  } catch(e){
+    box.innerHTML = `<p class="hint" style="color:var(--lo)">โหลดไม่สำเร็จ — ${esc(e.message || "")}</p>`;
+  }
+}
+
 // ─── สีหลักของเว็บ ───
 // เก็บแค่ค่าเดียว ที่เหลือคำนวณเอาทั้งหมด — เว็บทั้งหน้าอ่านจาก --accent / --accent-rgb / --accent-ink
 const LS_ACCENT = "cf_accent_v1";
@@ -8621,6 +8679,9 @@ applyAccent(ACCENT);
 $("#accentPick").oninput = e => { applyAccent(e.target.value); renderAccent(); };
 $("#accentPick").onchange = e => { applyAccent(e.target.value); saveAccent(); renderAccent(); };
 $("#accentReset").onclick = () => { applyAccent(ACCENT_DEFAULT); saveAccent(); renderAccent(); };
+// โหลดเมื่อกดเท่านั้น ไม่ยิงตอนเปิดตั้งค่า — คนส่วนใหญ่เปิดมาทำอย่างอื่น
+$("#usersReload").onclick = renderUsers;
+$("#usersSect").addEventListener("toggle", function(){ if (this.open) renderUsers(); });
 
 // ─── ขนาดตัวอักษร ───
 const UI_SIZES = [["เล็ก", 15], ["ปกติ", 17], ["ใหญ่", 19], ["ใหญ่มาก", 21]];
