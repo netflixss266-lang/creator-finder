@@ -764,6 +764,29 @@ tr.dropover td{border-top:2px solid var(--accent)}
 .sgunder span.none{background:none;border:0;color:var(--warn);padding-left:0}
 #sgBulkText{width:100%;font-size:.82rem;font-family:'IBM Plex Mono',monospace;line-height:1.6}
 
+/* ── เลือกสีหลักเอง ── */
+.accrow{display:flex;align-items:center;gap:14px;flex-wrap:wrap;margin-bottom:12px}
+/* วงสีของระบบ — ทำให้เป็นวงกลมใหญ่พอกดง่าย ไม่ใช่ช่องสี่เหลี่ยมจิ๋วตามค่าเริ่มต้นของเบราว์เซอร์ */
+#accentPick{width:56px;height:56px;padding:0;border:2px solid var(--line);border-radius:50%;
+  background:none;cursor:pointer;flex:none}
+#accentPick::-webkit-color-swatch-wrapper{padding:3px}
+#accentPick::-webkit-color-swatch{border:0;border-radius:50%}
+#accentPick::-moz-color-swatch{border:0;border-radius:50%}
+#accentPick:hover{border-color:var(--accent)}
+.accnow{flex:1;min-width:12em;display:flex;flex-direction:column;gap:7px}
+.accnow b{font-family:'IBM Plex Mono',monospace;font-size:.95rem;color:var(--ink)}
+.accdemo{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.accdemo .run{width:auto;padding:7px 16px;font-size:.82rem;margin:0}
+.accdot{width:14px;height:14px;border-radius:50%;background:var(--accent);flex:none}
+.acctext{color:var(--accent);font-weight:700;font-size:.86rem}
+.accswatches{display:flex;gap:9px;flex-wrap:wrap}
+.accsw{width:auto;background:none;border:1px solid var(--line);border-radius:9px;
+  padding:7px 9px 6px;display:flex;flex-direction:column;align-items:center;gap:5px;
+  color:var(--mute);font-size:.7rem;font-family:'IBM Plex Mono',monospace;cursor:pointer}
+.accsw i{width:34px;height:34px;border-radius:8px;display:block}
+.accsw:hover{border-color:var(--accent);color:var(--accent)}
+.accsw.on{border-color:var(--accent);color:var(--accent);background:rgba(var(--accent-rgb),.1)}
+
 .paycell{display:flex;align-items:center}
 .ctable td.vid{text-align:center}
 .ctable td.vid input{width:3.6em;text-align:center;
@@ -2250,6 +2273,28 @@ tr.subrow td.w-status select{width:14.6em}
       </div>
       <button class="run" id="aiTest">บันทึกแล้วทดสอบ</button>
       <div class="addmsg" id="aiMsg"></div>
+    </details>
+
+    <details class="sect" id="accentSect">
+      <summary><h3>สีหลักของเว็บ</h3></summary>
+      <p class="sect-sub">
+        กดวงสีเพื่อเลือกเองได้เลย หรือกดสีสำเร็จรูปด้านล่าง — เปลี่ยนแล้วเห็นผลทันทีทั้งเว็บ
+        <br><span style="color:var(--dim)">ตัวเลขใต้สีคือ contrast บนพื้นดำ · ยิ่งสูงยิ่งอ่านสบาย
+        เกณฑ์อ่านง่ายคือ 4.5 ขึ้นไป · สีตัวหนังสือบนปุ่มระบบเลือกให้เองตามความสว่างของสีที่เลือก</span>
+      </p>
+      <div class="accrow">
+        <input type="color" id="accentPick" aria-label="เลือกสีหลัก">
+        <div class="accnow">
+          <div><b id="accentHex">#2DD4BF</b> <span id="accentMeta" class="hint"></span></div>
+          <div class="accdemo">
+            <button type="button" class="run" id="accentDemo">ปุ่มหลัก</button>
+            <span class="accdot"></span><span class="acctext">ตัวหนังสือสีหลัก</span>
+          </div>
+        </div>
+        <button type="button" class="export" id="accentReset">คืนค่าตั้งต้น</button>
+      </div>
+      <div class="accswatches" id="accentSwatches"></div>
+      <div class="addmsg" id="accentWarn"></div>
     </details>
 
     <details class="sect">
@@ -7790,6 +7835,7 @@ function setMsg(text, kind){
 function openSettings(){
   renderSheetList();
   renderSkuGuide();
+  renderAccent();
   $("#addMsg").className = "addmsg";
   $("#settings").hidden = false;
 }
@@ -8449,6 +8495,86 @@ $("#resetSheets").onclick = () => {
   SHEETS = DEFAULT_SHEETS.map(s => Object.assign({}, s));
   saveSheets(); renderSheetList(); renderKindTabs(); renderSheetSelect(); selectSheet();
 };
+
+// ─── สีหลักของเว็บ ───
+// เก็บแค่ค่าเดียว ที่เหลือคำนวณเอาทั้งหมด — เว็บทั้งหน้าอ่านจาก --accent / --accent-rgb / --accent-ink
+const LS_ACCENT = "cf_accent_v1";
+const ACCENT_DEFAULT = "#2DD4BF";
+const hex2rgb = h => { const s = String(h).replace("#", "");
+  return [0, 2, 4].map(i => parseInt(s.slice(i, i + 2), 16)); };
+// ความสว่างตามสูตร WCAG — ใช้ตัดสินทั้ง contrast และสีตัวหนังสือบนปุ่ม
+const relLum = h => { const [r, g, b] = hex2rgb(h).map(v => {
+    const c = v / 255; return c <= 0.03928 ? c / 12.92 : Math.pow((c + 0.055) / 1.055, 2.4); });
+  return 0.2126 * r + 0.7152 * g + 0.0722 * b; };
+const contrast = (a, b) => { const l1 = relLum(a), l2 = relLum(b);
+  return (Math.max(l1, l2) + 0.05) / (Math.min(l1, l2) + 0.05); };
+const hueOf = h => { let [r, g, b] = hex2rgb(h).map(v => v / 255);
+  const mx = Math.max(r, g, b), mn = Math.min(r, g, b), d = mx - mn;
+  if (!d) return 0;
+  const x = mx === r ? ((g - b) / d + (g < b ? 6 : 0)) : mx === g ? ((b - r) / d + 2) : ((r - g) / d + 4);
+  return Math.round(x * 60); };
+// ระยะสีเชิงมุม วนครบ 360 — 350° กับ 10° ห่างกันแค่ 20 ไม่ใช่ 340
+const hueGap = (a, b) => { const d = Math.abs(a - b) % 360; return d > 180 ? 360 - d : d; };
+
+// สีสำเร็จรูป — คัดมาเฉพาะตัวที่ contrast บนพื้นดำเกินเกณฑ์ และไม่ไปทับความหมายของสีสถานะ
+const ACCENT_PRESETS = [
+  ["#2DD4BF", "มิ้นต์"], ["#22D3EE", "ฟ้าน้ำทะเล"], ["#A78BFA", "ม่วงอ่อน"],
+  ["#F472B6", "ชมพู"],   ["#FBBF24", "เหลืองทอง"],  ["#4ADE80", "เขียวอ่อน"],
+  ["#E50914", "แดง Netflix (เดิม)"],
+];
+// สีที่มีความหมายประจำอยู่แล้ว — เลือกสีหลักใกล้ตัวไหนจะเตือน ไม่ได้ห้าม
+const ACCENT_TAKEN = [["#FF5C5C", "ข้อมูลผิด"], ["#46D369", "เสร็จแล้ว"],
+                      ["#F5B546", "รอดำเนินการ"], ["#7EB6FF", "หัก ณ ที่จ่าย"]];
+
+let ACCENT = ACCENT_DEFAULT;
+function applyAccent(hex){
+  const h = /^#[0-9a-f]{6}$/i.test(hex || "") ? hex : ACCENT_DEFAULT;
+  ACCENT = h;
+  const st = document.documentElement.style;
+  st.setProperty("--accent", h);
+  st.setProperty("--accent-rgb", hex2rgb(h).join(","));
+  // ตัวหนังสือบนปุ่มพื้นสีหลัก — เลือกฝั่งที่อ่านชัดกว่าเอง
+  // ตายตัวเป็นขาวไม่ได้ สีสว่างอย่างมิ้นต์/เหลืองจะได้ contrast แค่ ~1.9 คืออ่านไม่ออกเลย
+  st.setProperty("--accent-ink", contrast("#FFFFFF", h) >= contrast("#06231F", h) ? "#FFFFFF" : "#06231F");
+}
+function saveAccent(){ try { localStorage.setItem(LS_ACCENT, ACCENT); } catch(e){} }
+
+function renderAccent(){
+  const box = $("#accentSwatches");
+  if (!box) return;
+  const c = contrast(ACCENT, "#0B0B0B");
+  $("#accentPick").value = ACCENT;
+  $("#accentHex").textContent = ACCENT.toUpperCase();
+  $("#accentMeta").innerHTML = `contrast <b style="color:${
+    c >= 4.5 ? "var(--hi)" : "var(--lo)"}">${c.toFixed(2)}</b> บนพื้นดำ` +
+    (c >= 4.5 ? "" : ` — <span style="color:var(--lo)">ต่ำกว่าเกณฑ์ อ่านยาก</span>`);
+  box.innerHTML = ACCENT_PRESETS.map(([v, name]) =>
+    `<button type="button" class="accsw${v.toLowerCase() === ACCENT.toLowerCase() ? " on" : ""}"
+       data-acc="${v}" title="${esc(name)} — contrast ${contrast(v, "#0B0B0B").toFixed(2)}"
+       ><i style="background:${v}"></i>${esc(name)}</button>`).join("");
+  box.querySelectorAll("[data-acc]").forEach(b => b.onclick = () => {
+    applyAccent(b.dataset.acc); saveAccent(); renderAccent();
+  });
+  // เตือนเมื่อสีหลักไปใกล้สีที่มีความหมายอยู่แล้ว — ไม่ได้ห้าม แค่บอกว่าจะสับสนกับอะไร
+  const near = ACCENT_TAKEN
+    .map(([v, what]) => ({ what, gap: hueGap(hueOf(ACCENT), hueOf(v)) }))
+    .filter(x => x.gap < 25).sort((a, b) => a.gap - b.gap);
+  const warn = $("#accentWarn");
+  warn.className = near.length ? "addmsg on err" : "addmsg";
+  warn.innerHTML = near.length
+    ? `สีนี้ใกล้กับสี “${esc(near[0].what)}” มาก (ห่างกัน ${near[0].gap}°) — ` +
+      `เวลากวาดตาดูอาจแยกไม่ออกว่าอันไหนคือปุ่ม อันไหนคือสถานะ`
+    : "";
+}
+
+try { const v = localStorage.getItem(LS_ACCENT); if (v) ACCENT = v; } catch(e){}
+applyAccent(ACCENT);
+
+// input จะยิง input ถี่มากระหว่างลากในวงสี — ทาสีทันทีให้เห็นผลสด แต่เพิ่งบันทึกตอนปล่อย
+// บันทึกทุกครั้งที่ขยับ = เขียน localStorage เป็นร้อยครั้งต่อการเลือกสีหนึ่งครั้ง
+$("#accentPick").oninput = e => { applyAccent(e.target.value); renderAccent(); };
+$("#accentPick").onchange = e => { applyAccent(e.target.value); saveAccent(); renderAccent(); };
+$("#accentReset").onclick = () => { applyAccent(ACCENT_DEFAULT); saveAccent(); renderAccent(); };
 
 // ─── ขนาดตัวอักษร ───
 const UI_SIZES = [["เล็ก", 15], ["ปกติ", 17], ["ใหญ่", 19], ["ใหญ่มาก", 21]];
