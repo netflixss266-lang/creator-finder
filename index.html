@@ -5537,7 +5537,7 @@ function fbCount(proj, handle, clips){
 // {{key?}} = ไม่มีค่าก็ไม่เป็นไร — ทั้งบรรทัดหายไปเงียบๆ ไม่ขึ้นช่องแดงและไม่นับว่าข้อมูลขาด
 // จำเป็นเพราะบางบรรทัดมีเฉพาะบางดีล (Commission มีเฉพาะคนที่ตกลงส่วนแบ่งไว้)
 // ถ้าใช้ {{key}} ธรรมดา คนที่ไม่มีจะได้ช่องแดงคาไว้กลางข้อความคอนเฟิร์มทุกคน
-const DROP = " drop ";
+const DROP = "\uE000";
 const cutDropped = s => s.split("\n").filter(l => l.indexOf(DROP) < 0).join("\n");
 
 function fillBlock(body, vals, clip){
