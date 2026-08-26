@@ -1015,6 +1015,66 @@ body.locked{overflow:hidden}
 .maproot .r{display:flex;justify-content:space-between;gap:8px;font-size:.8rem;
   color:var(--mute);padding:5px 0;border-top:1px solid var(--line);margin-top:9px}
 .maproot .r b{font-family:'IBM Plex Mono',monospace;color:var(--ink);font-weight:600}
+/* คอลัมน์ซ้ายของแผนผัง — การ์ดสรุป + กล่องหนังสือแจ้งเตือน
+   ⚠️ ย้าย sticky จาก .maproot มาไว้ที่คอลัมน์ทั้งก้อน: ถ้าปล่อยให้การ์ดตรึงเดี่ยวๆ
+   พอกางหนังสือแจ้งเตือนแล้วเลื่อนจอ กล่องที่อยู่ถัดลงมาจะเลื่อนขึ้นไปทับการ์ดที่ตรึงอยู่
+   (ลูกที่มาทีหลังวาดทับลูกที่มาก่อน) ตรึงทั้งคอลัมน์แล้วให้เลื่อนในตัวเองแทนเมื่อสูงเกินจอ */
+.mapside{flex:none;width:15em;display:flex;flex-direction:column;gap:12px;
+  position:sticky;top:calc(var(--maphead,96px) + 12px);
+  max-height:calc(100vh - var(--maphead,96px) - 28px);overflow:auto;
+  overscroll-behavior:contain}
+.mapside .maproot{width:auto;position:static}
+
+/* ═══ หนังสือแจ้งเตือนตามสัญญา ═══
+   เอกสารที่ส่งไปแล้วเรียกคืนไม่ได้ หน้าตาเลยตั้งใจให้ "หนัก" ต่างจากกล่องอื่นทั้งเว็บ
+   โทนอำพันของ --warn ไม่ใช่แดง --lo เพราะนี่คือคำเตือนตามสิทธิ ไม่ใช่ข้อผิดพลาดของระบบ */
+.lawbox{background:linear-gradient(180deg,#141210,#0F0E0D);
+  border:1px solid rgba(var(--warn-rgb),.42);border-radius:12px;overflow:hidden}
+.lawbox > summary{list-style:none;cursor:pointer;display:flex;align-items:center;gap:10px;
+  padding:12px 14px;background:rgba(var(--warn-rgb),.07)}
+.lawbox > summary::-webkit-details-marker{display:none}
+.lawbox > summary:hover{background:rgba(var(--warn-rgb),.12)}
+.lawbox .seal{flex:none;width:2rem;height:2rem;border-radius:50%;display:grid;place-items:center;
+  border:1.5px solid rgba(var(--warn-rgb),.6);color:var(--warn);font-size:1rem}
+.lawbox .lt{min-width:0;line-height:1.25}
+.lawbox .lt b{display:block;font-family:'Bebas Neue','Space Grotesk',sans-serif;
+  font-size:.98rem;letter-spacing:.16em;color:var(--warn)}
+.lawbox .lt i{font-style:normal;font-size:.72rem;color:var(--dim)}
+.lawbox > summary .cv{margin-left:auto;flex:none;font-family:'IBM Plex Mono',monospace;
+  font-size:.7rem;color:var(--dim)}
+.lawbox[open] > summary{border-bottom:1px solid rgba(var(--warn-rgb),.25)}
+.lawbody{padding:14px}
+/* เส้นคู่ริมซ้ายแบบกระดาษหัวจดหมาย — ทำให้ก้อนข้อความอ่านเป็น "เอกสาร" ไม่ใช่ช่องกรอกฟอร์ม */
+.lawdoc{border-left:3px double rgba(var(--warn-rgb),.45);padding-left:12px;
+  font-size:.78rem;line-height:1.85;color:var(--mute)}
+.lawdoc .lead{color:var(--ink);margin-bottom:12px}
+.lawdoc .cl{margin-bottom:12px}
+.lawdoc .cl > b{display:block;color:var(--ink);font-size:.79rem;margin-bottom:2px}
+.lawdoc .cl > b i{font-style:normal;font-family:'IBM Plex Mono',monospace;color:var(--warn);
+  margin-right:5px}
+.lawdoc ul{list-style:none;margin-top:3px}
+.lawdoc ul li{padding-left:14px;position:relative}
+.lawdoc ul li::before{content:"—";position:absolute;left:0;color:var(--warn);opacity:.7}
+.lawdoc .fine{margin-top:12px;padding-top:10px;border-top:1px dashed rgba(var(--warn-rgb),.28);
+  font-size:.75rem}
+/* ช่องเติมคำ — เส้นประใต้ตัวอักษรแบบแบบฟอร์มราชการ กดแล้วพิมพ์ได้เลย */
+.lawin{background:none;border:0;border-bottom:1px dashed rgba(var(--warn-rgb),.6);
+  color:var(--warn);font-family:inherit;font-size:inherit;font-weight:600;
+  padding:0 3px 1px;min-width:3em;max-width:100%}
+.lawin:focus{outline:none;border-bottom-color:var(--warn);background:rgba(var(--warn-rgb),.1)}
+.lawin::placeholder{color:var(--dim);font-weight:400;opacity:.75}
+.lawin.date{min-width:8.6em}
+.lawin.empty{border-bottom-color:var(--lo);background:rgba(var(--lo-rgb),.07)}
+.lawbe{color:var(--warn);font-weight:600}
+.lawbe:empty::before{content:"…";color:var(--dim);font-weight:400}
+.lawfoot{display:flex;gap:8px;margin-top:13px;flex-wrap:wrap}
+.lawfoot button{flex:1;background:none;border:1px solid rgba(var(--warn-rgb),.45);
+  color:var(--warn);border-radius:9px;padding:8px 10px;font-size:.79rem;font-weight:600}
+.lawfoot button:hover{background:rgba(var(--warn-rgb),.14)}
+.lawfoot button.ghost{flex:none;border-color:var(--line);color:var(--dim);font-weight:400}
+.lawfoot button.ghost:hover{background:none;border-color:var(--mute);color:var(--ink)}
+.lawmsg{margin-top:9px;font-size:.75rem;line-height:1.6;min-height:1px}
+.lawmsg.err{color:var(--lo)} .lawmsg.ok{color:var(--hi)}
 .mapbranches{flex:1;min-width:0;position:relative;padding-left:2.4em}
 .mapbranches::before{content:"";position:absolute;left:0;top:1.7em;bottom:1.7em;
   border-left:2px solid var(--line)}
@@ -1120,6 +1180,7 @@ body.mapdrag [data-drop]{border-radius:8px;transition:background .1s}
 @media(max-width:820px){
   .mapmind{flex-direction:column}
   .maproot{width:100%;position:static}
+  .mapside{width:100%;position:static;max-height:none;overflow:visible}
   .mapbranches{padding-left:0;width:100%;margin-top:12px}
   .mapbranches::before,.mapbranch::before{display:none}
   .mapbody{padding:14px 14px 60px}
@@ -6846,6 +6907,7 @@ function openMap(proj){
 }
 
 function renderMap(){
+  loadLaw();
   $("#mapTabs").innerHTML = [["", "ทุกโปรเจกต์"]].concat(PROJECTS.map(p => [p, p]))
     .map(([id, label]) => `<button role="tab" data-mp="${esc(id)}"
       aria-selected="${(MAP_PROJ || "") === id}">${esc(label)}${
@@ -6890,6 +6952,7 @@ function renderMap(){
   });
   document.querySelectorAll("#mapBody [data-tablego]").forEach(b =>
     b.onclick = () => openTable(b.dataset.tablego));
+  wireLaw();
   wireMapDrag();
   measureMapHead();
 }
@@ -7074,6 +7137,191 @@ function mapStatusMenu(proj, handle, host){
 }
 
 // ─── แผ่นหลัก: ขั้นตอนงาน ───
+// ═══ หนังสือแจ้งเตือนตามสัญญา (Legal Notice) ═══
+// ข้อความชุดนี้ส่งไปแล้วเรียกคืนไม่ได้ และอ้างสิทธิตามสัญญาจริง — ตัวบทข้อ 3/ข้อ 4 จึงตายตัวในโค้ด
+// แก้ไม่ได้จากหน้าเว็บโดยตั้งใจ กรอกได้เฉพาะช่องที่เป็นข้อเท็จจริงของเคสนั้นๆ
+// เก็บรายโปรเจกต์ในเครื่อง (ช่องของบัญชีนี้) ไม่ขึ้นชีต — เป็นเรื่องภายในของทีม
+const LS_LAW = "cf_lawsuit_v1";
+let LAW = {};
+function loadLaw(){ try { LAW = JSON.parse(lsGet(LS_LAW) || "{}") || {}; } catch(e){ LAW = {}; } }
+function saveLaw(){ try { lsSet(LS_LAW, JSON.stringify(LAW)); } catch(e){} }
+
+const TH_MONTHS = ["มกราคม","กุมภาพันธ์","มีนาคม","เมษายน","พฤษภาคม","มิถุนายน",
+                   "กรกฎาคม","สิงหาคม","กันยายน","ตุลาคม","พฤศจิกายน","ธันวาคม"];
+// <input type=date> คืน ค.ศ. เสมอ — เอกสารทางการไทยต้องเป็น พ.ศ. แปลงตอนแสดง/ตอนก๊อป
+const beDate = iso => {
+  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(String(iso || ""));
+  return m ? `${+m[3]} ${TH_MONTHS[+m[2] - 1]} ${+m[1] + 543}` : "";
+};
+
+const LAW_FIELDS = [
+  { k:"days",     type:"text", th:"จำนวนวันที่ไม่ตอบข้อความ", ph:"เช่น 3" },
+  { k:"deadline", type:"date", th:"วันที่กำหนดส่งงาน" },
+  { k:"brand",    type:"text", th:"สินค้า",                  ph:"ชื่อสินค้า" },
+  { k:"price",    type:"text", th:"ราคาสินค้า",               ph:"เช่น 1290" },
+  { k:"refdate",  type:"date", th:"วันที่อ้างอิงราคา Shopee" },
+];
+// ชื่อสินค้าเดาจากแบรนด์ของโปรเจกต์ให้ครั้งแรก แต่ลบทิ้งเองได้ (เก็บ "" ไว้ ไม่เติมซ้ำ)
+function lawGet(proj){
+  const o = LAW[proj] || (LAW[proj] = {});
+  if (o.brand == null) o.brand = brandOf(proj) || "";
+  return o;
+}
+// ค่าที่จะลงในข้อความจริง — ว่างคืน "" ให้ตัวเรียกตัดสินว่าจะเตือนหรือปล่อย
+function lawVal(k, raw){
+  const v = String(raw == null ? "" : raw).trim();
+  if (!v) return "";
+  if (k === "deadline" || k === "refdate") return beDate(v);
+  if (k === "days")  return /^\d+$/.test(v) ? v + " วัน" : v;
+  if (k === "price") return /^[\d,\s]+$/.test(v)
+    ? Number(v.replace(/[,\s]/g, "")).toLocaleString("en-US") + " บาท" : v;
+  return v;
+}
+
+// ตัวบทที่อ้างถึง — ต้องตรงกับเอกสารร่วมงานจริง อย่าแก้ถ้อยคำโดยไม่ได้แก้สัญญาตาม
+const LAW_LEAD = "แอดมินขออนุญาตแจ้งขอกำหนดการร่วมงานจากทางแบรนด์และสิทธิที่ได้แจ้งขั้นต้นอีกครั้งนะครับ";
+const LAW_REF  = "ตามเอกสารร่วมงานและเงื่อนไขการร่วมงาน";
+const LAW_CLAUSES = [
+  { n:"ข้อ 3", t:"กำหนดส่งงานและค่าตอบแทน",
+    p:"ครีเอเตอร์ต้องส่งงานตามเวลาที่กำหนด หากส่งงานล่าช้าจนทำให้เกิดความเสียหายหรือกระทบต่อการดำเนินงานของโครงการ บริษัทมีสิทธิ์ให้ครีเอเตอร์ชำระค่าสินค้า 100% โดยไม่มีเงื่อนไข" },
+  { n:"ข้อ 4", t:"การยกเลิกงานและการไม่สามารถติดต่อได้",
+    p:"หากครีเอเตอร์ยกเลิกงานหรือไม่สามารถติดต่อได้เกิน 48 ชั่วโมง โดยไม่มีการแจ้งล่วงหน้าและมีเหตุให้โครงการได้รับผลกระทบ บริษัทมีสิทธิ์ดังต่อไปนี้",
+    li:["Blacklist ครีเอเตอร์ในเครือบริษัททั้งหมด", "ชำระค่าสินค้าจำนวนเต็ม 100%"] },
+];
+
+// ข้อความจริงที่จะก๊อปไปส่ง — ช่องที่ยังว่างคืนเป็นจุดไข่ปลา ให้เห็นชัดว่ายังไม่ได้กรอก
+// (ตัวปุ่มก๊อปกันไม่ให้ก๊อปทั้งที่ยังมีช่องว่างอยู่แล้ว อันนี้เป็นด่านสุดท้าย)
+function lawText(proj){
+  const o = lawGet(proj);
+  const V = k => lawVal(k, o[k]) || "……………";
+  return [
+    LAW_LEAD, "",
+    LAW_REF,
+    ...LAW_CLAUSES.flatMap(c => [`${c.n} ${c.t}`, c.p, ...(c.li || []), ""]),
+    "",
+    `เนื่องจากครีเอเตอร์ส่งดราฟล่าช้า และ ไม่สามารถติดต่อได้เกิน 48 ชั่วโมง (${V("days")} อ้างอิงตามแชทข้อความ)`,
+    `ทั้งนี้หากล่วงเลยตามกำหนดส่งงานวันที่ ${V("deadline")} ทางบริษัทจำเป็นต้องดำเนินการในข้อ 3 ให้ครีเอเตอร์ชำระค่าสินค้า 100% โดยไม่มีเงื่อนไข`,
+    "",
+    `(ตามราคาที่ตกลงร่วมงานกับครีเอเตอร์สำหรับสินค้า ${V("brand")} ราคา ${V("price")} ตามราคาซื้อขายในแพลตฟอร์ม Shopee ณ ${V("refdate")} )`,
+  ].join("\n");
+}
+
+// ช่องเติมคำในตัวเอกสาร — กดพิมพ์ได้ตรงจุด ไม่ต้องแยกไปกรอกฟอร์มข้างบนแล้วไล่เทียบว่าตรงไหนคือตรงไหน
+function lawSlot(proj, k){
+  const f = LAW_FIELDS.find(x => x.k === k);
+  const v = String(lawGet(proj)[k] == null ? "" : lawGet(proj)[k]);
+  if (f.type === "date")
+    return `<input type="date" class="lawin date" data-law="${k}" value="${esc(v)}"
+      title="${esc(f.th)} — เลือกเป็น ค.ศ. แล้วระบบแปลงเป็น พ.ศ. ให้ในข้อความ">`
+      + ` <span class="lawbe" data-lawbe="${k}">${esc(beDate(v))}</span>`;
+  return `<input class="lawin" data-law="${k}" value="${esc(v)}"
+    placeholder="${esc(f.ph || f.th)}" title="${esc(f.th)}"
+    size="${Math.max(6, v.length || String(f.ph || "").length)}">`;
+}
+
+function lawBoxHtml(proj){
+  const o = lawGet(proj);
+  const left = LAW_FIELDS.filter(f => !String(o[f.k] || "").trim()).length;
+  const S = k => lawSlot(proj, k);
+  return `<details class="lawbox" data-lawproj="${esc(proj)}">
+    <summary>
+      <span class="seal">⚖</span>
+      <span class="lt"><b>LEGAL NOTICE</b><i>หนังสือแจ้งเตือนตามสัญญา</i></span>
+      <span class="cv">${left ? `ขาด ${left}` : "ครบ ✓"}</span>
+    </summary>
+    <div class="lawbody">
+      <div class="lawdoc">
+        <div class="lead">${esc(LAW_LEAD)}</div>
+        <div>${esc(LAW_REF)}</div>
+        ${LAW_CLAUSES.map(c => `<div class="cl">
+          <b><i>${esc(c.n)}</i> ${esc(c.t)}</b>
+          <div>${esc(c.p)}</div>
+          ${c.li ? `<ul>${c.li.map(x => `<li>${esc(x)}</li>`).join("")}</ul>` : ""}
+        </div>`).join("")}
+        <div class="fine">
+          เนื่องจากครีเอเตอร์ส่งดราฟล่าช้า และ ไม่สามารถติดต่อได้เกิน 48 ชั่วโมง
+          (${S("days")} อ้างอิงตามแชทข้อความ)<br>
+          ทั้งนี้หากล่วงเลยตามกำหนดส่งงานวันที่ ${S("deadline")}
+          ทางบริษัทจำเป็นต้องดำเนินการในข้อ 3 ให้ครีเอเตอร์ชำระค่าสินค้า 100% โดยไม่มีเงื่อนไข
+          <br><br>
+          (ตามราคาที่ตกลงร่วมงานกับครีเอเตอร์สำหรับสินค้า ${S("brand")}
+          ราคา ${S("price")} ตามราคาซื้อขายในแพลตฟอร์ม Shopee ณ ${S("refdate")} )
+        </div>
+      </div>
+      <div class="lawfoot">
+        <button type="button" data-lawcopy>คัดลอกข้อความ</button>
+        <button type="button" class="ghost" data-lawclear title="ล้างเฉพาะช่องที่กรอกไว้">ล้าง</button>
+      </div>
+      <div class="lawmsg" data-lawmsg></div>
+    </div>
+  </details>`;
+}
+
+function wireLaw(){
+  document.querySelectorAll("#mapBody .lawbox").forEach(box => {
+    const proj = box.dataset.lawproj;
+    const msg = box.querySelector("[data-lawmsg]");
+    const say = (t, k) => { msg.className = "lawmsg " + (k || ""); msg.innerHTML = t; };
+    const recount = () => {
+      const left = LAW_FIELDS.filter(f => !String(lawGet(proj)[f.k] || "").trim()).length;
+      box.querySelector(".cv").textContent = left ? `ขาด ${left}` : "ครบ ✓";
+    };
+    box.querySelectorAll("[data-law]").forEach(inp => {
+      const k = inp.dataset.law;
+      inp.oninput = () => {
+        lawGet(proj)[k] = inp.value;
+        saveLaw();
+        inp.classList.remove("empty");
+        const be = box.querySelector(`[data-lawbe="${k}"]`);
+        if (be) be.textContent = beDate(inp.value);
+        if (inp.type !== "date") inp.size = Math.max(6, inp.value.length || 6);
+        recount(); say("");
+      };
+      // กดในเอกสารแล้วอย่าให้ <summary> พับกล่องปิดใส่
+      inp.onclick = e => e.stopPropagation();
+    });
+    box.querySelector("[data-lawcopy]").onclick = () => {
+      const o = lawGet(proj);
+      const miss = LAW_FIELDS.filter(f => !String(o[f.k] || "").trim());
+      // เอกสารอ้างสิทธิตามสัญญา — ปล่อยให้ก๊อปทั้งที่ยังมีช่องว่างคือปล่อยให้ส่งของที่ผิดออกไป
+      if (miss.length){
+        miss.forEach(f => { const el = box.querySelector(`[data-law="${f.k}"]`);
+          if (el) el.classList.add("empty"); });
+        box.querySelector(`[data-law="${miss[0].k}"]`).focus();
+        return say(`ยังไม่ได้กรอก ${miss.length} ช่อง — <b>${
+          miss.map(f => esc(f.th)).join(" · ")}</b>`, "err");
+      }
+      const btn = box.querySelector("[data-lawcopy]");
+      const done = () => {
+        btn.textContent = "คัดลอกแล้ว ✓";
+        say("ก๊อปแล้ว — อ่านทวนอีกรอบก่อนส่ง ส่งไปแล้วเรียกคืนไม่ได้", "ok");
+        setTimeout(() => { btn.textContent = "คัดลอกข้อความ"; }, 1800);
+      };
+      // ตัวเอกสารเป็น <input> ปนข้อความ ลากเลือกเองแล้วจะไม่ได้ค่าในช่องติดมาด้วย
+      // ก๊อปไม่ผ่านต้องมีทางสำรองจริงๆ ไม่ใช่บอกให้ไปเลือกเอง — textarea ซ่อน + execCommand
+      const fallback = () => {
+        const ta = document.createElement("textarea");
+        ta.value = lawText(proj);
+        ta.style.cssText = "position:fixed;left:-9999px;top:0;opacity:0";
+        document.body.appendChild(ta);
+        ta.select();
+        let ok = false;
+        try { ok = document.execCommand("copy"); } catch(e){}
+        ta.remove();
+        ok ? done() : say("ก๊อปไม่ได้ — เบราว์เซอร์ไม่อนุญาต ลองกดปุ่มอีกครั้ง", "err");
+      };
+      if (navigator.clipboard && navigator.clipboard.writeText)
+        navigator.clipboard.writeText(lawText(proj)).then(done).catch(fallback);
+      else fallback();
+    };
+    box.querySelector("[data-lawclear]").onclick = () => {
+      if (!confirm(`ล้างข้อมูลที่กรอกไว้ในหนังสือแจ้งเตือนของ ${proj}?`)) return;
+      delete LAW[proj]; saveLaw();
+      renderMap();
+    };
+  });
+}
+
 function mapFlowSheet(proj){
   const rows = mapRows(proj);
   if (!rows.length) return `<div class="mapempty">${esc(proj)} ยังไม่มี${MAP_KIND === "all" ? "ใคร" : MAP_KIND} ในโปรเจกต์นี้</div>`;
@@ -7139,13 +7387,16 @@ function mapFlowSheet(proj){
       แผนผังอ่านให้เป็นขั้นใหม่ให้แล้ว แต่ในชีตยังเป็นคำเดิม
       กด <b>↻ สถานะชุดเก่า</b> เหนือตารางเพื่อแปลงจริง</div>` : ""}
     <div class="mapmind">
-      <div class="maproot">
-        <div class="t">${esc(proj)}</div>
-        <div class="r"><span>ครีเอเตอร์</span><b>${s.active}</b></div>
-        ${s.cancel ? `<div class="r"><span>ยกเลิก</span><b style="color:#C98A8A">${s.cancel}</b></div>` : ""}
-        <div class="r"><span>คลิป</span><b>${s.clips}</b></div>
-        <div class="r"><span>เรทรวม</span><b>${mBaht(s.rate)}</b></div>
-        <div class="r"><span>บริษัทจ่าย</span><b>${mBaht(s.co)}</b></div>
+      <div class="mapside">
+        <div class="maproot">
+          <div class="t">${esc(proj)}</div>
+          <div class="r"><span>ครีเอเตอร์</span><b>${s.active}</b></div>
+          ${s.cancel ? `<div class="r"><span>ยกเลิก</span><b style="color:#C98A8A">${s.cancel}</b></div>` : ""}
+          <div class="r"><span>คลิป</span><b>${s.clips}</b></div>
+          <div class="r"><span>เรทรวม</span><b>${mBaht(s.rate)}</b></div>
+          <div class="r"><span>บริษัทจ่าย</span><b>${mBaht(s.co)}</b></div>
+        </div>
+        ${lawBoxHtml(proj)}
       </div>
       <div class="mapbranches">${MAP_BUCKETS
         .filter(p => p.k !== "none" || s.by.none.length)
