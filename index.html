@@ -2268,8 +2268,21 @@ tr.subrow td.w-status select{width:14.6em}
       <div class="tabs sub" id="skuBindTabs" style="margin-bottom:10px"></div>
       <p class="sect-sub" id="skuBindNote" style="margin-top:0"></p>
       <div id="skuGuideList"></div>
+
+      <!-- เลือก SKU ได้ทีละหลายอันพร้อมกัน แทนที่จะพึ่งชื่อไลน์ครอบอย่างเดียว —
+           เลือกโปรเจกต์ + KOL/KOC ก่อนเพื่อย่อรายการให้เหลือแค่ SKU ที่ใช้จริงตรงนั้น -->
+      <p class="sect-sub" style="margin:14px 0 6px">เลือกได้หลาย SKU พร้อมกัน — จำกัดวงด้วยโปรเจกต์/กลุ่มก่อนได้</p>
+      <div class="pickhead">
+        <select id="skuGuideProj" title="จำกัดวงให้เหลือแค่ SKU ในโปรเจกต์นี้"></select>
+        <div class="tabs sub" id="skuGuideKindTabs" role="tablist"></div>
+        <input id="skuGuideFind" placeholder="พิมพ์กรอง SKU ที่โชว์ด้านล่าง" autocomplete="off">
+      </div>
+      <div class="picklist" id="skuGuidePick"></div>
+      <p class="sect-sub" id="skuGuidePickSum" style="margin:4px 0 0"></p>
+
       <div class="skuadd-row">
-        <input id="skuGuideKey" list="skuGuideOpts" placeholder="SKU หรือชื่อไลน์ เช่น Blush">
+        <input id="skuGuideKey" list="skuGuideOpts"
+               placeholder="หรือพิมพ์ชื่อไลน์เอง เช่น Blush — ไม่บังคับถ้าเลือกจากรายการด้านบนแล้ว">
         <datalist id="skuGuideOpts"></datalist>
         <input id="skuGuideUrl" placeholder="https://… ลิงก์คู่มือถ่ายทำ">
         <button type="button" class="run" id="skuGuideAdd">เพิ่ม</button>
@@ -8185,6 +8198,61 @@ function openSettings(){
 // ทำเป็นหน้าเดียวแทนที่จะก๊อปสามชุด เพราะทั้งสามใช้ตรรกะจับคู่ตัวเดียวกัน
 // แยกเป็นสามหน้าเมื่อไหร่ วันหลังแก้ตรรกะแล้วจะลืมแก้ให้ครบทุกหน้า
 let SKU_BIND_KIND = "guide";
+
+// ─── เลือก SKU ได้หลายอันพร้อมกัน (คู่มือ/แฮชแท็ก/ตะกร้าตาม SKU) ───
+// เดิมพิมพ์ทีละคีย์ ใช้ชื่อไลน์ครอบได้ก็จริงแต่ครอบได้แค่ทั้งไลน์เดียว
+// ถ้าจะผูกลิงก์เดียวกับ SKU เจาะจงหลายตัวที่ไม่ได้อยู่ไลน์เดียวกัน ต้องพิมพ์ทีละบรรทัดอยู่ดี
+// ตัวเลือกนี้ให้ติ๊กเลือกของจริงจากพูล แล้วเขียนเข้า MAP ทีละ SKU พร้อมกันในคลิกเดียว
+// (คีย์ที่ได้เป็น SKU เต็มเป๊ะ ไม่ใช่ชื่อไลน์ — ตรงตัวชนะเสมออยู่แล้วตามตัวจับคู่เดิม ไม่ต้องแก้ตรรกะ)
+let SG_PROJ = "";       // "" = ทุกโปรเจกต์
+let SG_KIND = "all";    // all | KOL | KOC
+let SG_FIND = "";
+let SG_PICK = new Set();
+
+function sgScope(){
+  let list = SG_PROJ ? (COORD[SG_PROJ] || []) : PROJECTS.flatMap(p => COORD[p] || []);
+  if (SG_KIND !== "all") list = list.filter(r => (r.kind || "") === SG_KIND);
+  return list;
+}
+function sgOptionValues(){
+  const used = [...new Set(sgScope().flatMap(r => skuParts(r.sku)))];
+  const lines = [...new Set(used.map(s => s.split(/\s*-\s*/)[0].trim()).filter(Boolean))];
+  return skuSort([...new Set(lines.concat(used))]);
+}
+function renderSgPick(){
+  const projSel = $("#skuGuideProj");
+  if (projSel) projSel.innerHTML = `<option value="">ทุกโปรเจกต์</option>` +
+    PROJECTS.map(p => `<option value="${esc(p)}"${p === SG_PROJ ? " selected" : ""}>${esc(p)}</option>`).join("");
+
+  const kindTabs = $("#skuGuideKindTabs");
+  if (kindTabs){
+    const scope = SG_PROJ ? (COORD[SG_PROJ] || []) : PROJECTS.flatMap(p => COORD[p] || []);
+    const n = k => k === "all" ? scope.length : scope.filter(r => (r.kind || "") === k).length;
+    kindTabs.innerHTML = [["all", "ทั้งหมด"], ["KOL", "KOL"], ["KOC", "KOC"]].map(([id, label]) =>
+      `<button role="tab" data-sgk="${id}" aria-selected="${SG_KIND === id}"
+        >${label}<span class="n">${n(id)}</span></button>`).join("");
+    kindTabs.querySelectorAll("[data-sgk]").forEach(b => b.onclick = () => {
+      SG_KIND = b.dataset.sgk; renderSgPick();
+    });
+  }
+
+  const box = $("#skuGuidePick");
+  if (!box) return;
+  const opts = sgOptionValues().filter(v => !SG_FIND || v.toLowerCase().includes(SG_FIND.trim().toLowerCase()));
+  box.innerHTML = opts.length
+    ? opts.map(v => `<button type="button" class="pchip${SG_PICK.has(v) ? " on" : ""}"
+        data-sgpick="${esc(v)}">${esc(v)}</button>`).join("")
+    : `<span style="color:var(--dim);font-size:.78rem;padding:6px 2px">ไม่มี SKU ตรงกับตัวกรองนี้</span>`;
+  box.querySelectorAll("[data-sgpick]").forEach(b => b.onclick = () => {
+    const v = b.dataset.sgpick;
+    SG_PICK.has(v) ? SG_PICK.delete(v) : SG_PICK.add(v);
+    renderSgPick();
+  });
+
+  const sumEl = $("#skuGuidePickSum");
+  if (sumEl) sumEl.textContent = SG_PICK.size
+    ? `เลือกไว้ ${SG_PICK.size} SKU — กด “เพิ่ม” ด้านล่างเพื่อผูกทุกอันกับลิงก์เดียวกันทีเดียว` : "";
+}
 function renderSkuGuide(){
   const box = $("#skuGuideList");
   if (!box) return;
@@ -8251,6 +8319,8 @@ function renderSkuGuide(){
     delete MAP[b.dataset.sgdel];
     saveSkuBind(kind); renderSkuGuide();
   });
+
+  renderSgPick();
 }
 function closeSettings(){ $("#settings").hidden = true; }
 
@@ -9000,26 +9070,38 @@ $("#closeSet").onclick = closeSettings;
 $("#closeProj").onclick = () => { $("#projPanel").hidden = true; };
 $("#projPanel").onclick = e => { if (e.target.id === "projPanel") $("#projPanel").hidden = true; };
 $("#addSheet").onclick = addSheet;
+// เลือกจากรายการไว้ = ผูก SKU ทุกอันที่ติ๊กกับลิงก์เดียวกันในคลิกเดียว
+// ไม่ได้เลือกไว้เลย = ถอยไปพฤติกรรมเดิม (พิมพ์ชื่อไลน์/SKU เดียวในช่องข้อความ)
 $("#skuGuideAdd").onclick = () => {
-  const k = $("#skuGuideKey").value.trim(), u = $("#skuGuideUrl").value.trim();
+  const picked = [...SG_PICK];
+  const typed = $("#skuGuideKey").value.trim();
+  const keys = picked.length ? picked : (typed ? [typed] : []);
+  const u = $("#skuGuideUrl").value.trim();
   const msg = $("#skuGuideMsg");
   const say = (t, kind) => { msg.className = "addmsg on " + kind; msg.innerHTML = t; };
-  if (!k) return say("ใส่ SKU หรือชื่อไลน์ก่อน", "err");
+  if (!keys.length) return say("เลือก SKU จากรายการ หรือพิมพ์ชื่อไลน์ก่อน", "err");
   const meta = SKU_BIND_BY[SKU_BIND_KIND] || SKU_BIND_BY.guide;
   if (!u) return say(`ใส่${meta.th}ก่อน`, "err");
   // แฮชแท็กเป็นข้อความ ไม่ใช่ลิงก์ — บังคับ http เฉพาะชนิดที่เป็นลิงก์จริงเท่านั้น
   if (meta.url && !/^https?:\/\//i.test(u))
     return say(`${meta.th}ต้องเป็นลิงก์ ขึ้นต้นด้วย http`, "err");
   loadSkuGuide();
-  (SKUBIND[SKU_BIND_KIND] || (SKUBIND[SKU_BIND_KIND] = {}))[k] = u;
+  const MAP = SKUBIND[SKU_BIND_KIND] || (SKUBIND[SKU_BIND_KIND] = {});
+  keys.forEach(k => { MAP[k] = u; });
   saveSkuBind(SKU_BIND_KIND);
   $("#skuGuideKey").value = ""; $("#skuGuideUrl").value = "";
+  SG_PICK.clear();
   renderSkuGuide();
-  const n = PROJECTS.flatMap(p => COORD[p] || []).filter(r =>
-    skuParts(r.sku).some(x => x === k || x.toLowerCase().startsWith(k.toLowerCase()))).length;
-  say(n ? `เพิ่มแล้ว — มีผลกับ <b>${n}</b> คน`
-        : `เพิ่มแล้ว แต่<b> ยังไม่มีใครได้ SKU นี้</b> เก็บไว้ใช้ทีหลัง`, n ? "ok" : "busy");
+  const all = PROJECTS.flatMap(p => COORD[p] || []);
+  const n = all.filter(r => skuParts(r.sku).some(x =>
+    keys.some(k => x === k || x.toLowerCase().startsWith(k.toLowerCase())))).length;
+  say(keys.length > 1
+    ? (n ? `เพิ่ม <b>${keys.length}</b> SKU แล้ว — มีผลกับ <b>${n}</b> คน` : `เพิ่ม <b>${keys.length}</b> SKU แล้ว แต่<b>ยังไม่มีใครได้เลย</b> เก็บไว้ใช้ทีหลัง`)
+    : (n ? `เพิ่มแล้ว — มีผลกับ <b>${n}</b> คน` : `เพิ่มแล้ว แต่<b>ยังไม่มีใครได้ SKU นี้</b> เก็บไว้ใช้ทีหลัง`),
+    n ? "ok" : "busy");
 };
+$("#skuGuideProj").onchange = () => { SG_PROJ = $("#skuGuideProj").value; SG_KIND = "all"; renderSgPick(); };
+$("#skuGuideFind").oninput = () => { SG_FIND = $("#skuGuideFind").value; renderSgPick(); };
 $("#sgBulkParse").onclick = sgBulkParse;
 $("#settings").onclick = e => { if (e.target.id === "settings") closeSettings(); };
 document.addEventListener("keydown", e => {
