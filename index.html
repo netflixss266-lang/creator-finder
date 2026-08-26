@@ -5417,11 +5417,13 @@ const DOCS = [
   { k:"sg",        th:"SG",                re:"ลิงก์\\s*sg|sg" },
   { k:"guide",     th:"Shooting Guide",    re:"shooting\\s*guide(?:line)?|คู่มือถ่าย|ไกด์ถ่าย" },
   { k:"agreement", th:"Agreement / สัญญา", re:"creator\\s*agreement|agreement|สัญญาร่วมงาน|สัญญา" },
-  { k:"payment",   th:"ลิงก์จ่ายเงิน",     re:"payment\\s*link|payment|ลิงก์ชำระเงิน|ลิงก์จ่ายเงิน|ลิงก์โอนเงิน|ลิงก์จ่ายค่าตัว" },
   { k:"form",      th:"ฟอร์มเอกสาร",       re:"google\\s*form|แบบฟอร์ม|ลิงก์ฟอร์ม|ฟอร์ม|form" },
   { k:"docs",      th:"เอกสารร่วมงาน",     re:"collab(?:oration)?\\s*document|เอกสารร่วมงาน|ลิงก์เอกสารร่วมงาน|ไฟล์งาน|เอกสาร|docs?" },
   { k:"script",    th:"ลิงก์สคริป",        re:"สคริป[ต]?|script" },
-  { k:"sign",      th:"ใบรับเงิน",         re:"ใบรับเงิน|acknowledgement|receipt|sign" },
+  // "จ่ายเงิน" ถูกยุบรวมเข้าที่นี่แล้ว (2026-08-26) — เดิมมีฟิลด์ payment แยกไว้ต่างหาก
+  // แต่ {{payment}} ไม่เคยถูกใช้ในบล็อกไหนเลยสักบล็อก ทีมเปลี่ยนมาใช้ {{sign}} แทนทั้งหมด
+  // เก็บคำที่ทีมเคยพิมพ์แทน "จ่ายเงิน" ไว้ในนี้ด้วย พิมพ์แบบเดิมก็ยังจับเข้าช่องนี้ได้
+  { k:"sign",      th:"ใบรับเงิน",         re:"ใบรับเงิน|acknowledgement|receipt|sign|payment\\s*link|payment|ลิงก์ชำระเงิน|ลิงก์จ่ายเงิน|ลิงก์โอนเงิน|ลิงก์จ่ายค่าตัว" },
   { k:"timeline",  th:"Timeline",          re:"ไทม์ไลน์|timeline",  text:true },
   { k:"hashtag",   th:"Hashtag",           re:"แฮชแท็ก|hashtags?|แท็ก|tags?", tags:true },
 ];
@@ -5452,6 +5454,13 @@ function loadCmdLinks(){
   // ยังไม่เคยตั้งเอง = ใช้ค่าตั้งต้น แต่ถ้าเคยแก้แล้วเคารพของที่แก้ (รวมถึงลบให้ว่าง)
   for (const k in CMD_DEFAULT_LINKS)
     if (!(k in CMDLINKS)) CMDLINKS[k] = CMD_DEFAULT_LINKS[k];
+  // ฟิลด์ payment ถูกถอดออกแล้ว (ไม่เคยมีบล็อกไหนใช้ {{payment}}) — ย้ายของเก่าที่เคยตั้งร่วมกันไว้
+  // เข้า sign แทนก่อนทิ้งคีย์นี้ จะได้ไม่หายเงียบๆ สำหรับใครที่เคยตั้งลิงก์จ่ายเงินไว้จริง
+  if (CMDLINKS.payment != null){
+    if (!CMDLINKS.sign) CMDLINKS.sign = CMDLINKS.payment;
+    delete CMDLINKS.payment;
+    saveCmdLinks();
+  }
 }
 function saveCmdLinks(){
   try { lsSet(LS_CMDLINKS, JSON.stringify(CMDLINKS)); } catch(e){}
@@ -6086,6 +6095,17 @@ function migrateOwnDocsKind(proj, handle, kind){
   pruneCmdOwn(proj, handle);
   saveCmdOwn();
 }
+// ฟิลด์ payment ถูกถอดออกแล้ว (ทีมเปลี่ยนไปใช้ {{sign}} แทน ไม่เคยมีบล็อกไหนใช้ {{payment}})
+// ย้ายของเฉพาะคนที่เคยตั้งไว้ก่อนหน้านี้เข้า sign แทนก่อนทิ้งคีย์นี้
+function migrateOwnPayment(proj, handle){
+  const own = cmdOwn(proj, handle);
+  const L = own.links || (own.links = {});
+  if (L.payment == null) return;
+  if (L.sign == null && L.payment) L.sign = L.payment;
+  delete L.payment;
+  pruneCmdOwn(proj, handle);
+  saveCmdOwn();
+}
 
 // "mine" = แก้เฉพาะคนนี้ (ค่าตั้งต้น) · "all" = แก้ต้นแบบที่ทุกคนใช้
 let CMD_SCOPE = "mine";
@@ -6305,6 +6325,7 @@ function openCmd(proj, handle){
   if (!r) return;
   loadCmdLinks(); loadCmdEdit(); loadCmdOwn(); loadSkuGuide();
   migrateOwnDocsKind(proj, handle, r.kind);
+  migrateOwnPayment(proj, handle);
   $("#cmdPanel").classList.add("on");
 
   // ── ลูกศรไปคนก่อนหน้า / คนถัดไป ──
@@ -9890,7 +9911,7 @@ const SLASH_FIELD = SLASH_ROW.concat(SLASH_DOC, SLASH_FB);
 const SLASH_BY = Object.fromEntries(SLASH_FIELD.map(s => [s.c, s]));
 // คำย่อที่พิมพ์กันจริง
 const SLASH_ALIAS = { r:"rate", s:"status", v:"video", p:"pay", n:"note", fb:"fb1",
-  tag:"hashtag", hash:"hashtag", doc:"docs", ag:"agreement", pm:"payment", gd:"guide" };
+  tag:"hashtag", hash:"hashtag", doc:"docs", ag:"agreement", pm:"sign", gd:"guide" };
 
 const SLASH_ACT = [
   { c:"add",    th:"เพิ่มคนใหม่",        ex:"/add newguy : RC2 KOL" },
