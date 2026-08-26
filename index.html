@@ -6068,6 +6068,24 @@ function setCmdOwnLink(proj, handle, key, val){
   pruneCmdOwn(proj, handle);
   saveCmdOwn();
 }
+// ─── เก็บกวาดของเก่าที่ตั้งผ่านแถว "เอกสารสำคัญร่วมงาน — KOL/KOC" ในแท็บ "เฉพาะคนนี้" ───
+// สองแถวนั้นเป็นบั๊ก: เขียนลง own.docsKOL/own.docsKOC แต่ cmdValues() อ่านแค่ own.docs
+// ตอนประกอบข้อความจริง — แปะไว้เท่าไหร่ก็ไม่เคยไปถึงข้อความที่ส่งจริงสักที
+// (สองคีย์นี้มีความหมายแค่ในแท็บ "ใช้ร่วมกันทุกคน" ที่ตั้งค่าเริ่มต้นแยกตาม KOL/KOC ให้ทุกคน)
+// เรียกตอนเปิด Command ของคนนั้น — ตอนนั้นรู้ r.kind แล้วจึงเลือกได้ว่าตัวไหนควรเป็นของจริง
+function migrateOwnDocsKind(proj, handle, kind){
+  const own = cmdOwn(proj, handle);
+  const L = own.links || (own.links = {});
+  if (L.docsKOL == null && L.docsKOC == null) return;
+  if (L.docs == null){
+    const pick = kind === "KOC" ? (L.docsKOC != null ? L.docsKOC : L.docsKOL)
+                                 : (L.docsKOL != null ? L.docsKOL : L.docsKOC);
+    if (pick) L.docs = pick;
+  }
+  delete L.docsKOL; delete L.docsKOC;
+  pruneCmdOwn(proj, handle);
+  saveCmdOwn();
+}
 
 // "mine" = แก้เฉพาะคนนี้ (ค่าตั้งต้น) · "all" = แก้ต้นแบบที่ทุกคนใช้
 let CMD_SCOPE = "mine";
@@ -6286,6 +6304,7 @@ function openCmd(proj, handle){
   const r = (COORD[proj] || []).find(x => normId(x.handle) === normId(handle));
   if (!r) return;
   loadCmdLinks(); loadCmdEdit(); loadCmdOwn(); loadSkuGuide();
+  migrateOwnDocsKind(proj, handle, r.kind);
   $("#cmdPanel").classList.add("on");
 
   // ── ลูกศรไปคนก่อนหน้า / คนถัดไป ──
@@ -6618,7 +6637,10 @@ function openCmd(proj, handle){
   // ─── ลิงก์ทั้งชุดในหน้าเดียว ───
   // เห็นทุกช่องพร้อมกัน แก้ช่องไหนก็ได้ ไม่ต้องกดผ่านช่องที่ไม่เกี่ยว
   // ช่องของคนนี้ว่างไว้ = ใช้ลิงก์ที่ตั้งร่วมกัน โดยโชว์ค่านั้นเป็นตัวจางในช่องให้เห็นว่าจะได้อะไร
-  const linkFields = () => CMD_LINK_FIELDS.concat(clips > 1
+  // docsKOL/docsKOC ไม่โผล่ในแท็บนี้ — ตั้งต่อคนไปก็ไม่ถูกอ่าน (cmdValues อ่านแค่ own.docs)
+  // สองอันนั้นมีความหมายแค่ในแท็บ "ใช้ร่วมกันทุกคน" ที่เป็นค่าเริ่มต้นแยกตาม KOL/KOC
+  const linkFields = () => CMD_LINK_FIELDS.filter(([k]) => k !== "docsKOL" && k !== "docsKOC")
+    .concat(clips > 1
     ? [...clipDocs].flatMap(k => Array.from({length: clips - 1},
         (_, x) => [k + (x + 2), `${DOC_BY_KEY[k].th} (ชุดที่ ${x + 2}${
           skuOf(r, x + 2) ? " · " + skuOf(r, x + 2) : ""})`]))
