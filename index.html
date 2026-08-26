@@ -846,54 +846,63 @@ tr.dropover td{border-top:2px solid var(--accent)}
    ซ่อนเพื่อไม่ให้เจอปุ่มที่กดแล้วพัง ไม่ได้ซ่อนเพื่อกันคนที่ตั้งใจงัด */
 body[data-crew] .crewhide{display:none !important}
 
-/* ═══ คู่มือเปิดใช้งานครั้งแรก ═══ */
-.tour{position:fixed;inset:0;z-index:120;display:flex;align-items:center;justify-content:center;
-  padding:20px;background:radial-gradient(120% 90% at 50% 0%,rgba(var(--accent-rgb),.16),transparent 60%),
-  rgba(6,7,9,.94);backdrop-filter:blur(6px)}
-.tour[hidden]{display:none}
-.tourbox{width:min(620px,100%);background:linear-gradient(180deg,var(--surface),#101010);
-  border:1px solid var(--line);border-radius:20px;box-shadow:var(--shadow);overflow:hidden;
-  display:flex;flex-direction:column;max-height:min(760px,94vh)}
-.tourbar{height:3px;background:var(--surface2);flex:none}
-.tourbar i{display:block;height:100%;background:var(--accent);width:0;
-  transition:width .35s cubic-bezier(.4,0,.2,1)}
-.tourtop{display:flex;align-items:center;gap:12px;padding:20px 26px 0}
-.tourstep{font-family:'Bebas Neue','Space Grotesk',sans-serif;font-size:2.6rem;line-height:.9;
-  letter-spacing:.02em;color:var(--accent);opacity:.9}
-.tourkicker{font-size:.68rem;letter-spacing:.22em;text-transform:uppercase;color:var(--dim)}
-.tourbody{padding:14px 26px 20px;overflow:auto;flex:1}
-.tourbody h3{font-size:1.28rem;line-height:1.35;margin-bottom:10px}
-.tourbody p{color:var(--mute);font-size:.92rem;margin-bottom:12px}
-.tourbody b{color:var(--ink)}
-.tourart{border:1px solid var(--line);border-radius:14px;background:#0D0D0D;
-  padding:16px;margin:14px 0 4px}
-.tourfoot{display:flex;align-items:center;gap:10px;padding:16px 26px 22px;
-  border-top:1px solid var(--line);flex:none;flex-wrap:wrap}
-.tourdots{display:flex;gap:7px;margin-right:auto}
-.tourdots i{width:7px;height:7px;border-radius:50%;background:var(--surface2);
-  transition:.2s;cursor:pointer}
-.tourdots i.on{background:var(--accent);width:22px;border-radius:4px}
-.tourdots i.past{background:rgba(var(--accent-rgb),.4)}
-.tourbtn{background:none;border:1px solid var(--line);color:var(--mute);
-  border-radius:10px;padding:9px 16px;font-size:.86rem}
-.tourbtn:hover{color:var(--ink);border-color:var(--mute)}
-.tourbtn.go{background:var(--accent);border-color:var(--accent);color:var(--accent-ink);font-weight:700}
-.tourbtn.go:hover{filter:brightness(1.08)}
-.tourbtn:disabled{opacity:.3;cursor:default}
-/* แผนผังจำลองในสไลด์ — ไม่ใช่ภาพ วาดด้วย CSS ล้วน จะได้เปลี่ยนสีตามธีมเอง */
-.tchip{display:inline-block;border:1px solid var(--line);border-radius:8px;
-  padding:5px 10px;font-size:.78rem;color:var(--mute);background:var(--surface)}
-.tchip.on{border-color:var(--accent);color:var(--accent);background:rgba(var(--accent-rgb),.1)}
-.trow{display:flex;gap:7px;flex-wrap:wrap;align-items:center}
-.tcode{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:.8rem;color:var(--ink);
-  background:#000;border:1px solid var(--line);border-radius:8px;padding:10px 12px;
-  display:block;white-space:pre-wrap;line-height:1.7}
-.tarrow{color:var(--dim);font-size:.9rem}
-@media (max-width:560px){
-  .tourtop,.tourbody,.tourfoot{padding-left:18px;padding-right:18px}
-  .tourstep{font-size:2rem}
-  .tourbody h3{font-size:1.1rem}
+/* ═══ คู่มือเปิดใช้งานครั้งแรก — coachmark ชี้ปุ่มจริงบนหน้าจอจริง ═══
+   เดิมเป็นสไลด์ป๊อปอัพ 6 หน้าอธิบายลอยๆ ไม่ผูกกับของจริงบนจอ
+   ตอนนี้พาไปที่ปุ่มจริง ไฮไลต์ให้เห็น แล้วบางขั้นรอให้กดเองจริงๆ ก่อนไปต่อ
+   เหมือนคู่มือเกม: ชี้ทีละจุด ให้ลงมือทำ ไม่ใช่แค่บอก */
+.coach{position:fixed;inset:0;z-index:150}
+.coach[hidden]{display:none}
+.coach-mask{position:fixed;pointer-events:none;border-radius:14px;
+  box-shadow:0 0 0 9999px rgba(6,7,9,.82);
+  transition:top .32s cubic-bezier(.4,0,.2,1),left .32s cubic-bezier(.4,0,.2,1),
+    width .32s cubic-bezier(.4,0,.2,1),height .32s cubic-bezier(.4,0,.2,1),
+    border-radius .32s,opacity .2s}
+.coach-ring{position:fixed;pointer-events:none;border:2px solid var(--accent);border-radius:16px;
+  box-shadow:0 0 0 4px rgba(var(--accent-rgb),.18),0 0 26px rgba(var(--accent-rgb),.35);
+  transition:top .32s cubic-bezier(.4,0,.2,1),left .32s cubic-bezier(.4,0,.2,1),
+    width .32s cubic-bezier(.4,0,.2,1),height .32s cubic-bezier(.4,0,.2,1),opacity .2s}
+.coach-ring.wait{animation:coachpulse 1.5s ease-in-out infinite}
+@keyframes coachpulse{
+  0%,100%{box-shadow:0 0 0 4px rgba(var(--accent-rgb),.18),0 0 26px rgba(var(--accent-rgb),.35)}
+  50%{box-shadow:0 0 0 9px rgba(var(--accent-rgb),.06),0 0 38px rgba(var(--accent-rgb),.55)}
 }
+/* ระหว่างรอ onEnter (เช่นกำลังพาไปหน้า Coordinator ซึ่งอาจต้องถามรหัสก่อน)
+   การ์ดที่โปร่งใสอยู่ก็ยังกินพื้นที่คลิกอยู่ดีถ้าไม่ตัด pointer-events —
+   จะไปบังจอใส่รหัส Coordinator ที่โผล่ขึ้นมาซ้อนโดยที่มองไม่เห็นตัวมันเอง */
+.coach.busy .coach-mask,.coach.busy .coach-ring,.coach.busy .coach-card{opacity:0;pointer-events:none}
+/* การ์ดคำอธิบาย — ลอยข้างจุดที่ชี้ ไม่ทับปุ่มจริง ขยับตามเวลาสลับขั้น */
+/* การ์ดสแนปตำแหน่งทันที ไม่เลื่อนตาม — จะได้อ่านตัวหนังสือได้เลยไม่ต้องรอ
+   (ตัวที่เลื่อนนุ่มๆ ให้เห็นคือวงแสง coach-ring/coach-mask ที่ล้อมปุ่มจริง พอแล้ว) */
+.coach-card{position:fixed;z-index:2;width:min(330px,88vw);
+  background:linear-gradient(180deg,var(--surface),#101010);
+  border:1px solid var(--line);border-radius:16px;box-shadow:var(--shadow);
+  padding:16px 18px 14px;pointer-events:auto;
+  transition:opacity .2s}
+.coach-bar{height:3px;background:var(--surface2);border-radius:3px;overflow:hidden;margin-bottom:12px}
+.coach-bar i{display:block;height:100%;background:var(--accent);width:0;transition:width .35s}
+.coach-top{display:flex;align-items:baseline;justify-content:space-between;gap:8px;margin-bottom:6px}
+.coach-kick{font-size:.66rem;letter-spacing:.2em;text-transform:uppercase;color:var(--accent)}
+.coach-count{font-size:.7rem;color:var(--dim);font-family:'Bebas Neue','Space Grotesk',sans-serif;
+  letter-spacing:.04em}
+.coach-card h3{font-size:1.04rem;line-height:1.3;margin-bottom:6px}
+.coach-card p{color:var(--mute);font-size:.86rem;line-height:1.55}
+.coach-card b{color:var(--ink)}
+.coach-wait{display:flex;align-items:center;gap:8px;margin-top:10px;padding:8px 10px;
+  background:rgba(var(--accent-rgb),.08);border:1px solid rgba(var(--accent-rgb),.25);
+  border-radius:10px;font-size:.78rem;color:var(--accent)}
+.coach-wait[hidden]{display:none}
+.coach-wait i{width:7px;height:7px;border-radius:50%;background:var(--accent);flex:none;
+  animation:coachdot 1s ease-in-out infinite}
+@keyframes coachdot{0%,100%{opacity:.35;transform:scale(.8)}50%{opacity:1;transform:scale(1.15)}}
+.coach-foot{display:flex;align-items:center;gap:8px;margin-top:14px;flex-wrap:wrap}
+.coachbtn{background:none;border:1px solid var(--line);color:var(--mute);
+  border-radius:9px;padding:7px 13px;font-size:.82rem}
+.coachbtn:hover{color:var(--ink);border-color:var(--mute)}
+.coachbtn.go{background:var(--accent);border-color:var(--accent);color:var(--accent-ink);font-weight:700}
+.coachbtn.go:hover{filter:brightness(1.08)}
+.coachbtn.skip{margin-left:auto;border-color:transparent;color:var(--dim);font-size:.76rem}
+.coachbtn:disabled{opacity:.3;cursor:default}
+@media (max-width:480px){.coach-card{padding:14px 15px 12px}}
 
 .overlay{position:fixed;inset:0;background:rgba(8,9,12,.72);z-index:50;
   display:flex;align-items:flex-start;justify-content:center;padding:48px 20px;
@@ -1682,28 +1691,26 @@ tr.subrow td.w-status select{width:14.6em}
   </form>
 </div>
 
-<!-- ═══ คู่มือเปิดใช้งานครั้งแรก ═══
+<!-- ═══ คู่มือเปิดใช้งานครั้งแรก — ชี้ปุ่มจริงบนหน้าจอจริง ═══
      คนสมัครเองไม่มีใครนั่งข้างๆ คอยบอกว่าปุ่มไหนทำอะไร
-     เนื้อหาอยู่ใน TOUR ฝั่ง JS ที่เดียว ที่นี่เป็นแค่โครง -->
-<div class="tour" id="tourView" hidden>
-  <div class="tourbox" role="dialog" aria-modal="true" aria-labelledby="tourTitle">
-    <div class="tourbar"><i id="tourFill"></i></div>
-    <div class="tourtop">
-      <div class="tourstep" id="tourNum">01</div>
-      <div>
-        <div class="tourkicker" id="tourKick">เริ่มต้นใช้งาน</div>
-        <div style="font-size:.72rem;color:var(--dim)" id="tourCount"></div>
-      </div>
+     coach-mask/coach-ring คือช่องแสงที่ล้อมปุ่มจริงไว้ (ไม่ได้ครอบปุ่ม ปุ่มยังกดได้ตามปกติ)
+     เนื้อหาขั้นตอนอยู่ใน COACH ฝั่ง JS ที่เดียว ที่นี่เป็นแค่โครง -->
+<div class="coach" id="coachView" hidden>
+  <div class="coach-mask" id="coachMask"></div>
+  <div class="coach-ring" id="coachRing"></div>
+  <div class="coach-card" id="coachCard" role="dialog" aria-modal="true" aria-labelledby="coachTitle">
+    <div class="coach-bar"><i id="coachFill"></i></div>
+    <div class="coach-top">
+      <span class="coach-kick" id="coachKick"></span>
+      <span class="coach-count" id="coachCount"></span>
     </div>
-    <div class="tourbody">
-      <h3 id="tourTitle"></h3>
-      <div id="tourText"></div>
-    </div>
-    <div class="tourfoot">
-      <div class="tourdots" id="tourDots"></div>
-      <button type="button" class="tourbtn" id="tourSkip">ข้ามไปก่อน</button>
-      <button type="button" class="tourbtn" id="tourBack">ย้อน</button>
-      <button type="button" class="tourbtn go" id="tourNext">ถัดไป</button>
+    <h3 id="coachTitle"></h3>
+    <p id="coachText"></p>
+    <div class="coach-wait" id="coachWait" hidden><i></i><span id="coachWaitText"></span></div>
+    <div class="coach-foot">
+      <button type="button" class="coachbtn skip" id="coachSkip">ข้ามคู่มือ</button>
+      <button type="button" class="coachbtn" id="coachBack">ย้อน</button>
+      <button type="button" class="coachbtn go" id="coachNext">ถัดไป</button>
     </div>
   </div>
 </div>
@@ -2383,7 +2390,7 @@ tr.subrow td.w-status select{width:14.6em}
 
     <section class="sect">
       <h3>คู่มือเริ่มต้นใช้งาน</h3>
-      <p class="sect-sub">6 หน้าสั้นๆ ว่าหน้า Coordinator ทำอะไรได้บ้าง — เปิดอ่านซ้ำได้ตลอด</p>
+      <p class="sect-sub">พาไปชี้ปุ่มจริงบนหน้าจอทีละจุด — เปิดซ้ำได้ตลอด</p>
       <button type="button" class="export" id="tourAgain">เปิดคู่มือ</button>
     </section>
 
@@ -7267,7 +7274,7 @@ $("#lockBtn").onclick = async () => {
   await sbLogout();             // ออกจากระบบจริง ล้าง session
   await requireLogin();
   applyRole();                  // คนที่กลับเข้ามาอาจสิทธิ์ไม่เท่าคนที่เพิ่งออกไป
-  if (isCrew() && !lsGet(LS_TOUR)) await openTour();
+  if (isCrew() && !lsGet(LS_TOUR)) await openCoach();
   setView("home");
 };
 
@@ -7593,7 +7600,8 @@ function askLogin(){
         const p = await sbProfile();
         if (!p) throw new Error("เข้าสู่ระบบได้ แต่ยังไม่มีสิทธิ์ใช้งาน — ติดต่อแอดมิน");
         if (!p.is_active){ await sbLogout(); throw new Error("บัญชีนี้ถูกระงับการใช้งาน"); }
-        if (signup) await coordPinSet(cpin);  // ล้มเหลว = ยังไม่ได้รัน SQL ฝั่งฐานข้อมูล ไม่บล็อกการสมัคร
+        // เพิ่งพิมพ์รหัสนี้เองสดๆ ไม่ต้องถามซ้ำทันที — คู่มือที่กำลังจะเปิดจะได้พาเข้า Coordinator ได้เลย
+        if (signup){ await coordPinSet(cpin); GATE_OK.coord = true; }
         sbTouchSeen();                       // ไม่ต้องรอ ไม่ให้ถ่วงการเข้าใช้งาน
         // สลับมาคนละบัญชีกับตอนเปิดหน้า — ของในเครื่องที่โหลดค้างไว้เป็นของคนก่อน เปิดหน้าใหม่ให้อ่านช่องที่ถูก
         if (nsStale()){ $("#lockMsg").textContent = "กำลังเปิดพื้นที่ทำงานของคุณ..."; location.reload(); return; }
@@ -11026,115 +11034,194 @@ function applyRole(){
   else delete document.body.dataset.crew;
 }
 
-// ═══ คู่มือเปิดใช้งานครั้งแรก ═══
-// คนที่สมัครเองไม่มีใครนั่งข้างๆ คอยบอกว่าปุ่มไหนทำอะไร
-// ภาพประกอบวาดด้วย CSS ล้วน ไม่ใช้รูป — เปลี่ยนสีหลักของเว็บแล้วคู่มือเปลี่ยนตามเอง
+// ═══ คู่มือเปิดใช้งานครั้งแรก — coachmark ชี้ปุ่มจริงบนหน้าจอจริง ═══
+// คนที่สมัครเองไม่มีใครนั่งข้างๆ คอยบอกว่าปุ่มไหนทำอะไร เดิมเป็นสไลด์ป๊อปอัพลอยๆ
+// ตอนนี้พาไปทีละจุดบนหน้าจอจริง (spotlight ล้อมปุ่มจริง กดผ่านได้ ไม่ได้บังไว้)
+// บางขั้น "รอ" ให้ทำจริงก่อนถึงจะไปต่อเอง เหมือนคู่มือเกม — ไม่ใช่แค่บอกให้ฟัง
 const LS_TOUR = "cf_tour_v1";
-const TOUR = [
-  { kick: "ยินดีต้อนรับ", t: "ที่นี่คือที่ที่งานเดินต่อจนจบ",
-    html: `<p>หลังจากดีลกับครีเอเตอร์จบแล้ว ทุกอย่างที่เหลือ — <b>เรท ภาษี สถานะ วันโพสต์
-      เอกสาร ข้อความที่ส่งไปหาเขา</b> — อยู่ในหน้า Coordinator หน้าเดียว</p>
-      <p>คู่มือนี้ยาว 6 หน้า ประมาณ 1 นาที กด <b>ถัดไป</b> หรือลูกศร → ได้เลย
-      ข้ามไปก่อนก็ได้ เปิดอ่านใหม่ได้ตลอดที่ ⚙ ตั้งค่า</p>` },
 
-  { kick: "ขั้นแรก", t: "สร้างโปรเจกต์ของตัวเองก่อน",
-    html: `<p>กระดานของมึงเริ่มจากศูนย์ ไม่มีงานของใครปนมา
-      กด <b>⚙</b> ท้ายแถบแท็บเพื่อเพิ่มโปรเจกต์แรก — ใส่<b>ชื่องาน</b>กับ<b>ชื่อแบรนด์</b></p>
-      <div class="tourart"><div class="trow">
-        <span class="tchip on">Red Chamber Ph.2</span>
-        <span class="tchip">OBSBOT-KOC</span>
-        <span class="tchip">⚙</span>
-        <span class="tarrow">← กดตรงนี้เพื่อเพิ่ม / ปิดงาน / ลบ</span>
-      </div></div>
-      <p style="margin-top:12px">ชื่อแบรนด์สำคัญ เพราะมันไปโผล่ในข้อความที่ส่งให้ครีเอเตอร์อัตโนมัติ</p>` },
+const COACH = [
+  { kick: "เริ่มต้น", t: "พาไปทีละจุดบนหน้าจอจริง",
+    text: `คู่มือนี้จะชี้ตรงปุ่มจริงบนเว็บทีละจุด บางขั้นจะรอให้กดจริงก่อนถึงจะไปต่อ —
+      กด <b>ถัดไป</b> เพื่อเริ่ม หรือข้ามได้ตลอดที่มุมขวาล่าง` },
+
+  { kick: "ขั้นแรก", t: "สร้างโปรเจกต์แรกของคุณ",
+    text: `กระดานของคุณเริ่มจากศูนย์ ไม่มีงานของใครปนมา —
+      <b>กดปุ่มที่ไฮไลต์อยู่</b>เพื่อเริ่มสร้างโปรเจกต์แรก`,
+    target: () => $("#coordFirstProj") || document.querySelector("#projTabs [data-manageproj]"),
+    skip: () => PROJECTS.length > 0,
+    onEnter: async () => {
+      if (document.body.dataset.view !== "coord") await setView("coord");
+      // กดยกเลิกตอนใส่รหัส Coordinator — ที่เหลือของคู่มือไม่มีความหมายถ้าเข้าไม่ได้ ปิดไปเลย
+      if (document.body.dataset.view !== "coord") closeCoach();
+    },
+    done: () => !$("#projPanel").hidden,
+    waitText: "รอคุณกดปุ่มนั้นอยู่..." },
+
+  { kick: "กรอกรายละเอียด", t: "ตั้งชื่องานกับชื่อแบรนด์",
+    text: `ใส่<b>ชื่อโปรเจกต์</b>กับ<b>ชื่อแบรนด์</b>ที่ช่องซึ่งไฮไลต์ไว้ แล้วกด เพิ่ม —
+      ชื่อแบรนด์จะไปโผล่ในข้อความที่ส่งหาครีเอเตอร์อัตโนมัติทีหลัง`,
+    target: () => document.querySelector("#projBody .prow.add"),
+    skip: () => PROJECTS.length > 0,
+    done: () => PROJECTS.length > 0,
+    waitText: "รอคุณกรอกแล้วกดเพิ่มอยู่..." },
 
   { kick: "หัวใจของหน้านี้", t: "ช่องคำสั่ง — พิมพ์เป็นภาษาคนได้เลย",
-    html: `<p>ช่องบนสุดใช้ทำได้เกือบทุกอย่าง ไม่ต้องจำรูปแบบ พิมพ์อย่างที่พูดกับเพื่อนร่วมทีม</p>
-      <span class="tcode">เพิ่ม @noonnyy 5000 ชำระ3%
-@bellaz
-@mintcha
-ทุกคนเป็น Draft Submitted</span>
-      <p style="margin-top:12px">วางรายชื่อหลายคนแล้วสั่งทีเดียวก็ได้ — บรรทัดที่มีแต่ชื่อจะรอไว้
-      พอเจอบรรทัดคำสั่งก็ใช้กับทุกคนที่รออยู่</p>
-      <p><b>ทุกคำสั่งผ่านหน้าตรวจก่อนเสมอ</b> ไม่มีอะไรทำงานทันทีที่พิมพ์ —
-      อ่านให้ชัวร์แล้วค่อยกดใช้ ผิดก็แก้ก่อนได้</p>` },
+    text: `เพิ่มคนใหม่หรือแก้ข้อมูลก็พิมพ์ที่นี่ช่องเดียว เช่น
+      <b>«เพิ่ม @noonnyy 5000 ชำระ3%»</b> — วางหลายชื่อแล้วสั่งทีเดียวก็ได้<br>
+      <b>ทุกคำสั่งมีหน้าตรวจก่อนเสมอ</b> ไม่มีอะไรทำงานทันทีที่พิมพ์`,
+    target: () => $("#qoText"),
+    onEnter: () => { if (!$("#projPanel").hidden) $("#projPanel").hidden = true; } },
 
   { kick: "ดูงานทั้งกอง", t: "◈ Map — เห็นทุกคนอยู่ขั้นไหนในหน้าเดียว",
-    html: `<p>คำถามแรกของวันมักไม่ใช่ "แถวที่ 14 เขียนว่าอะไร" แต่เป็น "งานทั้งกองไปถึงไหนแล้ว"
-      ปุ่ม <b>◈ Map</b> ตอบให้ทันที</p>
-      <div class="tourart"><div class="trow" style="gap:10px">
-        <span class="tchip">รอคอนเฟิร์ม <b style="color:var(--warn)">4</b></span>
-        <span class="tarrow">→</span>
-        <span class="tchip">ส่งดราฟต์ <b style="color:var(--info)">7</b></span>
-        <span class="tarrow">→</span>
-        <span class="tchip">โพสต์แล้ว <b style="color:var(--hi)">12</b></span>
-        <span class="tarrow">→</span>
-        <span class="tchip">จ่ายแล้ว <b style="color:var(--accent)">3</b></span>
-      </div></div>
-      <p style="margin-top:12px">มี 3 มุมมอง: <b>ขั้นตอนงาน</b> · <b>ข้อมูลที่ยังขาด</b> ·
-      <b>เงิน</b> — ลากคนข้ามกิ่งเพื่อเปลี่ยนสถานะได้เลย</p>` },
+    text: `คำถามแรกของวันมักไม่ใช่ "แถวที่ 14 เขียนว่าอะไร" แต่เป็น "งานทั้งกองไปถึงไหนแล้ว"
+      ปุ่มนี้ตอบให้ทันที มี 3 มุมมอง: <b>ขั้นตอนงาน</b> · <b>ข้อมูลที่ยังขาด</b> · <b>เงิน</b>`,
+    target: () => $("#mapBtn") },
 
-  { kick: "คุยกับครีเอเตอร์", t: "✉ Command — ข้อความสำเร็จรูปที่เติมข้อมูลให้แล้ว",
-    html: `<p>กด <b>✉</b> ท้ายชื่อใครก็ได้ จะได้ข้อความพร้อมส่ง 15 แบบ
-      ที่<b>เติมชื่อ เรท SKU ลิงก์ ของคนนั้น</b>ให้เรียบร้อย ก๊อปแล้ววางในแชทได้เลย</p>
-      <p>แก้ข้อความเฉพาะของคนนั้นได้โดยไม่กระทบใคร — มีจุดแดงบนปุ่ม ✉ บอกว่าคนนี้มีข้อความของตัวเอง</p>
-      <p style="color:var(--dim);font-size:.86rem">ปุ่ม <b>⤢</b> ข้างชื่อเปิดลิ้นชักรายละเอียด
-      แก้ได้ทุกช่องในที่เดียว รวมย้ายโปรเจกต์</p>` },
+  { kick: "ก่อนรู้เรท", t: "✉ Format ขอเรท — ข้อความทักครั้งแรก",
+    text: `ก่อนจะรู้เรทของครีเอเตอร์ กดปุ่มนี้เพื่อเปิดข้อความสำเร็จรูปสำหรับทักถามเรทได้เลย
+      ไม่ต้องพิมพ์เอง`,
+    target: () => $("#fmtBtn") },
 
-  { kick: "ก่อนเริ่มจริง", t: "2 อย่างที่ควรรู้ไว้",
-    html: `<p><b>1 · รหัสหน้า Coordinator</b> คือ 6 หลักที่ตั้งไว้ตอนสมัคร ถามทุกครั้งที่เปิดเว็บใหม่
-      ลืมก็ตั้งใหม่ได้เองที่ ⚙ ตั้งค่า → รหัสหน้า Coordinator ของคุณ</p>
-      <p><b>2 · ของที่แก้เก็บอยู่ในเบราว์เซอร์เครื่องนี้</b> เป็นพื้นที่ของบัญชีมึงคนเดียว
-      ไม่ปนกับคนอื่นที่ใช้เครื่องเดียวกัน — แต่ก็แปลว่าย้ายเครื่องแล้วต้องเริ่มใหม่</p>
-      <p style="margin-top:14px;color:var(--accent)"><b>พร้อมแล้ว — ลงมือได้เลย</b></p>` },
+  { kick: "ค้นหาข้ามโปรเจกต์", t: "ช่องนี้เห็นทุกงานของคนคนเดียว",
+    text: `พิมพ์ชื่อครีเอเตอร์ เห็นประวัติทุกโปรเจกต์ที่เขาเคยทำกับทีม ไม่ต้องสลับแท็บไปหาทีละที่`,
+    target: () => $("#coordFind") },
+
+  { kick: "ลืมรหัสไหม", t: "ตั้งรหัส Coordinator ใหม่ได้เอง",
+    text: `รหัส 6 หลักที่ตั้งไว้ตอนสมัคร ใช้ทุกครั้งที่เข้าหน้านี้ — ลืมเมื่อไหร่ก็ตั้งใหม่ได้ตรงนี้เลย
+      ไม่ต้องขอใคร`,
+    target: () => $("#coordPinSect"),
+    onEnter: () => { $("#settings").hidden = false; $("#coordPinSect").open = true; },
+    onExit: () => { $("#settings").hidden = true; } },
+
+  { kick: "เสร็จแล้ว", t: "พร้อมใช้งานจริงแล้ว",
+    text: `เปิดคู่มือนี้ซ้ำได้ตลอดที่ <b>⚙ ตั้งค่า → คู่มือเริ่มต้นใช้งาน</b> — ลุยได้เลย` },
 ];
 
-let TOUR_I = 0;
-function renderTour(){
-  const st = TOUR[TOUR_I], last = TOUR_I === TOUR.length - 1;
-  $("#tourNum").textContent = String(TOUR_I + 1).padStart(2, "0");
-  $("#tourKick").textContent = st.kick;
-  $("#tourCount").textContent = `${TOUR_I + 1} จาก ${TOUR.length}`;
-  $("#tourTitle").textContent = st.t;
-  $("#tourText").innerHTML = st.html;
-  $("#tourFill").style.width = ((TOUR_I + 1) / TOUR.length * 100) + "%";
-  $("#tourDots").innerHTML = TOUR.map((_, i) =>
-    `<i data-ti="${i}" class="${i === TOUR_I ? "on" : i < TOUR_I ? "past" : ""}"></i>`).join("");
-  $("#tourDots").querySelectorAll("[data-ti]").forEach(d =>
-    d.onclick = () => { TOUR_I = +d.dataset.ti; renderTour(); });
-  $("#tourBack").disabled = !TOUR_I;
-  $("#tourNext").textContent = last ? "เริ่มใช้งาน" : "ถัดไป";
-  $("#tourSkip").hidden = last;
-  document.querySelector(".tourbody").scrollTop = 0;
+let COACH_I = 0;
+let COACH_DIR = 1;
+let COACH_POLL = null;
+let COACH_SETTLE = null;
+let COACH_DONE = null;   // resolve ของ Promise ที่คืนจาก openCoach — ตอนบูตต้องรอให้ปิดคู่มือก่อนค่อยเปิดประตูรหัส Coordinator
+
+function coachClearPoll(){
+  if (COACH_POLL){ clearInterval(COACH_POLL); COACH_POLL = null; }
 }
-// คืน Promise ที่จบตอนปิดคู่มือ — ตอนบูตต้องรอให้อ่านจบก่อนค่อยเปิดประตูรหัส Coordinator
-// ไม่งั้นคู่มือจะไปคาทับจอใส่รหัส แล้วโฟกัสแย่งกันเอง
-let TOUR_DONE = null;
-function openTour(){
-  TOUR_I = 0;
-  $("#tourView").hidden = false;
-  renderTour();
-  setTimeout(() => $("#tourNext").focus(), 60);
-  return new Promise(r => { TOUR_DONE = r; });
+function coachPlaceOn(rect){
+  const mask = $("#coachMask"), ring = $("#coachRing"), card = $("#coachCard");
+  if (!rect){
+    // ไม่มีเป้าหมาย (หน้าต้อนรับ/หน้าจบ) — มืดทั้งจอ การ์ดอยู่กลางจอ
+    const z = { top: innerHeight / 2, left: innerWidth / 2, width: 0, height: 0 };
+    [mask, ring].forEach(el => { el.style.top = z.top + "px"; el.style.left = z.left + "px";
+      el.style.width = "0px"; el.style.height = "0px"; });
+    ring.style.display = "none";
+    card.style.top = "50%"; card.style.left = "50%"; card.style.transform = "translate(-50%,-50%)";
+    return;
+  }
+  const pad = 8;
+  const r = { top: rect.top - pad, left: rect.left - pad,
+              width: rect.width + pad * 2, height: rect.height + pad * 2 };
+  [mask, ring].forEach(el => { el.style.top = r.top + "px"; el.style.left = r.left + "px";
+    el.style.width = r.width + "px"; el.style.height = r.height + "px"; });
+  ring.style.display = "";
+  card.style.transform = "none";
+  // การ์ดอยู่ใต้เป้าหมาย ถ้าที่ไม่พอค่อยขึ้นไปอยู่บน แล้วหนีบให้อยู่ในจอเสมอ
+  const cw = card.offsetWidth || 330, ch = card.offsetHeight || 160, gap = 16;
+  const spaceBelow = innerHeight - rect.bottom, spaceAbove = rect.top;
+  let top = (spaceBelow > ch + gap || spaceBelow > spaceAbove) ? rect.bottom + gap : rect.top - ch - gap;
+  let left = rect.left + rect.width / 2 - cw / 2;
+  top = Math.max(12, Math.min(top, innerHeight - ch - 12));
+  left = Math.max(12, Math.min(left, innerWidth - cw - 12));
+  card.style.top = top + "px"; card.style.left = left + "px";
 }
-function closeTour(){
-  $("#tourView").hidden = true;
+// เป้าหมายอาจอยู่ในกล่องเลื่อนของตัวเอง (แผงตั้งค่า/แผงจัดการโปรเจกต์) —
+// เลื่อนให้เห็นก่อน แล้วรอจน rect นิ่ง (สูงสุด ~1.2 วิ) ค่อยวางแสง กันแสงไปวางผิดที่ระหว่างเลื่อน
+function coachSettle(el, cb){
+  if (COACH_SETTLE) cancelAnimationFrame(COACH_SETTLE);
+  el.scrollIntoView({ block: "center", behavior: "smooth" });
+  const start = performance.now();
+  let last = "", stable = 0, done = false;
+  const finish = r => { if (done) return; done = true; cb(r); };
+  const tick = () => {
+    const r = el.getBoundingClientRect();
+    const cur = [r.top, r.left, r.width, r.height].join(",");
+    stable = cur === last ? stable + 1 : 0;
+    last = cur;
+    if (stable >= 3 || performance.now() - start > 1200) return finish(r);
+    COACH_SETTLE = requestAnimationFrame(tick);
+  };
+  COACH_SETTLE = requestAnimationFrame(tick);
+  // กันไว้เผื่อ requestAnimationFrame ไม่ยิง (เช่นแท็บถูกสลับไปพักหลังไว้พอดีตอนนั้น) —
+  // อย่างน้อยได้ตำแหน่งล่าสุดที่อ่านได้ ดีกว่าค้างไม่ขยับเลย
+  setTimeout(() => finish(el.getBoundingClientRect()), 1400);
+}
+function coachReflow(){
+  if ($("#coachView").hidden) return;
+  const st = COACH[COACH_I];
+  const el = st.target && st.target();
+  coachPlaceOn(el ? el.getBoundingClientRect() : null);
+}
+window.addEventListener("resize", coachReflow);
+window.addEventListener("scroll", coachReflow, true);
+
+async function coachGoto(i){
+  coachClearPoll();
+  if (i < 0 || i >= COACH.length) return closeCoach();
+  const prev = COACH[COACH_I];
+  if (prev && prev.onExit) prev.onExit();
+  const st = COACH[i];
+  if (st.skip && st.skip()){ COACH_I = i; return coachGoto(i + COACH_DIR); }
+  COACH_I = i;
+  $("#coachView").classList.add("busy");
+  if (st.onEnter) await st.onEnter();
+  $("#coachView").classList.remove("busy");
+
+  $("#coachCount").textContent = `${COACH_I + 1} / ${COACH.length}`;
+  $("#coachKick").textContent = st.kick;
+  $("#coachTitle").textContent = st.t;
+  $("#coachText").innerHTML = st.text;
+  $("#coachFill").style.width = ((COACH_I + 1) / COACH.length * 100) + "%";
+  $("#coachBack").disabled = !COACH_I;
+  const last = COACH_I === COACH.length - 1;
+  $("#coachNext").textContent = last ? "เริ่มใช้งาน" : (st.done ? "ข้ามขั้นนี้ →" : "ถัดไป");
+  $("#coachSkip").hidden = last;
+
+  const el = st.target && st.target();
+  const showRing = () => { $("#coachRing").classList.toggle("wait", !!st.done); };
+  if (el) coachSettle(el, r => { coachPlaceOn(r); showRing(); });
+  else coachPlaceOn(null);
+
+  $("#coachWait").hidden = !st.done;
+  if (st.done){
+    $("#coachWaitText").textContent = st.waitText || "รอคุณทำตามอยู่...";
+    COACH_POLL = setInterval(() => { if (st.done()) coachNext(); }, 350);
+  }
+}
+function coachNext(){ COACH_DIR = 1; coachGoto(COACH_I + 1); }
+function coachBack(){ COACH_DIR = -1; coachGoto(COACH_I - 1); }
+
+function openCoach(){
+  COACH_I = -1; COACH_DIR = 1;
+  $("#coachView").hidden = false;
+  coachGoto(0);
+  return new Promise(r => { COACH_DONE = r; });
+}
+function closeCoach(){
+  coachClearPoll();
+  const cur = COACH[COACH_I];
+  if (cur && cur.onExit) cur.onExit();
+  $("#coachView").hidden = true;
   lsSet(LS_TOUR, "1");          // จบแล้วหรือข้ามก็นับว่าเห็นแล้ว ไม่ตามตื๊อ
-  if (TOUR_DONE){ const r = TOUR_DONE; TOUR_DONE = null; r(); }
+  if (COACH_DONE){ const r = COACH_DONE; COACH_DONE = null; r(); }
 }
-$("#tourNext").onclick = () => {
-  if (TOUR_I === TOUR.length - 1) return closeTour();
-  TOUR_I++; renderTour();
-};
-$("#tourBack").onclick = () => { if (TOUR_I){ TOUR_I--; renderTour(); } };
-$("#tourSkip").onclick = closeTour;
+$("#coachNext").onclick = () => { COACH_I === COACH.length - 1 ? closeCoach() : coachNext(); };
+$("#coachBack").onclick = coachBack;
+$("#coachSkip").onclick = closeCoach;
 document.addEventListener("keydown", e => {
-  if ($("#tourView").hidden) return;
-  if (e.key === "ArrowRight" || e.key === "Enter") $("#tourNext").click();
-  else if (e.key === "ArrowLeft") $("#tourBack").click();
-  else if (e.key === "Escape") closeTour();
+  if ($("#coachView").hidden) return;
+  if (e.key === "Escape") closeCoach();
 });
-$("#tourAgain").onclick = () => { $("#settings").hidden = true; openTour(); };
+$("#tourAgain").onclick = () => { $("#settings").hidden = true; openCoach(); };
 
 // ─── เริ่มต้น: โหลดรายการ Sheet แล้วดึงตัวแรกมาเลย ───
 EXCLUDE = lsLoadSet(LS_EX);
@@ -11174,7 +11261,7 @@ requireLogin().then(async () => {
   if (!["find","coord","home"].includes(last)) last = "home";
   if (last === "find" && isCrew()) last = "home";
   // คนสมัครเองไม่มีใครสอน — กางคู่มือให้ก่อนตั้งแต่ยังไม่เจอประตูรหัส Coordinator
-  if (isCrew() && !lsGet(LS_TOUR)) await openTour();
+  if (isCrew() && !lsGet(LS_TOUR)) await openCoach();
   await setView(last);
   if (document.body.dataset.view !== last) await setView("home");
 });
