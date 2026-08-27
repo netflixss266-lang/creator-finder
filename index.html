@@ -6721,6 +6721,7 @@ function openCmd(proj, handle){
            <button data-lscope="all" aria-selected="${LINK_SCOPE === "all"}">ใช้ร่วมกันทุกคน</button>
          </div>
          <span id="linkHint" style="color:var(--dim)">เว้นว่าง = ใช้ลิงก์ที่ตั้งร่วมกันไว้ · บันทึกเองเมื่อคลิกออกจากช่อง</span>
+         <span id="linkMsg" class="addmsg"></span>
        </div>
        <div id="linkRows"></div>
      </div>
@@ -6929,25 +6930,42 @@ function openCmd(proj, handle){
           ? `<textarea data-link="${esc(k)}" rows="${Math.min(10, Math.max(3, String(v).split("\n").length + 1))}"
                placeholder="${esc(ph)}" spellcheck="false">${esc(v)}</textarea>`
           : `<input data-link="${esc(k)}" value="${esc(v)}" placeholder="${esc(ph)}" spellcheck="false">`}
+        <button data-linkok="${esc(k)}" title="ยืนยันช่องนี้ — บันทึกทันทีและ Command จะได้ค่านี้จริง">✓</button>
         ${mine && own[k] != null ? `<button data-linkclr="${esc(k)}"
           title="ใช้${multi ? "ของ" : "ลิงก์"}ร่วมแทน">↺</button>` : ""}
       </div>`;
     }).join("");
-    $("#linkRows").querySelectorAll("[data-link]").forEach(inp => inp.onchange = () => {
-      const k = inp.dataset.link, v = inp.value.trim();
+    // ── บันทึก + ยืนยันเป็นทางเดียวกันเสมอ ──
+    // ไม่ว่าจะคลิกออกจากช่อง (onchange) หรือกดปุ่ม ✓ เอง ต้องเข้าที่เดียวกันแล้วเห็นผลเหมือนกัน
+    // ไม่งั้นสองทางจะค่อยๆ เพี้ยนจากกันทีหลัง — เจอปัญหาแบบนี้มาแล้วหลายจุดในไฟล์นี้
+    // ขึ้นข้อความยืนยันหลัง openCmd() วาดใหม่เสร็จ (setTimeout 0) ไม่งั้นข้อความจะหายไปกับของเก่าที่ถูกแทนที่
+    const flashLinkMsg = text => setTimeout(() => {
+      const m = $("#linkMsg");
+      if (!m) return;
+      m.className = "addmsg on ok";
+      m.textContent = text;
+      clearTimeout(flashLinkMsg._t);
+      flashLinkMsg._t = setTimeout(() => { if ($("#linkMsg")) $("#linkMsg").className = "addmsg"; }, 2200);
+    }, 0);
+    function commitLink(k, v, msg){
       if (mine) setCmdOwnLink(proj, handle, k, v);
       else { CMDLINKS[k] = v; saveCmdLinks(); }
       renderCoord();
       const wasOpen = !$("#linkBox").hidden;
       openCmd(proj, handle);
-      if (wasOpen){ $("#cmdLinkBtn").click(); }   // เปิดค้างไว้ให้แก้ช่องถัดไปต่อ
+      if (wasOpen){
+        $("#cmdLinkBtn").click();       // เปิดค้างไว้ให้แก้ช่องถัดไปต่อ
+        flashLinkMsg(msg);
+      }
+    }
+    $("#linkRows").querySelectorAll("[data-link]").forEach(inp => inp.onchange = () =>
+      commitLink(inp.dataset.link, inp.value.trim(), "✓ บันทึกแล้ว — ตรงกับที่ Command ใช้จริงแล้ว"));
+    $("#linkRows").querySelectorAll("[data-linkok]").forEach(b => b.onclick = () => {
+      const inp = b.closest(".linkrow").querySelector("[data-link]");
+      if (inp) commitLink(inp.dataset.link, inp.value.trim(), "✓ ยืนยันแล้ว — ตรงกับที่ Command ใช้จริงแล้ว");
     });
-    $("#linkRows").querySelectorAll("[data-linkclr]").forEach(b => b.onclick = () => {
-      setCmdOwnLink(proj, handle, b.dataset.linkclr, "");
-      renderCoord();
-      openCmd(proj, handle);
-      $("#cmdLinkBtn").click();
-    });
+    $("#linkRows").querySelectorAll("[data-linkclr]").forEach(b => b.onclick = () =>
+      commitLink(b.dataset.linkclr, "", "↺ กลับไปใช้ลิงก์ที่ตั้งร่วมกันแล้ว"));
     document.querySelectorAll("#linkBox .linkscope button").forEach(b => b.onclick = () => {
       LINK_SCOPE = b.dataset.lscope;
       document.querySelectorAll("#linkBox .linkscope button").forEach(x =>
