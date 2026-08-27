@@ -1792,7 +1792,7 @@ tr.subrow td.w-status select{width:14.6em}
     <div class="srcchip" id="srcChip" title="ตอนนี้เว็บอ่านชีตด้วยวิธีไหน"></div>
     <button class="gear accent crewhide" id="addBtn" aria-haspopup="dialog">+<span class="lbl"> เพิ่มครีเอเตอร์</span></button>
     <button class="gear" id="gearBtn" aria-haspopup="dialog">⚙<span class="lbl"> ตั้งค่า</span></button>
-    <button class="gear" id="syncBtn" hidden title="ส่งที่แก้ขึ้นชีตเดี๋ยวนี้">⇧<span class="lbl"> ซิงก์</span></button>
+    <button class="gear" id="syncBtn" hidden title="ส่งที่แก้ขึ้นฐานข้อมูลเดี๋ยวนี้">⇧<span class="lbl"> ซิงก์</span></button>
     <button class="gear uibtn" id="uiBtn" title="ขนาดตัวอักษรทั้งเว็บ — กดเพื่อสลับ">A</button>
     <button class="gear" id="lockBtn" title="ล็อกหน้าจอ ต้องใส่รหัสใหม่">🔒<span class="lbl"> ล็อก</span></button>
     <button class="gear cartbtn empty crewhide" id="cartBtn" aria-haspopup="dialog"
@@ -2377,20 +2377,22 @@ tr.subrow td.w-status select{width:14.6em}
     <div class="setbody">
     <!-- ปุ่มพวกนี้เคยอยู่เหนือตาราง กินแถวเต็มๆ ทั้งที่กดกันเดือนละครั้ง
          ที่เหนือตารางเหลือแต่ของที่ใช้ทุกวัน — แท็บโปรเจกต์กับ Map -->
-    <section class="sect crewhide">
+    <!-- ไม่ crewhide แล้ว — งานเก็บที่ฐานข้อมูล ทุก role ต้องโหลดใหม่/ส่งออกได้
+         เหลือเฉพาะปุ่มที่เกี่ยวกับ Google Sheet ที่ยังเป็นของ admin -->
+    <section class="sect">
       <h3>ข้อมูล Coordinate</h3>
-      <p class="sect-sub">โหลด/ส่งออก/เปิดชีตของหน้า Coordinator — สั่งจากช่องคำสั่งก็ได้:
+      <p class="sect-sub">โหลด/ส่งออกงานของหน้า Coordinator — สั่งจากช่องคำสั่งก็ได้:
         <code>/reload</code> <code>/export</code> <code>/sync</code></p>
       <div class="dd-act" style="flex-wrap:wrap">
-        <a class="export" id="coordSheet" target="_blank" rel="noopener noreferrer"
+        <a class="export crewhide" id="coordSheet" target="_blank" rel="noopener noreferrer"
            href="https://docs.google.com/spreadsheets/d/1v5CrMct_EQEnHYndMAujZZI_DUBhGY5j5msfJ-2uBOM/edit#gid=33859969">เปิดชีต ↗</a>
-        <button type="button" class="export" id="coordReload">โหลดจากชีตใหม่</button>
+        <button type="button" class="export" id="coordReload">โหลดใหม่จากฐานข้อมูล</button>
         <button type="button" class="export" id="coordExport">Export CSV</button>
         <button type="button" class="export ghost" id="coordResetEdits">คืนค่าที่แก้ในเครื่อง</button>
       </div>
       <div class="hint" style="margin-top:8px">
-        <b>โหลดจากชีตใหม่</b> ทิ้งของที่แก้ไว้แต่ยังไม่ได้ซิงก์ ·
-        <b>คืนค่าที่แก้ในเครื่อง</b> ล้างทุกอย่างที่แก้ไว้แต่ยังไม่ขึ้นชีต
+        <b>โหลดใหม่</b> ทิ้งของที่แก้ไว้แต่ยังไม่ได้ซิงก์ แล้วเอาของจากฐานข้อมูลมาแทน ·
+        <b>คืนค่าที่แก้ในเครื่อง</b> ล้างทุกอย่างที่แก้ไว้แต่ยังไม่ได้ซิงก์
       </div>
     </section>
 
@@ -3469,9 +3471,11 @@ function loadProjects(){
   } catch(e){}
   syncProjects();
 }
-function saveProjects(){
+// quiet = เพิ่งโหลดมาจากฐานข้อมูล ไม่ใช่คนแก้ อย่าตั้งธง "ค้างส่ง"
+function saveProjects(quiet){
   try { lsSet(LS_PROJ, JSON.stringify(PROJ_LIST)); } catch(e){}
   syncProjects();
+  if (!quiet) markDirty();      // รายการโปรเจกต์ก็ขึ้นฐานข้อมูลเหมือนแถวงาน
 }
 function syncProjects(){
   PROJECTS = PROJ_LIST.map(p => p.name);
@@ -3770,27 +3774,57 @@ function clearDirty(){
   try { lsDel(LS_DIRTY); lsDel(LS_NEWROWS); } catch(e){}
 }
 
-function canSync(){ return !!(HOOK.url && HOOK.token); }
+// ชีตเป็นทางออกของ admin เท่านั้น — editor ซิงก์ผ่านฐานข้อมูล ไม่ต้องรู้จัก Apps Script เลย
+function canSync(){ return !!(HOOK.url && HOOK.token) && !isCrew(); }
+
+// ═══ ซิงก์ขึ้นฐานข้อมูล (ทุกคน) ═══
+// นี่คือเส้นทางหลักแล้ว — ทุกคนที่แก้อะไรจะถูกดันขึ้น Supabase กองเดียวกัน
+// ชีตเป็นขั้นที่สอง ทำต่อให้เฉพาะตอน admin เป็นคนกดและตั้ง Apps Script ไว้
+async function syncCoordSB(){
+  const failed = [];
+  try { await sbSaveProjects(); }
+  catch(e){ failed.push("รายการโปรเจกต์: " + e.message); }
+  for (const p of PROJECTS){
+    const rows = COORD[p] || [];
+    // ว่างมาตั้งแต่แรกก็ไม่ต้องยุ่ง — กันกรณีโหลดไม่สำเร็จแล้วเผลอล้างของจริงทิ้ง
+    if (!rows.length && !(LOADED_COUNT[p] > 0)) continue;
+    try {
+      await sbUpsertCoord(rows.map(coordRowToSB));
+      await sbDeleteCoordMissing(p,
+        new Set(rows.map(r => `${normId(r.handle)}|${r.code || ""}`)));
+    } catch(e){ failed.push(`${p}: ${e.message}`); }
+  }
+  return failed;
+}
 
 async function syncCoord(manual){
   if (SYNCING) return;
   if (!DIRTY && !manual) return;
-  if (!canSync()){
-    if (manual) alert("ยังไม่ได้ตั้งค่า Apps Script — ไปที่ ⚙ ตั้งค่า ใส่ URL กับ token ก่อน");
-    return;
-  }
   SYNCING = true; updateSyncBar();
-  const failed = [];
   NEED_FORCE = [];
+  // 1) ฐานข้อมูลก่อนเสมอ — เป็นที่เก็บจริงของงานตอนนี้
+  const failed = await syncCoordSB();
+  // 2) ชีตต่อให้ถ้าเป็น admin ที่ตั้ง Apps Script ไว้ — ล้มก็ไม่กระทบของที่ขึ้นฐานข้อมูลแล้ว
+  if (canSync()) failed.push(...await syncCoordSheet());
+  SYNCING = false;
+  SYNC_AT = Date.now();
+  if (!failed.length) clearDirty();
+  updateSyncBar(failed);
+  if (manual && !NEED_FORCE.length)
+    alert(failed.length ? "ซิงก์ไม่ครบ:\n" + failed.join("\n")
+                        : "ซิงก์เรียบร้อย" + (canSync() ? " (ฐานข้อมูล + ชีต)" : ""));
+}
+
+// ═══ ดันขึ้น Google Sheet (admin เท่านั้น) ═══
+// ของเดิมทั้งดุ้น แค่ถูกแยกออกมาเป็นขั้นที่สอง คืน list ของที่พลาดแทนการอัปเดต UI เอง
+async function syncCoordSheet(){
+  const failed = [];
   for (const p of PROJECTS){
     // ต้องเป็นแถวทั้งหมดของโปรเจกต์เสมอ — สคริปต์เขียนทับทั้งแท็บ
     // ส่งไปแค่บางกลุ่มเมื่อไหร่ อีกกลุ่มหายจากชีตทันที
     const rows = COORD[p] || [];
-    // โปรเจกต์ที่ว่างต้องส่งขึ้นไปด้วย ถ้าเมื่อตอนโหลดมันเคยมีคน = มีการลบเกิดขึ้น
-    // แต่ถ้าว่างมาตั้งแต่แรกก็ไม่ต้องยุ่ง กันกรณีโหลดชีตไม่สำเร็จแล้วเผลอล้างทิ้ง
     if (!rows.length && !(LOADED_COUNT[p] > 0)) continue;
     // Apps Script มีรายชื่อโปรเจกต์ของตัวเอง ส่งชื่อที่มันไม่รู้จักไปก็โดนตีกลับ
-    // บอกให้ตรงว่าต้องไปเติมที่ไหน ดีกว่าโชว์ error ดิบจากสคริปต์
     if (needsScript(p)){
       failed.push(`${p}: ยังไม่มีในสคริปต์ — เติมชื่อนี้ใน COORD_PROJECTS แล้ว deploy ใหม่ก่อน`);
       continue;
@@ -3812,20 +3846,14 @@ async function syncCoord(manual){
                                force: FORCE_PROJ.has(p) }) });
       const said = await res.json().catch(() => null);
       if (said && said.ok === false){
-        failed.push(`${p}: ${said.error}`);
+        failed.push(`${p} (ชีต): ${said.error}`);
         // สคริปต์หยุดไว้เพราะแถวหายเยอะผิดปกติ — ต้องให้คนยืนยันก่อน ไม่ใช่ retry เอง
         if (said.needForce) NEED_FORCE.push({ proj: p, had: said.had, now: said.now });
       }
-    } catch(e){ failed.push(`${p}: ${e.message}`); }
+    } catch(e){ failed.push(`${p} (ชีต): ${e.message}`); }
   }
   FORCE_PROJ.clear();
-  SYNCING = false;
-  SYNC_AT = Date.now();
-  if (!failed.length) clearDirty();
-  updateSyncBar(failed);
-  if (manual && !NEED_FORCE.length)
-    alert(failed.length ? "ซิงก์ไม่ครบ:\n" + failed.join("\n")
-                        : "ซิงก์ขึ้นชีตเรียบร้อย");
+  return failed;
 }
 
 function updateSyncBar(failed){
@@ -3839,7 +3867,8 @@ function updateSyncBar(failed){
   }
   if (!el) return;
   const when = SYNC_AT ? new Date(SYNC_AT).toLocaleTimeString("th-TH", {hour:"2-digit",minute:"2-digit"}) : "";
-  if (SYNCING){ el.className = "syncbar busy"; el.textContent = "กำลังซิงก์ขึ้นชีต..."; return; }
+  if (SYNCING){ el.className = "syncbar busy";
+    el.textContent = canSync() ? "กำลังซิงก์ขึ้นฐานข้อมูลและชีต..." : "กำลังซิงก์ขึ้นฐานข้อมูล..."; return; }
   // สคริปต์กันไว้ว่าแถวจะหายเยอะผิดปกติ — ให้คนดูตัวเลขก่อนแล้วค่อยตัดสินใจ
   // เคสที่มันกันจริงๆ คือเว็บโหลดข้อมูลมาไม่ครบแล้วเผลอซิงก์ ของในชีตจะหายตาม
   if (NEED_FORCE.length){
@@ -3866,11 +3895,12 @@ function updateSyncBar(failed){
   }
   if (DIRTY){
     el.className = "syncbar warn";
-    el.innerHTML = `มีที่แก้ยังไม่ขึ้นชีต — ซิงก์อัตโนมัติทุก 1 ชม. <b>เฉพาะตอนเปิดหน้านี้ค้างไว้</b>
+    el.innerHTML = `มีที่แก้ยังไม่ขึ้นฐานข้อมูล — ซิงก์อัตโนมัติทุก 1 ชม. <b>เฉพาะตอนเปิดหน้านี้ค้างไว้</b>
       หรือกดปุ่ม <b>⇧ ซิงก์</b> มุมขวาบน`;
   } else {
     el.className = "syncbar ok";
-    el.textContent = when ? `ขึ้นชีตแล้ว · ล่าสุด ${when} น.` : "ตรงกับชีตแล้ว";
+    const where = canSync() ? "ฐานข้อมูล + ชีต" : "ฐานข้อมูล";
+    el.textContent = when ? `ขึ้น${where}แล้ว · ล่าสุด ${when} น.` : `ตรงกับ${where}แล้ว`;
   }
 }
 
@@ -3922,59 +3952,80 @@ function coordFromCSV(text){
   }));
 }
 
+// ═══ โหลดงาน Coordinate ═══
+// ฐานข้อมูลเป็นแหล่งจริงแล้ว — แต่เป็นพื้นที่ของแต่ละบัญชี ไม่ใช่กองกลางของทีม
+// ชีตเหลือเป็นทางเข้าครั้งแรกของ admin (นำเข้าของเก่าที่ยังอยู่แต่ในชีต) เท่านั้น
 async function loadCoordData(force){
   if (COORD_SRC && !force) return;
   loadEdits();
   shapeCoord(SEED_COORD);
   COORD_SRC = "ชุดที่ฝังมากับหน้าเว็บ";
+  // 1) รายการโปรเจกต์จากฐานข้อมูล — ต้องมาก่อน shapeCoord เพราะแถวลงตามชื่อโปรเจกต์
   try {
-    let list = null;
-    // ต่อ Apps Script ได้ = อ่านจากแท็บรายโปรเจกต์ ซึ่งเป็นที่เดียวกับที่เราเขียนลงไป
-    // ถ้าอ่านที่นึงเขียนอีกที่นึง กดโหลดใหม่ทีไรของที่แก้จะเหมือนหายไป
-    if (canSync()){
-      try {
-        const r = await fetch(`${HOOK.url}?token=${encodeURIComponent(HOOK.token)}&action=coordAll`,
-                              { cache:"no-store" });
-        const d = await r.json();
-        if (d && d.ok && d.projects){
-          list = [];
-          for (const p in d.projects)
-            (d.projects[p] || []).forEach(o => list.push({
-              handle: normId(o.handle), project: p, kind: o.kind || "",
-              code: o.code || "", status: o.status || "",
-              videos: o.videos ? Number(o.videos) : null,
-              rate: o.rate ? Number(String(o.rate).replace(/[฿,\s]/g,"")) : null,
-              paytype: o.paytype || "",
-              net3: o.net3 ? Number(String(o.net3).replace(/[฿,\s]/g,"")) : null,
-              sku: o.sku || "", postdate: o.postdate || "", deadline: o.deadline || "",
-              brief: o.brief || "", note: o.note || "", rate_all: [],
-            }));
-          if (list.length){
-            shapeCoord(list);
-            COORD_SRC = `แท็บรายโปรเจกต์ในชีต (${list.length} แถว) · ผ่าน Apps Script`;
-            return;
-          }
-          // แท็บรายโปรเจกต์ยังว่าง = ยังไม่เคยซิงก์ ตกไปอ่านแท็บ Coordinate เดิม
-        }
-      } catch(e){}
+    const ps = await sbFetchProjects();
+    if (ps.length){
+      PROJ_LIST = ps.map(x => ({ name: x.name, done: !!x.done,
+        brand: typeof x.brand === "string" ? x.brand : guessBrand(x.name) }));
+      syncProjects(); saveProjects(true);
     }
-    // เดิมคนที่ยังไม่ตั้ง Apps Script จะโดนดูดงานทั้งทีมจากชีตสาธารณะมาแสดงทันทีตั้งแต่เปิดครั้งแรก
-    // บัญชีใหม่ควรเริ่มจากกระดานเปล่าของตัวเอง — ต่อชีตเมื่อไหร่ค่อยเห็นของทีม
-    if (!HOOK.url){
-      // อย่าชี้ไปที่ปุ่มที่คนอ่านมองไม่เห็น — editor ถูกซ่อนหน้าตั้งค่าชีตไปแล้ว
-      COORD_SRC = isCrew() ? "กระดานของคุณเอง"
-                           : "กระดานของคุณเอง — ยังไม่ได้ต่อชีตทีม (ตั้งค่าได้ที่ ⚙ → Google Sheet)";
+  } catch(e){}
+  // 2) แถวงานจากฐานข้อมูล
+  try {
+    const list = await sbFetchCoord();
+    if (list.length){
+      shapeCoord(list.map(o => ({
+        handle: normId(o.handle), project: o.project, kind: o.kind || "",
+        code: o.code || "", status: o.status || "",
+        videos: o.videos == null ? null : Number(o.videos),
+        rate: o.rate == null ? null : Number(o.rate),
+        net3: o.net3 == null ? null : Number(o.net3),
+        paytype: o.paytype || "", sku: o.sku || "",
+        postdate: o.postdate || "", deadline: o.deadline || "",
+        brief: o.brief || "", note: o.note || "",
+        commission: o.commission || "", script: o.script || "", rate_all: [],
+      })));
+      COORD_SRC = `ฐานข้อมูล — พื้นที่ของบัญชีคุณ (${list.length} แถว)`;
       return;
     }
-    const u = privateOn()
-      ? `${HOOK.url}?token=${encodeURIComponent(HOOK.token)}&action=csv&tab=Coordinate`
-      : COORD_URL;
-    list = coordFromCSV(await (await fetch(u, { cache: "no-store" })).text());
-    if (list.length){
+    // ฐานข้อมูลยังว่าง — ยังไม่เคยมีใครซิงก์ขึ้นไป
+    COORD_SRC = "ฐานข้อมูล — พื้นที่ของบัญชีคุณ ยังไม่มีงาน";
+  } catch(e){
+    COORD_SRC = `อ่านฐานข้อมูลไม่ได้: ${e.message}`;
+    return;                                  // อ่านไม่ได้ = อย่าไปเอาของจากชีตมาทับ
+  }
+
+  // 3) ฐานข้อมูลว่าง + เป็น admin ที่ต่อ Apps Script ไว้ → ดึงของเก่าจากชีตมาตั้งต้นให้
+  //    ครั้งเดียวตอนย้ายระบบ กดซิงก์ทีนึงของก็จะขึ้นฐานข้อมูลแล้วรอบหน้าไม่ต้องผ่านชีตอีก
+  if (!canSync()) return;
+  try {
+    const r = await fetch(`${HOOK.url}?token=${encodeURIComponent(HOOK.token)}&action=coordAll`,
+                          { cache:"no-store" });
+    const d = await r.json();
+    let list = null;
+    if (d && d.ok && d.projects){
+      list = [];
+      for (const pj in d.projects)
+        (d.projects[pj] || []).forEach(o => list.push({
+          handle: normId(o.handle), project: pj, kind: o.kind || "",
+          code: o.code || "", status: o.status || "",
+          videos: o.videos ? Number(o.videos) : null,
+          rate: o.rate ? Number(String(o.rate).replace(/[฿,\s]/g,"")) : null,
+          paytype: o.paytype || "",
+          net3: o.net3 ? Number(String(o.net3).replace(/[฿,\s]/g,"")) : null,
+          sku: o.sku || "", postdate: o.postdate || "", deadline: o.deadline || "",
+          brief: o.brief || "", note: o.note || "", rate_all: [],
+        }));
+    }
+    if (!list || !list.length){
+      const u = privateOn()
+        ? `${HOOK.url}?token=${encodeURIComponent(HOOK.token)}&action=csv&tab=Coordinate`
+        : COORD_URL;
+      list = coordFromCSV(await (await fetch(u, { cache: "no-store" })).text());
+    }
+    if (list && list.length){
       shapeCoord(list);
-      COORD_SRC = `แท็บ Coordinate เดิม (${list.length} แถว)` +
-                  (privateOn() ? " · ผ่าน Apps Script" : "") +
-                  (canSync() ? " — ยังไม่เคยซิงก์แท็บรายโปรเจกต์" : "");
+      markDirty();                           // ยังไม่ได้อยู่ในฐานข้อมูล ต้องกดซิงก์ขึ้นไป
+      COORD_SRC = `นำเข้าจากชีต (${list.length} แถว) — ยังไม่ได้ขึ้นฐานข้อมูล กด ⇧ ซิงก์`;
     }
   } catch(e){
     COORD_SRC += ` — อ่านชีตไม่ได้: ${e.message}`;
@@ -7955,6 +8006,103 @@ async function fetchPoolSB(){
 }
 
 // เพิ่ม creator เข้า Supabase (ต้องมี role editor ขึ้นไป ตาม RLS)
+// ═══ Coordinate อยู่ที่ Supabase ═══
+// เดิมงานที่แก้เก็บใน localStorage ของเครื่องตัวเอง แล้วดันขึ้น Google Sheet ผ่าน Apps Script
+// แต่ editor ถูกซ่อนหน้าตั้งค่าชีตไว้ = ไม่มีทางซิงก์อะไรได้เลย งานหายไปกับเครื่องตัวเอง
+// ⚠️ ฐานข้อมูลมาแทน localStorage ในฐานะ "ที่เก็บจริง" ไม่ได้มาทำให้ทุกคนเห็นกองเดียวกัน —
+// RLS ผูก owner = auth.uid() แต่ละบัญชีเห็นเฉพาะของตัวเอง (แม้แต่ admin ก็ไม่เห็นของคนอื่น)
+// ชีตเหลือเป็นทางออกของ admin เท่านั้น
+const SB_COORD_COLS = "project,handle,code,kind,link,status,videos,rate,net3,paytype,sku," +
+                      "postdate,deadline,brief,note,commission,script,ord";
+const SB_PROJ_COLS  = "name,brand,done,ord";
+
+// ตัวเลขที่ว่างต้องเป็น null ไม่ใช่ "" — คอลัมน์เป็น numeric/int ส่งสตริงว่างไปจะ 400
+const nOrNull = v => {
+  if (v === "" || v == null) return null;
+  const n = Number(String(v).replace(/[฿,\s]/g, ""));
+  return isFinite(n) ? n : null;
+};
+const sbUid = () => (SESSION && SESSION.user && SESSION.user.id) || null;
+// ส่ง owner ไปด้วยเพราะ on_conflict อ้างถึงคอลัมน์นี้ — ปลอมไม่ได้ ทั้ง RLS และ trigger
+// ฝั่งเซิร์ฟเวอร์ตอก auth.uid() ทับให้อยู่แล้ว
+const coordRowToSB = (r, i) => ({
+  owner: sbUid(),
+  project: r.project, handle: normId(r.handle), code: r.code || "",
+  kind: r.kind || "", link: r.link || "", status: r.status || "",
+  videos: nOrNull(r.videos), rate: nOrNull(r.rate),
+  net3: payOf(r.rate, r.paytype) ?? nOrNull(r.net3),
+  paytype: r.paytype || "", sku: r.sku || "",
+  postdate: r.postdate || "", deadline: r.deadline || "",
+  brief: r.brief || "", note: r.note || "",
+  commission: r.commission || "", script: r.script || "",
+  ord: i,
+});
+
+// 404 = ยังไม่ได้สร้างตาราง (ยังไม่ได้รัน coord_sync.sql) — บอกให้ตรงจุด
+// ไม่งั้นจะเห็นแค่เลข 404 แล้วนึกว่าเน็ตมีปัญหา
+const sbTableErr = (r, what) => new Error(r.status === 404
+  ? `ยังไม่ได้สร้างตารางในฐานข้อมูล — ต้องรัน kol-tools/coord_sync.sql ที่ Supabase ก่อน`
+  : `${what} (${r.status})`);
+async function sbFetchProjects(){
+  const r = await sbAuthed(SB_URL + "/rest/v1/projects?select=" + SB_PROJ_COLS + "&order=ord.asc");
+  if (!r.ok) throw sbTableErr(r, "อ่านรายการโปรเจกต์ไม่ได้");
+  return await r.json();
+}
+async function sbFetchCoord(){
+  const r = await sbAuthed(SB_URL + "/rest/v1/coord?select=" + SB_COORD_COLS +
+                           "&order=project.asc&order=ord.asc");
+  if (!r.ok) throw sbTableErr(r, "อ่านงาน Coordinate ไม่ได้");
+  return await r.json();
+}
+
+// on_conflict = คีย์ธรรมชาติ (project,handle,code) เดียวกับ ekey() — แถวเดิมทับ ไม่ใช่เพิ่มซ้ำ
+async function sbUpsertCoord(rows){
+  if (!rows.length) return;
+  const r = await sbAuthed(SB_URL + "/rest/v1/coord?on_conflict=owner,project,handle,code",
+    { method:"POST",
+      headers:{ Prefer:"resolution=merge-duplicates,return=minimal" },
+      body: JSON.stringify(rows) });
+  if (!r.ok){
+    if (r.status === 404) throw sbTableErr(r, "");
+    const t = await r.text().catch(() => "");
+    throw new Error(`เขียนงานขึ้นฐานข้อมูลไม่ได้ (${r.status}) ${t.slice(0, 200)}`);
+  }
+}
+// ลบเฉพาะแถวที่หายไปจริงในโปรเจกต์นั้น — ไม่ล้างทั้งโปรเจกต์แล้วเขียนใหม่
+// (ล้างก่อนเขียนคือช่วงที่ถ้าเน็ตหลุดกลางคัน ข้อมูลทั้งโปรเจกต์หายเกลี้ยง)
+async function sbDeleteCoordMissing(proj, keepKeys){
+  const r = await sbAuthed(SB_URL + "/rest/v1/coord?select=handle,code&project=eq." +
+                           encodeURIComponent(proj));
+  if (!r.ok) return;
+  const have = await r.json();
+  const gone = have.filter(x => !keepKeys.has(`${normId(x.handle)}|${x.code || ""}`));
+  for (const g of gone){
+    await sbAuthed(SB_URL + "/rest/v1/coord?project=eq." + encodeURIComponent(proj) +
+      "&handle=eq." + encodeURIComponent(g.handle) +
+      "&code=eq." + encodeURIComponent(g.code || ""),
+      { method:"DELETE", headers:{ Prefer:"return=minimal" } });
+  }
+}
+async function sbSaveProjects(){
+  const rows = PROJ_LIST.map((p, i) => ({
+    owner: sbUid(), name: p.name, brand: p.brand || "", done: !!p.done, ord: i }));
+  if (rows.length){
+    const r = await sbAuthed(SB_URL + "/rest/v1/projects?on_conflict=owner,name",
+      { method:"POST",
+        headers:{ Prefer:"resolution=merge-duplicates,return=minimal" },
+        body: JSON.stringify(rows) });
+    if (!r.ok) throw sbTableErr(r, "บันทึกรายการโปรเจกต์ไม่ได้");
+  }
+  // โปรเจกต์ที่ถูกลบในเว็บ ต้องหายจากฐานข้อมูลด้วย
+  const keep = new Set(PROJ_LIST.map(p => p.name));
+  const cur = await sbFetchProjects().catch(() => []);
+  for (const c of cur){
+    if (keep.has(c.name)) continue;
+    await sbAuthed(SB_URL + "/rest/v1/projects?name=eq." + encodeURIComponent(c.name),
+      { method:"DELETE", headers:{ Prefer:"return=minimal" } });
+  }
+}
+
 async function sbAddCreator(it){
   const body = {
     kind: (it.kind || "").toUpperCase(),
