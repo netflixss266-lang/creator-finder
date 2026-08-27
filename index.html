@@ -5653,10 +5653,15 @@ function docLabel(k){
   return s ? s.d.th + (s.n > 1 ? ` (ชุดที่ ${s.n})` : "") : k;
 }
 
+// ลำดับที่โชว์ในแท็บลิงก์ ต้องตรงกับลำดับที่ Command ใช้จริง (ไล่บล็อก 5→7→9→13→14→15)
+// ไม่ใช่ลำดับที่ประกาศไว้ใน DOCS (อันนั้นเรียงเพื่อให้ regex จับคำในคำสั่งพิมพ์ง่าย คนละเรื่องกัน)
+// guide มาก่อน docs เพราะบล็อก 5 พูดถึงคู่มือถ่ายทำก่อนเอกสารร่วมงาน
+// sg/agreement ไม่ได้อยู่ในบล็อกไหนของต้นแบบเลย (มีไว้ให้บล็อกที่ทีมเพิ่มเองเรียกใช้) เลยไปต่อท้ายสุด
+const CMD_LINK_ORDER = ["guide", "docs", "timeline", "script", "cart", "hashtag", "form", "sign", "sg", "agreement"];
 const CMD_LINK_FIELDS = [
   ["docsKOL", "เอกสารสำคัญร่วมงาน — KOL"],
   ["docsKOC", "เอกสารสำคัญร่วมงาน — KOC"],
-].concat(DOCS.map(d => [d.k, d.th]));
+].concat(CMD_LINK_ORDER.map(k => [k, DOC_BY_KEY[k].th]));
 // เอกสารคนละใบระหว่าง KOL กับ KOC — เลือกตามช่องกลุ่มของแถวนั้น
 const CMD_DEFAULT_LINKS = {
   docsKOL: "https://drive.google.com/file/d/1wxrLaSr5vZB6BLrglanTvCBYSPIsu0Tv/view",
@@ -6597,8 +6602,15 @@ function openCmd(proj, handle){
     .filter(bl => blockForPay(bl, paid, K))
     .forEach(bl => {
     const id = bl.id;
+    // บล็อก 5 ไม่มี {{guide}} ตรงๆ ในตัวข้อความเลย — พูดถึงคู่มือถ่ายทำผ่าน {{brief}} เท่านั้น
+    // (brief ตกไปใช้ guideN เป็นตัวสำรองรายคลิป ดู cmdValues) สแกนแบบเดิมที่จับแค่ {{guide}} ตรงตัว
+    // เลยไม่เจอว่าบล็อกนี้ต้องมีคู่มือแยกชุดด้วย ครีเอเตอร์ 2 คลิปเลยไม่มีช่อง "Shooting Guide ชุดที่ 2"
+    // ให้ตั้งในหน้าลิงก์เฉพาะคน ทั้งที่ Command จริงต้องการ guide2 — เจอ {{brief}} ก็ต้องนับ guide ด้วยเสมอ
     if (bl.clip) (bl.b.match(/\{\{(\w+)\}\}/g) || [])
-      .map(v => v.slice(2, -2)).filter(k => DOC_BY_KEY[k]).forEach(k => clipDocs.add(k));
+      .map(v => v.slice(2, -2)).forEach(k => {
+        if (DOC_BY_KEY[k]) clipDocs.add(k);
+        if (k === "brief") clipDocs.add("guide");
+      });
     // 0 = บล็อกเดียวไม่แยกคลิป · 1..n = ชุดของคลิปที่ n
     const rounds = (bl.clip && clips > 1) ? Array.from({length:clips}, (_, x) => x + 1) : [0];
     rounds.forEach(n => blocks.push(Object.assign(
