@@ -9259,9 +9259,22 @@ async function bulkAddFiles(files){
   ].filter(Boolean).join("<br>");
 }
 
+// ไฟล์ .csv จริงไม่มีแท็บเลย มีแต่จุลภาคคั่นคอลัมน์ — เดิม split ด้วยแท็บ/ช่องว่างอย่างเดียว
+// พอลากไฟล์ .csv มาทั้งบรรทัดเลยกลายเป็นคอลัมน์เดียวยาวๆ (คอมมาไม่ถูกมองว่าเป็นตัวแบ่งเลย)
+// guessRole เจอสตริงยาวที่ไม่ตรง pattern ไหนเลยก็เดาเป็น "skip" ทั้งคอลัมน์ ข้อมูลเลยหายเงียบๆ
 function bulkSplit(text){
-  return String(text).split(/\r?\n/).map(l => l.trim()).filter(Boolean)
-    .map(l => l.split(/\t+|\s{2,}/).map(c => c.trim()).filter((c,i,a) => c || i < a.length-1));
+  const raw = String(text).replace(/\r\n?/g, "\n");
+  const lines = raw.split("\n").map(l => l.trim()).filter(Boolean);
+  if (!lines.length) return [];
+  const hasTab = /\t/.test(text);
+  if (!hasTab && lines.some(l => l.includes(","))){
+    // ใช้ตัวอ่าน CSV จริง (parseCSV) ไม่ใช่ split(",") ตรงๆ — กัน , ที่อยู่ในเครื่องหมายคำพูดพัง
+    const rows = parseCSV(raw).map(r => r.map(c => c.trim()));
+    // ยืนยันว่าเป็น CSV จริงก่อนเชื่อ ไม่ใช่ประโยคที่บังเอิญมีจุลภาคปนมาบรรทัดสองบรรทัด
+    const multiCol = rows.filter(r => r.length > 1).length;
+    if (multiCol >= Math.ceil(rows.length / 2)) return rows;
+  }
+  return lines.map(l => l.split(/\t+|\s{2,}/).map(c => c.trim()).filter((c,i,a) => c || i < a.length-1));
 }
 
 // เดาบทบาทของแต่ละคอลัมน์จากหน้าตาของข้อมูลทั้งคอลัมน์ ไม่ใช่จากแถวเดียว
@@ -9394,10 +9407,23 @@ async function bulkSave(){
              cat: iOf("cat") >= 0 ? (r[iOf("cat")] || cat) : cat };
   }).filter(x => x.id);
 
-  const dupInPool = items.filter(x => POOL.some(p => normId(p.id) === x.id)).map(x => x.id);
-  const todo = items.filter(x => !dupInPool.includes(x.id));
+  // ไฟล์ที่ export มาบางทีมีคนซ้ำกันเองในไฟล์ (พิมพ์/ก๊อปซ้ำตอนรวมลิสต์) — แถวซ้ำมักมีบางช่อง
+  // ว่างกว่าอีกแถว จึงรวมเป็นคนเดียวโดยเลือกช่องที่มีค่าจริงจากทุกแถวที่ id ตรงกัน ไม่ใช่ทิ้งข้อมูลทีหลัง
+  const byId = new Map();
+  let dupInFile = 0;
+  items.forEach(it => {
+    const prev = byId.get(it.id);
+    if (!prev){ byId.set(it.id, it); return; }
+    dupInFile++;
+    ["link", "follower", "rate", "budget", "cat"].forEach(k => { if (!prev[k] && it[k]) prev[k] = it[k]; });
+  });
+  const merged = [...byId.values()];
+
+  const dupInPool = merged.filter(x => POOL.some(p => normId(p.id) === x.id)).map(x => x.id);
+  const todo = merged.filter(x => !dupInPool.includes(x.id));
   msg.className = "addmsg on busy";
   msg.innerHTML = `กำลังเพิ่ม ${todo.length} คน` +
+    (dupInFile ? ` (รวมคนซ้ำกันเองในไฟล์ ${dupInFile} แถวเข้าเป็นคนเดียวแล้ว)` : "") +
     (dupInPool.length ? ` (ข้าม ${dupInPool.length} คนที่มีใน ${esc(KIND)} อยู่แล้ว)` : "") + "...";
   $("#bulkSave").disabled = true;
 
