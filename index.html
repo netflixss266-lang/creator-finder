@@ -1015,10 +1015,10 @@ body.locked{overflow:hidden}
 .maproot .r{display:flex;justify-content:space-between;gap:8px;font-size:.8rem;
   color:var(--mute);padding:5px 0;border-top:1px solid var(--line);margin-top:9px}
 .maproot .r b{font-family:'IBM Plex Mono',monospace;color:var(--ink);font-weight:600}
-/* คอลัมน์ซ้ายของแผนผัง — การ์ดสรุป + กล่องหนังสือแจ้งเตือน
-   ⚠️ ย้าย sticky จาก .maproot มาไว้ที่คอลัมน์ทั้งก้อน: ถ้าปล่อยให้การ์ดตรึงเดี่ยวๆ
-   พอกางหนังสือแจ้งเตือนแล้วเลื่อนจอ กล่องที่อยู่ถัดลงมาจะเลื่อนขึ้นไปทับการ์ดที่ตรึงอยู่
-   (ลูกที่มาทีหลังวาดทับลูกที่มาก่อน) ตรึงทั้งคอลัมน์แล้วให้เลื่อนในตัวเองแทนเมื่อสูงเกินจอ */
+/* คอลัมน์ซ้ายของแผนผัง — การ์ดสรุป + ปุ่มเปิดหนังสือแจ้งเตือน
+   ⚠️ sticky อยู่ที่คอลัมน์ทั้งก้อน ไม่ใช่ที่ .maproot เดี่ยวๆ: ตรึงเฉพาะการ์ดแล้วของที่
+   ต่อท้ายลงมาจะเลื่อนขึ้นไปทับตอนสกรอลล์ (ลูกที่มาทีหลังวาดทับลูกที่มาก่อน)
+   max-height + overflow กันไว้เผื่อวันหลังมีอะไรต่อท้ายอีกจนสูงเกินจอ */
 .mapside{flex:none;width:15em;display:flex;flex-direction:column;gap:12px;
   position:sticky;top:calc(var(--maphead,96px) + 12px);
   max-height:calc(100vh - var(--maphead,96px) - 28px);overflow:auto;
@@ -1028,53 +1028,93 @@ body.locked{overflow:hidden}
 /* ═══ หนังสือแจ้งเตือนตามสัญญา ═══
    เอกสารที่ส่งไปแล้วเรียกคืนไม่ได้ หน้าตาเลยตั้งใจให้ "หนัก" ต่างจากกล่องอื่นทั้งเว็บ
    โทนอำพันของ --warn ไม่ใช่แดง --lo เพราะนี่คือคำเตือนตามสิทธิ ไม่ใช่ข้อผิดพลาดของระบบ */
-.lawbox{background:linear-gradient(180deg,#141210,#0F0E0D);
-  border:1px solid rgba(var(--warn-rgb),.42);border-radius:12px;overflow:hidden}
-.lawbox > summary{list-style:none;cursor:pointer;display:flex;align-items:center;gap:10px;
-  padding:12px 14px;background:rgba(var(--warn-rgb),.07)}
-.lawbox > summary::-webkit-details-marker{display:none}
-.lawbox > summary:hover{background:rgba(var(--warn-rgb),.12)}
-.lawbox .seal{flex:none;width:2rem;height:2rem;border-radius:50%;display:grid;place-items:center;
+/* ── ปุ่มในคอลัมน์ซ้ายของแผนผัง — แค่ทางเข้า ตัวเอกสารจริงอยู่เต็มจอ ── */
+.lawopen{width:100%;display:flex;align-items:center;gap:10px;text-align:left;
+  background:linear-gradient(180deg,#141210,#0F0E0D);
+  border:1px solid rgba(var(--warn-rgb),.42);border-radius:12px;padding:12px 13px}
+.lawopen:hover{border-color:var(--warn);background:rgba(var(--warn-rgb),.1)}
+.lawseal{flex:none;width:2rem;height:2rem;border-radius:50%;display:grid;place-items:center;
   border:1.5px solid rgba(var(--warn-rgb),.6);color:var(--warn);font-size:1rem}
-.lawbox .lt{min-width:0;line-height:1.25}
-.lawbox .lt b{display:block;font-family:'Bebas Neue','Space Grotesk',sans-serif;
+.lawlt{min-width:0;line-height:1.25}
+.lawlt b{display:block;font-family:'Bebas Neue','Space Grotesk',sans-serif;
   font-size:.98rem;letter-spacing:.16em;color:var(--warn)}
-.lawbox .lt i{font-style:normal;font-size:.72rem;color:var(--dim)}
-.lawbox > summary .cv{margin-left:auto;flex:none;font-family:'IBM Plex Mono',monospace;
+.lawlt i{font-style:normal;font-size:.72rem;color:var(--dim)}
+.lawcv{margin-left:auto;flex:none;font-family:'IBM Plex Mono',monospace;
   font-size:.7rem;color:var(--dim)}
-.lawbox[open] > summary{border-bottom:1px solid rgba(var(--warn-rgb),.25)}
-.lawbody{padding:14px}
+.lawcv.miss{color:var(--warn)}
+
+/* ── เต็มจอ ── เอกสารอยู่กลาง แถบเครื่องมือตรึงข้างขวาบนจอกว้าง */
+#lawPanel .panel.sheet{background:
+  radial-gradient(120% 70% at 50% 0%,rgba(var(--warn-rgb),.05),transparent 62%),var(--bg)}
+#lawTitle::before{content:"⚖";margin-right:8px;color:var(--warn)}
+.lawwrap{display:flex;gap:22px;align-items:flex-start}
+.lawsheet{flex:1;min-width:0;max-width:820px;margin:0 auto;
+  background:linear-gradient(180deg,#141210,#0E0D0C);
+  border:1px solid rgba(var(--warn-rgb),.3);border-radius:14px;padding:26px 30px 30px}
+.lawhead{display:flex;align-items:center;gap:13px;padding-bottom:16px;
+  border-bottom:2px double rgba(var(--warn-rgb),.45);margin-bottom:20px}
+.lawhead .lawseal{width:2.7rem;height:2.7rem;font-size:1.35rem}
+.lawhead .lawlt b{font-size:1.25rem;letter-spacing:.2em}
+.lawhead .lawlt i{font-size:.78rem}
+.lawhead .lawref{margin-left:auto;text-align:right;font-size:.72rem;color:var(--dim);
+  line-height:1.5}
+.lawhead .lawref b{display:block;color:var(--warn);font-size:.86rem;
+  font-family:'IBM Plex Mono',monospace}
 /* เส้นคู่ริมซ้ายแบบกระดาษหัวจดหมาย — ทำให้ก้อนข้อความอ่านเป็น "เอกสาร" ไม่ใช่ช่องกรอกฟอร์ม */
-.lawdoc{border-left:3px double rgba(var(--warn-rgb),.45);padding-left:12px;
-  font-size:.78rem;line-height:1.85;color:var(--mute)}
-.lawdoc .lead{color:var(--ink);margin-bottom:12px}
-.lawdoc .cl{margin-bottom:12px}
-.lawdoc .cl > b{display:block;color:var(--ink);font-size:.79rem;margin-bottom:2px}
-.lawdoc .cl > b i{font-style:normal;font-family:'IBM Plex Mono',monospace;color:var(--warn);
-  margin-right:5px}
-.lawdoc ul{list-style:none;margin-top:3px}
-.lawdoc ul li{padding-left:14px;position:relative}
+.lawdoc{border-left:3px double rgba(var(--warn-rgb),.4);padding-left:18px;
+  font-size:.9rem;line-height:2;color:var(--mute)}
+.lawdoc .lead{color:var(--ink);margin-bottom:16px}
+.lawdoc .cl{margin-bottom:16px}
+.lawdoc .cl > b{display:block;color:var(--ink);font-size:.92rem;margin-bottom:3px}
+.lawdoc .cl > b i{font-style:normal;font-family:'IBM Plex Mono',monospace;color:var(--warn)}
+.lawdoc ul{list-style:none;margin-top:5px}
+.lawdoc ul li{padding-left:17px;position:relative}
 .lawdoc ul li::before{content:"—";position:absolute;left:0;color:var(--warn);opacity:.7}
-.lawdoc .fine{margin-top:12px;padding-top:10px;border-top:1px dashed rgba(var(--warn-rgb),.28);
-  font-size:.75rem}
+.lawdoc .fine{margin-top:18px;padding-top:15px;
+  border-top:1px dashed rgba(var(--warn-rgb),.3)}
 /* ช่องเติมคำ — เส้นประใต้ตัวอักษรแบบแบบฟอร์มราชการ กดแล้วพิมพ์ได้เลย */
 .lawin{background:none;border:0;border-bottom:1px dashed rgba(var(--warn-rgb),.6);
   color:var(--warn);font-family:inherit;font-size:inherit;font-weight:600;
-  padding:0 3px 1px;min-width:3em;max-width:100%}
+  padding:0 4px 2px;min-width:3em;max-width:100%}
 .lawin:focus{outline:none;border-bottom-color:var(--warn);background:rgba(var(--warn-rgb),.1)}
 .lawin::placeholder{color:var(--dim);font-weight:400;opacity:.75}
-.lawin.date{min-width:8.6em}
+.lawin.date{min-width:9.5em}
 .lawin.empty{border-bottom-color:var(--lo);background:rgba(var(--lo-rgb),.07)}
-.lawbe{color:var(--warn);font-weight:600}
+.lawbe{color:var(--warn);font-weight:600;white-space:nowrap}
 .lawbe:empty::before{content:"…";color:var(--dim);font-weight:400}
-.lawfoot{display:flex;gap:8px;margin-top:13px;flex-wrap:wrap}
-.lawfoot button{flex:1;background:none;border:1px solid rgba(var(--warn-rgb),.45);
-  color:var(--warn);border-radius:9px;padding:8px 10px;font-size:.79rem;font-weight:600}
+
+/* ── แถบเครื่องมือ: ช่องที่ต้องกรอก + ปุ่มก๊อป ── */
+.lawrail{flex:none;width:16em;position:sticky;top:0;display:flex;flex-direction:column;gap:10px}
+.lawrail h4{font-family:'Bebas Neue','Space Grotesk',sans-serif;font-size:.85rem;
+  letter-spacing:.16em;color:var(--dim)}
+.lawchk{display:flex;flex-direction:column;gap:1px;background:var(--surface);
+  border:1px solid var(--line);border-radius:11px;overflow:hidden}
+.lawchk button{display:flex;align-items:center;gap:8px;text-align:left;background:none;
+  border:0;border-bottom:1px solid var(--line);color:var(--mute);padding:9px 11px;
+  font-size:.79rem;width:100%}
+.lawchk button:last-child{border-bottom:0}
+.lawchk button:hover{background:var(--surface2);color:var(--ink)}
+.lawchk button .dot{flex:none;width:7px;height:7px;border-radius:50%;background:var(--lo)}
+.lawchk button.ok .dot{background:var(--hi)}
+.lawchk button .vv{margin-left:auto;color:var(--warn);font-size:.74rem;max-width:7em;
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.lawfoot{display:flex;flex-direction:column;gap:8px}
+.lawfoot button{background:none;border:1px solid rgba(var(--warn-rgb),.45);
+  color:var(--warn);border-radius:10px;padding:11px;font-size:.86rem;font-weight:600}
 .lawfoot button:hover{background:rgba(var(--warn-rgb),.14)}
-.lawfoot button.ghost{flex:none;border-color:var(--line);color:var(--dim);font-weight:400}
+.lawfoot button.ghost{border-color:var(--line);color:var(--dim);font-weight:400;
+  font-size:.79rem;padding:8px}
 .lawfoot button.ghost:hover{background:none;border-color:var(--mute);color:var(--ink)}
-.lawmsg{margin-top:9px;font-size:.75rem;line-height:1.6;min-height:1px}
+.lawmsg{font-size:.78rem;line-height:1.6}
 .lawmsg.err{color:var(--lo)} .lawmsg.ok{color:var(--hi)}
+@media(max-width:900px){
+  .lawwrap{flex-direction:column-reverse}
+  .lawrail{width:100%;position:static}
+  .lawsheet{padding:20px 18px 24px}
+  .lawdoc{padding-left:13px;font-size:.86rem}
+  .lawhead{flex-wrap:wrap}
+  .lawhead .lawref{margin-left:0;text-align:left;width:100%}
+}
 .mapbranches{flex:1;min-width:0;position:relative;padding-left:2.4em}
 .mapbranches::before{content:"";position:absolute;left:0;top:1.7em;bottom:1.7em;
   border-left:2px solid var(--line)}
@@ -2182,6 +2222,20 @@ tr.subrow td.w-status select{width:14.6em}
       <button class="x" id="closeCmd" aria-label="ปิด">✕</button>
     </div>
     <div class="drawer-body" id="cmdBody"></div>
+  </aside>
+</div>
+
+<!-- ═══ หนังสือแจ้งเตือนตามสัญญา — เต็มจอแบบเดียวกับ Command ═══
+     ต้องอยู่ใน HTML ตั้งแต่แรก ไม่สร้างตอนรัน — ตัวล็อกสกรอลล์ (syncScrollLock) ผูก
+     MutationObserver ไว้กับ .overlay/.drawer ทุกตัวตอนโหลดครั้งเดียว ของที่มาทีหลังจะไม่ถูกเฝ้า -->
+<div class="drawer" id="lawPanel">
+  <div class="scrim" id="lawScrim"></div>
+  <aside class="panel sheet" role="dialog" aria-modal="true" aria-labelledby="lawTitle">
+    <div class="drawer-head">
+      <h2 id="lawTitle">หนังสือแจ้งเตือนตามสัญญา</h2>
+      <button class="x" id="closeLaw" aria-label="ปิด">✕</button>
+    </div>
+    <div class="drawer-body" id="lawBody"></div>
   </aside>
 </div>
 
@@ -7218,18 +7272,30 @@ function lawSlot(proj, k){
     placeholder="${esc(f.ph || f.th)}" title="${esc(f.th)}"
     size="${Math.max(6, v.length || String(f.ph || "").length)}">`;
 }
+const lawMissing = proj => LAW_FIELDS.filter(f => !String(lawGet(proj)[f.k] || "").trim());
 
-function lawBoxHtml(proj){
-  const o = lawGet(proj);
-  const left = LAW_FIELDS.filter(f => !String(o[f.k] || "").trim()).length;
+// ปุ่มในคอลัมน์ซ้ายของแผนผัง — เป็นแค่ทางเข้า ตัวเอกสารจริงกางเต็มจอเหมือน Command
+function lawCardHtml(proj){
+  const left = lawMissing(proj).length;
+  return `<button type="button" class="lawopen" data-lawopen="${esc(proj)}"
+      title="เปิดหนังสือแจ้งเตือนตามสัญญาของ ${esc(proj)}">
+    <span class="lawseal">⚖</span>
+    <span class="lawlt"><b>LEGAL NOTICE</b><i>หนังสือแจ้งเตือนตามสัญญา</i></span>
+    <span class="lawcv${left ? " miss" : ""}">${left ? `ขาด ${left}` : "ครบ ✓"}</span>
+  </button>`;
+}
+
+let LAW_PROJ = "";
+function lawPanelHtml(proj){
   const S = k => lawSlot(proj, k);
-  return `<details class="lawbox" data-lawproj="${esc(proj)}">
-    <summary>
-      <span class="seal">⚖</span>
-      <span class="lt"><b>LEGAL NOTICE</b><i>หนังสือแจ้งเตือนตามสัญญา</i></span>
-      <span class="cv">${left ? `ขาด ${left}` : "ครบ ✓"}</span>
-    </summary>
-    <div class="lawbody">
+  const o = lawGet(proj);
+  return `<div class="lawwrap">
+    <article class="lawsheet">
+      <header class="lawhead">
+        <span class="lawseal">⚖</span>
+        <span class="lawlt"><b>LEGAL NOTICE</b><i>หนังสือแจ้งเตือนตามสัญญา</i></span>
+        <span class="lawref">อ้างถึงโปรเจกต์<b>${esc(proj)}</b></span>
+      </header>
       <div class="lawdoc">
         <div class="lead">${esc(LAW_LEAD)}</div>
         <div>${esc(LAW_REF)}</div>
@@ -7248,79 +7314,118 @@ function lawBoxHtml(proj){
           ราคา ${S("price")} ตามราคาซื้อขายในแพลตฟอร์ม Shopee ณ ${S("refdate")} )
         </div>
       </div>
+    </article>
+    <aside class="lawrail">
+      <h4>ช่องที่ต้องกรอก</h4>
+      <div class="lawchk">${LAW_FIELDS.map(f => {
+        const raw = String(o[f.k] || "").trim();
+        return `<button type="button" class="${raw ? "ok" : ""}" data-lawjump="${f.k}">
+          <span class="dot"></span>${esc(f.th)}
+          <span class="vv">${esc(lawVal(f.k, raw))}</span></button>`;
+      }).join("")}</div>
       <div class="lawfoot">
         <button type="button" data-lawcopy>คัดลอกข้อความ</button>
-        <button type="button" class="ghost" data-lawclear title="ล้างเฉพาะช่องที่กรอกไว้">ล้าง</button>
+        <button type="button" class="ghost" data-lawclear>ล้างที่กรอกไว้</button>
       </div>
       <div class="lawmsg" data-lawmsg></div>
-    </div>
-  </details>`;
+    </aside>
+  </div>`;
 }
 
-function wireLaw(){
-  document.querySelectorAll("#mapBody .lawbox").forEach(box => {
-    const proj = box.dataset.lawproj;
-    const msg = box.querySelector("[data-lawmsg]");
-    const say = (t, k) => { msg.className = "lawmsg " + (k || ""); msg.innerHTML = t; };
-    const recount = () => {
-      const left = LAW_FIELDS.filter(f => !String(lawGet(proj)[f.k] || "").trim()).length;
-      box.querySelector(".cv").textContent = left ? `ขาด ${left}` : "ครบ ✓";
-    };
-    box.querySelectorAll("[data-law]").forEach(inp => {
-      const k = inp.dataset.law;
-      inp.oninput = () => {
-        lawGet(proj)[k] = inp.value;
-        saveLaw();
-        inp.classList.remove("empty");
-        const be = box.querySelector(`[data-lawbe="${k}"]`);
-        if (be) be.textContent = beDate(inp.value);
-        if (inp.type !== "date") inp.size = Math.max(6, inp.value.length || 6);
-        recount(); say("");
-      };
-      // กดในเอกสารแล้วอย่าให้ <summary> พับกล่องปิดใส่
-      inp.onclick = e => e.stopPropagation();
+function openLaw(proj){
+  LAW_PROJ = proj;
+  loadLaw();
+  $("#lawTitle").textContent = `หนังสือแจ้งเตือนตามสัญญา · ${proj}`;
+  $("#lawBody").innerHTML = lawPanelHtml(proj);
+  $("#lawPanel").classList.add("on");
+  $("#lawBody").scrollTop = 0;
+  wireLawPanel(proj);
+}
+function closeLaw(){
+  $("#lawPanel").classList.remove("on");
+  // ตัวเลข "ขาด n" บนปุ่มในแผนผังต้องตามที่เพิ่งกรอกไป
+  if (!$("#mapView").hidden) renderMap();
+}
+
+function wireLawPanel(proj){
+  const body = $("#lawBody");
+  const msg = body.querySelector("[data-lawmsg]");
+  const say = (t, k) => { msg.className = "lawmsg " + (k || ""); msg.innerHTML = t; };
+  // วาดเฉพาะแถบขวาใหม่ — วาดทั้งแผงจะทำให้ช่องที่กำลังพิมพ์อยู่หลุดโฟกัส
+  const refresh = () => {
+    const o = lawGet(proj);
+    body.querySelectorAll("[data-lawjump]").forEach(b => {
+      const raw = String(o[b.dataset.lawjump] || "").trim();
+      b.classList.toggle("ok", !!raw);
+      b.querySelector(".vv").textContent = lawVal(b.dataset.lawjump, raw);
     });
-    box.querySelector("[data-lawcopy]").onclick = () => {
-      const o = lawGet(proj);
-      const miss = LAW_FIELDS.filter(f => !String(o[f.k] || "").trim());
-      // เอกสารอ้างสิทธิตามสัญญา — ปล่อยให้ก๊อปทั้งที่ยังมีช่องว่างคือปล่อยให้ส่งของที่ผิดออกไป
-      if (miss.length){
-        miss.forEach(f => { const el = box.querySelector(`[data-law="${f.k}"]`);
-          if (el) el.classList.add("empty"); });
-        box.querySelector(`[data-law="${miss[0].k}"]`).focus();
-        return say(`ยังไม่ได้กรอก ${miss.length} ช่อง — <b>${
-          miss.map(f => esc(f.th)).join(" · ")}</b>`, "err");
-      }
-      const btn = box.querySelector("[data-lawcopy]");
-      const done = () => {
-        btn.textContent = "คัดลอกแล้ว ✓";
-        say("ก๊อปแล้ว — อ่านทวนอีกรอบก่อนส่ง ส่งไปแล้วเรียกคืนไม่ได้", "ok");
-        setTimeout(() => { btn.textContent = "คัดลอกข้อความ"; }, 1800);
-      };
-      // ตัวเอกสารเป็น <input> ปนข้อความ ลากเลือกเองแล้วจะไม่ได้ค่าในช่องติดมาด้วย
-      // ก๊อปไม่ผ่านต้องมีทางสำรองจริงๆ ไม่ใช่บอกให้ไปเลือกเอง — textarea ซ่อน + execCommand
-      const fallback = () => {
-        const ta = document.createElement("textarea");
-        ta.value = lawText(proj);
-        ta.style.cssText = "position:fixed;left:-9999px;top:0;opacity:0";
-        document.body.appendChild(ta);
-        ta.select();
-        let ok = false;
-        try { ok = document.execCommand("copy"); } catch(e){}
-        ta.remove();
-        ok ? done() : say("ก๊อปไม่ได้ — เบราว์เซอร์ไม่อนุญาต ลองกดปุ่มอีกครั้ง", "err");
-      };
-      if (navigator.clipboard && navigator.clipboard.writeText)
-        navigator.clipboard.writeText(lawText(proj)).then(done).catch(fallback);
-      else fallback();
-    };
-    box.querySelector("[data-lawclear]").onclick = () => {
-      if (!confirm(`ล้างข้อมูลที่กรอกไว้ในหนังสือแจ้งเตือนของ ${proj}?`)) return;
-      delete LAW[proj]; saveLaw();
-      renderMap();
+  };
+  body.querySelectorAll("[data-law]").forEach(inp => {
+    const k = inp.dataset.law;
+    inp.oninput = () => {
+      lawGet(proj)[k] = inp.value;
+      saveLaw();
+      inp.classList.remove("empty");
+      const be = body.querySelector(`[data-lawbe="${k}"]`);
+      if (be) be.textContent = beDate(inp.value);
+      if (inp.type !== "date") inp.size = Math.max(6, inp.value.length || 6);
+      refresh(); say("");
     };
   });
+  body.querySelectorAll("[data-lawjump]").forEach(b => b.onclick = () => {
+    const el = body.querySelector(`[data-law="${b.dataset.lawjump}"]`);
+    if (!el) return;
+    el.scrollIntoView({ block:"center", behavior:"smooth" });
+    el.focus();
+  });
+  body.querySelector("[data-lawcopy]").onclick = () => {
+    const miss = lawMissing(proj);
+    // เอกสารอ้างสิทธิตามสัญญา — ปล่อยให้ก๊อปทั้งที่ยังมีช่องว่างคือปล่อยให้ส่งของที่ผิดออกไป
+    if (miss.length){
+      miss.forEach(f => { const el = body.querySelector(`[data-law="${f.k}"]`);
+        if (el) el.classList.add("empty"); });
+      const first = body.querySelector(`[data-law="${miss[0].k}"]`);
+      if (first){ first.scrollIntoView({ block:"center", behavior:"smooth" }); first.focus(); }
+      return say(`ยังไม่ได้กรอก ${miss.length} ช่อง — <b>${
+        miss.map(f => esc(f.th)).join(" · ")}</b>`, "err");
+    }
+    const btn = body.querySelector("[data-lawcopy]");
+    const done = () => {
+      btn.textContent = "คัดลอกแล้ว ✓";
+      say("ก๊อปแล้ว — อ่านทวนอีกรอบก่อนส่ง ส่งไปแล้วเรียกคืนไม่ได้", "ok");
+      setTimeout(() => { btn.textContent = "คัดลอกข้อความ"; }, 1800);
+    };
+    // ตัวเอกสารเป็น <input> ปนข้อความ ลากเลือกเองแล้วจะไม่ได้ค่าในช่องติดมาด้วย
+    // ก๊อปไม่ผ่านต้องมีทางสำรองจริงๆ ไม่ใช่บอกให้ไปเลือกเอง — textarea ซ่อน + execCommand
+    const fallback = () => {
+      const ta = document.createElement("textarea");
+      ta.value = lawText(proj);
+      ta.style.cssText = "position:fixed;left:-9999px;top:0;opacity:0";
+      document.body.appendChild(ta);
+      ta.select();
+      let ok = false;
+      try { ok = document.execCommand("copy"); } catch(e){}
+      ta.remove();
+      ok ? done() : say("ก๊อปไม่ได้ — เบราว์เซอร์ไม่อนุญาต ลองกดปุ่มอีกครั้ง", "err");
+    };
+    if (navigator.clipboard && navigator.clipboard.writeText)
+      navigator.clipboard.writeText(lawText(proj)).then(done).catch(fallback);
+    else fallback();
+  };
+  body.querySelector("[data-lawclear]").onclick = () => {
+    if (!confirm(`ล้างข้อมูลที่กรอกไว้ในหนังสือแจ้งเตือนของ ${proj}?`)) return;
+    delete LAW[proj]; saveLaw();
+    openLaw(proj);
+  };
 }
+
+// ปุ่มเปิดในแผนผัง — เรียกทุกครั้งที่ renderMap วาดใหม่
+function wireLaw(){
+  document.querySelectorAll("#mapBody [data-lawopen]").forEach(b =>
+    b.onclick = () => openLaw(b.dataset.lawopen));
+}
+$("#closeLaw").onclick = closeLaw;
+$("#lawScrim").onclick = closeLaw;
 
 function mapFlowSheet(proj){
   const rows = mapRows(proj);
@@ -7396,7 +7501,7 @@ function mapFlowSheet(proj){
           <div class="r"><span>เรทรวม</span><b>${mBaht(s.rate)}</b></div>
           <div class="r"><span>บริษัทจ่าย</span><b>${mBaht(s.co)}</b></div>
         </div>
-        ${lawBoxHtml(proj)}
+        ${lawCardHtml(proj)}
       </div>
       <div class="mapbranches">${MAP_BUCKETS
         .filter(p => p.k !== "none" || s.by.none.length)
@@ -9406,6 +9511,7 @@ $("#settings").onclick = e => { if (e.target.id === "settings") closeSettings();
 document.addEventListener("keydown", e => {
   if (e.key !== "Escape") return;
   if (!$("#fmtPanel").hidden) $("#fmtPanel").hidden = true;
+  else if ($("#lawPanel").classList.contains("on")) closeLaw();
   else if (!$("#projPanel").hidden) $("#projPanel").hidden = true;
   else if ($("#detailPanel").classList.contains("on")) closeDetail();
   else if ($("#cmdPanel").classList.contains("on")) $("#cmdPanel").classList.remove("on");
