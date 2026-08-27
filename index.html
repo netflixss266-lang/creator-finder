@@ -3528,7 +3528,10 @@ function renameProject(from, to){
 // สองอย่างนี้คนละเรื่องกัน: อันนี้คือชื่อที่ COORD_PROJECTS ในสคริปต์รู้จัก ต้องเขียนไว้ตรงๆ
 const SCRIPT_KNOWN = ["Red Chamber Phase 1", "Red Chamber Phase 2",
                       "OBSBOT-KOL", "OBSBOT-KOC", "TikTok Live"];
-const needsScript = name => !SCRIPT_KNOWN.includes(name);
+// เตือนเรื่องชีตมีความหมายแค่ตอนเส้นทางชีตยังใช้งานได้จริง (admin ที่ตั้ง Apps Script ไว้)
+// editor ไม่แตะชีตเลยแม้แต่ทางอ้อม (canSync() คืน false เสมอ) เตือนไปก็เป็นแค่สัญญาณรบกวน
+// ชี้ให้ไปแก้ Apps Script ที่ตัวเองไม่มีสิทธิ์เข้าและไม่จำเป็นต้องรู้จักด้วยซ้ำ
+const needsScript = name => canSync() && !SCRIPT_KNOWN.includes(name);
 // สถานะตามที่ทีมใช้จริงในชีต — ของเก่ายังอยู่ท้ายลิสต์ไว้ไม่ให้ค่าเดิมหาย
 // ─── ขั้นตอนงาน เรียงตามลำดับที่งานเดินจริง ───
 // ลำดับในนี้มีความหมาย ไม่ใช่แค่ลำดับในเมนู — ใช้ตัดสินว่าขั้นไหน "ผ่านมาแล้ว"
@@ -4189,21 +4192,22 @@ function openProjManager(){
         placeholder="ชื่อแบรนด์ที่ใช้ใน Command"></label>
     </div>`).join("") +
     `<div class="prow add">
-       <input id="newProjName" placeholder="ชื่อโปรเจกต์ใหม่ — ต้องตรงกับชื่อแท็บในชีต">
+       <input id="newProjName" placeholder="${canSync()
+         ? "ชื่อโปรเจกต์ใหม่ — ต้องตรงกับชื่อแท็บในชีต" : "ชื่อโปรเจกต์ใหม่"}">
        <input id="newProjBrand" placeholder="ชื่อแบรนด์ — บังคับกรอก">
        <button class="cmdbtn" id="addProj">เพิ่ม</button>
      </div>
      <p class="sect-sub" style="margin-top:14px">
        <b>ชื่อแบรนด์</b>เข้าไปที่ <code>{{brandname}}</code> ใน Command —
        บรรทัด “สำหรับแบรนด์: …” ของทุกบล็อกอ่านจากตรงนี้<br>
-       โปรเจกต์ที่เพิ่มเองจะมีเครื่องหมาย <span class="warnmark">!</span> —
+       ${canSync() ? `โปรเจกต์ที่เพิ่มเองจะมีเครื่องหมาย <span class="warnmark">!</span> —
        ใช้ในเว็บได้ทันที แต่<b>ยังซิงก์ขึ้นชีตไม่ได้</b> จนกว่าจะเติมชื่อนี้ลงใน
-       <code>COORD_PROJECTS</code> ของ Apps Script แล้ว deploy ใหม่<br>
+       <code>COORD_PROJECTS</code> ของ Apps Script แล้ว deploy ใหม่<br>` : ""}
        <span style="color:var(--dim)">เปลี่ยนชื่อ = ย้ายข้อมูลในเว็บให้ครบทุกที่
-       (แถว · ที่แก้ค้าง · Command รายคน · ต้นแบบของโปรเจกต์) แต่<b>ชื่อแท็บในชีตไม่เปลี่ยนตาม</b>
-       ต้องไปเปลี่ยนในชีตกับในสคริปต์ให้ตรงกันเอง<br>
+       (แถว · ที่แก้ค้าง · Command รายคน · ต้นแบบของโปรเจกต์)${canSync()
+         ? ` แต่<b>ชื่อแท็บในชีตไม่เปลี่ยนตาม</b> ต้องไปเปลี่ยนในชีตกับในสคริปต์ให้ตรงกันเอง` : ""}<br>
        ปิดงานแล้วแท็บจะถูกพับเก็บ ข้อมูลยังอยู่ครบ
-       · ลบโปรเจกต์ = ลบเฉพาะในเว็บ แท็บในชีตไม่ถูกแตะ</span>
+       · ลบโปรเจกต์ = ลบเฉพาะในเว็บ${canSync() ? " แท็บในชีตไม่ถูกแตะ" : ""}</span>
      </p>`;
   $("#projPanel").hidden = false;
 
