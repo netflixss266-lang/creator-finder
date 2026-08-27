@@ -6930,8 +6930,8 @@ function openCmd(proj, handle){
           ? `<textarea data-link="${esc(k)}" rows="${Math.min(10, Math.max(3, String(v).split("\n").length + 1))}"
                placeholder="${esc(ph)}" spellcheck="false">${esc(v)}</textarea>`
           : `<input data-link="${esc(k)}" value="${esc(v)}" placeholder="${esc(ph)}" spellcheck="false">`}
-        <button data-linkok="${esc(k)}" title="ยืนยันช่องนี้ — บันทึกทันทีและ Command จะได้ค่านี้จริง">✓</button>
-        ${mine && own[k] != null ? `<button data-linkclr="${esc(k)}"
+        <button type="button" data-linkok="${esc(k)}" title="ยืนยันช่องนี้ — บันทึกทันทีและ Command จะได้ค่านี้จริง">✓</button>
+        ${mine && own[k] != null ? `<button type="button" data-linkclr="${esc(k)}"
           title="ใช้${multi ? "ของ" : "ลิงก์"}ร่วมแทน">↺</button>` : ""}
       </div>`;
     }).join("");
@@ -6960,6 +6960,12 @@ function openCmd(proj, handle){
     }
     $("#linkRows").querySelectorAll("[data-link]").forEach(inp => inp.onchange = () =>
       commitLink(inp.dataset.link, inp.value.trim(), "✓ บันทึกแล้ว — ตรงกับที่ Command ใช้จริงแล้ว"));
+    // ⚠️ กัน onchange ยิงซ้อนกับปุ่มเอง — คลิกปุ่มที่อยู่นอกช่องพิมพ์ทำให้ช่องเสียโฟกัส (blur)
+    // ก่อนจะถึง click ของปุ่มเสมอ ถ้าไม่กัน onchange (จาก blur) จะยิงคอมมิทค่าไปทีนึง แล้วปุ่มเองก็คอมมิทซ้ำ
+    // อีกที คนละรอบ DOM คนละชุด — เห็นกล่องกระพริบ/ปิดเปิดซ้อนสองรอบ ทั้งที่ค่าสุดท้ายถูกทั้งคู่
+    // preventDefault ตอน mousedown กันไม่ให้ช่องเสียโฟกัสเลย เหลือทางคอมมิทเดียวจริงต่อการคลิกหนึ่งครั้ง
+    $("#linkRows").querySelectorAll("[data-linkok],[data-linkclr]").forEach(b =>
+      b.onmousedown = e => e.preventDefault());
     $("#linkRows").querySelectorAll("[data-linkok]").forEach(b => b.onclick = () => {
       const inp = b.closest(".linkrow").querySelector("[data-link]");
       if (inp) commitLink(inp.dataset.link, inp.value.trim(), "✓ ยืนยันแล้ว — ตรงกับที่ Command ใช้จริงแล้ว");
