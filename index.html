@@ -1048,11 +1048,25 @@ body.locked{overflow:hidden}
   radial-gradient(120% 70% at 50% 0%,rgba(var(--warn-rgb),.05),transparent 62%),var(--bg)}
 #lawTitle::before{content:"⚖";margin-right:8px;color:var(--warn)}
 .lawwrap{display:flex;gap:22px;align-items:flex-start}
-.lawsheet{flex:1;min-width:0;max-width:820px;margin:0 auto;
-  background:linear-gradient(180deg,#141210,#0E0D0C);
+.lawmain{flex:1;min-width:0;max-width:820px;margin:0 auto}
+
+/* ── กล่องกรอก (โครงเดียวกับกล่องลิงก์ใน Command) ── */
+.lawform{border-left-color:var(--warn)}
+.lawform .fbset{color:var(--warn)}
+.lawrow label{flex:0 0 13em}
+.lawrow input{flex:1;min-width:0}
+.lawrow.empty input{border-color:var(--lo);background:rgba(var(--lo-rgb),.07)}
+.lawrow.empty label{color:var(--lo)}
+/* ตัวอย่างค่าที่จะไปโผล่จริงในเอกสาร — วันที่เป็น พ.ศ. ราคาใส่คอมมาแล้ว */
+.lawpv{flex:0 0 9.5em;font-size:.78rem;color:var(--warn);text-align:right;
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.lawpv:empty::before{content:"—";color:var(--dim)}
+
+/* ── ตัวเอกสาร ── */
+.lawsheet{background:linear-gradient(180deg,#141210,#0E0D0C);
   border:1px solid rgba(var(--warn-rgb),.3);border-radius:14px;padding:26px 30px 30px}
 .lawhead{display:flex;align-items:center;gap:13px;padding-bottom:16px;
-  border-bottom:2px double rgba(var(--warn-rgb),.45);margin-bottom:20px}
+  border-bottom:2px double rgba(var(--warn-rgb),.45);margin-bottom:22px}
 .lawhead .lawseal{width:2.7rem;height:2.7rem;font-size:1.35rem}
 .lawhead .lawlt b{font-size:1.25rem;letter-spacing:.2em}
 .lawhead .lawlt i{font-size:.78rem}
@@ -1060,18 +1074,32 @@ body.locked{overflow:hidden}
   line-height:1.5}
 .lawhead .lawref b{display:block;color:var(--warn);font-size:.86rem;
   font-family:'IBM Plex Mono',monospace}
-/* เส้นคู่ริมซ้ายแบบกระดาษหัวจดหมาย — ทำให้ก้อนข้อความอ่านเป็น "เอกสาร" ไม่ใช่ช่องกรอกฟอร์ม */
-.lawdoc{border-left:3px double rgba(var(--warn-rgb),.4);padding-left:18px;
-  font-size:.9rem;line-height:2;color:var(--mute)}
-.lawdoc .lead{color:var(--ink);margin-bottom:16px}
+.lawdoc{font-size:.92rem;line-height:1.95;color:var(--mute)}
+.lawdoc .lead{color:var(--ink);margin-bottom:20px}
+/* บล็อกละหัวข้อ — เดิมเป็นข้อความไหลยาวก้อนเดียว หาไม่เจอว่าตรงไหนคือตัวบท ตรงไหนคือเรื่องของเคสนี้ */
+.lawsec{border-left:3px double rgba(var(--warn-rgb),.4);padding:2px 0 2px 18px;
+  margin-bottom:20px}
+.lawsectitle{font-family:'Bebas Neue','Space Grotesk',sans-serif;font-size:.9rem;
+  letter-spacing:.14em;color:var(--warn);margin-bottom:12px}
 .lawdoc .cl{margin-bottom:16px}
-.lawdoc .cl > b{display:block;color:var(--ink);font-size:.92rem;margin-bottom:3px}
-.lawdoc .cl > b i{font-style:normal;font-family:'IBM Plex Mono',monospace;color:var(--warn)}
-.lawdoc ul{list-style:none;margin-top:5px}
-.lawdoc ul li{padding-left:17px;position:relative}
+.lawdoc .cl:last-child{margin-bottom:0}
+/* เลขข้อเป็นป้ายแยก ไม่ใช่ตัวหนาปนกับชื่อข้อ — กวาดตาหาข้อที่ต้องการได้เร็วกว่า */
+.lawdoc .cl > b{display:flex;align-items:baseline;gap:9px;color:var(--ink);
+  font-size:.95rem;margin-bottom:5px}
+.lawdoc .cl > b i{flex:none;font-style:normal;font-family:'IBM Plex Mono',monospace;
+  font-size:.76rem;color:var(--warn);border:1px solid rgba(var(--warn-rgb),.4);
+  border-radius:5px;padding:1px 7px;letter-spacing:.03em}
+.lawdoc .cl > p{padding-left:2px}
+.lawdoc ul{list-style:none;margin-top:7px;padding-left:2px}
+.lawdoc ul li{padding-left:18px;position:relative;line-height:1.75}
 .lawdoc ul li::before{content:"—";position:absolute;left:0;color:var(--warn);opacity:.7}
-.lawdoc .fine{margin-top:18px;padding-top:15px;
-  border-top:1px dashed rgba(var(--warn-rgb),.3)}
+.lawdoc .fine{border-left-color:rgba(var(--warn-rgb),.7);margin-bottom:0}
+.lawdoc .fine p{margin-bottom:11px}
+.lawdoc .fine p:last-child{margin-bottom:0}
+/* วงเล็บอ้างอิงราคา — เป็นหมายเหตุท้ายเอกสาร ไม่ใช่เนื้อความหลัก */
+.lawdoc .lawnote{margin-top:14px;padding-top:12px;font-size:.86rem;color:var(--dim);
+  border-top:1px dashed rgba(var(--warn-rgb),.28)}
+.lawdoc .lawnote .lawin{color:var(--warn)}
 /* ช่องเติมคำ — เส้นประใต้ตัวอักษรแบบแบบฟอร์มราชการ กดแล้วพิมพ์ได้เลย */
 .lawin{background:none;border:0;border-bottom:1px dashed rgba(var(--warn-rgb),.6);
   color:var(--warn);font-family:inherit;font-size:inherit;font-weight:600;
@@ -1110,10 +1138,16 @@ body.locked{overflow:hidden}
 @media(max-width:900px){
   .lawwrap{flex-direction:column-reverse}
   .lawrail{width:100%;position:static}
-  .lawsheet{padding:20px 18px 24px}
-  .lawdoc{padding-left:13px;font-size:.86rem}
+  .lawmain{max-width:none}
+  .lawsheet{padding:20px 16px 24px}
+  .lawdoc{font-size:.87rem;line-height:1.85}
+  .lawsec{padding-left:13px}
   .lawhead{flex-wrap:wrap}
   .lawhead .lawref{margin-left:0;text-align:left;width:100%}
+  /* ป้ายซ้าย/ช่องขวาไม่พอในจอแคบ — ให้ป้ายขึ้นบรรทัดของตัวเอง */
+  .lawrow{flex-wrap:wrap}
+  .lawrow label{flex:0 0 100%}
+  .lawpv{flex:0 0 auto;text-align:left}
 }
 .mapbranches{flex:1;min-width:0;position:relative;padding-left:2.4em}
 .mapbranches::before{content:"";position:absolute;left:0;top:1.7em;bottom:1.7em;
@@ -7208,17 +7242,22 @@ const beDate = iso => {
   return m ? `${+m[3]} ${TH_MONTHS[+m[2] - 1]} ${+m[1] + 543}` : "";
 };
 
+// grp = หัวข้อในกล่องกรอก · ช่องไหนเป็นข้อเท็จจริงของ "เคส" กับของ "สินค้า" แยกกันคนละกลุ่ม
+const LAW_PLATFORMS = ["Shopee", "Lazada", "TikTok Shop"];
 const LAW_FIELDS = [
-  { k:"days",     type:"text", th:"จำนวนวันที่ไม่ตอบข้อความ", ph:"เช่น 3" },
-  { k:"deadline", type:"date", th:"วันที่กำหนดส่งงาน" },
-  { k:"brand",    type:"text", th:"สินค้า",                  ph:"ชื่อสินค้า" },
-  { k:"price",    type:"text", th:"ราคาสินค้า",               ph:"เช่น 1290" },
-  { k:"refdate",  type:"date", th:"วันที่อ้างอิงราคา Shopee" },
+  { k:"days",     type:"text", th:"จำนวนวันที่ไม่ตอบข้อความ", ph:"เช่น 3",      grp:"เหตุแห่งการแจ้ง" },
+  { k:"deadline", type:"date", th:"วันที่กำหนดส่งงาน",                          grp:"เหตุแห่งการแจ้ง" },
+  { k:"brand",    type:"text", th:"สินค้า",          ph:"ชื่อสินค้า",            grp:"มูลค่าสินค้าที่อ้างอิง" },
+  { k:"price",    type:"text", th:"ราคาสินค้า",       ph:"เช่น 1290",           grp:"มูลค่าสินค้าที่อ้างอิง" },
+  { k:"platform", type:"list", th:"แพลตฟอร์มที่อ้างอิงราคา", ph:"เช่น Shopee",  grp:"มูลค่าสินค้าที่อ้างอิง" },
+  { k:"refdate",  type:"date", th:"วันที่อ้างอิงราคา",                           grp:"มูลค่าสินค้าที่อ้างอิง" },
 ];
 // ชื่อสินค้าเดาจากแบรนด์ของโปรเจกต์ให้ครั้งแรก แต่ลบทิ้งเองได้ (เก็บ "" ไว้ ไม่เติมซ้ำ)
+// แพลตฟอร์มตั้งต้นเป็น Shopee เพราะเดิมเขียนตายตัวไว้แบบนั้น — เปลี่ยนได้ทุกเมื่อ
 function lawGet(proj){
   const o = LAW[proj] || (LAW[proj] = {});
   if (o.brand == null) o.brand = brandOf(proj) || "";
+  if (o.platform == null) o.platform = LAW_PLATFORMS[0];
   return o;
 }
 // ค่าที่จะลงในข้อความจริง — ว่างคืน "" ให้ตัวเรียกตัดสินว่าจะเตือนหรือปล่อย
@@ -7256,7 +7295,7 @@ function lawText(proj){
     `เนื่องจากครีเอเตอร์ส่งดราฟล่าช้า และ ไม่สามารถติดต่อได้เกิน 48 ชั่วโมง (${V("days")} อ้างอิงตามแชทข้อความ)`,
     `ทั้งนี้หากล่วงเลยตามกำหนดส่งงานวันที่ ${V("deadline")} ทางบริษัทจำเป็นต้องดำเนินการในข้อ 3 ให้ครีเอเตอร์ชำระค่าสินค้า 100% โดยไม่มีเงื่อนไข`,
     "",
-    `(ตามราคาที่ตกลงร่วมงานกับครีเอเตอร์สำหรับสินค้า ${V("brand")} ราคา ${V("price")} ตามราคาซื้อขายในแพลตฟอร์ม Shopee ณ ${V("refdate")} )`,
+    `(ตามราคาที่ตกลงร่วมงานกับครีเอเตอร์สำหรับสินค้า ${V("brand")} ราคา ${V("price")} ตามราคาซื้อขายในแพลตฟอร์ม ${V("platform")} ณ ${V("refdate")} )`,
   ].join("\n");
 }
 
@@ -7268,9 +7307,14 @@ function lawSlot(proj, k){
     return `<input type="date" class="lawin date" data-law="${k}" value="${esc(v)}"
       title="${esc(f.th)} — เลือกเป็น ค.ศ. แล้วระบบแปลงเป็น พ.ศ. ให้ในข้อความ">`
       + ` <span class="lawbe" data-lawbe="${k}">${esc(beDate(v))}</span>`;
+  // list = มีตัวเลือกที่ใช้บ่อยให้กด แต่พิมพ์ชื่อแพลตฟอร์มอื่นเองได้ ไม่ได้ล็อกไว้แค่ในลิสต์
   return `<input class="lawin" data-law="${k}" value="${esc(v)}"
+    ${f.type === "list" ? `list="lawOpts_${k}"` : ""}
     placeholder="${esc(f.ph || f.th)}" title="${esc(f.th)}"
-    size="${Math.max(6, v.length || String(f.ph || "").length)}">`;
+    size="${Math.max(6, v.length || String(f.ph || "").length)}">`
+    + (f.type === "list"
+      ? `<datalist id="lawOpts_${k}">${LAW_PLATFORMS.map(x =>
+          `<option value="${esc(x)}">`).join("")}</datalist>` : "");
 }
 const lawMissing = proj => LAW_FIELDS.filter(f => !String(lawGet(proj)[f.k] || "").trim());
 
@@ -7289,32 +7333,54 @@ let LAW_PROJ = "";
 function lawPanelHtml(proj){
   const S = k => lawSlot(proj, k);
   const o = lawGet(proj);
+  // กล่องกรอกแบบเดียวกับ Command — เห็นทุกช่องพร้อมกัน แบ่งหัวข้อตามที่มันไปโผล่ในเอกสาร
+  // ช่องในกล่องนี้กับช่องในตัวเอกสารเป็นค่าตัวเดียวกัน พิมพ์ที่ไหนอีกที่อัปเดตตาม
+  const grps = [...new Set(LAW_FIELDS.map(f => f.grp))];
   return `<div class="lawwrap">
-    <article class="lawsheet">
-      <header class="lawhead">
-        <span class="lawseal">⚖</span>
-        <span class="lawlt"><b>LEGAL NOTICE</b><i>หนังสือแจ้งเตือนตามสัญญา</i></span>
-        <span class="lawref">อ้างถึงโปรเจกต์<b>${esc(proj)}</b></span>
-      </header>
-      <div class="lawdoc">
-        <div class="lead">${esc(LAW_LEAD)}</div>
-        <div>${esc(LAW_REF)}</div>
-        ${LAW_CLAUSES.map(c => `<div class="cl">
-          <b><i>${esc(c.n)}</i> ${esc(c.t)}</b>
-          <div>${esc(c.p)}</div>
-          ${c.li ? `<ul>${c.li.map(x => `<li>${esc(x)}</li>`).join("")}</ul>` : ""}
-        </div>`).join("")}
-        <div class="fine">
-          เนื่องจากครีเอเตอร์ส่งดราฟล่าช้า และ ไม่สามารถติดต่อได้เกิน 48 ชั่วโมง
-          (${S("days")} อ้างอิงตามแชทข้อความ)<br>
-          ทั้งนี้หากล่วงเลยตามกำหนดส่งงานวันที่ ${S("deadline")}
-          ทางบริษัทจำเป็นต้องดำเนินการในข้อ 3 ให้ครีเอเตอร์ชำระค่าสินค้า 100% โดยไม่มีเงื่อนไข
-          <br><br>
-          (ตามราคาที่ตกลงร่วมงานกับครีเอเตอร์สำหรับสินค้า ${S("brand")}
-          ราคา ${S("price")} ตามราคาซื้อขายในแพลตฟอร์ม Shopee ณ ${S("refdate")} )
+    <div class="lawmain">
+      <div class="fbbox lawform">
+        <div class="fbhead"><b>กรอกข้อมูลของเคสนี้</b>
+          <span>ช่องพวกนี้คือช่องเดียวกับที่เว้นไว้ในเอกสารข้างล่าง — พิมพ์ตรงไหนก็ได้ อีกที่เปลี่ยนตาม</span>
         </div>
+        ${grps.map(g => `<div class="fbset">${esc(g)}</div>` +
+          LAW_FIELDS.filter(f => f.grp === g).map(f => `<div class="linkrow lawrow" data-lawrow="${f.k}">
+            <label title="${esc(f.th)}">${esc(f.th)}</label>
+            ${lawFormInput(proj, f)}
+            <span class="lawpv" data-lawpv="${f.k}">${esc(lawVal(f.k, o[f.k]))}</span>
+          </div>`).join("")).join("")}
       </div>
-    </article>
+
+      <article class="lawsheet">
+        <header class="lawhead">
+          <span class="lawseal">⚖</span>
+          <span class="lawlt"><b>LEGAL NOTICE</b><i>หนังสือแจ้งเตือนตามสัญญา</i></span>
+          <span class="lawref">อ้างถึงโปรเจกต์<b>${esc(proj)}</b></span>
+        </header>
+        <div class="lawdoc">
+          <p class="lead">${esc(LAW_LEAD)}</p>
+
+          <div class="lawsec">
+            <div class="lawsectitle">${esc(LAW_REF)}</div>
+            ${LAW_CLAUSES.map(c => `<section class="cl">
+              <b><i>${esc(c.n)}</i><span>${esc(c.t)}</span></b>
+              <p>${esc(c.p)}</p>
+              ${c.li ? `<ul>${c.li.map(x => `<li>${esc(x)}</li>`).join("")}</ul>` : ""}
+            </section>`).join("")}
+          </div>
+
+          <div class="lawsec fine">
+            <div class="lawsectitle">ข้อเท็จจริงและการดำเนินการ</div>
+            <p>เนื่องจากครีเอเตอร์ส่งดราฟล่าช้า และ ไม่สามารถติดต่อได้เกิน 48 ชั่วโมง
+              (${S("days")} อ้างอิงตามแชทข้อความ)</p>
+            <p>ทั้งนี้หากล่วงเลยตามกำหนดส่งงานวันที่ ${S("deadline")}
+              ทางบริษัทจำเป็นต้องดำเนินการในข้อ 3 ให้ครีเอเตอร์ชำระค่าสินค้า 100% โดยไม่มีเงื่อนไข</p>
+            <p class="lawnote">(ตามราคาที่ตกลงร่วมงานกับครีเอเตอร์สำหรับสินค้า ${S("brand")}
+              ราคา ${S("price")} ตามราคาซื้อขายในแพลตฟอร์ม ${S("platform")} ณ ${S("refdate")} )</p>
+          </div>
+        </div>
+      </article>
+    </div>
+
     <aside class="lawrail">
       <h4>ช่องที่ต้องกรอก</h4>
       <div class="lawchk">${LAW_FIELDS.map(f => {
@@ -7330,6 +7396,18 @@ function lawPanelHtml(proj){
       <div class="lawmsg" data-lawmsg></div>
     </aside>
   </div>`;
+}
+
+// ช่องในกล่องกรอก — คนละตัวกับช่องในเอกสาร (data-lawform vs data-law) แต่ผูกค่าเดียวกัน
+function lawFormInput(proj, f){
+  const v = String(lawGet(proj)[f.k] == null ? "" : lawGet(proj)[f.k]);
+  if (f.type === "date")
+    return `<input type="date" data-lawform="${f.k}" value="${esc(v)}">`;
+  return `<input data-lawform="${f.k}" value="${esc(v)}" placeholder="${esc(f.ph || f.th)}"
+    ${f.type === "list" ? `list="lawFOpts_${f.k}"` : ""} spellcheck="false">`
+    + (f.type === "list"
+      ? `<datalist id="lawFOpts_${f.k}">${LAW_PLATFORMS.map(x =>
+          `<option value="${esc(x)}">`).join("")}</datalist>` : "");
 }
 
 function openLaw(proj){
@@ -7351,29 +7429,41 @@ function wireLawPanel(proj){
   const body = $("#lawBody");
   const msg = body.querySelector("[data-lawmsg]");
   const say = (t, k) => { msg.className = "lawmsg " + (k || ""); msg.innerHTML = t; };
-  // วาดเฉพาะแถบขวาใหม่ — วาดทั้งแผงจะทำให้ช่องที่กำลังพิมพ์อยู่หลุดโฟกัส
-  const refresh = () => {
+  // อัปเดตทุกที่ที่โชว์ค่าเดียวกัน ยกเว้นช่องที่กำลังพิมพ์อยู่ (src) — เขียนทับช่องตัวเองระหว่างพิมพ์
+  // จะทำให้เคอร์เซอร์เด้งไปท้ายบรรทัดทุกตัวอักษร
+  const sync = (k, src) => {
     const o = lawGet(proj);
-    body.querySelectorAll("[data-lawjump]").forEach(b => {
-      const raw = String(o[b.dataset.lawjump] || "").trim();
-      b.classList.toggle("ok", !!raw);
-      b.querySelector(".vv").textContent = lawVal(b.dataset.lawjump, raw);
+    const raw = String(o[k] == null ? "" : o[k]);
+    body.querySelectorAll(`[data-law="${k}"], [data-lawform="${k}"]`).forEach(el => {
+      if (el === src) return;
+      el.value = raw;
+      if (el.dataset.law && el.type !== "date") el.size = Math.max(6, raw.length || 6);
     });
+    body.querySelectorAll(`[data-lawbe="${k}"]`).forEach(be => be.textContent = beDate(raw));
+    const pv = body.querySelector(`[data-lawpv="${k}"]`);
+    if (pv) pv.textContent = lawVal(k, raw);
+    const chk = body.querySelector(`[data-lawjump="${k}"]`);
+    if (chk){
+      chk.classList.toggle("ok", !!raw.trim());
+      chk.querySelector(".vv").textContent = lawVal(k, raw);
+    }
+    body.querySelectorAll(`[data-law="${k}"]`).forEach(el => el.classList.remove("empty"));
+    body.querySelectorAll(`[data-lawrow="${k}"]`).forEach(r => r.classList.remove("empty"));
   };
-  body.querySelectorAll("[data-law]").forEach(inp => {
-    const k = inp.dataset.law;
+  // ช่องในเอกสาร กับช่องในกล่องกรอก ผูกค่าเดียวกัน พิมพ์ที่ไหนอีกที่ตามทันที
+  body.querySelectorAll("[data-law], [data-lawform]").forEach(inp => {
+    const k = inp.dataset.law || inp.dataset.lawform;
     inp.oninput = () => {
       lawGet(proj)[k] = inp.value;
       saveLaw();
-      inp.classList.remove("empty");
-      const be = body.querySelector(`[data-lawbe="${k}"]`);
-      if (be) be.textContent = beDate(inp.value);
-      if (inp.type !== "date") inp.size = Math.max(6, inp.value.length || 6);
-      refresh(); say("");
+      if (inp.dataset.law && inp.type !== "date") inp.size = Math.max(6, inp.value.length || 6);
+      sync(k, inp); say("");
     };
   });
+  // กดในเช็กลิสต์ → ไปที่ช่องในกล่องกรอกก่อน (พิมพ์ง่ายกว่า) ไม่มีค่อยไปที่ช่องในเอกสาร
   body.querySelectorAll("[data-lawjump]").forEach(b => b.onclick = () => {
-    const el = body.querySelector(`[data-law="${b.dataset.lawjump}"]`);
+    const k = b.dataset.lawjump;
+    const el = body.querySelector(`[data-lawform="${k}"]`) || body.querySelector(`[data-law="${k}"]`);
     if (!el) return;
     el.scrollIntoView({ block:"center", behavior:"smooth" });
     el.focus();
@@ -7382,9 +7472,12 @@ function wireLawPanel(proj){
     const miss = lawMissing(proj);
     // เอกสารอ้างสิทธิตามสัญญา — ปล่อยให้ก๊อปทั้งที่ยังมีช่องว่างคือปล่อยให้ส่งของที่ผิดออกไป
     if (miss.length){
-      miss.forEach(f => { const el = body.querySelector(`[data-law="${f.k}"]`);
-        if (el) el.classList.add("empty"); });
-      const first = body.querySelector(`[data-law="${miss[0].k}"]`);
+      miss.forEach(f => {
+        body.querySelectorAll(`[data-law="${f.k}"]`).forEach(el => el.classList.add("empty"));
+        body.querySelectorAll(`[data-lawrow="${f.k}"]`).forEach(r => r.classList.add("empty"));
+      });
+      const first = body.querySelector(`[data-lawform="${miss[0].k}"]`)
+                 || body.querySelector(`[data-law="${miss[0].k}"]`);
       if (first){ first.scrollIntoView({ block:"center", behavior:"smooth" }); first.focus(); }
       return say(`ยังไม่ได้กรอก ${miss.length} ช่อง — <b>${
         miss.map(f => esc(f.th)).join(" · ")}</b>`, "err");
