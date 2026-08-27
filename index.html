@@ -5946,6 +5946,10 @@ function cmdValues(r){
   // คนทำ 2 คลิปต้องมีตะกร้า/แฮชแท็กคนละชุด แต่คลิปแรกยังใช้ช่องเดิมอยู่
   // ไม่งั้นคนที่ทำคลิปเดียว (ส่วนใหญ่) จะต้องมากรอกช่อง "คลิป 1" ใหม่หมดโดยไม่มีเหตุผล
   const clips = clipCount(r);
+  // "เอกสารร่วมงาน" มีค่าตั้งต้นแยก KOL/KOC — ตัวกลางของมันไม่ได้อยู่ที่ CMDLINKS.docs
+  // ตัวอื่นอ่าน CMDLINKS[คีย์] ตรงๆ ได้ แต่ docs ต้องเลือกตามกลุ่มของแถวนี้
+  const docsShared = (((r.kind || "") === "KOC" ? CMDLINKS.docsKOC : CMDLINKS.docsKOL) || "");
+  const sharedDoc = k => k === "docs" ? docsShared : (CMDLINKS[k] || "");
   const perClip = {};
   DOCS.forEach(d => {
     for (let n = 1; n <= clips; n++){
@@ -5953,8 +5957,14 @@ function cmdValues(r){
       // คู่มือ / แฮชแท็ก / ตะกร้า เลือกตาม SKU ของคลิปนั้น — คลิป 2 ได้คนละ SKU ก็ได้คนละชุด
       // ลำดับ: ที่แปะไว้เฉพาะคนนี้ → ที่ผูกไว้กับ SKU → ลิงก์ที่ใช้ร่วมกันทุกคน
       const bySku = SKU_BIND_BY[d.k] ? bindForSku(d.k, r.sku, n) : "";
-      perClip[k] = own[k] != null ? own[k]
-                 : bySku || (n === 1 ? L(d.k) : (CMDLINKS[k] || ""));
+      // ⚠️ หน้า "ลิงก์" ไม่มีแถว "ชุดที่ 1" แยกต่างหาก — แถว "ลิงก์ตะกร้า" คือช่องของชุดแรก (own.cart)
+      // เดิมตรงนี้เช็คแค่ own.cart1 ซึ่งไม่มีวันถูกตั้งจากหน้านั้น แล้วตกไปใช้ SKU ทันที
+      // ผลคือบล็อกที่แยกคลิป (เช่น 13. Hashtag + ตะกร้า) ไม่เปลี่ยนตามหน้าลิงก์ ทั้งที่บล็อกที่
+      // ไม่แยกคลิปเปลี่ยน — ตัวแปร {{cart}} ตัวเดียวกันให้คนละค่าขึ้นกับว่าบล็อกนั้นแยกคลิปไหม
+      // หน้าลิงก์เฉพาะคนต้องชนะเสมอ ไม่ว่าค่าจะมาจาก SKU หรือลิงก์ร่วม
+      const mine = own[k] != null ? own[k] : (n === 1 ? own[d.k] : null);
+      perClip[k] = mine != null ? mine
+                 : bySku || CMDLINKS[k] || sharedDoc(d.k);
     }
   });
   // คู่มือถ่ายทำ: ของคนนี้เอง → ตาม SKU ที่ได้รับ → ลิงก์ที่ใช้ร่วมกัน
@@ -6005,8 +6015,7 @@ function cmdValues(r){
     clips,
     script: own.script || r.script || L("script"),
     // เอกสารร่วมงานมีค่าตั้งต้นแยก KOL/KOC ถ้าคนนี้ไม่ได้ตั้งของตัวเอง
-    docs: own.docs != null ? own.docs
-        : (((r.kind || "") === "KOC" ? CMDLINKS.docsKOC : CMDLINKS.docsKOL) || ""),
+    docs: own.docs != null ? own.docs : docsShared,
   };
 }
 
