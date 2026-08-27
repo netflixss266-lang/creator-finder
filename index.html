@@ -4869,7 +4869,17 @@ function openColFilter(field, th){
   }
   th.appendChild(pop);
 
-  const done = () => { renderCoord(); };
+  // renderCoord() วาดทั้งตารางใหม่ทุกครั้ง (รวม <thead>) — กล่องตัวกรองนี้เป็นลูกของ <th>
+  // เดิมเลยหายไปพร้อมกันทุกครั้งที่ติ๊ก/พิมพ์ ต้องกดปุ่ม ▼ เปิดใหม่เอง
+  // แก้โดยวาดตารางใหม่แล้ว "เปิดกล่องเดิมกลับมาที่ช่องเดิม" ทันที — เปิดค้างไว้ให้กรองต่อเนื่องได้
+  // (หา <th> ตัวใหม่จากตำแหน่งคอลัมน์เดิมใน FILTER_COL เพราะตัวเก่าถูกทำลายไปแล้ว)
+  const done = () => {
+    renderCoord();
+    const heads2 = [...document.querySelectorAll("#coordBody thead th")];
+    const pair = FILTER_COL.find(([, f]) => f === field);
+    const newTh = pair ? heads2[pair[0]] : null;
+    if (newTh) openColFilter(field, newTh);
+  };
   const applyList = () => {
     COLFILTER[field] = [...pop.querySelectorAll(".flist input:not(:checked)")].map(i => i.value);
     if (!COLFILTER[field].length) delete COLFILTER[field];
@@ -5967,8 +5977,11 @@ function cmdValues(r){
                  : bySku || CMDLINKS[k] || sharedDoc(d.k);
     }
   });
-  // คู่มือถ่ายทำ: ของคนนี้เอง → ตาม SKU ที่ได้รับ → ลิงก์ที่ใช้ร่วมกัน
-  const guide = own.guide != null ? own.guide : (guideForSku(r.sku, 0) || L("guide"));
+  // {{guide}} เปล่าๆ กับตัวสำรองของ brief ต้องเป็นค่าเดียวกับที่หน้าลิงก์โชว์และบล็อกที่แยกคลิปใช้จริง
+  // เดิมคำนวณแยกทางด้วย guideForSku(sku,0) ซึ่ง "เจอ SKU ตัวไหนก็ได้ที่มีคู่มือผูกไว้" — คนละกติกากับ
+  // perClip.guide1 (ตรงตัวแรกเป๊ะ) ผลคือคนทำหลายคลิปที่ SKU ตัวแรกไม่มีคู่มือผูกไว้แต่ตัวสองมี
+  // จะได้ {{guide}}/brief เป็นคู่มือของตัวที่สองข้ามคลิปมา ทั้งที่หน้าลิงก์โชว์คนละค่า
+  const guide = perClip.guide1 || "";
   // SKU ของแต่ละชุด — บล็อกคอนเฟิร์ม/คู่มือของชุดที่ 2 ต้องบอกชื่อสินค้าตัวที่ 2
   // ไม่ใช่ "A + B" ทั้งก้อน ไม่งั้นครีเอเตอร์อ่านแล้วไม่รู้ว่ารอบนี้พูดถึงตัวไหน
   for (let n = 1; n <= clips; n++) perClip["sku" + n] = skuOf(r, n) || r.sku || "";
