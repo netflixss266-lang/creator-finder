@@ -2058,7 +2058,7 @@ tr.subrow td.w-status select{width:14.6em}
         <div class="cmdbar-in">
           <span class="cmdbar-ic">⌘</span>
           <textarea id="qoText" rows="1" spellcheck="false"
-            placeholder="สั่งงานทุกอย่างที่นี่ — พิมพ์ / เพื่อดูคำสั่ง · «cenakims เรท 12000 ชำระ3%» · «เพิ่ม tangkwaqs เข้า RC2 KOL» · «ลบ xxx» · «ไปที่ RC2» · «ซิงก์»"></textarea>
+            placeholder="สั่งงานทุกอย่างที่นี่ — พิมพ์ / เพื่อดูคำสั่ง · พิมพ์ชื่อคนเดียวๆ เพื่อค้นหา+ไปหน้ารายละเอียดเร็วๆ · «cenakims เรท 12000 ชำระ3%» · «เพิ่ม tangkwaqs เข้า RC2 KOL» · «ลบ xxx» · «ไปที่ RC2» · «ซิงก์»"></textarea>
           <button class="run" id="qoParse">ตรวจ</button>
         </div>
         <div class="qosug" id="qoSug" hidden></div>
@@ -11683,26 +11683,83 @@ function sugQuery(){
   const m = t.value.slice(ls, pos).match(/^(\s*)\/([a-z]*)$/i);
   return m ? { start: ls + m[1].length, end: pos, q: m[2].toLowerCase() } : null;
 }
+// ─── ค้นครีเอเตอร์แบบไว — พิมพ์ชื่อคำเดียวเด้งขึ้นให้เลือก คลิก/Tab/Enter พาไปหน้ารายละเอียดเลย ───
+// จงใจให้ทำงานเฉพาะตอนกล่องมี "คำเดียวโดดๆ" ไม่มีอะไรอื่นเลยทั้งกล่อง (ไม่ใช่แค่บรรทัดปัจจุบัน)
+// เพื่อไม่ให้ไปชนกับของเดิม: วางรายชื่อหลายคนคนละบรรทัดแล้วต่อท้ายด้วยคำสั่ง (readNames/readChanges)
+// หรือพิมพ์ "ชื่อ คำสั่ง" บนบรรทัดเดียวกัน (parseQuickLine) — ทั้งสองแบบพอมีอะไรเกินคำเดียวจะปิดโหมดนี้เอง
+// และ Enter/Tab เดิมของคำสั่งพวกนั้นจะไม่โดนแย่งไปด้วย เพราะเข้าเงื่อนไขนี้ไม่ได้ตั้งแต่แรก
+function nameQuery(){
+  const t = $("#qoText");
+  if (!t || document.activeElement !== t) return null;
+  if (t.value.includes("\n")) return null;         // มีมากกว่าหนึ่งบรรทัด = กำลังพักชื่อไว้รอคำสั่ง ไม่ใช่แค่ค้นหา
+  if (/^\s*\//.test(t.value)) return null;          // ขึ้นต้น / เป็นโหมดคำสั่งอยู่แล้ว แยกกันชัดเจน
+  const pos = t.selectionStart;
+  if (pos !== t.selectionEnd) return null;
+  if (t.value.slice(pos).trim()) return null;        // มีอะไรต่อจากเคอร์เซอร์อีก = ไม่ใช่กำลังพิมพ์ท้ายคำ
+  const m = t.value.slice(0, pos).match(/^(\s*)(\S+)$/);
+  return m ? { q: m[2] } : null;
+}
+function creatorSugItems(q){
+  const ql = q.toLowerCase();
+  const seen = new Set(), items = [];
+  for (const p of PROJECTS)
+    (COORD[p] || []).forEach(r => {
+      const h = normId(r.handle);
+      if (!h) return;
+      const key = p + "|" + h;
+      if (seen.has(key)) return;
+      const at = h.toLowerCase().indexOf(ql);
+      if (at < 0) return;
+      seen.add(key);
+      items.push({ kind:"creator", proj:p, handle:h, pfx: at === 0,
+        sub: p + (r.kind ? ` · ${r.kind}` : "") });
+    });
+  items.sort((a, b) => (a.pfx === b.pfx ? 0 : a.pfx ? -1 : 1) || a.handle.localeCompare(b.handle));
+  return items.slice(0, 8);
+}
+// เหมือน data-goto ในการ์ดประวัติค้นหาเป๊ะ (renderCreatorCard) — หา index ใหม่สดตอนคลิกเสมอ
+// ไม่เก็บ index ไว้ตั้งแต่ตอนค้น เพราะแถวอาจขยับ/ถูกลบไปก่อนคลิกจริงได้
+function jumpToCreatorSug(ref){
+  const i = (COORD[ref.proj] || []).findIndex(r => normId(r.handle) === ref.handle);
+  if (i < 0) return;
+  if (ref.proj !== PROJ){ PROJ = ref.proj; renderProjTabs(); renderCoord(); }
+  openDetail(ref.proj, i);
+  const t = $("#qoText");
+  t.value = "";                 // ใช้กล่องนี้แค่ค้นหา ไปหน้ารายละเอียดแล้วไม่ต้องเหลือคำค้นค้างไว้
+  growCmd();
+  hideSug();
+}
 function hideSug(){ SUG = []; SUG_AT = -1; $("#qoSug").hidden = true; }
 function renderSug(){
   const at = sugQuery();
-  if (!at) return hideSug();
-  SUG = SLASH_ALL.filter(s => s.c.startsWith(at.q))
-    .sort((a, b) => useRank(b.c) - useRank(a.c) || a.c.localeCompare(b.c))
-    .slice(0, 9);
+  const nq = at ? null : nameQuery();
+  if (!at && !nq) return hideSug();
+  SUG = at
+    ? SLASH_ALL.filter(s => s.c.startsWith(at.q))
+        .sort((a, b) => useRank(b.c) - useRank(a.c) || a.c.localeCompare(b.c))
+        .slice(0, 9).map(s => ({ ...s, kind:"cmd" }))
+    : creatorSugItems(nq.q);
   if (!SUG.length) return hideSug();
   if (SUG_AT < 0 || SUG_AT >= SUG.length) SUG_AT = 0;
   const box = $("#qoSug");
   box.innerHTML =
-    `<div class="sughead">↑↓ เลือก · Tab หรือ Enter ใส่ · Esc ปิด${
-      PICK.size ? ` — จะใส่ชื่อที่เลือกไว้ ${PICK.size} คนให้ด้วย` : ""}</div>` +
-    SUG.map((s, i) => `<button data-sug="${esc(s.c)}" class="${i === SUG_AT ? "sel" : ""}"
-      ><code>/${esc(s.c)}</code><span class="sugth">${esc(s.th)}</span
-      ><span class="sugex">${esc(s.g)}</span></button>`).join("");
+    (at
+      ? `<div class="sughead">↑↓ เลือก · Tab หรือ Enter ใส่ · Esc ปิด${
+          PICK.size ? ` — จะใส่ชื่อที่เลือกไว้ ${PICK.size} คนให้ด้วย` : ""}</div>` +
+        SUG.map((s, i) => `<button data-sug="${esc(s.c)}" class="${i === SUG_AT ? "sel" : ""}"
+          ><code>/${esc(s.c)}</code><span class="sugth">${esc(s.th)}</span
+          ><span class="sugex">${esc(s.g)}</span></button>`).join("")
+      : `<div class="sughead">↑↓ เลือก · Tab หรือ Enter ไปที่ครีเอเตอร์คนนี้ · Esc ปิด</div>` +
+        SUG.map((s, i) => `<button data-jump="${esc(s.proj)}|${esc(s.handle)}"
+          class="${i === SUG_AT ? "sel" : ""}"
+          ><span class="sugth">👤 ${esc(s.handle)}</span><span class="sugex">${esc(s.sub)}</span></button>`).join(""));
   box.hidden = false;
   box.querySelectorAll("[data-sug]").forEach(b => {
     // mousedown ไม่ใช่ click — click มาหลัง blur ซึ่งปิดกล่องไปแล้ว
     b.onmousedown = e => { e.preventDefault(); putCmd(b.dataset.sug); };
+  });
+  box.querySelectorAll("[data-jump]").forEach((b, i) => {
+    b.onmousedown = e => { e.preventDefault(); jumpToCreatorSug(SUG[i]); };
   });
   const sel = box.querySelector(".sel");
   if (sel) sel.scrollIntoView({ block:"nearest" });
@@ -11804,8 +11861,12 @@ document.addEventListener("keydown", e => {
     SUG_AT = (SUG_AT + (e.key === "ArrowDown" ? 1 : SUG.length - 1)) % SUG.length;
     renderSug();
   } else if (e.key === "Enter" || e.key === "Tab"){
+    const item = SUG[SUG_AT];
+    // Shift+Enter ตอนกำลังเลือกครีเอเตอร์ต้องขึ้นบรรทัดใหม่ได้ปกติ (เผื่อพิมพ์ชื่อคนถัดไปต่อ)
+    // ไม่ใช่พาไปหน้ารายละเอียดทันที — โหมด /คำสั่ง เดิมไม่ต้องกันเพราะไม่มีเวิร์กโฟลว์หลายบรรทัดแบบนี้
+    if (item.kind === "creator" && e.key === "Enter" && e.shiftKey) return;
     e.preventDefault(); e.stopImmediatePropagation();
-    putCmd(SUG[SUG_AT].c);
+    if (item.kind === "creator") jumpToCreatorSug(item); else putCmd(item.c);
   } else if (e.key === "Escape"){
     e.preventDefault(); e.stopImmediatePropagation();
     hideSug();
