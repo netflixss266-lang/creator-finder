@@ -5995,12 +5995,21 @@ function cmdValues(r){
   for (let d = 1; d <= 3; d++)
     for (let n = 2; n <= clips; n++)
       perClip[`feedback${d}_${n}`] = own[`feedback${d}_${n}`] || "";
+  // 🔥 ลิงก์เฉพาะคนนี้ที่หน้า "ลิงก์" ต้องใหญ่ที่สุดเสมอ — ต้องแทนที่ "ข้อมูลเก่า" ได้ด้วย ไม่ใช่แค่
+  // ชนะ SKU/ร่วมกัน เดิมเช็ค briefList (คอลัมน์ Brief ในชีต) ก่อนเสมอถ้ามีค่า ผลคือคนตั้งคู่มือใหม่ที่
+  // หน้าลิงก์ไปแล้ว (own.guideN) แต่ Command ยังดึงลิงก์เก่าที่เคยพิมพ์ไว้ในชีตมาโชว์อยู่ดี เจอจริงจาก
+  // ครีเอเตอร์ที่ตั้ง Shooting Guide ชุดที่ 2 ไว้ที่หน้าลิงก์แล้ว แต่บล็อก 4.2 ยังโชว์ลิงก์ Canva เก่าคนละ
+  // อันจากชีต — ต้องเช็คของที่หน้าลิงก์ตั้งไว้ (own.guideN / own.guide สำหรับ n=1) ก่อน briefList เสมอ
+  const guideMine = n => n === 1 ? (own.guide1 != null ? own.guide1 : own.guide) : own["guide" + n];
   // บรีฟหลายลิงก์ (คั่น " + " เหมือน SKU) ตัวไหนมีก็ใช้ตัวนั้นตรงๆ ตามลำดับคลิป
   // ถ้าใส่มาลิงก์เดียว (ของเก่าก็เข้าเงื่อนไขนี้) ชุดที่ 2 ขึ้นไปถอยไปใช้คู่มือของ SKU ตัวนั้นก่อน
   const briefList = briefParts(r.brief);
-  for (let n = 1; n <= clips; n++)
-    perClip["brief" + n] = briefList[n - 1] || (n === 1 ? (r.brief || guide)
-                                                         : (perClip["guide" + n] || r.brief || ""));
+  for (let n = 1; n <= clips; n++){
+    const mg = guideMine(n);
+    perClip["brief" + n] = mg != null ? mg
+      : briefList[n - 1] || (n === 1 ? (r.brief || guide)
+                                      : (perClip["guide" + n] || r.brief || ""));
+  }
   // ฟีดแบคเป็นของใครของมันเสมอ ไม่มีตัวกลาง — แต่ละ Draft ก็คนละข้อความ
   // (เดิมทั้ง 3 Draft ใช้ตัวแปรเดียวกัน แก้ Draft 2 แล้ว Draft 1 เปลี่ยนตาม)
   const fb = n => own["feedback" + n] || "";
@@ -6017,8 +6026,8 @@ function cmdValues(r){
     // ชื่อแบรนด์มาจากโปรเจกต์ ไม่ใช่จากแถว — โปรเจกต์ใหม่ต้องกรอกตอนสร้าง
     brandname: brandOf(r.project),
     // บล็อก 5 ส่ง {{brief}} เป็นคู่มือถ่ายทำ — ชีตไม่ได้กรอกบรีฟไว้ก็ตกมาใช้คู่มือของ SKU
-    // ถ้าชีตกรอกไว้ถือว่าคนตั้งใจใส่ ของในชีตชนะเสมอ
-    brief: briefList[0] || guide,
+    // แต่ถ้าหน้าลิงก์เฉพาะคนนี้ตั้งไว้แล้ว (guideMine(1)) ต้องชนะของในชีตด้วยเสมอ (ดูเหตุผลด้านบน)
+    brief: guideMine(1) != null ? guideMine(1) : (briefList[0] || guide),
     feedback1: fb(1), feedback2: fb(2), feedback3: fb(3),
     feedback: fb(1),                       // ชื่อเดิม เผื่อมีคนแก้ต้นแบบไว้เองแล้วยังใช้อยู่
     // เอกสารทุกชนิดใน DOCS ใช้เป็นตัวแปรใน Command ได้หมด {{sg}} {{agreement}} ฯลฯ
