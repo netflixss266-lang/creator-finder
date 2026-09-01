@@ -1586,6 +1586,26 @@ main{padding:22px 24px;overflow-y:auto;max-height:calc(100vh - 62px)}
 .cmdbtn{background:var(--surface2);border:1px solid var(--line);color:var(--dim);
   border-radius:6px;padding:2px 8px;font-size:.79rem;font-weight:600;margin-left:7px}
 .cmdbtn:hover{border-color:var(--accent);color:var(--accent)}
+/* ── หนังสือแจ้งเตือนตามสัญญา ──
+   ใช้เหลืองอำพัน (--warn) ทั้งชุด ไม่ใช้แดงของธีม เพราะแดงในเว็บนี้แปลว่า "ผิด/ต้องแก้"
+   ส่วนอันนี้ไม่ได้ผิดอะไร แต่เป็นเรื่องที่ต้องระวังเป็นพิเศษ — คนละความหมายกัน */
+.cmdwarned{padding:12px 15px;margin-bottom:14px;border-radius:9px;font-size:.86rem;
+  line-height:1.65;color:#F0D9A8;background:rgba(245,181,70,.1);
+  border:1px solid rgba(245,181,70,.45);border-left:4px solid var(--warn)}
+.cmdwarned b{color:#FFE9BF}
+.cmdwarned span{display:block;color:var(--dim);font-size:.79rem;margin-top:3px}
+.cmdbtn.warned{border-color:rgba(245,181,70,.6);color:var(--warn)}
+.cmdblk.lawblk{border-color:rgba(245,181,70,.45);border-left:3px solid var(--warn)}
+.cmdblk.lawblk > header{background:rgba(245,181,70,.08)}
+.cmdblk.lawblk > header .no{background:var(--warn);color:#241900}
+.lawblkhint{padding:9px 14px;font-size:.78rem;line-height:1.6;color:var(--mute);
+  background:rgba(245,181,70,.06);border-bottom:1px solid rgba(245,181,70,.28)}
+.lawblkhint b.miss{color:var(--lo)}
+.lawblkhint b.ok{color:var(--hi)}
+/* ป้าย ⚖ ท้ายชื่อในตาราง — เล็กแต่ต้องสะดุดตาตอนกวาดสายตาทั้งคอลัมน์ */
+.warnmark{flex:none;color:var(--warn);font-size:.92rem;cursor:help;line-height:1}
+.lawinherit{flex:none;font-size:.76rem;color:var(--dim);white-space:nowrap}
+.ctable tr.warned .nm{border-left:2px solid var(--warn);padding-left:6px}
 /* ── บล็อกที่ส่งไปแล้ว ── ยังอ่านได้ ยังก๊อปได้ แต่ตาไม่ต้องไปหยุดที่มันอีก */
 .cmdblk.sent{opacity:.5;border-style:dashed}
 .cmdblk.sent:hover,.cmdblk.sent:focus-within{opacity:1}
@@ -4534,12 +4554,20 @@ function renderDetail(){
   const clips = clipsOf(r);
   const hist = creatorHistory(r.handle);
 
+  // เคยได้รับหนังสือแจ้งเตือนในโปรเจกต์ไหนบ้าง — ดูข้ามทุกโปรเจกต์ ไม่ใช่เฉพาะที่เปิดอยู่
+  // ประวัติแบบนี้ต้องติดตัวคน ไม่ใช่ติดโปรเจกต์ ("เคยโดนที่ RC1" ต้องเห็นตอนจะรับเข้า RC2)
+  const warns = lawWarnHistory(r.handle);
+
   body.innerHTML = `
     <div class="dhead">
       <span class="nmbig">${esc(r.handle)}</span>
       <a href="https://www.tiktok.com/@${esc(r.handle)}" target="_blank"
          rel="noopener noreferrer">TikTok ↗</a>
     </div>
+    ${warns.length ? `<div class="cmdwarned">⚖ <b>เคยได้รับหนังสือแจ้งเตือนตามสัญญา ${
+      warns.length > 1 ? `${warns.length} ครั้ง` : ""}</b>
+      <span>${warns.map(w =>
+        `${esc(w.proj)} — ${esc(warnDate(w.at))}`).join(" · ")}</span></div>` : ""}
 
     <div class="dgrid">
       <div class="dfield"><label>ชื่อ (ID)</label>
@@ -4711,6 +4739,13 @@ function renderCreatorCard(q){
   el.innerHTML = `<div class="ccard">
     <h3><a href="https://www.tiktok.com/@${esc(h)}" target="_blank" rel="noopener noreferrer">${esc(h)} ↗</a></h3>
     <div class="sub">เคยร่วมงาน <b>${hist.length}</b> โปรเจกต์</div>
+    ${(() => {
+      // การ์ดนี้คือที่ที่คนมาเช็คก่อนตัดสินใจรับเข้างานใหม่ — ประวัติหนังสือเตือนต้องอยู่ตรงนี้
+      const w = lawWarnHistory(h);
+      return w.length ? `<div class="cmdwarned">⚖ <b>เคยได้รับหนังสือแจ้งเตือนตามสัญญา${
+        w.length > 1 ? ` ${w.length} ครั้ง` : ""}</b>
+        <span>${w.map(x => `${esc(x.proj)} — ${esc(warnDate(x.at))}`).join(" · ")}</span></div>` : "";
+    })()}
     ${histTable(hist)}
     <div class="tot">${rateGrowth(hist)}<br>รวมจ่ายจริงทุกโปรเจกต์ <b>฿${
       paid.toLocaleString("en-US",{minimumFractionDigits:2})}</b></div>
@@ -5301,8 +5336,10 @@ function coordRow(r, i){
   // มี Command ของตัวเองกี่จุด — ติดจุดแดงไว้ จะได้รู้ว่าคนนี้ไม่ได้ใช้ข้อความต้นแบบ
   const oc = cmdOwnRead(r.project, r.handle);
   const ownCmd = Object.keys(oc.blocks || {}).length + Object.keys(oc.links || {}).length;
-  const cls = [clips.length ? "hasclips" : "", isCancelled(r) ? "cancelled" : ""]
-    .filter(Boolean).join(" ");
+  // เคยได้รับหนังสือแจ้งเตือนไหม — ต้องเห็นตั้งแต่ในตาราง ไม่ใช่ต้องเปิด Command เข้าไปดูทีละคน
+  const warned = lawWarnedAt(r.project, r.handle);
+  const cls = [clips.length ? "hasclips" : "", isCancelled(r) ? "cancelled" : "",
+               warned ? "warned" : ""].filter(Boolean).join(" ");
   return `<tr draggable="true" data-row="${i}"${cls ? ` class="${cls}"` : ""}>
     <td class="w-move" title="ลากขึ้นลงเพื่อสลับลำดับ">⠿</td>
     <td class="who"><div class="wrapper">
@@ -5320,6 +5357,7 @@ function coordRow(r, i){
               title="${ownCmd
                 ? `${esc(r.handle)} มี Command ของตัวเอง ${ownCmd} จุด — ไม่ใช้ต้นแบบร่วม`
                 : `ข้อความสำเร็จรูปสำหรับคุยกับ ${esc(r.handle)}`}">✉</button>
+      ${warned ? `<span class="warnmark" title="${esc(r.handle)} เคยได้รับหนังสือแจ้งเตือนตามสัญญา — ทำเครื่องหมายว่าส่งแล้วเมื่อ ${esc(warnDate(warned))}">⚖</span>` : ""}
     </div></td>
     <td class="vid"><input data-i="${i}" data-f="videos" type="number" min="0" step="1"
         value="${r.videos ?? ""}" placeholder="-"
@@ -5357,6 +5395,37 @@ function coordRow(r, i){
         title="ลบ ${esc(r.handle)} ออกจาก ${esc(PROJ)}">🗑</button></td>
   </tr>${subRows(r, i)}`;
 }
+
+// ═══ ตัวบทหนังสือแจ้งเตือนตามสัญญา ═══
+// อยู่ตรงนี้เพราะบล็อก Command ของหนังสือแจ้งเตือน (ท้าย CMD_BLOCKS) ประกอบข้อความจากตัวแปรพวกนี้
+// ตอนโหลดไฟล์ — ต้องประกาศก่อน CMD_BLOCKS ไม่งั้นอ่านไม่เจอ (const ประเมินค่าตามลำดับบรรทัด)
+// แผงเต็มจอรายโปรเจกต์ (#lawPanel) ที่อยู่ล่างไฟล์ก็ใช้ชุดเดียวกันนี้ — ตัวบทมีที่เดียวทั้งเว็บ
+// ⚠️ ต้องตรงกับเอกสารร่วมงานจริง อย่าแก้ถ้อยคำโดยไม่ได้แก้สัญญาตาม
+const LAW_LEAD = "แอดมินขออนุญาตแจ้งขอกำหนดการร่วมงานจากทางแบรนด์และสิทธิที่ได้แจ้งขั้นต้นอีกครั้งนะครับ";
+const LAW_REF  = "ตามเอกสารร่วมงานและเงื่อนไขการร่วมงาน";
+const LAW_CLAUSES = [
+  { n:"ข้อ 3", t:"กำหนดส่งงานและค่าตอบแทน",
+    p:"ครีเอเตอร์ต้องส่งงานตามเวลาที่กำหนด หากส่งงานล่าช้าจนทำให้เกิดความเสียหายหรือกระทบต่อการดำเนินงานของโครงการ บริษัทมีสิทธิ์ให้ครีเอเตอร์ชำระค่าสินค้า 100% โดยไม่มีเงื่อนไข" },
+  { n:"ข้อ 4", t:"การยกเลิกงานและการไม่สามารถติดต่อได้",
+    p:"หากครีเอเตอร์ยกเลิกงานหรือไม่สามารถติดต่อได้เกิน 48 ชั่วโมง โดยไม่มีการแจ้งล่วงหน้าและมีเหตุให้โครงการได้รับผลกระทบ บริษัทมีสิทธิ์ดังต่อไปนี้",
+    li:["Blacklist ครีเอเตอร์ในเครือบริษัททั้งหมด", "ชำระค่าสินค้าจำนวนเต็ม 100%"] },
+];
+// ตัวข้อความของบล็อกหนังสือแจ้งเตือนใน Command — ประกอบจากตัวบทข้างบน + ตัวแปรที่กรอกรายเคส
+// เปิดหัวด้วยการระบุชื่อช่องครีเอเตอร์ ({{handle}}) เพราะเอกสารฉบับนี้อ้างสิทธิตามสัญญากับคนคนนั้น
+// ส่งผิดคนคือเรื่องใหญ่ ต้องอ่านออกตั้งแต่บรรทัดแรกว่าฉบับนี้ของใคร
+const LAW_CMD_BODY = [
+  "เรียน ครีเอเตอร์ @{{handle}}",
+  "",
+  LAW_LEAD,
+  "",
+  LAW_REF,
+  ...LAW_CLAUSES.flatMap(c => [`${c.n} ${c.t}`, c.p, ...(c.li || []), ""]),
+  "",
+  "เนื่องจากครีเอเตอร์ส่งดราฟล่าช้า และ ไม่สามารถติดต่อได้เกิน 48 ชั่วโมง ({{lawdays}} อ้างอิงตามแชทข้อความ)",
+  "ทั้งนี้หากล่วงเลยตามกำหนดส่งงานวันที่ {{lawdeadline}} ทางบริษัทจำเป็นต้องดำเนินการในข้อ 3 ให้ครีเอเตอร์ชำระค่าสินค้า 100% โดยไม่มีเงื่อนไข",
+  "",
+  "(ตามราคาที่ตกลงร่วมงานกับครีเอเตอร์สำหรับสินค้า {{lawbrand}} ราคา {{lawprice}} ตามราคาซื้อขายในแพลตฟอร์ม {{lawplatform}} ณ {{lawrefdate}} )",
+].join("\n");
 
 // ═══ Command — ข้อความสำเร็จรูปที่ส่งให้ครีเอเตอร์ ═══
 // แยกเป็นบล็อกตามที่ส่งจริงทีละข้อความ ช่องไหนยังไม่มีข้อมูลจะขึ้นแดงให้เห็น
@@ -5513,6 +5582,13 @@ Hashtag:📱
 💰Commission = {{commission}}
 
 หากครีเอเตอร์คอนเฟิร์มการร่วมงาน กรุณาตอบกลับ “Confirm” เพื่อร่วมงานครับ` },
+
+  // ── หนังสือแจ้งเตือนตามสัญญา ──
+  // law:true = บล็อกพิเศษ ไม่นับรวมกับช่องว่างของบล็อกปกติ (gapbar/ตัวเลข "ยังว่าง n ช่อง")
+  // เพราะทุกคนได้บล็อกนี้ติดมาด้วย แต่ส่วนใหญ่ไม่มีวันต้องใช้ — ถ้านับรวม ทุกคนจะขึ้นว่าข้อมูลไม่ครบ
+  // ตลอดกาลทั้งที่งานเรียบร้อยดี · ord สูงสุดเพื่อให้อยู่ท้ายสุดเสมอ ไม่ปนกับลำดับที่ส่งจริง
+  // ข้อความแก้ได้ทั้งรายคนและระดับโปรเจกต์เหมือนบล็อกอื่นทุกประการ (CMDOWN → CMDEDIT → ในโค้ด)
+  { t:"หนังสือแจ้งเตือนตามสัญญา", law:true, ord:99, b: LAW_CMD_BODY },
 ];
 
 // ─── ต้นแบบรุ่นก่อนหน้า ───
@@ -6019,6 +6095,13 @@ function cmdValues(r){
   // (เดิมทั้ง 3 Draft ใช้ตัวแปรเดียวกัน แก้ Draft 2 แล้ว Draft 1 เปลี่ยนตาม)
   const fb = n => own["feedback" + n] || "";
   return {
+    // ชื่อช่องของคนนี้ — ใช้ระบุตัวคนในข้อความที่ต้องเจาะจงว่าฉบับนี้ของใคร (หนังสือแจ้งเตือน)
+    // ใช้ normId เพราะเป็นรูปแบบมาตรฐานที่ไม่มี @ นำหน้า ในข้อความจึงเขียน @{{handle}} ได้ตรงๆ
+    handle: normId(r.handle),
+    // ─── ข้อเท็จจริงของหนังสือแจ้งเตือน ───
+    // ลำดับเดียวกับลิงก์เอกสาร: ที่กรอกไว้เฉพาะคนนี้ → ที่กรอกไว้ระดับโปรเจกต์ (แผง ⚖ ในแผนผัง) → ว่าง
+    // ผ่าน lawVal() ตัวเดียวกับแผงเต็มจอ ข้อความจึงจัดรูปเหมือนกันเป๊ะ (วันเป็น พ.ศ. · ราคาใส่ลูกน้ำ)
+    ...lawCmdVals(r.project, r.handle),
     sku: r.sku || "", rate: rateText(r.rate),
     paytype: r.paytype ? payType(r.paytype).label.replace(/\s*\(.*\)$/, "") : "",
     net: net != null ? net.toLocaleString("en-US", {minimumFractionDigits:2}) : "",
@@ -6081,6 +6164,11 @@ const fbSplit = k => {
 // ไม่เอาไปยัดใน CMD_GAP เพราะรายการตัวแปรในหน้าแก้ข้อความจะยาวขึ้นเป็นสิบเท่าโดยไม่จำเป็น
 function gapLabel(k){
   if (CMD_GAP[k]) return CMD_GAP[k];
+  // ช่องของหนังสือแจ้งเตือน — ชื่อไทยอยู่ใน LAW_FIELDS อยู่แล้ว ไม่ต้องเขียนซ้ำ
+  if (k.startsWith("law")){
+    const f = LAW_FIELDS.find(x => "law" + x.k === k);
+    if (f) return "ยังไม่ได้กรอก" + f.th;
+  }
   const set = n => n > 1 ? ` ชุดที่ ${n}` : "";
   const s = docSplit(k);
   if (s) return `ยังไม่มี${s.d.th}${set(s.n)}`;
@@ -6219,7 +6307,7 @@ function cmdBlocksAll(proj){
   const mk = (id, def, ord, custom) => {
     const ed = cmdEditOne(proj, id);
     return { id, t:(ed && ed.t) || def.t, b:(ed && ed.b != null) ? ed.b : def.b,
-             clip: !!def.clip, kind: def.kind || "",
+             clip: !!def.clip, kind: def.kind || "", law: !!def.law,
              // null = ได้ทุกคน · ต้องส่งต่อจากต้นแบบ ไม่งั้นตัวกรอง "มีเรทชำระไหม" จะไม่เห็นค่านี้เลย
              pay: def.pay == null ? null : !!def.pay,
              ord, custom, edited: !!ed, hidden: hid.has(id), base: def };
@@ -6357,6 +6445,13 @@ let CMD_SCOPE = "mine";
 // แท็บของกล่องลิงก์ — อยู่นอกฟังก์ชันเพื่อให้ค้างไว้หลังบันทึกแล้ววาดใหม่
 // ไม่งั้นแก้ลิงก์ร่วมทีละช่องจะถูกเด้งกลับไปแท็บ "เฉพาะคนนี้" ทุกครั้ง
 let LINK_SCOPE = "mine";
+let LAW_SCOPE  = "mine";     // แท็บที่เปิดค้างไว้ในกล่องหนังสือแจ้งเตือน (เฉพาะคนนี้ / ทั้งโปรเจกต์)
+// วันที่อ่านง่ายสำหรับป้ายประวัติ — เป็น พ.ศ. เหมือนตัวเอกสาร จะได้ไม่ต้องแปลงในหัวตอนเทียบกัน
+function warnDate(ms){
+  if (!ms) return "";
+  const d = new Date(ms);
+  return `${d.getDate()} ${TH_MONTHS[d.getMonth()]} ${d.getFullYear() + 543}`;
+}
 
 // ─── เมนูเลือกจากรายการสั้นๆ ───
 // ใช้แทน prompt ที่ให้พิมพ์เลข 1-6 — อ่านตัวเลือกแล้วกดเลย ไม่ต้องแปลงเป็นเลขในหัว
@@ -6603,8 +6698,11 @@ function openCmd(proj, handle){
   const clips = clipCount(r);
   const nMine = Object.keys(own.blocks || {}).length;
   const nFb = fbCount(proj, handle, clips);
-  // นับเฉพาะลิงก์จริง ไม่รวมฟีดแบคที่นับแยกไว้แล้ว (ทั้งชุดแรกและชุดรายคลิป)
-  const nLink = Object.keys(own.links || {}).filter(k => !fbSplit(k)).length;
+  // นับเฉพาะลิงก์จริง ไม่รวมฟีดแบคกับข้อเท็จจริงหนังสือแจ้งเตือน ที่นับแยกไว้แล้วทั้งคู่
+  const nLink = Object.keys(own.links || {})
+    .filter(k => !fbSplit(k) && !k.startsWith("law_")).length;
+  const nLaw = Object.keys(own.links || {}).filter(k => k.startsWith("law_")).length;
+  const warnedAt = lawWarnedAt(proj, handle);
   // บล็อกที่ทำเครื่องหมาย clip ไว้ ถ้าคนนี้ทำหลายคลิปจะแตกเป็นชุดละคลิป
   // เอกสารในบล็อกนั้นอ่านจากช่องของคลิปนั้นเอง — {{cart}} ของคลิป 2 คือ {{cart2}}
   const blocks = [];
@@ -6630,16 +6728,21 @@ function openCmd(proj, handle){
     rounds.forEach(n => blocks.push(Object.assign(
       // หัวข้อบอกชื่อ SKU ของชุดนั้นด้วย — "ชุด 2" เฉยๆ ยังต้องเปิดตารางไปดูว่าตัวไหน
       { t: bl.t + (n ? ` — ชุด ${n}${skuOf(r, n) ? ` · ${skuOf(r, n)}` : ""}` : ""),
-        mine: bl.mine, id, custom: bl.custom, clip:n, sent: isSent(proj, handle, id, n) },
+        mine: bl.mine, id, custom: bl.custom, clip:n, law: !!bl.law,
+        sent: isSent(proj, handle, id, n) },
       fillBlock(bl.b, vals, n))));
   });
   // ลำดับที่คนนี้จะได้รับจริง — บล็อกที่แยกชุดนับเป็นขั้นเดียวกัน (5.1 / 5.2)
   let seq = 0, lastI = null;
   blocks.forEach(b => { if (b.id !== lastI){ seq++; lastI = b.id; } b.step = seq; });
-  const nSent = blocks.filter(b => b.sent).length;
-  const gaps = blocks.reduce((s, b) => s + (b.sent ? 0 : b.missing), 0);
+  // ⚠️ ตัวเลขทุกตัวข้างล่างนี้ไม่นับบล็อกหนังสือแจ้งเตือน — ทุกคนได้บล็อกนั้นติดมาด้วยทั้งที่
+  // ส่วนใหญ่ไม่มีวันต้องใช้ ถ้านับรวมจะกลายเป็นว่าทุกคนในทีม "ยังว่าง 6 ช่อง" และ "ส่งแล้ว 0/17"
+  // ตลอดกาลทั้งที่งานเรียบร้อยดี — ตัวเลขที่โกหกแบบนี้ใช้ตัดสินใจอะไรไม่ได้เลย
+  const norm = blocks.filter(b => !b.law);
+  const nSent = norm.filter(b => b.sent).length;
+  const gaps = norm.reduce((s, b) => s + (b.sent ? 0 : b.missing), 0);
   // ช่องว่างแต่ละชนิด (ไม่นับซ้ำ) — เอาไปทำปุ่มเติมบนหัว
-  const gapKeys = [...new Set(blocks.flatMap(b => b.gaps || []))]
+  const gapKeys = [...new Set(norm.flatMap(b => b.gaps || []))]
     .filter(k => k !== "net");                    // จ่ายจริงคิดเอง เติมตรงๆ ไม่ได้
 
   $("#cmdBody").innerHTML =
@@ -6648,6 +6751,11 @@ function openCmd(proj, handle){
     (isCancelled(r) ? `<div class="cmdcancel">✕ <b>ยกเลิกงานแล้ว</b> —
        ข้อความข้างล่างเก็บไว้ให้ย้อนดู ไม่ควรส่งอีก
        ถ้ากลับมาทำจริงให้เปลี่ยนสถานะกลับไปที่ขั้นที่ค้างอยู่ก่อน</div>` : "") +
+    // เคยส่งหนังสือแจ้งเตือนไปแล้ว = ข้อเท็จจริงที่ต้องรู้ก่อนจะพิมพ์อะไรต่อกับคนนี้
+    // ขึ้นคาดหัวเหนือทุกอย่างแบบเดียวกับแถบ "ยกเลิกงานแล้ว" ไม่ใช่ป้ายเล็กๆ ที่กวาดตาข้าม
+    (warnedAt ? `<div class="cmdwarned">⚖ <b>เคยได้รับหนังสือแจ้งเตือนตามสัญญา</b>
+       — ทำเครื่องหมายว่าส่งแล้วเมื่อ ${esc(warnDate(warnedAt))}
+       <span>ดูฉบับที่ส่งไปได้ที่บล็อกท้ายสุดของหน้านี้</span></div>` : "") +
     `<div class="cmdwho">
        <span class="nm">${esc(r.handle)}</span>
        <div class="tags">
@@ -6689,14 +6797,16 @@ function openCmd(proj, handle){
               ข้อความคอนเฟิร์มจะแจ้งว่า “${Number(r.videos)} video” ตามช่องในตาราง` : ""
          }</span>` : ""}
        <span id="cmdSentN">${nSent
-         ? ` · <span style="color:var(--hi)">ส่งแล้ว ${nSent}/${blocks.length} บล็อก</span>` : ""}</span>
-       ${(nMine || nLink || nFb) ? ` · <span style="color:var(--accent)">เฉพาะคนนี้: ${
+         ? ` · <span style="color:var(--hi)">ส่งแล้ว ${nSent}/${norm.length} บล็อก</span>` : ""}</span>
+       ${(nMine || nLink || nFb || nLaw) ? ` · <span style="color:var(--accent)">เฉพาะคนนี้: ${
          [nMine ? `ข้อความ ${nMine} บล็อก` : "", nLink ? `ลิงก์ ${nLink} ช่อง` : "",
-          nFb ? `Feedback ${nFb} Draft` : ""]
+          nFb ? `Feedback ${nFb} Draft` : "", nLaw ? `หนังสือแจ้งเตือน ${nLaw} ช่อง` : ""]
          .filter(Boolean).join(" · ")}</span>` : ""}
        <br>
        <button class="cmdbtn" id="cmdFbBtn">✎ Feedback${nFb ? ` (${nFb}/${3 * clips})` : ""}</button>
        <button class="cmdbtn" id="cmdLinkBtn">🔗 ลิงก์${nLink ? ` (${nLink})` : ""}</button>
+       <button class="cmdbtn${warnedAt ? " warned" : ""}" id="cmdLawBtn"
+         >⚖ หนังสือแจ้งเตือน${warnedAt ? " · ส่งแล้ว" : nLaw ? ` (${nLaw})` : ""}</button>
        <button class="cmdbtn" id="cmdEditBtn">✎ แก้ข้อความ</button>
        <button class="cmdbtn" id="cmdUnsent" ${nSent ? "" : "hidden"}
          >↺ ล้างเครื่องหมายส่งแล้ว (${nSent})</button>
@@ -6739,13 +6849,35 @@ function openCmd(proj, handle){
        </div>
        <div id="linkRows"></div>
      </div>
+     <!-- ข้อเท็จจริงของหนังสือแจ้งเตือน — โครงเดียวกับกล่องลิงก์เป๊ะ (สองแท็บ เฉพาะคนนี้ / ร่วมกัน)
+          ตัวบทข้อ 3/ข้อ 4 ไม่มีให้แก้ตรงนี้โดยตั้งใจ อ้างสิทธิตามสัญญาจริง แก้ต้องแก้สัญญาตาม
+          อยากแก้ถ้อยคำรอบๆ ใช้ปุ่ม "✎ แก้ข้อความ" ซึ่งแก้ได้ทั้งรายคนและทั้งโปรเจกต์อยู่แล้ว -->
+     <div class="fbbox linkbox" id="lawBox" hidden>
+       <div class="fbhead">
+         <div class="tabs sub linkscope">
+           <button data-lwscope="mine" aria-selected="true">เฉพาะ ${esc(normId(handle))}</button>
+           <button data-lwscope="all" aria-selected="false">ใช้ร่วมกันทั้งโปรเจกต์</button>
+         </div>
+         <span id="lawBoxHint" style="color:var(--dim)"></span>
+         <span id="lawBoxMsg" class="addmsg"></span>
+       </div>
+       <div id="lawRows"></div>
+     </div>
      <div class="cmdlist">` +
     // เลขที่โชว์คือลำดับที่ส่งจริงของคนนี้ ไม่ใช่เลขบล็อกในต้นแบบ
     // (KOL กับ KOC ใช้บล็อกคนละใบในตำแหน่งเดียวกัน เลขต้นแบบเลยไม่เรียงกัน)
-    blocks.map((b, j) => `<div class="cmdblk${b.mine ? " edited" : ""}${b.sent ? " sent" : ""}">
+    blocks.map((b, j) => `<div class="cmdblk${b.mine ? " edited" : ""}${b.sent ? " sent" : ""}${
+      b.law ? " lawblk" : ""}">
+      ${b.law ? `<div class="lawblkhint">⚖ ฉบับนี้อ้างสิทธิตามสัญญาจริง ส่งไปแล้วเรียกคืนไม่ได้ —
+        ${lawMissingFor(proj, handle).length
+          ? `<b class="miss">ยังไม่ได้กรอก ${lawMissingFor(proj, handle).length} ช่อง</b>
+             กดปุ่ม ⚖ หนังสือแจ้งเตือน ข้างบนเพื่อกรอก`
+          : `<b class="ok">กรอกครบแล้ว</b> อ่านทวนอีกรอบก่อนกด “ส่งแล้ว”`}
+        <br>กด “ส่งแล้ว” = บันทึกถาวรในประวัติของ ${esc(normId(handle))} ว่าเคยได้รับหนังสือเตือน</div>` : ""}
       <header><span class="no" title="${b.custom ? "บล็อกที่เพิ่มเองในโปรเจกต์นี้"
+        : b.law ? "หนังสือแจ้งเตือนตามสัญญา — ทุกคนมีบล็อกนี้ แต่ส่งเฉพาะเคสที่จำเป็น"
         : `บล็อกที่ ${Number(b.id) + 1} ในต้นแบบ — ใช้กับ /cmd${Number(b.id) + 1}`}"
-        >${b.step}${b.clip ? `<i>.${b.clip}</i>` : ""}</span>${
+        >${b.law ? "⚖" : b.step}${b.clip ? `<i>.${b.clip}</i>` : ""}</span>${
         esc(b.t.replace(/^\d+\.\s*/, ""))}
         <button class="mark" data-sent="${j}"
           title="${b.sent ? "ยังไม่ได้ส่ง — กดเพื่อเอาเครื่องหมายออก" : "ทำเครื่องหมายว่าส่งบล็อกนี้ให้ " + esc(normId(handle)) + " แล้ว"}"
@@ -6789,20 +6921,49 @@ function openCmd(proj, handle){
   // (วาดใหม่แล้วจอจะเด้งกลับไปบนสุด ทั้งที่กำลังไล่อ่านบล็อกที่ 12 อยู่)
   document.querySelectorAll("#cmdBody [data-sent]").forEach(btn => btn.onclick = () => {
     const b = blocks[+btn.dataset.sent];
+    // ── หนังสือแจ้งเตือนเป็นคนละเรื่องกับบล็อกอื่น ──
+    // บล็อกอื่นกดผิดก็แค่ตัวเลขเพี้ยน กดกลับได้ ไม่มีใครเดือดร้อน
+    // อันนี้กดแล้วไปขึ้นเป็นประวัติถาวรว่า "คนนี้เคยโดนหนังสือเตือน" ซึ่งติดตัวเขาข้ามโปรเจกต์
+    // ต้องถามก่อนทั้งขาไปและขากลับ — ขากลับคือการลบประวัติทิ้ง ยิ่งต้องตั้งใจกว่าเดิม
+    if (b.law){
+      const who = normId(handle);
+      if (!b.sent){
+        const miss = lawMissingFor(proj, handle);
+        if (miss.length && !confirm(
+          `ยังกรอกไม่ครบ ${miss.length} ช่อง — ${miss.map(f => f.th).join(" · ")}\n\n` +
+          `ยืนยันว่าส่งหนังสือแจ้งเตือนให้ ${who} ไปแล้วจริงๆ?`)) return;
+        if (!miss.length && !confirm(
+          `บันทึกว่าส่งหนังสือแจ้งเตือนตามสัญญาให้ ${who} แล้ว?\n\n` +
+          `จะขึ้นเป็นประวัติของ ${who} ว่าเคยได้รับหนังสือเตือน เห็นได้ทุกโปรเจกต์`)) return;
+      } else if (!confirm(
+        `เอาประวัติ "เคยได้รับหนังสือแจ้งเตือน" ของ ${who} ออก?\n\n` +
+        `ใช้เมื่อกดผิดเท่านั้น — ถ้าส่งไปจริงแล้วไม่ควรลบ`)) return;
+      toggleSent(proj, handle, b.id, b.clip);
+      renderCoord();                     // ป้าย ⚖ ในตารางต้องขึ้น/หายตาม
+      const top = $("#cmdBody").scrollTop;
+      openCmd(proj, handle);             // วาดใหม่ทั้งหน้าเพื่อให้แถบคาดหัวขึ้น/หาย
+      $("#cmdBody").scrollTop = top;
+      return;
+    }
     toggleSent(proj, handle, b.id, b.clip);
     b.sent = !b.sent;
     btn.closest(".cmdblk").classList.toggle("sent", b.sent);
     btn.textContent = b.sent ? "✓ ส่งแล้ว" : "ส่งแล้ว";
-    const n = blocks.filter(x => x.sent).length;
+    const n = norm.filter(x => x.sent).length;
     $("#cmdUnsent").textContent = `↺ ล้างเครื่องหมายส่งแล้ว (${n})`;
     $("#cmdUnsent").hidden = !n;
     $("#cmdSentN").innerHTML = n
-      ? ` · <span style="color:var(--hi)">ส่งแล้ว ${n}/${blocks.length} บล็อก</span>` : "";
+      ? ` · <span style="color:var(--hi)">ส่งแล้ว ${n}/${norm.length} บล็อก</span>` : "";
   });
   const unsent = $("#cmdUnsent");
   if (unsent) unsent.onclick = () => {
     if (!confirm(`เอาเครื่องหมาย "ส่งแล้ว" ของ ${normId(handle)} ออกทั้งหมด?`)) return;
-    cmdOwn(proj, handle).sent = {};
+    // ⚠️ ไม่ล้างประวัติหนังสือแจ้งเตือนไปด้วย — ปุ่มนี้ใช้รีเซ็ตรอบการส่งข้อความปกติ
+    // ส่วนหนังสือแจ้งเตือนเป็นข้อเท็จจริงที่เกิดขึ้นแล้ว ไม่ได้หายไปเพราะเริ่มรอบใหม่
+    // จะลบต้องกดที่บล็อกนั้นตรงๆ ซึ่งมีคำถามยืนยันของตัวเองอยู่แล้ว
+    const o = cmdOwn(proj, handle);
+    const keep = o.sent[sentKey(LAW_BLOCK_ID, 0)];
+    o.sent = keep ? { [sentKey(LAW_BLOCK_ID, 0)]: keep } : {};
     pruneCmdOwn(proj, handle); saveCmdOwn(); openCmd(proj, handle);
   };
 
@@ -6998,6 +7159,88 @@ function openCmd(proj, handle){
     box.hidden = !box.hidden;
     $("#cmdLinkBtn").classList.toggle("on", !box.hidden);
     if (!box.hidden){ renderLinks(); box.scrollIntoView({ block:"nearest" }); }
+  };
+
+  // ─── ข้อเท็จจริงของหนังสือแจ้งเตือน ───
+  // สองแท็บเหมือนกล่องลิงก์: "เฉพาะคนนี้" เขียนลง own.links["law_"+k] · "ร่วมกัน" เขียนลง LAW[proj]
+  // ว่างไว้ในแท็บเฉพาะคน = ตกไปใช้ของโปรเจกต์ ซึ่งโชว์เป็นตัวจางในช่องให้เห็นก่อนว่าจะได้อะไรจริง
+  // (checkpoint แบบเดียวกับหน้าลิงก์ — เห็นค่าที่จะได้ก่อนพิมพ์ทับ)
+  function renderLawBox(){
+    const mine = LAW_SCOPE === "mine";
+    const own = cmdOwnRead(proj, handle).links || {};
+    const pj = lawGet(proj);
+    $("#lawBoxHint").innerHTML = mine
+      ? `เว้นว่าง = ใช้ค่าที่ตั้งไว้ทั้งโปรเจกต์ (ตัวจางในช่องคือค่าที่จะได้จริง) · บันทึกเองเมื่อคลิกออกจากช่อง`
+      : `<span style="color:var(--warn)">แก้ตรงนี้มีผลกับทุกคนในโปรเจกต์ ${esc(proj)} ที่ไม่ได้กรอกของตัวเองไว้</span>`;
+    $("#lawRows").innerHTML = LAW_FIELDS.map(f => {
+      const k = LAW_OWN(f.k);
+      const v = mine ? String(own[k] == null ? "" : own[k])
+                     : String(pj[f.k] == null ? "" : pj[f.k]);
+      const eff = mine ? lawVal(f.k, lawRaw(proj, handle, f.k)) : "";
+      const ph = mine ? (eff || "ยังไม่ได้กรอกทั้งโปรเจกต์") : "กรอกค่าตั้งต้นของโปรเจกต์นี้";
+      return `<div class="linkrow${mine && own[k] != null ? " own" : ""}">
+        <label title="${esc(f.th)}">${esc(f.th)}</label>
+        ${f.type === "date"
+          // ⚠️ <input type=date> ไม่โชว์ placeholder เลย (เบราว์เซอร์วาดช่อง วว/ดด/ปปปป ทับ)
+          // ช่องวันที่จึงต้องบอกค่าที่ตกทอดมาด้วยข้อความข้างช่องแทน ไม่งั้นสองช่องนี้กลายเป็น
+          // จุดบอดจุดเดียวในกล่อง — ดูไม่ออกว่ามีค่าของโปรเจกต์รออยู่หรือยังว่างจริง
+          ? `<input type="date" data-lawv="${esc(f.k)}" value="${esc(v)}"
+               title="เลือกเป็น ค.ศ. แล้วระบบแปลงเป็น พ.ศ. ให้ในข้อความ">
+             <span class="lawinherit">${esc(v ? beDate(v) : (eff ? "ของโปรเจกต์: " + eff : ""))}</span>`
+          : `<input data-lawv="${esc(f.k)}" value="${esc(v)}" placeholder="${esc(ph)}"
+               ${f.type === "list" ? `list="lawCOpts_${esc(f.k)}"` : ""} spellcheck="false">`}
+        ${f.type === "list" ? `<datalist id="lawCOpts_${esc(f.k)}">${
+          LAW_PLATFORMS.map(x => `<option value="${esc(x)}">`).join("")}</datalist>` : ""}
+        <button type="button" data-lawok="${esc(f.k)}" title="ยืนยันช่องนี้">✓</button>
+        ${mine && own[k] != null
+          ? `<button type="button" data-lawclr="${esc(f.k)}" title="ใช้ค่าของโปรเจกต์แทน">↺</button>` : ""}
+      </div>`;
+    }).join("");
+
+    const flashLaw = text => setTimeout(() => {
+      const m = $("#lawBoxMsg");
+      if (!m) return;
+      m.className = "addmsg on ok"; m.textContent = text;
+      clearTimeout(flashLaw._t);
+      flashLaw._t = setTimeout(() => { if ($("#lawBoxMsg")) $("#lawBoxMsg").className = "addmsg"; }, 2200);
+    }, 0);
+    // ทางบันทึกทางเดียวเหมือนกล่องลิงก์ — ทั้ง onchange และปุ่ม ✓/↺ ลงมาที่นี่หมด
+    function commitLaw(k, v, msg){
+      if (mine) setCmdOwnLink(proj, handle, LAW_OWN(k), v);
+      else {
+        const o = lawGet(proj);
+        if (v) o[k] = v; else delete o[k];
+        saveLaw();
+      }
+      const top = $("#cmdBody").scrollTop;
+      openCmd(proj, handle);
+      $("#cmdLawBtn").click();          // เปิดค้างไว้ให้กรอกช่องถัดไปต่อ
+      $("#cmdBody").scrollTop = top;
+      flashLaw(msg);
+    }
+    const rows = $("#lawRows");
+    rows.querySelectorAll("[data-lawv]").forEach(inp => inp.onchange = () =>
+      commitLaw(inp.dataset.lawv, inp.value.trim(), "✓ บันทึกแล้ว — หนังสือแจ้งเตือนอัปเดตตามแล้ว"));
+    rows.querySelectorAll("[data-lawok],[data-lawclr]").forEach(b =>
+      b.onmousedown = e => e.preventDefault());
+    rows.querySelectorAll("[data-lawok]").forEach(b => b.onclick = () => {
+      const inp = b.closest(".linkrow").querySelector("[data-lawv]");
+      if (inp) commitLaw(inp.dataset.lawv, inp.value.trim(), "✓ ยืนยันแล้ว — หนังสือแจ้งเตือนอัปเดตตามแล้ว");
+    });
+    rows.querySelectorAll("[data-lawclr]").forEach(b => b.onclick = () =>
+      commitLaw(b.dataset.lawclr, "", "↺ กลับไปใช้ค่าของโปรเจกต์แล้ว"));
+    document.querySelectorAll("#lawBox .linkscope button").forEach(b => b.onclick = () => {
+      LAW_SCOPE = b.dataset.lwscope;
+      document.querySelectorAll("#lawBox .linkscope button").forEach(x =>
+        x.setAttribute("aria-selected", x.dataset.lwscope === LAW_SCOPE));
+      renderLawBox();
+    });
+  }
+  $("#cmdLawBtn").onclick = () => {
+    const box = $("#lawBox");
+    box.hidden = !box.hidden;
+    $("#cmdLawBtn").classList.toggle("on", !box.hidden);
+    if (!box.hidden){ loadLaw(); renderLawBox(); box.scrollIntoView({ block:"nearest" }); }
   };
   $("#cmdEditBtn").onclick = () => { CMD_EDITING = true; renderCmdEditor(proj, handle); };
 }
@@ -7398,16 +7641,51 @@ function lawVal(k, raw){
   return v;
 }
 
-// ตัวบทที่อ้างถึง — ต้องตรงกับเอกสารร่วมงานจริง อย่าแก้ถ้อยคำโดยไม่ได้แก้สัญญาตาม
-const LAW_LEAD = "แอดมินขออนุญาตแจ้งขอกำหนดการร่วมงานจากทางแบรนด์และสิทธิที่ได้แจ้งขั้นต้นอีกครั้งนะครับ";
-const LAW_REF  = "ตามเอกสารร่วมงานและเงื่อนไขการร่วมงาน";
-const LAW_CLAUSES = [
-  { n:"ข้อ 3", t:"กำหนดส่งงานและค่าตอบแทน",
-    p:"ครีเอเตอร์ต้องส่งงานตามเวลาที่กำหนด หากส่งงานล่าช้าจนทำให้เกิดความเสียหายหรือกระทบต่อการดำเนินงานของโครงการ บริษัทมีสิทธิ์ให้ครีเอเตอร์ชำระค่าสินค้า 100% โดยไม่มีเงื่อนไข" },
-  { n:"ข้อ 4", t:"การยกเลิกงานและการไม่สามารถติดต่อได้",
-    p:"หากครีเอเตอร์ยกเลิกงานหรือไม่สามารถติดต่อได้เกิน 48 ชั่วโมง โดยไม่มีการแจ้งล่วงหน้าและมีเหตุให้โครงการได้รับผลกระทบ บริษัทมีสิทธิ์ดังต่อไปนี้",
-    li:["Blacklist ครีเอเตอร์ในเครือบริษัททั้งหมด", "ชำระค่าสินค้าจำนวนเต็ม 100%"] },
-];
+// ─── หนังสือแจ้งเตือนรายคน ───
+// ตัวบทเหมือนกันทุกคน แต่ "ข้อเท็จจริงของเคส" เป็นของใครของมัน — คนละวันครบกำหนด คนละสินค้า
+// เก็บของรายคนปนไว้ใน own.links (ที่เดียวกับลิงก์เอกสาร/ฟีดแบค) โดยเติมหน้าด้วย law_
+// ไม่ตั้งที่เก็บใหม่แยกอีกก้อน เพราะจะต้องไปไล่เพิ่มใน pruneCmdOwn/migrate/นับจำนวนอีกหลายที่
+// คีย์ที่ขึ้นต้น law_ ถูกกันออกจากตัวนับ "ลิงก์ n ช่อง" และแท็บลิงก์แล้ว (ดู nLink / linkFields)
+const LAW_OWN = k => "law_" + k;
+// ค่าที่คนนี้จะได้จริง: ของเฉพาะคนนี้ → ของระดับโปรเจกต์ → ว่าง (ลำดับเดียวกับลิงก์เอกสารเป๊ะ)
+function lawRaw(proj, handle, k){
+  const own = cmdOwnRead(proj, handle).links || {};
+  const mine = own[LAW_OWN(k)];
+  if (mine != null && String(mine).trim()) return String(mine);
+  return String(lawGet(proj)[k] == null ? "" : lawGet(proj)[k]);
+}
+// ตัวแปรที่ยัดเข้า Command — ชื่อขึ้นต้น law เพื่อไม่ให้ชนกับตัวแปรเดิม ({{brand}} ของโปรเจกต์ ฯลฯ)
+function lawCmdVals(proj, handle){
+  const out = {};
+  LAW_FIELDS.forEach(f => {
+    out["law" + f.k] = lawVal(f.k, lawRaw(proj, handle, f.k));
+  });
+  return out;
+}
+// ช่องที่ยังว่างของคนนี้ (คิดรวมของที่ตกทอดจากระดับโปรเจกต์แล้ว)
+const lawMissingFor = (proj, handle) =>
+  LAW_FIELDS.filter(f => !String(lawRaw(proj, handle, f.k) || "").trim());
+// บล็อกไหนใน CMD_BLOCKS คือหนังสือแจ้งเตือน — หาเอาจากธง law ไม่ใช่เลขตายตัว
+// (ถ้าวันหลังมีคนต่อท้ายลิสต์อีก เลขจะเลื่อน แต่ธงไม่เลื่อน)
+const LAW_BLOCK_ID = String(CMD_BLOCKS.findIndex(b => b.law));
+// เคยส่งหนังสือแจ้งเตือนให้คนนี้ไปแล้วหรือยัง — คืนเวลาที่กดว่าส่งแล้ว (ms) หรือ 0
+// อ่านจากเครื่องหมาย "ส่งแล้ว" ของบล็อกนั้นตรงๆ ไม่ได้เก็บซ้ำอีกที่ จะได้ไม่มีทางขัดกันเอง
+const lawWarnedAt = (proj, handle) =>
+  Number(cmdOwnRead(proj, handle).sent[sentKey(LAW_BLOCK_ID, 0)] || 0);
+// เคยโดนที่โปรเจกต์ไหนบ้าง เรียงใหม่ก่อน — ประวัติแบบนี้ต้องติดตัวคน ไม่ใช่ติดโปรเจกต์
+// ("เคยโดนที่ RC1" คือสิ่งที่ต้องรู้ตอนกำลังจะรับเข้า RC2 ไม่ใช่ตอนเปิด RC1 อยู่)
+function lawWarnHistory(handle){
+  const out = [];
+  PROJECTS.forEach(p => {
+    const at = lawWarnedAt(p, handle);
+    if (at) out.push({ proj:p, at });
+  });
+  return out.sort((a, b) => b.at - a.at);
+}
+
+// ตัวบทที่อ้างถึง (LAW_LEAD / LAW_REF / LAW_CLAUSES) ย้ายไปประกาศเหนือ CMD_BLOCKS แล้ว
+// เพราะบล็อกหนังสือแจ้งเตือนใน Command ต้องประกอบข้อความจากตัวแปรพวกนั้นตอนโหลดไฟล์
+// ตัวบทมีที่เดียวทั้งเว็บเหมือนเดิม — แผงนี้กับบล็อกใน Command อ่านจากชุดเดียวกัน
 
 // ข้อความจริงที่จะก๊อปไปส่ง — ช่องที่ยังว่างคืนเป็นจุดไข่ปลา ให้เห็นชัดว่ายังไม่ได้กรอก
 // (ตัวปุ่มก๊อปกันไม่ให้ก๊อปทั้งที่ยังมีช่องว่างอยู่แล้ว อันนี้เป็นด่านสุดท้าย)
