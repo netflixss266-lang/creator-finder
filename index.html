@@ -1672,6 +1672,11 @@ main{padding:22px 24px;overflow-y:auto;max-height:calc(100vh - 62px)}
 .linkrow label{flex:0 0 11em;font-size:.8rem;color:var(--mute);
   overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .linkrow input,.linkrow textarea{flex:1;min-width:0;font-size:.84rem;padding:7px 10px}
+/* ⚠️ input[type=date] ต้องไม่ยืดตาม flex:1 — ตัว mm/dd/yyyy ที่คลิก/พิมพ์ได้จริงมีแค่ไม่กี่ตัวอักษร
+   ทางซ้าย ถ้าปล่อยให้ยืดเต็มแถว (900px+) จะเหลือพื้นที่ตายกว้างๆ ทางขวาที่คลิกแล้วโฟกัสช่องได้
+   แต่ไม่มีตัวเลขไหนให้พิมพ์ต่อ (ไม่ได้ landing บน segment มม/วว/ปปปป) กดยังไงก็ไม่ขึ้นตัวเลข
+   เจอจริงกับช่องวันที่ในกล่องหนังสือแจ้งเตือน — ต้อง flex:none + กว้างพอดีเหมือน .lawin.date */
+.linkrow input[type=date]{flex:none;width:auto;min-width:9.5em}
 /* ช่องหลายบรรทัด — ป้ายขึ้นไปอยู่บนสุดของช่อง ไม่ลอยกลางกล่องสูงๆ */
 .linkrow.multi{align-items:flex-start}
 .linkrow.multi label{padding-top:9px}
