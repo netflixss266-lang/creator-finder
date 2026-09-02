@@ -1754,6 +1754,12 @@ tr.subrow td.w-status select{width:14.6em}
 .cmdnav .pos{font-family:'IBM Plex Mono',monospace;font-size:.76rem;color:var(--dim);
   padding:0 6px;white-space:nowrap}
 .cmdnav .pos i{font-style:normal;opacity:.5;padding:0 1px}
+/* แถบจางบอกชื่อคนก่อนหน้า/ถัดไป — อยู่ใต้หัวเรื่องเลย ไม่ต้องชี้ค้างรอ title tooltip */
+.cmdnavhint{display:flex;justify-content:space-between;gap:10px;
+  padding:0 18px 10px;margin-top:-8px;font-size:.74rem;color:var(--dim);opacity:.7}
+.cmdnavhint:empty{display:none}
+.cmdnavhint span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:45%}
+.cmdnavhint span:last-child{text-align:right}
 .drawer-head .n{color:var(--accent)}
 .drawer-body{flex:1;overflow-y:auto;padding:14px 18px}
 .drawer-foot{flex:none;padding:14px 18px;border-top:1px solid var(--line);
@@ -2285,6 +2291,8 @@ tr.subrow td.w-status select{width:14.6em}
       <h2 id="cmdTitle">Command</h2>
       <button class="x" id="closeCmd" aria-label="ปิด">✕</button>
     </div>
+    <!-- บอกล่วงหน้าว่ากด ←/→ แล้วจะไปเจอใคร ไม่ต้องกดแล้วเดาว่าใช่คนที่ต้องการไหม -->
+    <div class="cmdnavhint" id="cmdNavHint"></div>
     <div class="drawer-body" id="cmdBody"></div>
   </aside>
 </div>
@@ -6677,9 +6685,16 @@ function openCmd(proj, handle){
   const nav = cmdNavList(proj);
   let at = nav.findIndex(x => normId(x.handle) === normId(handle));
   if (at < 0){ nav.length = 0; at = -1; }        // ตัวกรองซ่อนคนนี้ไว้ — ไม่ต้องมีลูกศร
+  // เดินไปคนก่อนหน้า/ถัดไปแล้ว ถ้าตอนกดอยู่หน้ากล่องไหน (ลิงก์/หนังสือแจ้งเตือน/ฟีดแบค)
+  // ให้เปิดกล่องเดิมค้างไว้ให้คนใหม่เลย ไม่งั้นวาดคนใหม่ทับกล่องจะหุบทุกครั้ง ต้องกดเปิดเองใหม่ทุกคน
+  // เช็ก el ก่อนเสมอ — โหมดแก้ข้อความ (CMD_EDITING) วาด #cmdBody ทับหมด ไม่มีสามกล่องนี้อยู่เลย
+  const NAV_BOX_BTN = { linkBox:"cmdLinkBtn", lawBox:"cmdLawBtn", fbBox:"cmdFbBtn" };
   const step = d => {
     const t = nav[at + d];
-    if (t) openCmd(proj, t.handle);
+    if (!t) return;
+    const openId = Object.keys(NAV_BOX_BTN).find(id => { const el = $("#" + id); return el && !el.hidden; });
+    openCmd(proj, t.handle);
+    if (openId) $("#" + NAV_BOX_BTN[openId]).click();
   };
   $("#cmdTitle").innerHTML =
     `Command · <span style="color:var(--accent)">${esc(r.handle)}</span>`;
@@ -6689,6 +6704,11 @@ function openCmd(proj, handle){
        <span class="pos">${at + 1}<i>/</i>${nav.length}</span>
        <button id="cmdNext" ${at >= nav.length - 1 ? "disabled" : ""}
          title="คนถัดไป${at < nav.length-1 ? " — " + esc(nav[at+1].handle) : ""} (→)">›</button>`
+    : "";
+  // ข้อความจางบอกล่วงหน้าว่ากด ← หรือ → แล้วจะไปเจอใคร — เห็นได้เลยไม่ต้องรอ hover เห็น title
+  $("#cmdNavHint").innerHTML = nav.length > 1
+    ? `<span>${at > 0 ? "‹ " + esc(nav[at-1].handle) : ""}</span>
+       <span>${at < nav.length - 1 ? esc(nav[at+1].handle) + " ›" : ""}</span>`
     : "";
   if (nav.length > 1){
     $("#cmdPrev").onclick = () => step(-1);
