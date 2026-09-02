@@ -12000,6 +12000,7 @@ function creatorSugItems(q){
       if (at < 0) return;
       seen.add(key);
       items.push({ kind:"creator", proj:p, handle:h, pfx: at === 0,
+        warned: !!lawWarnedAt(p, h),
         sub: p + (r.kind ? ` · ${r.kind}` : "") });
     });
   items.sort((a, b) => (a.pfx === b.pfx ? 0 : a.pfx ? -1 : 1) || a.handle.localeCompare(b.handle));
@@ -12040,7 +12041,9 @@ function renderSug(){
       : `<div class="sughead">↑↓ เลือก · Tab หรือ Enter ไปที่ครีเอเตอร์คนนี้ · Esc ปิด</div>` +
         SUG.map((s, i) => `<button data-jump="${esc(s.proj)}|${esc(s.handle)}"
           class="${i === SUG_AT ? "sel" : ""}"
-          ><span class="sugth">👤 ${esc(s.handle)}</span><span class="sugex">${esc(s.sub)}</span></button>`).join(""));
+          ><span class="sugth">👤 ${esc(s.handle)}${s.warned
+            ? `<span class="warnmark" title="เคยได้รับหนังสือแจ้งเตือนตามสัญญา">⚖</span>` : ""}</span
+          ><span class="sugex">${esc(s.sub)}</span></button>`).join(""));
   box.hidden = false;
   box.querySelectorAll("[data-sug]").forEach(b => {
     // mousedown ไม่ใช่ click — click มาหลัง blur ซึ่งปิดกล่องไปแล้ว
