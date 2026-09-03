@@ -699,6 +699,8 @@ tr.dropover td{border-top:2px solid var(--accent)}
    ที่กางออกมาจะโดนแถบพวกนั้นทับบังหัวกล่องได้ (ช่องว่างระหว่างกันแค่ไม่กี่พิกเซล พลาดง่ายมาก)
    ดรอปดาวน์ที่กางออกมาควรอยู่บนสุดของทุกแถบ sticky ในหน้าเสมอ ไม่ใช่แค่ SKU — .fpop ใช้ร่วมกัน
    ทุกคอลัมน์ (status/paytype/ตัวเลข ฯลฯ) แก้จุดเดียวตรงนี้ครอบคลุมหมด */
+/* ตำแหน่งจริงตั้งด้วย JS (placePop) เป็น position:fixed เพื่อไม่ให้โดนขอบ .cwrap/.mapside ตัด
+   ค่า absolute/top/right ข้างล่างเหลือไว้เป็นตัวสำรองเฉยๆ เผื่อ placePop ไม่ได้ทำงาน */
 .fpop{position:absolute;top:100%;right:0;z-index:45;width:270px;text-align:left;
   background:var(--surface2);border:1px solid var(--accent);border-radius:10px;
   box-shadow:0 10px 30px rgba(0,0,0,.55);text-transform:none;letter-spacing:0}
@@ -4461,6 +4463,44 @@ function briefCell(r, i){
       parts.length ? "＋" : "＋ วางลิงก์บรีฟ"}</button></div>`;
 }
 
+// ─── วางตำแหน่งดรอปดาวน์ให้พ้นกล่องที่เลื่อนได้ ───
+// ⚠️ .fpop เดิมเป็น position:absolute เกาะกับ th/ปุ่มเจ้าของ ซึ่งอยู่ใน .cwrap (overflow:auto)
+// และ .mapside (overflow:auto) — absolute ที่อยู่ในกล่องเลื่อน "โดนขอบกล่องตัด" เสมอ
+// คนละเรื่องกับ z-index ที่แก้ไปก่อนหน้านี้ (อันนั้นคือลำดับชั้นทับกัน อันนี้คือขอบกล่องที่ตัดทิ้ง)
+// อาการ: รายการยาวๆ อย่าง SKU โดนตัดกลางแถว เห็นไม่ครบและเลื่อนลงไปดูที่เหลือไม่ได้
+// fixed ไม่โดนขอบกล่องแม่ตัด แลกกับต้องคำนวณตำแหน่งเองจากปุ่มเจ้าของ + กันล้นขอบจอเอง
+let POP_AT = null;               // ดรอปดาวน์ที่เปิดอยู่ตอนนี้ — ไว้ขยับตามตอนเลื่อนหน้า/ย่อขยายจอ
+function placePop(pop, host){
+  const M = 8;                                     // ระยะกันขอบจอ
+  const leftAlign = pop.classList.contains("mappop");   // .mappop ชิดซ้ายปุ่ม ที่เหลือชิดขวา
+  const gap = leftAlign ? 4 : 0;                   // ระยะห่างจากปุ่มตามที่ CSS เดิมตั้งไว้
+  pop.style.position = "fixed";
+  pop.style.right = "auto";      // ล้าง right:0 จาก CSS ไม่งั้นตีกับ left ที่กำลังจะตั้ง
+  const h = host.getBoundingClientRect();
+  const below = innerHeight - h.bottom - gap - M, above = h.top - gap - M;
+  const flip = below < 180 && above > below;       // ข้างล่างไม่พอและข้างบนกว้างกว่า → กางขึ้นแทน
+  const list = pop.querySelector(".flist");
+  if (list){
+    // ตัดความสูงที่ "รายการ" อย่างเดียว หัวกล่องกับช่องพิมพ์ท้ายกล่องต้องเห็นเสมอ
+    const rest = pop.offsetHeight - list.offsetHeight;
+    list.style.maxHeight = Math.min(280, Math.max(80, (flip ? above : below) - rest)) + "px";
+  }
+  const w = pop.offsetWidth;
+  pop.style.left = Math.round(Math.min(
+    Math.max(M, leftAlign ? h.left : h.right - w),
+    Math.max(M, innerWidth - w - M))) + "px";
+  pop.style.top = Math.round(flip ? Math.max(M, h.top - gap - pop.offsetHeight)
+                                  : h.bottom + gap) + "px";
+  POP_AT = { pop, host };
+}
+// fixed ไม่เลื่อนตามหน้าเอง ต้องขยับให้เกาะปุ่มเจ้าของไว้ (หัวตารางเป็น sticky อยู่กับที่อยู่แล้ว
+// แต่หน้าเว็บทั้งหน้ายังเลื่อนได้) — capture:true เพื่อรับ scroll ของกล่องข้างในด้วย
+["scroll", "resize"].forEach(ev => addEventListener(ev, () => {
+  if (!POP_AT) return;
+  if (POP_AT.pop.isConnected && POP_AT.host.isConnected) placePop(POP_AT.pop, POP_AT.host);
+  else POP_AT = null;
+}, true));
+
 // วางลิงก์เพิ่ม — ไม่มีลิสต์ให้เลือกเหมือน SKU เพราะบรีฟเป็นลิงก์ใหม่ทุกครั้ง แค่ช่องพิมพ์เดียว
 function openBriefAdd(r, host, after){
   document.querySelectorAll(".fpop").forEach(p => p.remove());
@@ -4472,6 +4512,7 @@ function openBriefAdd(r, host, after){
   pop.innerHTML = `<div class="fhead">วางลิงก์บรีฟ${cur.length ? ` — มีอยู่แล้ว ${cur.length}` : ""}</div>
      <div class="fadd"><input placeholder="วางลิงก์แล้วกด Enter"></div>`;
   host.appendChild(pop);
+  placePop(pop, host);
   const add = pop.querySelector(".fadd input");
   add.onkeydown = e => {
     if (e.key !== "Enter") return;
@@ -4504,6 +4545,7 @@ function openSkuPicker(r, host, after){
         ยังไม่มีตัวเลือก พิมพ์เพิ่มด้านล่างได้</div>`}</div>
      <div class="fadd"><input placeholder="พิมพ์ SKU ใหม่แล้วกด Enter"></div>`;
   host.appendChild(pop);
+  placePop(pop, host);
 
   const commit = list => {
     setField(r, "sku", skuJoin(list));
@@ -4980,6 +5022,7 @@ function openColFilter(field, th){
            (q.blank||"") === m ? " checked":""}><span>${label}</span></label>`).join("")}</div>`;
   }
   th.appendChild(pop);
+  placePop(pop, th);
 
   // renderCoord() วาดทั้งตารางใหม่ทุกครั้ง (รวม <thead>) — กล่องตัวกรองนี้เป็นลูกของ <th>
   // เดิมเลยหายไปพร้อมกันทุกครั้งที่ติ๊ก/พิมพ์ ต้องกดปุ่ม ▼ เปิดใหม่เอง
@@ -6530,9 +6573,6 @@ function warnDate(ms){
 function pickPop(host, title, items, onPick){
   document.querySelectorAll(".fpop").forEach(p => p.remove());
   if (!host) return;
-  // เมนูวางตัวเทียบกับกล่องที่ถูกจัดตำแหน่งไว้ที่ใกล้ที่สุด — ถ้าเจ้าของไม่ได้จัด
-  // มันจะไปโผล่ที่อื่นของหน้า ห่างจากปุ่มที่เพิ่งกด
-  if (getComputedStyle(host).position === "static") host.style.position = "relative";
   const pop = document.createElement("div");
   pop.className = "fpop mappop";
   pop.innerHTML = `<div class="fhead">${esc(title)}</div>
@@ -6540,8 +6580,7 @@ function pickPop(host, title, items, onPick){
       `<label><input type="radio" name="pickpop" value="${i}"${it.on ? " checked" : ""}>
        <span>${esc(it.label)}</span>${it.note ? `<i>${esc(it.note)}</i>` : ""}</label>`).join("")}</div>`;
   host.appendChild(pop);
-  const box = pop.getBoundingClientRect();
-  if (box.right > innerWidth - 8){ pop.style.left = "auto"; pop.style.right = "0"; }
+  placePop(pop, host);
   pop.querySelectorAll("input").forEach(inp => inp.onchange = () => {
     pop.remove();
     onPick(items[+inp.value]);
@@ -7666,9 +7705,7 @@ function mapStatusMenu(proj, handle, host){
            <span>${esc(x.th)}</span><i>${esc(p.th)}</i></label>`;
        }).join("")}</div>`;
   host.appendChild(pop);
-  // ใบที่อยู่ริมขวาจะดันเมนูตกขอบจอ — พลิกไปเกาะขวาแทน
-  const box = pop.getBoundingClientRect();
-  if (box.right > innerWidth - 8){ pop.style.left = "auto"; pop.style.right = "0"; }
+  placePop(pop, host);
   pop.querySelectorAll("input").forEach(i => i.onchange = () => {
     pop.remove();
     mapSetStatus(proj, handle, i.value);
