@@ -2184,6 +2184,18 @@ tr.subrow td.w-status select{width:14.6em}
           <code>tangtangnpc<br>onfireboyth<br>/status : Already Posted</code><br>
           <span style="color:var(--dim)">บรรทัดที่มีแต่ชื่อจะรอไว้ · เว้นบรรทัดว่าง = จบกลุ่ม</span></p>
         </div>
+
+        <div class="hcol">
+          <h4>ทางลัดแป้นพิมพ์</h4>
+          <p><code>Ctrl+F</code> (Mac: <code>⌘F</code>) — <b>กระโดดมาที่ช่องคำสั่งนี้จากตรงไหนก็ได้</b><br>
+          ปิดแผงที่เปิดค้างอยู่ให้เอง แล้วพามาหน้า Coordinate<br>
+          <span style="color:var(--dim)">พิมพ์ชื่อคนต่อได้เลย → กด Enter ไปหน้ารายละเอียดคนนั้น
+          (ค้นทุกโปรเจกต์ ไม่ใช่แค่แผ่นที่เปิดอยู่)<br>
+          อยากได้ “ค้นหาในหน้า” ของเบราว์เซอร์แบบเดิม — กด <code>Ctrl+F</code> ซ้ำอีกทีตอนอยู่ในช่องนี้แล้ว</span></p>
+          <p><code>←</code> <code>→</code> — เดินดู Command ทีละคน ตอนเปิดหน้า Command อยู่<br>
+          <span style="color:var(--dim)">กล่องลิงก์/หนังสือแจ้งเตือนที่เปิดค้างไว้จะเปิดค้างให้คนถัดไปด้วย</span></p>
+          <p><code>Esc</code> — ปิดแผงที่เปิดอยู่ทีละชั้น</p>
+        </div>
       </div>
     </div>
 
@@ -10165,6 +10177,49 @@ document.addEventListener("keydown", e => {
   else if ($("#cart").classList.contains("on")) closeCart();
   else if (!$("#addPanel").hidden) $("#addPanel").hidden = true;
   else if (!$("#settings").hidden) closeSettings();
+});
+
+// ปิดทุกแผงที่กางคลุมจออยู่รวดเดียว — Esc ข้างบนตั้งใจปิดทีละชั้นจากบนลงล่าง (กดถอยออกมาทีละขั้น)
+// ตัวนี้ตรงข้าม ใช้ตอนจะ "พาไปที่อื่น" (Ctrl+F) ซึ่งค้างชั้นไหนไว้ก็บังช่องคำสั่งเหมือนกันหมด
+// ⚠️ มีแผงใหม่ต้องเติมทั้งสองที่ ไม่งั้นแผงใหม่จะค้างคลุมจอตอนกด Ctrl+F ทั้งที่ช่องคำสั่งโฟกัสแล้ว
+function closeOverlays(){
+  $("#fmtPanel").hidden = true;
+  if ($("#lawPanel").classList.contains("on")) closeLaw();
+  $("#projPanel").hidden = true;
+  if ($("#detailPanel").classList.contains("on")) closeDetail();
+  $("#cmdPanel").classList.remove("on");
+  if ($("#cart").classList.contains("on")) closeCart();
+  $("#addPanel").hidden = true;
+  if (!$("#settings").hidden) closeSettings();
+}
+
+// ═══ Ctrl+F / ⌘F = กระโดดมาที่ช่องคำสั่ง Quick Order จากตรงไหนก็ได้ ═══
+// แย่งคีย์ "ค้นหาในหน้า" ของเบราว์เซอร์มาโดยตั้งใจ — ของเบราว์เซอร์ค้นได้แค่ตัวหนังสือที่วาดอยู่บนจอจริง
+// ซึ่งคือโปรเจกต์ที่เปิดอยู่แผ่นเดียวหลังผ่านตัวกรองแล้ว คนที่อยู่โปรเจกต์อื่นจะ "หาไม่เจอ" ทั้งที่มีอยู่
+// ช่องคำสั่งค้นทุกโปรเจกต์พร้อมกัน (creatorSugItems) แล้วพาไปหน้ารายละเอียดได้เลย — ตรงกับที่ทีมจะใช้จริง
+// ⚠️ ต้องดูที่ e.code ไม่ใช่ e.key — แป้นไทยกดปุ่ม F ได้ e.key เป็น "ด" ทีมนี้พิมพ์ไทยกันทั้งวัน
+//    ถ้าเช็คแต่ e.key ทางลัดจะใช้ได้เฉพาะตอนสลับเป็นแป้นอังกฤษ (เบราว์เซอร์เองอ่านตำแหน่งปุ่มเหมือนกัน)
+// ทางออกเผื่อยังอยากได้ "ค้นหาในหน้า" ของเบราว์เซอร์: กดซ้ำอีกทีตอนโฟกัสอยู่ในช่องแล้ว = ปล่อยผ่านให้เลย
+document.addEventListener("keydown", async e => {
+  if (!(e.ctrlKey || e.metaKey) || e.altKey || e.repeat) return;
+  if (e.code !== "KeyF" && e.key !== "f" && e.key !== "F") return;
+  if (!$("#lockView").hidden || !$("#coachView").hidden) return;   // ยังไม่ล็อกอิน / กำลังเดินคู่มือ
+  const qo = $("#qoText");
+  if (document.activeElement === qo) return;      // กดซ้ำ = ยกให้เบราว์เซอร์ ค้นในหน้าแบบเดิม
+  e.preventDefault();
+  closeOverlays();
+  if (document.body.dataset.view !== "coord"){
+    await setView("coord");
+    if (document.body.dataset.view !== "coord") return;   // ประตูรหัส Coordinator โดนกดยกเลิก
+  }
+  // setView("coord") กางแผนผังรวมขึ้นมาคลุมช่องคำสั่งไว้เสมอ ต้องปิดหลังจากนั้น ไม่ใช่ก่อน
+  if (!$("#mapView").hidden) openTable(MAP_PROJ);
+  qo.focus();
+  // เลือกทั้งหมดให้พิมพ์ทับได้เลยเฉพาะตอนที่ค้างไว้บรรทัดเดียว (คำสั่ง/ชื่อที่ค้นค้างไว้รอบก่อน)
+  // ถ้าเป็นหลายบรรทัด = กำลังวางรายชื่อเป็นกอง ของแบบนั้นเลือกทับทิ้งไม่ได้ วางเคอร์เซอร์ท้ายสุดพอ
+  if (qo.value.includes("\n")) qo.setSelectionRange(qo.value.length, qo.value.length);
+  else qo.select();
+  qo.scrollIntoView({ block:"nearest" });
 });
 $("#sheetSel").onchange = selectSheet;
 
