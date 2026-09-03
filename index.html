@@ -826,6 +826,20 @@ tr.dropover td{border-top:2px solid var(--accent)}
 .shortscreen .cmdbar-stick{position:static}
 /* มุมซ้ายบน (ปุ่มลาก + ชื่อ) ต้องอยู่เหนือทั้งหัวตารางและคอลัมน์ที่ตรึง ไม่งั้นแถวจะลอดออกมา */
 .ctable thead th:nth-child(1),.ctable thead th:nth-child(2){z-index:6}
+/* ── ตารางตัวอย่างในหน้า "เพิ่มครีเอเตอร์" (.flat) ──
+   ยืม .cwrap/.ctable มาใช้เพื่อให้หน้าตาเหมือนตารางจริง แต่สองคลาสนั้นทำมาเพื่อตาราง Coordinator
+   ที่ต้องตรึงหัวตารางกับ 4 คอลัมน์ซ้ายไว้กับ "ทั้งหน้าจอ" พอมาอยู่ในกล่องนี้เลยเพี้ยนสองอย่าง:
+   · .cwrap เป็น sticky + max-height ตามความสูงจอ + min-height 14em → กล่องตารางลอยทับปุ่ม
+     "เพิ่มทั้งหมดลงฐานข้อมูล" กับข้อความสถานะที่อยู่ใต้มัน
+   · คอลัมน์ 1-4 ตรึงซ้อนกันเองด้วยความกว้าง --col1/--col2/--col3 ที่วัดมาจากตารางอีกใบ
+     → คอลัมน์ ID โดนคอลัมน์ Link ทับจนอ่านชื่อครีเอเตอร์ไม่ออก (เห็นแค่ "terpat", "earth2")
+   ที่นี่เป็นตัวอย่าง 8 แถวในกล่องที่เลื่อนได้อยู่แล้ว ไม่ต้องตรึงอะไรนอกจากหัวตาราง
+   (หัวตารางคือช่องเลือกบทบาทคอลัมน์ ต้องเห็นตลอดตอนเลื่อนดูว่าจับคู่ถูกไหม)
+   ⚠️ ใช้ :nth-child(n) เพื่อให้ค่าความจำเพาะสูงกว่ากฎตรึงข้างบนทุกตัว ไม่ต้องพึ่งลำดับบรรทัด */
+.cwrap.flat{position:static;max-height:min(52vh,380px);min-height:0}
+.ctable.flat th:nth-child(n),.ctable.flat td:nth-child(n){
+  position:static;left:auto;z-index:auto;box-shadow:none;background:transparent}
+.ctable.flat thead th:nth-child(n){position:sticky;top:0;z-index:2;background:var(--bg)}
 .st{font-size:.79rem;border-radius:999px;padding:2px 9px;white-space:nowrap;
   border:1px solid var(--line);color:var(--mute)}
 .st.briefed{color:var(--mute)}
@@ -9937,7 +9951,7 @@ function renderBulk(){
       เจอ <b>${rows.length}</b> บรรทัด · ${roles.length} คอลัมน์ — เช็คหัวคอลัมน์ให้ตรงก่อนกดเพิ่ม
       ${BULK.fromHead ? `<br><span style="color:var(--hi)">ตั้งจากบรรทัดหัวตารางในไฟล์ (ไม่นับเป็นข้อมูล)</span>` : ""}
       ${rows.length > 8 ? `<br>(แสดง 8 บรรทัดแรก)` : ""}</p>
-    <div class="cwrap"><table class="ctable"><thead><tr>${
+    <div class="cwrap flat"><table class="ctable flat"><thead><tr>${
       roles.map((r, c) => `<th><select data-c="${c}" class="brole">${
         Object.entries(BULK_ROLES).map(([k, lbl]) =>
           `<option value="${k}"${k === r ? " selected" : ""}>${esc(lbl)}</option>`).join("")
