@@ -1993,6 +1993,9 @@ tr.subrow td.w-status select{width:14.6em}
         <textarea id="likeText" placeholder="https://tiktok.com/@creator1&#10;@creator2"></textarea>
         <label class="chk"><input type="checkbox" id="hideLiked">
           ซ่อนคนที่อยู่ในลิสต์แล้ว — หาคนใหม่แนวเดียวกัน</label>
+        <label class="chk"><input type="checkbox" id="likeCatOnly">
+          กรองเฉพาะหมวดที่ติดมากับลิสต์ที่โยนลงมา</label>
+        <div class="hint" id="likeCatInfo"></div>
         <div class="dd-act" style="margin-top:9px">
           <button type="button" id="likeClear">ล้างลิสต์แนวที่ชอบ</button>
         </div>
@@ -2794,11 +2797,17 @@ let SEEN = new Set();
 // เอาไว้ดันคนแนวเดียวกันขึ้นก่อน ไม่ใช่แค่เรียงตาม followers
 const LS_LIKED = "cf_liked_v1";
 const LS_HIDELIKED = "cf_hideliked_v1";
+// หมวดที่ติดมากับชีตที่โยนลงมา — เก็บตามที่สะกดไว้ใน pool จะได้เทียบกับ catsOf() ตรงๆ ได้
+const LS_LIKECAT = "cf_likecat_v1";
+const LS_LIKECATON = "cf_likecaton_v1";
 let LIKED = new Set();
 let LIKE_PROF = null;    // โปรไฟล์ที่เรียนได้จากลิสต์ (หมวด + ช่วง followers)
 let LIKED_HIT = 0;       // ในลิสต์ตรงกับ pool ปัจจุบันกี่คน
 let HIDE_LIKED = false;  // ซ่อนคนที่อยู่ในลิสต์แล้ว เพื่อหาคนใหม่แนวเดียวกัน
 let HIDDEN_LIKED = 0;
+let LIKE_CATS = new Set();   // หมวดที่อ่านได้จากชีตที่โยนเข้ามา
+let LIKE_CAT_ON = false;     // กรองเหลือเฉพาะหมวดพวกนั้นไหม
+let HIDDEN_LIKECAT = 0;
 let NEAR_N = 0;          // ในผลลัพธ์ ใกล้แนวกี่คน
 
 // ─── เกณฑ์คัดงาน ───
@@ -3234,11 +3243,34 @@ function affinity(p){
   return 0.65 * cScore + 0.35 * fScore;
 }
 
+function renderLikeCats(){
+  const box = $("#likeCatInfo");
+  if (!box) return;
+  $("#likeCatOnly").checked = LIKE_CAT_ON;
+  if (!LIKE_CATS.size){
+    box.innerHTML = `<span style="color:var(--dim)">โยนชีตที่มีคอลัมน์หมวดลงมา
+      แล้วหมวดที่อ่านได้จะขึ้นตรงนี้ให้กรองต่อ</span>`;
+    return;
+  }
+  const inPool = [...LIKE_CATS].filter(c => CATS.includes(c));
+  box.innerHTML =
+    `<b style="color:var(--mute)">หมวดที่ติดมากับลิสต์:</b> ${
+      [...LIKE_CATS].map(c => esc(c)).join(" · ")}` +
+    (inPool.length ? "" : ` <span style="color:var(--warn)">— ไม่มีหมวดพวกนี้ใน pool ที่เปิดอยู่</span>`) +
+    ` <button type="button" class="linkish" id="likeCatClear"
+        style="padding:0 4px">ล้างหมวด</button>`;
+  $("#likeCatClear").onclick = () => {
+    LIKE_CATS.clear(); saveLikeCats(); renderLikeCats(); runLive();
+  };
+}
+
 function refreshLiked(){
   learnProfile();
+  renderLikeCats();
   $("#likeSum").innerHTML = LIKED.size
-    ? `ตรงใน pool <b>${LIKED_HIT}</b> คน`
-    : "ยังไม่มีลิสต์";
+    ? `ตรงใน pool <b>${LIKED_HIT}</b> คน${
+        LIKE_CAT_ON && LIKE_CATS.size ? ` · กรอง ${LIKE_CATS.size} หมวด` : ""}`
+    : LIKE_CATS.size ? `${LIKE_CATS.size} หมวดจากลิสต์` : "ยังไม่มีลิสต์";
   if (!LIKED.size){ $("#likeInfo").innerHTML = ""; return; }
   const out = [`ลิสต์มี ${LIKED.size} ชื่อ · อยู่ใน pool นี้ ${LIKED_HIT} คน` +
     (LIKED.size > LIKED_HIT
@@ -3250,17 +3282,51 @@ function refreshLiked(){
   $("#likeInfo").innerHTML = out.join("<br>");
 }
 
+// ── หมวดที่ติดมากับชีตที่โยนลงมา ──
+// ชีตที่ทีมโยนเข้ามามีคอลัมน์หมวดติดมาด้วยเกือบทุกครั้ง แต่เดิมอ่านทิ้งไปหมด เอาแต่ชื่อ
+// ⚠️ ไม่เดาว่าคอลัมน์ไหนคือหมวด — เก็บเฉพาะคำที่**ตรงกับหมวดที่มีอยู่จริงใน pool** เท่านั้น
+// เพราะหมวดที่ pool ไม่มีก็กรองอะไรไม่ได้อยู่ดี วิธีนี้เลยไม่ต้องรู้รูปแบบชีต ไม่ต้องข้ามหัวตาราง
+// และไม่มีทางได้ขยะอย่างชื่อคน/โน้ต/ตัวเลขติดมาเป็นหมวด
+// บรรทัดหัวตารางของชีตที่โยนมา ("ID / Category / Followers") ไม่ใช่ชื่อคน แต่ extractHandles
+// นับเป็นชื่อหมด — โยนชีต 3 คนแล้วขึ้นว่าอ่านได้ 5 ชื่อ ทำให้ตัวเลขที่รายงานเชื่อไม่ได้
+// ตัดเฉพาะบรรทัดแรกและเฉพาะตอนที่ทุกช่องเป็นคำหัวตารางล้วน — ชีตที่ไม่มีหัวตารางจะไม่โดนกินแถวแรกไป
+const HEAD_WORD = /^(id|handle|creator|ชื่อ|name|link|url|tiktok|cat|category|หมวด|ประเภท|followers?|fol|rate|เรท|ราคา|note|โน้ต|no|ลำดับ)$/i;
+function dropHeaderLine(text){
+  const lines = String(text).split(/\r?\n/);
+  const cells = (lines[0] || "").split(/[\t,;|]+/).map(c => c.trim()).filter(Boolean);
+  if (cells.length >= 2 && cells.every(c => HEAD_WORD.test(c))) lines.shift();
+  return lines.join("\n");
+}
+
+function readSheetCats(text){
+  const out = new Set();
+  const cells = String(text).split(/[\t\r\n,;|]+/).map(c => c.trim().toLowerCase()).filter(Boolean);
+  const seen = new Set(cells);
+  CATS.forEach(c => { if (seen.has(String(c).trim().toLowerCase())) out.add(c); });
+  return out;
+}
+
 function addLikes(text, label){
-  const found = extractHandles(text);
+  const body = dropHeaderLine(text);
+  const found = extractHandles(body);
+  const cats = readSheetCats(body);
+  // ⚠️ extractHandles อ่านทั้งก้อนเป็นกองคำ ชื่อหมวดในคอลัมน์ที่ติดมาเลยโดนนับเป็น "ชื่อคน" ไปด้วย
+  // (โยนชีต 3 คนที่มีคอลัมน์หมวด แล้วขึ้นว่าอ่านได้ 7 ชื่อ) — คำที่รู้แน่ว่าเป็นหมวด ตัดออกจากรายชื่อ
+  cats.forEach(c => found.delete(normId(c)));
   const before = LIKED.size;
   found.forEach(h => LIKED.add(h));
   lsSaveSet(LS_LIKED, LIKED);
+  const catBefore = LIKE_CATS.size;
+  cats.forEach(c => LIKE_CATS.add(c));
+  if (LIKE_CATS.size !== catBefore) saveLikeCats();
   refreshLiked();
   const hit = POOL.filter(p => found.has(normId(p.id))).length;
   $("#likeInfo").insertAdjacentHTML("afterbegin",
-    `${esc(label)}: อ่านได้ ${found.size} ชื่อ · ใหม่ ${LIKED.size - before} · ตรงกับ pool นี้ ${hit} คน<br>`);
+    `${esc(label)}: อ่านได้ ${found.size} ชื่อ · ใหม่ ${LIKED.size - before} · ตรงกับ pool นี้ ${hit} คน` +
+    (cats.size ? ` · หมวดติดมา ${cats.size} หมวด` : "") + `<br>`);
   runLive();
 }
+function saveLikeCats(){ lsSaveSet(LS_LIKECAT, LIKE_CATS); }
 
 // ─── หัวข้อพับได้ในแถบตัวกรอง ───
 // ตอนพับ หัวข้อต้องบอกได้ว่าตั้งค่าอะไรไว้ ไม่งั้นต้องกางออกมาดูทุกครั้ง
@@ -3352,12 +3418,17 @@ async function run(opt){
   HIDDEN_NORATE = 0;
   HIDDEN_EX = 0;
   HIDDEN_LIKED = 0;
+  HIDDEN_LIKECAT = 0;
+  // หมวดที่อ่านมาอาจไม่มีใน pool ที่เปิดอยู่ตอนนี้เลย (สลับชีต/แท็บไปแล้ว) — กรองแล้วจะว่างเปล่า
+  // ทั้งที่ไม่ได้ผิดอะไร เลยถือว่าไม่ได้เปิดกรองไว้ แล้วไปบอกเหตุผลที่แถบสรุปแทน
+  const catOnly = LIKE_CAT_ON && LIKE_CATS.size && CATS.some(c => LIKE_CATS.has(c));
   const dealTest = (DEALS.find(d => d.id === DEAL) || DEALS[0]).test;
   const liveTest = (LIVES.find(d => d.id === LIVEF) || LIVES[0]).test;
 
   let filtered = POOL.filter(p => {
     if (EXCLUDE.has(normId(p.id))){ HIDDEN_EX++; return false; }
     if (HIDE_LIKED && LIKED.has(normId(p.id))){ HIDDEN_LIKED++; return false; }
+    if (catOnly && !catsOf(p).some(c => LIKE_CATS.has(c))){ HIDDEN_LIKECAT++; return false; }
     if (!dealTest(p)) return false;
     if (!liveTest(p)) return false;
     if (onCats.length && !catsOf(p).some(c => onCats.includes(c))) return false;
@@ -3475,6 +3546,10 @@ function render(){
     notes.push(`ลิสต์แนวที่ชอบตรงกับ pool นี้แค่ <b>${LIKED_HIT} คน</b> — ยังเรียนแนวไม่ได้ (ต้องมี 3 คนขึ้นไป) เลยดันเฉพาะคนที่อยู่ในลิสต์ขึ้นก่อน`);
   if (HIDDEN_LIKED)
     notes.push(`ซ่อนไว้ <b>${HIDDEN_LIKED} คน</b> ที่อยู่ในลิสต์แนวที่ชอบแล้ว`);
+  if (HIDDEN_LIKECAT)
+    notes.push(`กรองเหลือเฉพาะหมวดที่ติดมากับลิสต์ — ตัดออก <b>${HIDDEN_LIKECAT} คน</b>`);
+  if (LIKE_CAT_ON && LIKE_CATS.size && !CATS.some(c => LIKE_CATS.has(c)))
+    notes.push(`<span style="color:var(--warn)">หมวดที่ติดมากับลิสต์ไม่มีใน pool นี้เลย</span> — ข้ามตัวกรองหมวดไว้ก่อน`);
   if (HIDDEN_EX)
     notes.push(`ตัดออก <b>${HIDDEN_EX} คน</b> ที่อยู่ในลิสต์เคยใช้แล้ว`);
   if (HIDDEN_NORATE)
@@ -10054,7 +10129,9 @@ $("#likeText").addEventListener("change", () => {
 
 $("#likeClear").onclick = () => {
   if (LIKED.size && !confirm(`ล้างลิสต์แนวที่ชอบทั้งหมด ${LIKED.size} ชื่อ?`)) return;
-  LIKED.clear(); lsSaveSet(LS_LIKED, LIKED); refreshLiked();
+  LIKED.clear(); lsSaveSet(LS_LIKED, LIKED);
+  LIKE_CATS.clear(); saveLikeCats();      // หมวดมาจากลิสต์เดียวกัน ล้างลิสต์แล้วต้องไปด้วยกัน
+  refreshLiked();
   $("#likeInfo").textContent = "ล้างแล้ว";
   runLive();
 };
@@ -10063,6 +10140,12 @@ $("#hideLiked").onchange = e => {
   HIDE_LIKED = e.target.checked;
   try { lsSet(LS_HIDELIKED, HIDE_LIKED ? "1" : ""); } catch(err){}
   runLive();
+};
+
+$("#likeCatOnly").onchange = e => {
+  LIKE_CAT_ON = e.target.checked;
+  try { lsSet(LS_LIKECATON, LIKE_CAT_ON ? "1" : ""); } catch(err){}
+  refreshLiked(); runLive();
 };
 
 $("#catNone").onclick = () => {
@@ -12667,6 +12750,13 @@ SEEN = lsLoadSet(LS_SEEN);
 LIKED = lsLoadSet(LS_LIKED);
 try { HIDE_LIKED = !!lsGet(LS_HIDELIKED); } catch(e){}
 $("#hideLiked").checked = HIDE_LIKED;
+// หมวดเก็บตามที่สะกดไว้ ไม่ใช่ handle — lsLoadSet บังคับ lowercase เลยใช้ไม่ได้ ต้องอ่านเอง
+try {
+  const a = JSON.parse(lsGet(LS_LIKECAT) || "[]");
+  if (Array.isArray(a)) LIKE_CATS = new Set(a.filter(Boolean));
+} catch(e){}
+try { LIKE_CAT_ON = !!lsGet(LS_LIKECATON); } catch(e){}
+$("#likeCatOnly").checked = LIKE_CAT_ON;
 loadProjects();
 loadCrit();
 loadCart();
