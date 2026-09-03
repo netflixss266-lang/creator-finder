@@ -8594,11 +8594,31 @@ async function sbAuthed(url, opts){
   return await go();
 }
 
+// ⚠️⚠️ PostgREST ตัดผลลัพธ์ทุก select ไว้ที่ 1,000 แถวเสมอ — เป็นค่าของเซิร์ฟเวอร์ ไม่ได้ขอมาเอง
+// และ**ไม่มี error บอก** ได้ครบ 1,000 พอดีเมื่อไหร่คือสัญญาณว่ายังมีต่อ ไม่ใช่ว่าหมดแล้ว
+// ของจริง: pool มี 4,899 แถว แต่เว็บเห็นแค่ 1,000 มาตลอด ผลที่ตามมาเป็นลูกโซ่:
+//   · คนที่เพิ่งเพิ่มเข้าไปหายไปเงียบๆ (อยู่ในฐานข้อมูลแต่ไม่โผล่ในเว็บ)
+//   · ตัวเช็คซ้ำตอนเพิ่มทีละหลายคนเทียบกับ 1,000 คนแรกเท่านั้น → เพิ่มคนที่มีอยู่แล้วซ้ำจนชนกุญแจซ้ำ
+//   · ตัวนับ "เพิ่มสำเร็จกี่คน" อ่านไม่เจอของที่เพิ่งเขียน เลยรายงานว่าไม่สำเร็จทั้งที่เข้าไปแล้ว
+// ต้องไล่ดึงทีละหน้าจนกว่าจะได้น้อยกว่าเต็มหน้า
+const SB_PAGE = 1000;
+async function sbFetchAll(path, label){
+  const out = [];
+  for (let from = 0; ; from += SB_PAGE){
+    const sep = path.indexOf("?") === -1 ? "?" : "&";
+    const r = await sbAuthed(SB_URL + path + sep + "limit=" + SB_PAGE + "&offset=" + from,
+      { cache: "no-store" });
+    if (!r.ok) throw new Error(label + " (HTTP " + r.status + ")");
+    const data = await r.json().catch(() => []);
+    out.push.apply(out, data);
+    if (data.length < SB_PAGE) return out;
+    // กันวนไม่รู้จบถ้าเซิร์ฟเวอร์ไม่สนใจ offset ด้วยเหตุผลอะไรก็ตาม
+    if (out.length > 200000) return out;
+  }
+}
 async function fetchPoolSB(){
-  const r = await sbAuthed(SB_URL + "/rest/v1/pool?select=" + SB_POOL_COLS + "&order=handle.asc",
-    { cache: "no-store" });
-  if (!r.ok) throw new Error("โหลดข้อมูลจาก Supabase ไม่สำเร็จ (HTTP " + r.status + ")");
-  const data = await r.json().catch(() => []);
+  const data = await sbFetchAll("/rest/v1/pool?select=" + SB_POOL_COLS + "&order=handle.asc",
+    "โหลดข้อมูลจาก Supabase ไม่สำเร็จ");
   return data.filter(x => (x.handle || "").trim()).map(sbRowToPool);
 }
 
@@ -8646,10 +8666,10 @@ async function sbFetchProjects(){
   return await r.json();
 }
 async function sbFetchCoord(){
-  const r = await sbAuthed(SB_URL + "/rest/v1/coord?select=" + SB_COORD_COLS +
-                           "&order=project.asc&order=ord.asc");
-  if (!r.ok) throw sbTableErr(r, "อ่านงาน Coordinate ไม่ได้");
-  return await r.json();
+  // ตารางนี้โตตามจำนวนคน×โปรเจกต์ ตอนนี้ยังไม่ถึงพัน แต่โดนเพดานเดียวกับ pool แน่ๆ ถ้าปล่อยไว้
+  // แล้วอาการจะร้ายกว่า เพราะเว็บซิงก์แบบ "เขียนทับทั้งชุด" — อ่านมาไม่ครบแล้วเขียนกลับ = ของหายจริง
+  return await sbFetchAll("/rest/v1/coord?select=" + SB_COORD_COLS +
+                          "&order=project.asc&order=ord.asc", "อ่านงาน Coordinate ไม่ได้");
 }
 
 // on_conflict = คีย์ธรรมชาติ (project,handle,code) เดียวกับ ekey() — แถวเดิมทับ ไม่ใช่เพิ่มซ้ำ
@@ -10013,7 +10033,10 @@ async function bulkSave(){
   });
   const merged = [...byId.values()];
 
-  const dupInPool = merged.filter(x => POOL.some(p => normId(p.id) === x.id)).map(x => x.id);
+  // ทำดัชนีไว้ก่อนแล้วเทียบทีเดียว — ของเดิมเป็นลูปซ้อนลูป (ลิสต์ 1,700 คน × pool 4,900 คน
+  // = เรียก normId ราว 8 ล้านครั้ง) ซึ่งจอค้างไปหลายวินาทีตั้งแต่ยังไม่ได้ยิงอะไรออกไปเลย
+  const poolIds = new Set(POOL.map(p => normId(p.id)));
+  const dupInPool = merged.filter(x => poolIds.has(x.id)).map(x => x.id);
   const todo = merged.filter(x => !dupInPool.includes(x.id));
   msg.className = "addmsg on busy";
   msg.innerHTML = `กำลังเพิ่ม ${todo.length} คน` +
@@ -10051,7 +10074,8 @@ async function bulkSave(){
     // ⚠️ ต้องตัดคนที่เพิ่งเพิ่มไม่สำเร็จออกก่อน ไม่งั้นเคส "handle ซ้ำในฐานข้อมูล" จะนับเป็นสำเร็จ
     // (แถวนั้นมีอยู่ในฐานข้อมูลจริง แต่มีมาก่อนหน้านี้ ไม่ใช่ของที่เพิ่งเพิ่มเข้าไป)
     // ของเดิมเลยขึ้นว่า "6/6 คน" พร้อมกับ "ไม่สำเร็จ 1" ในข้อความเดียวกัน ซึ่งขัดกันเอง
-    landed = todo.filter(t => !failedIds.has(t.id) && fresh.some(p => normId(p.id) === t.id)).length;
+    const freshIds = new Set(fresh.map(p => normId(p.id)));
+    landed = todo.filter(t => !failedIds.has(t.id) && freshIds.has(t.id)).length;
     if (ADD_KIND === KIND){
       POOL = fresh.some(p => p.kind) ? fresh.filter(p => !p.kind || p.kind === KIND) : fresh;
       CATS = [...new Set(POOL.flatMap(catsOf))].sort();
