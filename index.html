@@ -5029,11 +5029,27 @@ function openColFilter(field, th){
   // แก้โดยวาดตารางใหม่แล้ว "เปิดกล่องเดิมกลับมาที่ช่องเดิม" ทันที — เปิดค้างไว้ให้กรองต่อเนื่องได้
   // (หา <th> ตัวใหม่จากตำแหน่งคอลัมน์เดิมใน FILTER_COL เพราะตัวเก่าถูกทำลายไปแล้ว)
   const done = () => {
+    // ⚠️ กล่องถูกสร้างใหม่ทั้งใบทุกครั้ง (ดูคอมเมนต์ข้างบน) = รายการที่เลื่อนค้างไว้เด้งกลับบนสุดเสมอ
+    // ติ๊กช่องที่ 20 ทีนึงแล้วต้องเลื่อนลงไปหาใหม่ทุกรอบ ซึ่งกรองทีละหลายช่องแทบไม่ได้เลย
+    // จำตำแหน่งที่เลื่อนไว้ + ช่องที่เพิ่งกด แล้วคืนให้กล่องใบใหม่ทันทีที่วาดเสร็จ
+    const list = pop.querySelector(".flist");
+    const at = list ? list.scrollTop : 0;
+    const a = document.activeElement;
+    const back = (a && a.closest && a.closest(".flist")) ? a.value : null;
     renderCoord();
     const heads2 = [...document.querySelectorAll("#coordBody thead th")];
     const pair = FILTER_COL.find(([, f]) => f === field);
     const newTh = pair ? heads2[pair[0]] : null;
-    if (newTh) openColFilter(field, newTh);
+    if (!newTh) return;
+    openColFilter(field, newTh);
+    const list2 = document.querySelector(".fpop .flist");
+    if (!list2) return;
+    list2.scrollTop = at;
+    if (back != null){
+      const again = [...list2.querySelectorAll("input")].find(i => i.value === back);
+      // preventScroll สำคัญ — โฟกัสเฉยๆ ก็ลากรายการไปหาช่องนั้นเอง กลายเป็นเลื่อนซ้ำอีกที
+      if (again) again.focus({ preventScroll:true });
+    }
   };
   const applyList = () => {
     COLFILTER[field] = [...pop.querySelectorAll(".flist input:not(:checked)")].map(i => i.value);
