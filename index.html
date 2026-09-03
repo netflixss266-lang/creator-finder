@@ -906,6 +906,34 @@ body[data-crew] .crewhide{display:none !important}
 /* คนที่อยู่ใน pool จริงแต่ตัวกรองซ่อนไว้ — ต้องเห็นว่าไม่ได้หายไปไหน แค่ตอนนี้ไม่ได้แสดง */
 .qfind-list .qfhide{margin-left:6px;padding:1px 6px;border-radius:999px;font-size:.68rem;
   font-weight:600;color:var(--warn);border:1px solid rgba(245,181,70,.45)}
+/* แผ่นข้อมูลย่อ + แก้ได้ ในแถบค้นหา */
+.qfinfo{padding:4px 6px 8px}
+.qfhead{display:flex;align-items:center;gap:8px;padding:4px 4px 9px;font-size:.86rem;color:var(--mute)}
+.qfhead b{color:var(--ink)}
+.qfhead span{font-size:.7rem;color:var(--dim);border:1px solid var(--line);
+  border-radius:999px;padding:1px 7px}
+.qfhead button{margin-left:auto;background:none;border:0;color:var(--dim);font-size:.76rem;
+  font-family:inherit;padding:2px 4px}
+.qfhead button:hover{color:var(--accent)}
+.qfrow{display:flex;align-items:center;gap:8px;margin-bottom:6px}
+.qfrow > span{flex:none;width:4.6em;font-size:.75rem;color:var(--dim)}
+.qfrow input{flex:1;min-width:0;background:var(--surface2);border:1px solid var(--line);
+  color:var(--ink);border-radius:7px;padding:6px 9px;font-family:inherit;font-size:.8rem}
+.qfrow input:focus{outline:none;border-color:var(--accent)}
+/* กล่องกว้าง 370px กับป้ายไทยยาวๆ 3 ปุ่มเรียงแถวเดียวไม่พอแน่ — ให้ตกบรรทัดได้
+   ปุ่มตะกร้าเป็นงานหลักของแผ่นนี้ กินเต็มบรรทัดแรก ที่เหลือแบ่งครึ่งบรรทัดถัดไป
+   (ไม่ปล่อยให้ล้นแล้วมีแถบเลื่อนแนวนอนโผล่ในกล่องเล็กๆ ซึ่งกดยากและดูเหมือนพัง) */
+.qfact{display:flex;flex-wrap:wrap;gap:7px;margin-top:9px}
+.qfact .pick{flex:1 1 100%;font-size:.78rem;padding:7px 8px;border-radius:7px}
+.qfact button[data-qfgo]{flex:1 1 0;min-width:0;background:none;border:1px solid var(--line);
+  color:var(--mute);border-radius:7px;padding:7px 10px;font-size:.78rem;font-family:inherit;
+  white-space:nowrap}
+.qfact button[data-qfgo]:hover{border-color:var(--accent);color:var(--accent)}
+.qfact .run{flex:1 1 0;min-width:0;padding:7px 14px;font-size:.78rem;border-radius:7px;white-space:nowrap}
+.qfmsg{min-height:1.1em;margin-top:7px;font-size:.75rem}
+.qfmsg.ok{color:var(--hi)}
+.qfmsg.err{color:var(--lo)}
+.qfmsg.busy{color:var(--dim)}
 /* กะพริบให้เห็นว่าการ์ดไหนคือคนที่เพิ่งค้นเจอ — ไม่เปลี่ยนอะไรในหน้านอกจากไฮไลต์ชั่วคราว */
 .card.found{border-color:var(--accent)!important;
   box-shadow:0 0 0 2px rgba(var(--accent-rgb),.55), 0 10px 30px rgba(0,0,0,.5);
@@ -8559,6 +8587,8 @@ const SB_POOL_COLS = "kind,cat,handle,link,follower,rate,live";
 
 function sbRowToPool(row){
   return {
+    rawRate: row.rate != null ? String(row.rate) : "",
+    rawFol:  row.follower != null ? String(row.follower) : "",
     cat:  (row.cat || "").trim(),
     kind: (row.kind || "").trim().toUpperCase(),
     live: (row.live || "").trim(),
@@ -8646,7 +8676,9 @@ function dedupePool(list){
     // แถวที่รู้เรทจริงชนะแถวที่ยังไม่รู้ — ของซ้ำส่วนใหญ่ต่างกันตรงนี้จุดเดียว (แถวหนึ่งเรทว่าง)
     if (prev.unknown && !p.unknown){
       prev.rate = p.rate; prev.barter = p.barter; prev.unknown = p.unknown;
+      prev.rawRate = p.rawRate;
     }
+    if (!prev.rawFol && p.rawFol) prev.rawFol = p.rawFol;
   });
   POOL_DUPS = list.length - by.size;
   return [...by.values()];
@@ -10515,7 +10547,7 @@ function openQFind(){
 }
 function closeQFind(){
   $("#qFind").hidden = true;
-  QF = []; QF_AT = 0;
+  QF = []; QF_AT = 0; QF_INFO = null;
   const back = QF_BACK; QF_BACK = null;
   // คืนโฟกัสให้ที่เดิมเฉพาะตอนที่มันยังอยู่บนหน้าจริงๆ — แผงอาจถูกปิด/วาดใหม่ไปแล้วระหว่างนี้
   if (back && back.isConnected && back.offsetParent !== null) back.focus();
@@ -10538,6 +10570,120 @@ function poolSugItems(q){
       || a.handle.localeCompare(b.handle))
     .slice(0, 12);
 }
+// ── แผ่นข้อมูลย่อของคนที่ค้นเจอ — แก้ได้ในตัว ──
+// อยู่ในแถบลอยเหมือนเดิม ไม่ต้องเปลี่ยนหน้า/ไม่ต้องเลื่อนหาการ์ด และไม่แตะตัวกรองที่ตั้งค้างไว้
+// ⚠️ เขียนกลับด้วยตัวกรอง handle+kind ไม่ใช่ id ของแถว เพราะหนึ่งคนอาจมีหลายแถวในฐานข้อมูล
+// (ของซ้ำที่ยังไม่ได้ล้าง) — แก้ทีเดียวให้ตรงกันทุกแถวของคนนั้น ดีกว่าแก้แถวเดียวแล้วเหลือแถวเก่าค้าง
+let QF_INFO = null;              // handle ที่กำลังเปิดแผ่นข้อมูลอยู่
+const qfPoolFind = h => POOL.find(x => normId(x.id) === h);
+// เรทในฐานข้อมูลเป็นข้อความอิสระ (Barter · 500/Barter · Unknown Rate · 1,500) ไม่ใช่ตัวเลขล้วน
+// โชว์ค่าดิบให้แก้ตรงๆ ดีกว่าประกอบใหม่จากตัวเลข+ธง ซึ่งจะกลืนรูปแบบที่ทีมเขียนไว้เดิมทิ้ง
+function qfRateText(p){
+  if (p.rawRate != null) return p.rawRate;
+  return p.unknown ? "" : (p.barter ? (p.rate ? p.rate + "/Barter" : "Barter") : String(p.rate ?? ""));
+}
+async function sbUpdateCreator(handle, kind, patch){
+  const f = "handle=eq." + encodeURIComponent(handle) +
+            (kind ? "&kind=eq." + encodeURIComponent(kind) : "");
+  const r = await sbAuthed(SB_URL + "/rest/v1/pool?" + f,
+    { method:"PATCH", headers:{ Prefer:"return=minimal" }, body: JSON.stringify(patch) });
+  if (!r.ok){
+    const j = await r.json().catch(() => ({}));
+    throw new Error(j.message || j.hint || ("บันทึกไม่สำเร็จ (HTTP " + r.status + ")"));
+  }
+}
+function renderQFInfo(){
+  const p = qfPoolFind(QF_INFO);
+  const box = $("#qFindList");
+  if (!p){ QF_INFO = null; return renderQFind(); }
+  const inCart = CART.has(normId(p.id));
+  const row = (lab, k, v, ph) => `<label class="qfrow"><span>${lab}</span>
+    <input data-qfe="${k}" value="${esc(v == null ? "" : v)}" placeholder="${esc(ph || "")}" spellcheck="false"></label>`;
+  box.innerHTML =
+    `<div class="qfinfo">
+       <div class="qfhead">👤 <b>${esc(p.id)}</b>
+         <span>${esc(p.kind || "")}</span>
+         <button type="button" data-qfback title="กลับไปที่ผลค้นหา">‹ กลับ</button></div>
+       ${row("ID", "id", p.id, "ชื่อ TikTok")}
+       ${row("Link", "link", p.link, "https://www.tiktok.com/@…")}
+       ${row("Follower", "fol", p.rawFol != null ? p.rawFol : (p.fol || ""), "เช่น 16.2K")}
+       ${row("Rate", "rate", qfRateText(p), "ตัวเลข · Barter · 500/Barter")}
+       ${row("Cat", "cat", p.cat, "เช่น Beauty, Lifestyle")}
+       <div class="qfact">
+         <button type="button" class="pick${inCart ? " on" : ""}" data-qfcart
+           >${inCart ? "✓ อยู่ในตะกร้า" : "🛒 ใส่ตะกร้า"}</button>
+         <button type="button" data-qfgo title="เลื่อนไปที่การ์ดของคนนี้">ไปที่การ์ด</button>
+         <button type="button" class="run" data-qfsave>บันทึก</button>
+       </div>
+       <div class="qfmsg" id="qfMsg"></div>
+     </div>`;
+  box.querySelector("[data-qfback]").onclick = () => { QF_INFO = null; renderQFind(); $("#qFindIn").focus(); };
+  box.querySelector("[data-qfgo]").onclick = () => pickPoolFind({ handle: normId(p.id) });
+  box.querySelector("[data-qfcart]").onclick = e => qfToggleCart(p, e.currentTarget);
+  box.querySelector("[data-qfsave]").onclick = e => qfSaveInfo(p, e.currentTarget);
+  // Enter ในช่องไหนก็บันทึกได้เลย ไม่ต้องเลื่อนไปกดปุ่ม
+  box.querySelectorAll("[data-qfe]").forEach(inp => inp.onkeydown = ev => {
+    if (ev.key === "Enter"){ ev.preventDefault(); box.querySelector("[data-qfsave]").click(); }
+    // Esc ในแผ่นนี้ = ถอยกลับไปที่ผลค้นหา ต้องกันไม่ให้ลอยไปถึงตัวจับ Esc ที่ document
+    // ไม่งั้นจะไปปิดแผงที่เปิดค้างอยู่ข้างหลังทั้งที่ตั้งใจแค่ปิดแผ่นนี้
+    if (ev.key === "Escape"){
+      ev.preventDefault(); ev.stopPropagation();
+      QF_INFO = null; renderQFind(); $("#qFindIn").focus();
+    }
+  });
+}
+// ตะกร้าของแผ่นนี้ทำงานได้แม้คนนั้นไม่ได้อยู่ในผลลัพธ์ตอนนี้ (toggleCart เดิมผูกกับการ์ดในหน้า)
+function qfToggleCart(p, btn){
+  const id = normId(p.id);
+  if (CART.has(id)){ CART.delete(id); btn.classList.remove("on"); btn.textContent = "🛒 ใส่ตะกร้า"; }
+  else {
+    CART.set(id, { cat:p.cat, id:p.id, link:p.link, av:p.av, fol:p.fol,
+                   rate:p.rate, barter:p.barter, unknown:p.unknown,
+                   fav:!!p.fav, aff:p.aff ?? null, score:p.score ?? null, reason:p.reason || "" });
+    btn.classList.add("on"); btn.textContent = "✓ อยู่ในตะกร้า";
+  }
+  saveCart(); updateCartBtn();
+  if (!$("#cart").hidden && $("#cart").classList.contains("on")) renderCart();
+  // การ์ดของคนนี้ในหน้า (ถ้ามี) ต้องเปลี่ยนตามด้วย ไม่งั้นปุ่มสองที่จะบอกคนละอย่าง
+  const card = document.querySelector(`#results .card[data-id="${CSS.escape(id)}"]`);
+  if (card){
+    card.classList.toggle("incart", CART.has(id));
+    const pk = card.querySelector(".pick");
+    if (pk){ pk.classList.toggle("on", CART.has(id));
+             pk.textContent = CART.has(id) ? "✓ อยู่ในตะกร้า" : "🛒 ใส่ตะกร้า"; }
+  }
+}
+async function qfSaveInfo(p, btn){
+  const box = $("#qFindList"), msg = $("#qfMsg");
+  const val = k => (box.querySelector(`[data-qfe="${k}"]`).value || "").trim();
+  const nid = normId(val("id"));
+  if (!nid){ msg.className = "qfmsg err"; msg.textContent = "ต้องมี ID"; return; }
+  const patch = { handle: nid, link: val("link"), follower: val("fol"),
+                  rate: val("rate"), cat: val("cat") };
+  const was = normId(p.id), wasKind = p.kind || "";
+  btn.disabled = true;
+  msg.className = "qfmsg busy"; msg.textContent = "กำลังบันทึก...";
+  try {
+    await sbUpdateCreator(was, wasKind, patch);
+  } catch(e){
+    msg.className = "qfmsg err"; msg.textContent = (e && e.message) || "บันทึกไม่สำเร็จ";
+    btn.disabled = false; return;
+  }
+  // อัปเดตของในเครื่องให้ตรงกับที่เพิ่งเขียนไป — ไม่ต้องโหลด pool ใหม่ทั้งก้อน (4,899 แถว)
+  p.id = nid; p.link = patch.link; p.cat = patch.cat;
+  p.rawFol = patch.follower; p.fol = parseFollowers(patch.follower || "0");
+  p.rawRate = patch.rate;
+  Object.assign(p, rateInfo(patch.rate));
+  CATS = [...new Set(POOL.flatMap(catsOf))].sort();
+  renderCatChips(pickedCats());
+  if (CART.has(was) && was !== nid){ CART.delete(was); }
+  if (RESULTS.some(x => x === p)) render();     // วาดการ์ดใหม่เฉพาะตอนคนนี้อยู่ในผลลัพธ์จริง
+  btn.disabled = false;
+  msg.className = "qfmsg ok"; msg.textContent = "✓ บันทึกแล้ว";
+  renderQFInfo();
+  setTimeout(() => { const m = $("#qfMsg"); if (m){ m.className = "qfmsg ok"; m.textContent = "✓ บันทึกแล้ว"; } }, 0);
+}
+
 // เลื่อนไปที่การ์ดแล้วกะพริบให้เห็น — ไม่แตะตัวกรอง ไม่ปิดอะไร ไม่เปลี่ยนหน้า
 // (ต่างจากโหมด Coordinator ที่ต้องเปิดลิ้นชักรายละเอียดซึ่งจำเป็นต้องปิดแผงที่ทับกันก่อน)
 function pickPoolFind(ref){
@@ -10558,6 +10704,7 @@ function pickPoolFind(ref){
 function renderQFind(){
   const q = $("#qFindIn").value.trim();
   const pool = qfPoolMode();
+  QF_INFO = null;
   QF = q ? (pool ? poolSugItems(q) : creatorSugItems(q)) : [];
   if (QF_AT >= QF.length) QF_AT = 0;
   $("#qFindN").className = "qfind-n" + (q && !QF.length ? " none" : "");
@@ -10587,7 +10734,7 @@ function renderQFind(){
 // (cmdPanel) จะทับตัวหน้าเสมอ — ถ้าไม่ปิด ลิ้นชักรายละเอียดที่เพิ่งขอเปิดจะไปซ่อนอยู่ข้างหลังแบบเงียบๆ
 async function pickQFind(ref){
   if (!ref) return;
-  if (ref.kind === "pool") return pickPoolFind(ref);
+  if (ref.kind === "pool"){ QF_INFO = ref.handle; return renderQFInfo(); }
   closeQFind();
   closeOverlays();
   if (document.body.dataset.view !== "coord"){
