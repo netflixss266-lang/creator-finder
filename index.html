@@ -10103,12 +10103,34 @@ async function bulkSave(){
   // ทำดัชนีไว้ก่อนแล้วเทียบทีเดียว — ของเดิมเป็นลูปซ้อนลูป (ลิสต์ 1,700 คน × pool 4,900 คน
   // = เรียก normId ราว 8 ล้านครั้ง) ซึ่งจอค้างไปหลายวินาทีตั้งแต่ยังไม่ได้ยิงอะไรออกไปเลย
   const poolIds = new Set(POOL.map(p => normId(p.id)));
+  // ── คนที่มีอยู่แล้ว = อัปเดตด้วยของใหม่ ไม่ใช่เพิ่มซ้ำ ──
+  // ⚠️ กติกา: ของใหม่ชนะเฉพาะ "ช่องที่กรอกมาจริง" — ช่องว่างไม่ทับของเดิม
+  // ตรวจกับข้อมูลจริงแล้ว ถ้าปล่อยให้ช่องว่างทับด้วย จะมี 153 คนเสียเรทที่มีอยู่ไปเลย
+  // (ลิสต์ที่วางมาทีหลังมักกรอกไม่ครบเท่าของเดิม — มีแค่ ID กับ Link)
+  const poolBy = new Map(POOL.map(p => [normId(p.id), p]));
   const dupInPool = merged.filter(x => poolIds.has(x.id)).map(x => x.id);
   const todo = merged.filter(x => !dupInPool.includes(x.id));
+  const upd = [];
+  merged.filter(x => poolIds.has(x.id)).forEach(x => {
+    const cur = poolBy.get(x.id);
+    if (!cur) return;
+    const patch = {};
+    const put = (col, val, now) => {
+      const v = String(val == null ? "" : val).trim();
+      if (v && v !== String(now == null ? "" : now).trim()) patch[col] = v;
+    };
+    put("link", x.link, cur.link);
+    put("follower", x.follower, cur.rawFol);
+    put("rate", x.rate, cur.rawRate);
+    put("cat", x.cat, cur.cat);
+    if (Object.keys(patch).length) upd.push({ id: x.id, kind: cur.kind || "", patch, cur });
+  });
   msg.className = "addmsg on busy";
   msg.innerHTML = `กำลังเพิ่ม ${todo.length} คน` +
     (dupInFile ? ` (รวมคนซ้ำกันเองในไฟล์ ${dupInFile} แถวเข้าเป็นคนเดียวแล้ว)` : "") +
-    (dupInPool.length ? ` (ข้าม ${dupInPool.length} คนที่มีใน ${esc(KIND)} อยู่แล้ว)` : "") + "...";
+    (upd.length ? ` · อัปเดตคนที่มีอยู่แล้ว ${upd.length} คน` : "") +
+    (dupInPool.length - upd.length > 0
+      ? ` · มีอยู่แล้วและไม่มีอะไรเปลี่ยน ${dupInPool.length - upd.length} คน` : "") + "...";
   $("#bulkSave").disabled = true;
 
   let ok = 0; const failed = [], failedIds = new Set();
@@ -10134,6 +10156,21 @@ async function bulkSave(){
       (failed.length ? ` <span style="color:var(--lo)">ไม่สำเร็จ ${failed.length}</span>` : "");
   }
 
+  // อัปเดตคนที่มีอยู่แล้วด้วยรายละเอียดใหม่ — ทำหลังเพิ่มของใหม่ จะได้ไม่ค้างถ้าอัปเดตบางคนพัง
+  let updated = 0;
+  for (const u of upd){
+    try {
+      await sbUpdateCreator(u.id, u.kind, u.patch);
+      updated++;
+      // อัปเดตของในเครื่องให้ตรงกันทันที ไม่ต้องโหลด pool ใหม่ทั้งก้อน
+      const c = u.cur;
+      if (u.patch.link != null) c.link = u.patch.link;
+      if (u.patch.cat != null) c.cat = u.patch.cat;
+      if (u.patch.follower != null){ c.rawFol = u.patch.follower; c.fol = parseFollowers(u.patch.follower); }
+      if (u.patch.rate != null){ c.rawRate = u.patch.rate; Object.assign(c, rateInfo(u.patch.rate)); }
+    } catch(e){ failed.push(u.id + " (อัปเดตไม่สำเร็จ: " + ((e && e.message) || "error") + ")"); }
+  }
+
   // นับจากฐานข้อมูลจริง
   let landed = 0;
   try {
@@ -10152,7 +10189,9 @@ async function bulkSave(){
   } catch(e){}
   msg.className = "addmsg on " + (landed === todo.length ? "ok" : "err");
   msg.innerHTML = `เพิ่มเข้าฐานข้อมูลแล้ว <b>${landed}/${todo.length}</b> คน` +
-    (dupInPool.length ? `<br>ข้าม ${dupInPool.length} คนที่มีอยู่แล้ว: ${esc(dupInPool.slice(0,8).join(", "))}` : "") +
+    (updated ? `<br>อัปเดตรายละเอียดของคนที่มีอยู่แล้ว <b>${updated}</b> คน (ยึดตามที่วางมาใหม่)` : "") +
+    (dupInPool.length - upd.length > 0
+      ? `<br>มีอยู่แล้วและไม่มีอะไรต้องเปลี่ยน ${dupInPool.length - upd.length} คน` : "") +
     (failed.length ? `<br><span style="color:var(--lo)">ไม่สำเร็จ ${failed.length}: ${esc(failed.slice(0,5).join(", "))}</span>` : "");
   $("#bulkSave").disabled = false;
 }
