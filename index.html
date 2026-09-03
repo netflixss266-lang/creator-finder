@@ -855,6 +855,38 @@ body[data-crew] .crewhide{display:none !important}
    เดิมเป็นสไลด์ป๊อปอัพ 6 หน้าอธิบายลอยๆ ไม่ผูกกับของจริงบนจอ
    ตอนนี้พาไปที่ปุ่มจริง ไฮไลต์ให้เห็น แล้วบางขั้นรอให้กดเองจริงๆ ก่อนไปต่อ
    เหมือนคู่มือเกม: ชี้ทีละจุด ให้ลงมือทำ ไม่ใช่แค่บอก */
+/* ── แถบค้นหาด่วน Ctrl+F ── ลอยมุมขวาบนแบบแถบค้นหาของเบราว์เซอร์
+   z-index 85 = สูงกว่าลิ้นชัก (70) เพื่อลอยทับหน้า Command ที่เปิดค้างไว้ได้
+   แต่ต่ำกว่าจอล็อก (90) กับคู่มือ (150) ซึ่งเป็นของที่ต้องอยู่บนสุดจริงๆ */
+.qfind{position:fixed;top:calc(var(--stick,52px) + 10px);right:16px;z-index:85;
+  width:min(370px,calc(100vw - 32px));
+  background:var(--surface);border:1px solid var(--accent);border-radius:11px;
+  box-shadow:0 18px 44px rgba(0,0,0,.62)}
+.qfind[hidden]{display:none}
+.qfind-bar{display:flex;align-items:center;gap:8px;padding:8px 9px 8px 12px}
+.qfind-ic{flex:none;color:var(--accent);font-size:1.05rem;line-height:1}
+.qfind-bar input{flex:1;min-width:0;background:none;border:0;color:var(--ink);
+  font-family:inherit;font-size:.9rem;padding:3px 0}
+.qfind-bar input:focus{outline:none}
+.qfind-n{flex:none;font-family:'IBM Plex Mono',monospace;font-size:.74rem;color:var(--dim);
+  white-space:nowrap}
+.qfind-n.none{color:var(--lo)}
+.qfind-x{flex:none;width:26px;height:26px;background:none;border:0;border-radius:6px;
+  color:var(--dim);font-size:.9rem;line-height:1;display:flex;align-items:center;justify-content:center}
+.qfind-x:hover{background:var(--surface2);color:var(--ink)}
+.qfind-list{max-height:min(52vh,360px);overflow:auto;padding:5px;
+  border-top:1px solid var(--line)}
+.qfind-list:empty{display:none}
+.qfind-list button{display:flex;width:100%;align-items:baseline;gap:9px;text-align:left;
+  background:none;border:0;border-radius:7px;padding:8px 10px;color:var(--mute);
+  font-family:inherit;font-size:.85rem}
+.qfind-list button .h{flex:none;color:var(--ink);font-weight:600}
+.qfind-list button .sub{flex:1;min-width:0;text-align:right;color:var(--dim);font-size:.77rem;
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.qfind-list button:hover,.qfind-list button.sel{background:rgba(var(--accent-rgb),.16);color:var(--ink)}
+.qfind-list button.sel .h{color:var(--accent)}
+.qfind-foot{padding:7px 12px 9px;font-size:.73rem;color:var(--dim);
+  border-top:1px solid var(--line);line-height:1.6}
 .coach{position:fixed;inset:0;z-index:150}
 .coach[hidden]{display:none}
 .coach-mask{position:fixed;pointer-events:none;border-radius:14px;
@@ -1862,6 +1894,21 @@ tr.subrow td.w-status select{width:14.6em}
   </form>
 </div>
 
+<!-- ═══ แถบค้นหาด่วน (Ctrl+F) — ลอยทับของเดิม ไม่ปิดอะไรทั้งนั้น ═══
+     เหมือนแถบค้นหาของ Chrome: โผล่มุมขวาบน ค้นแล้วปิด ของที่เปิดค้างไว้อยู่ครบเหมือนเดิม
+     ต่างจากช่องคำสั่งใหญ่ในหน้า Coordinate ตรงที่ตัวนี้ "ค้นแล้วไป" อย่างเดียว ไม่รับคำสั่งแก้ข้อมูล
+     — ของที่แก้ข้อมูลได้ต้องมองเห็นผลตรวจก่อนกดยืนยันเสมอ กล่องลอยเล็กๆ ไม่มีที่พอให้เห็น -->
+<div class="qfind" id="qFind" hidden>
+  <div class="qfind-bar">
+    <span class="qfind-ic">⌕</span>
+    <input id="qFindIn" placeholder="ชื่อครีเอเตอร์ — ค้นทุกโปรเจกต์" spellcheck="false"
+           autocomplete="off" aria-label="ค้นหาครีเอเตอร์">
+    <span class="qfind-n" id="qFindN"></span>
+    <button class="qfind-x" id="qFindX" aria-label="ปิด">✕</button>
+  </div>
+  <div class="qfind-list" id="qFindList"></div>
+</div>
+
 <!-- ═══ คู่มือเปิดใช้งานครั้งแรก — ชี้ปุ่มจริงบนหน้าจอจริง ═══
      คนสมัครเองไม่มีใครนั่งข้างๆ คอยบอกว่าปุ่มไหนทำอะไร
      coach-mask/coach-ring คือช่องแสงที่ล้อมปุ่มจริงไว้ (ไม่ได้ครอบปุ่ม ปุ่มยังกดได้ตามปกติ)
@@ -2187,11 +2234,11 @@ tr.subrow td.w-status select{width:14.6em}
 
         <div class="hcol">
           <h4>ทางลัดแป้นพิมพ์</h4>
-          <p><code>Ctrl+F</code> (Mac: <code>⌘F</code>) — <b>กระโดดมาที่ช่องคำสั่งนี้จากตรงไหนก็ได้</b><br>
-          ปิดแผงที่เปิดค้างอยู่ให้เอง แล้วพามาหน้า Coordinate<br>
-          <span style="color:var(--dim)">พิมพ์ชื่อคนต่อได้เลย → กด Enter ไปหน้ารายละเอียดคนนั้น
-          (ค้นทุกโปรเจกต์ ไม่ใช่แค่แผ่นที่เปิดอยู่)<br>
-          อยากได้ “ค้นหาในหน้า” ของเบราว์เซอร์แบบเดิม — กด <code>Ctrl+F</code> ซ้ำอีกทีตอนอยู่ในช่องนี้แล้ว</span></p>
+          <p><code>Ctrl+F</code> (Mac: <code>⌘F</code>) — <b>แถบค้นหาครีเอเตอร์ลอยขึ้นมามุมขวาบน</b><br>
+          กดจากหน้าไหน ตอนเปิดอะไรค้างอยู่ก็ได้ — <b>ไม่ปิดของที่เปิดค้างไว้</b> ลอยทับเฉยๆ แบบแถบค้นหาของ Chrome<br>
+          <span style="color:var(--dim)">พิมพ์ชื่อ → ↑↓ เลือก → Enter ไปหน้ารายละเอียดคนนั้น
+          (ค้นทุกโปรเจกต์ ไม่ใช่แค่แผ่นที่เปิดอยู่) · <code>Esc</code> ปิดแถบ ของเดิมอยู่ครบ<br>
+          อยากได้ “ค้นหาในหน้า” ของเบราว์เซอร์แบบเดิม — กด <code>Ctrl+F</code> ซ้ำอีกทีตอนอยู่ในแถบนี้แล้ว</span></p>
           <p><code>←</code> <code>→</code> — เดินดู Command ทีละคน ตอนเปิดหน้า Command อยู่<br>
           <span style="color:var(--dim)">กล่องลิงก์/หนังสือแจ้งเตือนที่เปิดค้างไว้จะเปิดค้างให้คนถัดไปด้วย</span></p>
           <p><code>Esc</code> — ปิดแผงที่เปิดอยู่ทีละชั้น</p>
@@ -10193,33 +10240,97 @@ function closeOverlays(){
   if (!$("#settings").hidden) closeSettings();
 }
 
-// ═══ Ctrl+F / ⌘F = กระโดดมาที่ช่องคำสั่ง Quick Order จากตรงไหนก็ได้ ═══
+// ═══ Ctrl+F / ⌘F = แถบค้นหาด่วนลอยขึ้นมา (ไม่ปิดของที่เปิดค้างไว้) ═══
 // แย่งคีย์ "ค้นหาในหน้า" ของเบราว์เซอร์มาโดยตั้งใจ — ของเบราว์เซอร์ค้นได้แค่ตัวหนังสือที่วาดอยู่บนจอจริง
 // ซึ่งคือโปรเจกต์ที่เปิดอยู่แผ่นเดียวหลังผ่านตัวกรองแล้ว คนที่อยู่โปรเจกต์อื่นจะ "หาไม่เจอ" ทั้งที่มีอยู่
-// ช่องคำสั่งค้นทุกโปรเจกต์พร้อมกัน (creatorSugItems) แล้วพาไปหน้ารายละเอียดได้เลย — ตรงกับที่ทีมจะใช้จริง
+// ตัวนี้ค้นทุกโปรเจกต์พร้อมกัน (creatorSugItems ตัวเดียวกับตัวช่วยในช่องคำสั่ง) แล้วพาไปหน้ารายละเอียดเลย
 // ⚠️ ต้องดูที่ e.code ไม่ใช่ e.key — แป้นไทยกดปุ่ม F ได้ e.key เป็น "ด" ทีมนี้พิมพ์ไทยกันทั้งวัน
 //    ถ้าเช็คแต่ e.key ทางลัดจะใช้ได้เฉพาะตอนสลับเป็นแป้นอังกฤษ (เบราว์เซอร์เองอ่านตำแหน่งปุ่มเหมือนกัน)
 // ทางออกเผื่อยังอยากได้ "ค้นหาในหน้า" ของเบราว์เซอร์: กดซ้ำอีกทีตอนโฟกัสอยู่ในช่องแล้ว = ปล่อยผ่านให้เลย
-document.addEventListener("keydown", async e => {
-  if (!(e.ctrlKey || e.metaKey) || e.altKey || e.repeat) return;
-  if (e.code !== "KeyF" && e.key !== "f" && e.key !== "F") return;
-  if (!$("#lockView").hidden || !$("#coachView").hidden) return;   // ยังไม่ล็อกอิน / กำลังเดินคู่มือ
-  const qo = $("#qoText");
-  if (document.activeElement === qo) return;      // กดซ้ำ = ยกให้เบราว์เซอร์ ค้นในหน้าแบบเดิม
-  e.preventDefault();
+let QF = [], QF_AT = 0, QF_BACK = null;
+
+function openQFind(){
+  const box = $("#qFind"), inp = $("#qFindIn");
+  // จำที่ที่เพิ่งพิมพ์ค้างไว้ก่อนถูกแถบนี้แย่งโฟกัส กด Esc แล้วต้องได้กลับไปพิมพ์ต่อตรงเดิม
+  QF_BACK = (document.activeElement && document.activeElement !== document.body)
+    ? document.activeElement : null;
+  box.hidden = false;
+  renderQFind();
+  inp.focus();
+  inp.select();                     // ค้างคำค้นรอบก่อนไว้ให้เห็น แต่พิมพ์ทับได้ทันที (แบบเดียวกับ Chrome)
+}
+function closeQFind(){
+  $("#qFind").hidden = true;
+  QF = []; QF_AT = 0;
+  const back = QF_BACK; QF_BACK = null;
+  // คืนโฟกัสให้ที่เดิมเฉพาะตอนที่มันยังอยู่บนหน้าจริงๆ — แผงอาจถูกปิด/วาดใหม่ไปแล้วระหว่างนี้
+  if (back && back.isConnected && back.offsetParent !== null) back.focus();
+}
+function renderQFind(){
+  const q = $("#qFindIn").value.trim();
+  QF = q ? creatorSugItems(q) : [];
+  if (QF_AT >= QF.length) QF_AT = 0;
+  $("#qFindN").className = "qfind-n" + (q && !QF.length ? " none" : "");
+  $("#qFindN").textContent = !q ? "" : QF.length ? `${QF.length} คน` : "ไม่เจอ";
+  $("#qFindList").innerHTML = !q
+    ? `<div class="qfind-foot">พิมพ์ชื่อครีเอเตอร์ — ค้นทุกโปรเจกต์พร้อมกัน<br>
+       ↑↓ เลือก · Enter ไปหน้ารายละเอียด · Esc ปิด (ของที่เปิดค้างไว้ยังอยู่ครบ)</div>`
+    : QF.length
+      ? QF.map((s, i) => `<button data-qf="${i}" class="${i === QF_AT ? "sel" : ""}"
+          ><span class="h">👤 ${esc(s.handle)}${s.warned
+            ? `<span class="warnmark" title="เคยได้รับหนังสือแจ้งเตือนตามสัญญา">⚖</span>` : ""}</span
+          ><span class="sub">${esc(s.sub)}</span></button>`).join("")
+      : `<div class="qfind-foot">ไม่เจอใครชื่อนี้ในโปรเจกต์ไหนเลย</div>`;
+  $("#qFindList").querySelectorAll("[data-qf]").forEach(b =>
+    b.onclick = () => pickQFind(QF[+b.dataset.qf]));
+}
+// เลือกคนแล้วค่อยปิดแผงที่เปิดค้าง — ไม่ใช่ตอนเปิดแถบ
+// ⚠️ จำเป็นจริงๆ ตรงนี้: #detailPanel กับ #cmdPanel เป็น .drawer z-index เท่ากัน (70) ตัวที่อยู่หลังใน DOM
+// (cmdPanel) จะทับตัวหน้าเสมอ — ถ้าไม่ปิด ลิ้นชักรายละเอียดที่เพิ่งขอเปิดจะไปซ่อนอยู่ข้างหลังแบบเงียบๆ
+async function pickQFind(ref){
+  if (!ref) return;
+  closeQFind();
   closeOverlays();
   if (document.body.dataset.view !== "coord"){
     await setView("coord");
     if (document.body.dataset.view !== "coord") return;   // ประตูรหัส Coordinator โดนกดยกเลิก
   }
-  // setView("coord") กางแผนผังรวมขึ้นมาคลุมช่องคำสั่งไว้เสมอ ต้องปิดหลังจากนั้น ไม่ใช่ก่อน
-  if (!$("#mapView").hidden) openTable(MAP_PROJ);
-  qo.focus();
-  // เลือกทั้งหมดให้พิมพ์ทับได้เลยเฉพาะตอนที่ค้างไว้บรรทัดเดียว (คำสั่ง/ชื่อที่ค้นค้างไว้รอบก่อน)
-  // ถ้าเป็นหลายบรรทัด = กำลังวางรายชื่อเป็นกอง ของแบบนั้นเลือกทับทิ้งไม่ได้ วางเคอร์เซอร์ท้ายสุดพอ
-  if (qo.value.includes("\n")) qo.setSelectionRange(qo.value.length, qo.value.length);
-  else qo.select();
-  qo.scrollIntoView({ block:"nearest" });
+  if (!$("#mapView").hidden) openTable(MAP_PROJ);   // setView("coord") กางแผนผังคลุมตารางไว้เสมอ
+  // หา index สดตอนกด ไม่เก็บค้างไว้ตั้งแต่ตอนค้น — แถวอาจขยับ/ถูกลบไปก่อน (เหมือน jumpToCreatorSug)
+  const i = (COORD[ref.proj] || []).findIndex(r => normId(r.handle) === ref.handle);
+  if (i < 0) return;
+  if (ref.proj !== PROJ){ PROJ = ref.proj; renderProjTabs(); renderCoord(); fillProjSelect(); }
+  openDetail(ref.proj, i);
+}
+
+document.addEventListener("keydown", e => {
+  if (!(e.ctrlKey || e.metaKey) || e.altKey || e.repeat) return;
+  if (e.code !== "KeyF" && e.key !== "f" && e.key !== "F") return;
+  if (!$("#lockView").hidden || !$("#coachView").hidden) return;   // ยังไม่ล็อกอิน / กำลังเดินคู่มือ
+  // กดซ้ำตอนอยู่ในช่องค้นหาอยู่แล้ว (ทั้งแถบลอยและช่องคำสั่งใหญ่) = ยกให้เบราว์เซอร์ ค้นในหน้าแบบเดิม
+  const a = document.activeElement;
+  if (a === $("#qFindIn") || a === $("#qoText")) return;
+  e.preventDefault();
+  openQFind();
+});
+$("#qFindX").onclick = closeQFind;
+$("#qFindIn").addEventListener("input", renderQFind);
+$("#qFindIn").addEventListener("keydown", e => {
+  if (e.key === "ArrowDown" || e.key === "ArrowUp"){
+    if (!QF.length) return;
+    e.preventDefault();
+    QF_AT = (QF_AT + (e.key === "ArrowDown" ? 1 : QF.length - 1)) % QF.length;
+    renderQFind();
+    const sel = $("#qFindList .sel");
+    if (sel) sel.scrollIntoView({ block:"nearest" });
+  } else if (e.key === "Enter"){
+    e.preventDefault();
+    if (QF.length) pickQFind(QF[QF_AT]);
+  } else if (e.key === "Escape"){
+    // ต้องหยุดไม่ให้ลอยไปถึงตัวจับ Esc ที่ document ไม่งั้นจะปิดแผงข้างหลังไปด้วยทั้งที่ตั้งใจปิดแค่แถบนี้
+    e.preventDefault(); e.stopPropagation();
+    closeQFind();
+  }
 });
 $("#sheetSel").onchange = selectSheet;
 
