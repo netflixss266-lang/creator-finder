@@ -8700,8 +8700,8 @@ async function sbSaveProjects(){
   }
 }
 
-async function sbAddCreator(it){
-  const body = {
+function sbCreatorRow(it){
+  return {
     kind: (it.kind || "").toUpperCase(),
     cat: it.cat || "",
     handle: normId(it.id),
@@ -8709,14 +8709,23 @@ async function sbAddCreator(it){
     follower: it.follower != null ? String(it.follower) : "",
     rate: it.rate != null ? String(it.rate) : "",
   };
+}
+async function sbPostPool(payload){
   const r = await sbAuthed(SB_URL + "/rest/v1/pool",
-    { method:"POST", headers:{ Prefer:"return=minimal" }, body: JSON.stringify(body) });
+    { method:"POST", headers:{ Prefer:"return=minimal" }, body: JSON.stringify(payload) });
   if (!r.ok){
     const j = await r.json().catch(() => ({}));
     throw new Error(j.message || j.hint || ("เพิ่มไม่สำเร็จ (HTTP " + r.status + ")"));
   }
   return true;
 }
+const sbAddCreator = it => sbPostPool(sbCreatorRow(it));
+// ── เพิ่มเป็นชุด ไม่ใช่ทีละคน ──
+// เดิมวางลิสต์ 1,669 คน = ยิง 1,669 คำขอเรียงกันทีละคำขอ ตกรอบละ ~0.3 วิ = รอ 8 นาที
+// โดยหน้าจอค้างอยู่ที่ "กำลังเพิ่ม..." ปุ่มกดไม่ได้ ซึ่งดูเหมือนแอปแฮงค์และมักโดนปิดทิ้งกลางทาง
+// = ข้อมูลเข้าไปได้แค่บางส่วน PostgREST รับ array ในคำขอเดียวอยู่แล้ว ชุดละ 200 เหลือ 9 รอบ
+const SB_ADD_CHUNK = 200;
+const sbAddCreators = list => sbPostPool(list.map(sbCreatorRow));
 
 // แสดงกล่อง login (อีเมล+รหัส) — คืนค่าเมื่อเข้าสำเร็จเท่านั้น ประตูหน้าเว็บไม่มีทางถอย
 // สมัครสมาชิกเอง — สิทธิ์ที่ได้ถูกกำหนดโดย trigger ฝั่งฐานข้อมูล (handle_new_auth_user)
@@ -10012,19 +10021,37 @@ async function bulkSave(){
     (dupInPool.length ? ` (ข้าม ${dupInPool.length} คนที่มีใน ${esc(KIND)} อยู่แล้ว)` : "") + "...";
   $("#bulkSave").disabled = true;
 
-  let ok = 0; const failed = [];
-  for (const it of todo){
+  let ok = 0; const failed = [], failedIds = new Set();
+  const all = todo.map(it => Object.assign({ kind: ADD_KIND }, it));
+  for (let i = 0; i < all.length; i += SB_ADD_CHUNK){
+    const chunk = all.slice(i, i + SB_ADD_CHUNK);
     try {
-      await sbAddCreator(Object.assign({ kind: ADD_KIND }, it));
-      ok++;
-    } catch(e){ failed.push(it.id + " (" + ((e && e.message) || "error") + ")"); }
+      await sbAddCreators(chunk);
+      ok += chunk.length;
+    } catch(e){
+      // ⚠️ ทั้งชุดเป็นทรานแซกชันเดียว มีแถวเดียวผิดกติกา (เช่น handle ซ้ำในฐานข้อมูล) ก็ตกทั้งชุด
+      // เจอชุดที่ตกจึงถอยไปยิงทีละคนเฉพาะชุดนั้น เสียแค่แถวที่ผิดจริง และบอกได้ว่าใครผิดเพราะอะไร
+      for (const it of chunk){
+        try { await sbAddCreator(it); ok++; }
+        catch(err){
+          failed.push(it.id + " (" + ((err && err.message) || "error") + ")");
+          failedIds.add(it.id);
+        }
+      }
+    }
+    // บอกความคืบหน้าทุกชุด ไม่ใช่เงียบยาวจนจบ — ของเดิมแยกไม่ออกว่ากำลังทำอยู่หรือค้างไปแล้ว
+    msg.innerHTML = `กำลังเพิ่ม <b>${Math.min(i + chunk.length, all.length)}/${all.length}</b> คน...` +
+      (failed.length ? ` <span style="color:var(--lo)">ไม่สำเร็จ ${failed.length}</span>` : "");
   }
 
   // นับจากฐานข้อมูลจริง
   let landed = 0;
   try {
     const fresh = await fetchPoolSB();
-    landed = todo.filter(t => fresh.some(p => normId(p.id) === t.id)).length;
+    // ⚠️ ต้องตัดคนที่เพิ่งเพิ่มไม่สำเร็จออกก่อน ไม่งั้นเคส "handle ซ้ำในฐานข้อมูล" จะนับเป็นสำเร็จ
+    // (แถวนั้นมีอยู่ในฐานข้อมูลจริง แต่มีมาก่อนหน้านี้ ไม่ใช่ของที่เพิ่งเพิ่มเข้าไป)
+    // ของเดิมเลยขึ้นว่า "6/6 คน" พร้อมกับ "ไม่สำเร็จ 1" ในข้อความเดียวกัน ซึ่งขัดกันเอง
+    landed = todo.filter(t => !failedIds.has(t.id) && fresh.some(p => normId(p.id) === t.id)).length;
     if (ADD_KIND === KIND){
       POOL = fresh.some(p => p.kind) ? fresh.filter(p => !p.kind || p.kind === KIND) : fresh;
       CATS = [...new Set(POOL.flatMap(catsOf))].sort();
