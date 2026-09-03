@@ -3579,6 +3579,8 @@ function render(){
     notes.push(`ตัดออก <b>${HIDDEN_EX} คน</b> ที่อยู่ในลิสต์เคยใช้แล้ว`);
   if (HIDDEN_NORATE)
     notes.push(`ซ่อนไว้ <b>${HIDDEN_NORATE} คน</b> เพราะยังไม่รู้เรทเลยเช็คไม่ได้ว่าเข้างบไหม — ล้างช่องงบเพื่อดูทั้งหมด`);
+  if (POOL_DUPS)
+    notes.push(`รวมรายชื่อซ้ำใน pool <b>${POOL_DUPS} แถว</b> เข้าเป็นคนเดียวแล้ว (ยังซ้ำอยู่ในฐานข้อมูล)`);
   if (RATE_SKIPPED)
     notes.push(`ดีล <b>Barter</b> ไม่คิดเป็นเงิน — ช่วงงบที่ใส่ไว้ถูกข้าม`);
   $("#resNote").innerHTML = notes.join(" · ");
@@ -8627,10 +8629,32 @@ async function sbFetchAll(path, label){
     if (out.length > 200000) return out;
   }
 }
+// ── รวมแถวที่เป็นคนเดียวกันเข้าด้วยกัน ──
+// ⚠️ คีย์คือ kind + handle ไม่ใช่ handle เฉยๆ — คนเดียวกันมีได้ทั้งฝั่ง KOL และ KOC โดยตั้งใจ
+// (เรทคนละแบบจริง ฝั่งหนึ่งเงินสด อีกฝั่ง Barter) รวมข้ามฝั่งเมื่อไหร่คือทิ้งเรทฝั่งหนึ่งทิ้ง
+// ที่ต้องรวมคือซ้ำ "ฝั่งเดียวกัน" ซึ่งเกิดจากการนำเข้าซ้ำ — แถวที่มาทีหลังมักกรอกไม่ครบเท่าแถวแรก
+// เลยรวมแบบเก็บช่องที่มีค่าจริงจากทุกแถว ไม่ใช่ทิ้งแถวหลังไปเฉยๆ
+let POOL_DUPS = 0;
+function dedupePool(list){
+  const by = new Map();
+  list.forEach(p => {
+    const k = (p.kind || "") + "|" + normId(p.id);
+    const prev = by.get(k);
+    if (!prev){ by.set(k, p); return; }
+    ["cat", "link", "live", "av"].forEach(f => { if (!prev[f] && p[f]) prev[f] = p[f]; });
+    if (!prev.fol && p.fol) prev.fol = p.fol;
+    // แถวที่รู้เรทจริงชนะแถวที่ยังไม่รู้ — ของซ้ำส่วนใหญ่ต่างกันตรงนี้จุดเดียว (แถวหนึ่งเรทว่าง)
+    if (prev.unknown && !p.unknown){
+      prev.rate = p.rate; prev.barter = p.barter; prev.unknown = p.unknown;
+    }
+  });
+  POOL_DUPS = list.length - by.size;
+  return [...by.values()];
+}
 async function fetchPoolSB(){
   const data = await sbFetchAll("/rest/v1/pool?select=" + SB_POOL_COLS + "&order=handle.asc",
     "โหลดข้อมูลจาก Supabase ไม่สำเร็จ");
-  return data.filter(x => (x.handle || "").trim()).map(sbRowToPool);
+  return dedupePool(data.filter(x => (x.handle || "").trim()).map(sbRowToPool));
 }
 
 // เพิ่ม creator เข้า Supabase (ต้องมี role editor ขึ้นไป ตาม RLS)
