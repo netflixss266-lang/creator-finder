@@ -2029,10 +2029,11 @@ tr.subrow td.w-status select{width:14.6em}
       <summary><span class="fl">Followers</span><span class="fv" id="folSum">ทั้งหมด</span></summary>
       <div class="fbody">
         <div class="range-row">
-          <input id="folMin" type="number" placeholder="ต่ำสุด" value="">
+          <input id="folMin" type="text" inputmode="numeric" placeholder="ต่ำสุด" value="">
           <span>—</span>
-          <input id="folMax" type="number" placeholder="สูงสุด" value="">
+          <input id="folMax" type="text" inputmode="numeric" placeholder="สูงสุด" value="">
         </div>
+        <div class="hint">ใส่ได้ทั้ง 50000 / 50,000 / 50k — ใส่เลขล้วนจะเติมจุลภาคให้ระหว่างพิมพ์</div>
       </div>
     </details>
 
@@ -4573,6 +4574,22 @@ const rateText = v => (v == null || v === "") ? ""
       ? {} : { minimumFractionDigits:2, maximumFractionDigits:2 });
 // ใส่จุลภาคให้เฉพาะฝั่งจำนวนเต็ม ทศนิยมปล่อยไว้ตามที่พิมพ์
 // จัดรูปฝั่งทศนิยมระหว่างพิมพ์ไม่ได้ — พิมพ์ "1200." แล้วโดนตัดจุดทิ้งทุกครั้งจะพิมพ์ต่อไม่ได้เลย
+// ช่องตัวเลขในแถบตัวกรอง "หาครีเอเตอร์" รับได้หลายแบบ (50000 / 50,000 / 50k / 3000-5000)
+// จะเติมจุลภาคให้เฉพาะตอนพิมพ์เลขล้วน — แบบย่อกับแบบช่วงต้องปล่อยไว้ตามที่พิมพ์
+// ⚠️ formatRateInput ตัดทุกอย่างที่ไม่ใช่ตัวเลขกับจุดทิ้ง ถ้าเอาไปใช้ตรงๆ จะพิมพ์ 50k หรือ
+// 3000-5000 ไม่ได้อีกเลย ทั้งที่ parseFollowers/parseRate ตั้งใจรับสองแบบนั้นมาแต่แรก
+function formatNumInput(inp){
+  if (/[^\d.,\s]/.test(inp.value)){
+    // เพิ่งพิมพ์ k/m/ขีด ต่อจากเลขที่เติมจุลภาคไปแล้ว ("3,000-5000") — เอาจุลภาคออกให้อ่านเป็นชุดเดียว
+    if (inp.value.includes(",")){
+      const keep = inp.value.slice(0, inp.selectionStart).replace(/,/g, "").length;
+      inp.value = inp.value.replace(/,/g, "");
+      inp.setSelectionRange(keep, keep);
+    }
+    return;
+  }
+  formatRateInput(inp);
+}
 function formatRateInput(inp){
   const raw = inp.value;
   const before = raw.slice(0, inp.selectionStart).replace(/[^\d.]/g, "").length;
@@ -9004,7 +9021,8 @@ function cardHTML(p){
       ${p.fav ? `<span class="tag fav">★ แนวที่ชอบ</span>`
         : p.aff >= .6 ? `<span class="tag near" title="โปรไฟล์ใกล้กับลิสต์แนวที่ชอบ">ใกล้แนว ${Math.round(p.aff*100)}%</span>` : ""}
       ${catsOf(p).map(c => `<span class="tag">${esc(c)}</span>`).join("")}
-      <span class="tag fol">${fmtFol(p.fol)} followers</span>
+      <span class="tag fol" title="${(Number(p.fol) || 0).toLocaleString("en-US")} followers"
+        >${fmtFol(p.fol)} followers</span>
       ${rate ? `<span class="tag rate${p.barter?" barter":""}">${rate}</span>`
              : `<span class="tag norate">ยังไม่รู้เรท</span>`}
       ${v!=null ? `<span class="tag cpf${cpfClass(v)}" title="ต้นทุนต่อ 1,000 followers">${fmtCpf(v)}</span>` : ""}
@@ -12435,7 +12453,11 @@ $("#cartLike").onclick = () => {
 // พิมพ์อะไรในแถบตัวกรอง หัวข้อที่พับอยู่ต้องอัปเดตตาม แล้วกรองใหม่ทันที
 // ปุ่มค้นหาเลยเหลือไว้ใช้อย่างเดียวคือสั่ง Claude จัดอันดับตาม reference
 const LIVE_FIELDS = ["folMin","folMax","rateMin","rateMax","want"];
+// ช่องที่เป็นจำนวนเงิน/จำนวนคนตาม ต้องอ่านออกว่าเป็นหมื่นหรือแสนตั้งแต่ตอนพิมพ์
+// (#want ไม่เข้าพวก — เลขหลักสิบ ใส่จุลภาคแล้วรกเปล่าๆ)
+const COMMA_FIELDS = ["folMin","folMax","rateMin","rateMax"];
 document.querySelector("aside").addEventListener("input", e => {
+  if (COMMA_FIELDS.includes(e.target.id)) formatNumInput(e.target);
   foldSummaries();
   if (LIVE_FIELDS.includes(e.target.id)) runLive();
 });
