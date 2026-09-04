@@ -942,6 +942,37 @@ body[data-crew] .crewhide{display:none !important}
   0%{box-shadow:0 0 0 2px rgba(var(--accent-rgb),.75), 0 10px 30px rgba(0,0,0,.5)}
   60%{box-shadow:0 0 0 9px rgba(var(--accent-rgb),0), 0 10px 30px rgba(0,0,0,.5)}
   100%{box-shadow:0 0 0 2px rgba(var(--accent-rgb),.35), 0 10px 30px rgba(0,0,0,.5)}}
+/* ── ฉลองโปรเจกต์ครบ 100% ──
+   z-index 200 = สูงสุดในหน้า (คู่มือ 150 · จอล็อก 90 · ลิ้นชัก 70) เพราะเป็นของที่ขึ้นมาแล้วต้องเห็นเต็มจอ
+   pointer-events ปล่อยให้กดทะลุไม่ได้โดยตั้งใจ — กดตรงไหนก็คือปิด จะได้ไม่บังงานค้างไว้นาน */
+.party{position:fixed;inset:0;z-index:200;display:flex;align-items:center;justify-content:center;
+  background:radial-gradient(circle at 50% 45%, rgba(20,24,34,.82), rgba(6,7,10,.95));
+  animation:partyin .35s ease-out}
+.party[hidden]{display:none}
+@keyframes partyin{from{opacity:0}to{opacity:1}}
+.party canvas{position:absolute;inset:0;width:100%;height:100%}
+.party-card{position:relative;text-align:center;padding:0 24px;max-width:min(680px,92vw);
+  animation:partypop .55s cubic-bezier(.2,1.6,.35,1)}
+@keyframes partypop{from{transform:scale(.75);opacity:0}to{transform:scale(1);opacity:1}}
+.party-kicker{font-size:.92rem;color:var(--warn);letter-spacing:.08em;margin-bottom:10px}
+.party-title{font-family:'Bebas Neue','Space Grotesk',sans-serif;
+  font-size:clamp(2.4rem,9vw,5.2rem);line-height:1;letter-spacing:.06em;
+  background:linear-gradient(92deg,#FFD76E,#7CF7C4,#8BB8FF,#FFD76E);
+  background-size:300% 100%;-webkit-background-clip:text;background-clip:text;color:transparent;
+  animation:partysheen 3.4s linear infinite;
+  filter:drop-shadow(0 6px 26px rgba(124,247,196,.35))}
+@keyframes partysheen{to{background-position:300% 0}}
+.party-name{margin-top:14px;font-size:clamp(1.1rem,3.4vw,1.7rem);font-weight:700;color:var(--ink)}
+.party-sub{margin-top:9px;font-size:.92rem;color:var(--mute);line-height:1.8}
+.party-sub b{color:var(--hi)}
+.party-x{margin-top:22px;background:var(--accent);color:var(--accent-ink);border:0;
+  border-radius:999px;padding:11px 30px;font-family:inherit;font-size:.92rem;font-weight:700}
+.party-x:hover{filter:brightness(1.08)}
+/* เครื่องช้าหรือคนที่ตั้งค่าไม่เอาภาพเคลื่อนไหว — เอาแค่การ์ด ไม่ต้องมีพลุ */
+@media(prefers-reduced-motion:reduce){
+  .party,.party-card,.party-title{animation:none}
+  .party canvas{display:none}
+}
 .coach{position:fixed;inset:0;z-index:150}
 .coach[hidden]{display:none}
 .coach-mask{position:fixed;pointer-events:none;border-radius:14px;
@@ -1962,6 +1993,20 @@ tr.subrow td.w-status select{width:14.6em}
     <button class="qfind-x" id="qFindX" aria-label="ปิด">✕</button>
   </div>
   <div class="qfind-list" id="qFindList"></div>
+</div>
+
+<!-- ═══ ฉลองโปรเจกต์ปิดจ๊อบครบ 100% ═══
+     ขึ้นครั้งเดียวตอน "ข้าม" เส้น 100% เท่านั้น ไม่ใช่ทุกครั้งที่วาดหน้าใหม่
+     กดที่ไหนก็ปิด · Esc ก็ปิด · ไม่กดอะไรเลยก็ปิดเองใน 9 วินาที -->
+<div class="party" id="partyView" hidden>
+  <canvas id="partyFx"></canvas>
+  <div class="party-card">
+    <div class="party-kicker">🎉 ปิดจ๊อบครบทุกคนแล้ว 🎉</div>
+    <h2 class="party-title">CONGRATULATIONS</h2>
+    <div class="party-name" id="partyName"></div>
+    <div class="party-sub" id="partySub"></div>
+    <button type="button" class="party-x" id="partyClose">เยี่ยม! ปิดเลย</button>
+  </div>
 </div>
 
 <!-- ═══ คู่มือเปิดใช้งานครั้งแรก — ชี้ปุ่มจริงบนหน้าจอจริง ═══
@@ -5468,6 +5513,9 @@ function renderCoord(){
     }
   }
   measureStickyCols();
+  // ทุกการแก้ข้อมูลลงเอยที่การวาดตารางใหม่ ตรวจตรงนี้ที่เดียวจึงครอบคลุมทุกทางที่เปลี่ยนสถานะได้
+  // (ตารางเอง · ลิ้นชักรายละเอียด · ช่องคำสั่ง · ลากในแผนผัง · คำสั่งทีละหลายคน)
+  celebrateCheck();
 }
 
 // ── ตรึงคอลัมน์ 2-4 (ชื่อ · วิดีโอ · กลุ่ม) ──
@@ -7529,6 +7577,126 @@ function openCmd(proj, handle){
     if (!box.hidden){ loadLaw(); renderLawBox(); box.scrollIntoView({ block:"nearest" }); }
   };
   $("#cmdEditBtn").onclick = () => { CMD_EDITING = true; renderCmdEditor(proj, handle); };
+}
+
+// ═══ ฉลองโปรเจกต์ปิดจ๊อบครบ 100% ═══
+// ยิงตอน "ข้ามเส้น" เท่านั้น — จำไว้ว่าโปรเจกต์ไหนฉลองไปแล้ว ไม่งั้นทุกครั้งที่วาดตารางใหม่
+// (ซึ่งเกิดทุกการแก้ค่าสักช่อง) จะเด้งพลุใส่หน้าซ้ำๆ จนใช้งานไม่ได้
+// ถ้าวันหลังมีคนเพิ่มเข้ามาใหม่จน % ตกลง แล้วปิดจ๊อบครบอีกรอบ ก็ฉลองใหม่ได้ (ล้างธงตอนตก)
+const LS_PARTY = "cf_party_v1";
+let PARTY_SEEDED = false;      // โหลดครั้งแรกแค่จำสถานะ ไม่ยิงพลุใส่ของที่เสร็จไปนานแล้ว
+let PARTY_STOP = null;
+function partyLoad(){
+  try { return JSON.parse(lsGet(LS_PARTY) || "{}") || {}; } catch(e){ return {}; }
+}
+function celebrateCheck(){
+  // ยังไม่มีข้อมูลสักโปรเจกต์ = ตัดสินอะไรไม่ได้ อย่าเพิ่งไปแตะธง
+  if (!PROJECTS.some(p => (COORD[p] || []).length)) return;
+  const seen = partyLoad();
+  let changed = false, fire = null;
+  PROJECTS.forEach(p => {
+    const rows = COORD[p] || [];
+    if (!rows.length) return;              // โปรเจกต์ว่าง ไม่นับว่าเสร็จ และไม่ล้างธงเดิม
+    const st = mapStats(rows);
+    const full = st.active > 0 && st.pct >= 100;
+    if (full && !seen[p]){ seen[p] = 1; changed = true; if (PARTY_SEEDED && !fire) fire = { p, st }; }
+    else if (!full && seen[p]){ delete seen[p]; changed = true; }
+  });
+  if (changed) { try { lsSet(LS_PARTY, JSON.stringify(seen)); } catch(e){} }
+  PARTY_SEEDED = true;
+  if (fire) partyFire(fire.p, fire.st);
+}
+
+function partyFire(proj, st){
+  const view = $("#partyView");
+  if (!view || !view.hidden) return;
+  $("#partyName").textContent = proj;
+  $("#partySub").innerHTML =
+    `ปิดงานครบ <b>${st.active}</b> คน · <b>${st.clips}</b> คลิป` +
+    (st.co ? ` · งบรวม <b>฿${Math.round(st.co).toLocaleString("en-US")}</b>` : "") +
+    (st.cancel ? `<br><span style="color:var(--dim)">(ไม่นับ ${st.cancel} คนที่ยกเลิกงาน)</span>` : "");
+  view.hidden = false;
+  const stop = partyBoom($("#partyFx"));
+  const close = () => {
+    if (view.hidden) return;
+    view.hidden = true;
+    if (stop) stop();
+    clearTimeout(PARTY_STOP);
+    document.removeEventListener("keydown", onKey, true);
+  };
+  const onKey = e => { if (e.key === "Escape"){ e.preventDefault(); e.stopPropagation(); close(); } };
+  document.addEventListener("keydown", onKey, true);
+  view.onclick = close;
+  $("#partyClose").onclick = close;
+  PARTY_STOP = setTimeout(close, 9000);
+}
+
+// พลุวาดเองบน canvas — ไม่ดึงไลบรารีจากข้างนอก (CSP ของหน้านี้ไม่ให้โหลดสคริปต์นอกอยู่แล้ว
+// และของแบบนี้ไม่คุ้มที่จะแลกกับ dependency ใหม่) จรวดพุ่งขึ้น → ระเบิดเป็นสะเก็ด → ตกตามแรงโน้มถ่วง
+function partyBoom(cv){
+  if (!cv || window.matchMedia("(prefers-reduced-motion: reduce)").matches) return null;
+  const ctx = cv.getContext("2d");
+  const dpr = Math.min(2, window.devicePixelRatio || 1);
+  let W = 0, H = 0;
+  const size = () => {
+    W = cv.clientWidth; H = cv.clientHeight;
+    cv.width = W * dpr; cv.height = H * dpr;
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  };
+  size();
+  addEventListener("resize", size);
+  const HUES = [48, 160, 195, 320, 12, 265];
+  const rockets = [], sparks = [];
+  const launch = () => {
+    const hue = HUES[(Math.random() * HUES.length) | 0];
+    rockets.push({ x: W * (0.15 + Math.random() * 0.7), y: H,
+      vy: -(H * 0.0125 + Math.random() * H * 0.006), hue });
+  };
+  const burst = (x, y, hue) => {
+    const n = 46 + ((Math.random() * 26) | 0);
+    for (let i = 0; i < n; i++){
+      const a = (Math.PI * 2 * i) / n + Math.random() * 0.12;
+      const sp = 1.6 + Math.random() * 3.4;
+      sparks.push({ x, y, vx: Math.cos(a) * sp, vy: Math.sin(a) * sp,
+        life: 1, decay: 0.008 + Math.random() * 0.012,
+        hue: hue + (Math.random() * 26 - 13) });
+    }
+  };
+  let t0 = performance.now(), next = 0, run = true;
+  const frame = now => {
+    if (!run) return;
+    const dt = Math.min(2.2, (now - t0) / 16.67); t0 = now;
+    // ค่อยๆ จางแทนการล้างทิ้ง = ได้หางพลุติดมาให้เอง ไม่ต้องเก็บประวัติตำแหน่งเอง
+    ctx.globalCompositeOperation = "destination-out";
+    ctx.fillStyle = "rgba(0,0,0,.19)";
+    ctx.fillRect(0, 0, W, H);
+    ctx.globalCompositeOperation = "lighter";
+    if (now > next){ launch(); if (Math.random() < .45) launch(); next = now + 260 + Math.random() * 420; }
+    for (let i = rockets.length - 1; i >= 0; i--){
+      const r = rockets[i];
+      r.x += (r.vx || 0) * dt; r.y += r.vy * dt; r.vy += 0.055 * dt;
+      ctx.fillStyle = `hsl(${r.hue} 100% 72%)`;
+      ctx.fillRect(r.x - 1.5, r.y - 5, 3, 8);
+      if (r.vy >= -1.1){ burst(r.x, r.y, r.hue); rockets.splice(i, 1); }
+    }
+    for (let i = sparks.length - 1; i >= 0; i--){
+      const s = sparks[i];
+      s.x += s.vx * dt; s.y += s.vy * dt;
+      s.vy += 0.038 * dt; s.vx *= 0.988; s.vy *= 0.988;
+      s.life -= s.decay * dt;
+      if (s.life <= 0){ sparks.splice(i, 1); continue; }
+      ctx.fillStyle = `hsla(${s.hue} 100% ${52 + s.life * 26}% / ${Math.max(0, s.life)})`;
+      ctx.fillRect(s.x - 1.4, s.y - 1.4, 2.8, 2.8);
+    }
+    requestAnimationFrame(frame);
+  };
+  requestAnimationFrame(frame);
+  return () => {
+    run = false;
+    removeEventListener("resize", size);
+    ctx.setTransform(1, 0, 0, 1, 0, 0);
+    ctx.clearRect(0, 0, cv.width, cv.height);
+  };
 }
 
 // ═══ แผนผังภาพรวม ═══
