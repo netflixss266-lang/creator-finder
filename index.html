@@ -814,6 +814,9 @@ tr.dropover td{border-top:2px solid var(--accent)}
 .ctable input.mono{text-align:right}
 .ctable .w-note input{min-width:150px}
 .ctable td.warn{color:var(--lo)}
+/* คอลัมน์ที่ทีมเพิ่มเอง — กว้างพอกรอกข้อความสั้นๆ และซ่อนไปกับ "คอลัมน์หลัก" เหมือนช่องเสริมอื่น */
+.ctable th.w-cust,.ctable td.w-cust{min-width:8em}
+.ctable td.w-cust input{width:100%}
 /* ตรึงกล่องตารางไว้ใต้แถบคำสั่ง แล้วให้แถวเลื่อนอยู่ข้างในกล่อง
    ผลคือ แถบคำสั่ง → หัวตาราง → คอลัมน์ชื่อ อยู่กับที่หมด เหลือแต่ข้อมูลที่เลื่อน */
 .cwrap{overflow:auto;border:1px solid var(--line);border-radius:11px;
@@ -2386,6 +2389,8 @@ tr.subrow td.w-status select{width:14.6em}
     <input id="coordFind" placeholder="ค้นหาครีเอเตอร์ — พิมพ์ชื่อเพื่อดูประวัติทุกโปรเจกต์"
            autocomplete="off">
     <div class="tabs sub colseg" id="colSeg" role="tablist"></div>
+    <button class="mapbtn" id="custColBtn"
+      title="เพิ่ม/แก้คอลัมน์ของโปรเจกต์นี้เอง">＋ คอลัมน์</button>
   </div>
   <div id="creatorCard"></div>
 
@@ -4391,7 +4396,7 @@ function renderFormat(){
   $("#fmtTitle").textContent = `Format ขอเรท · ${proj}`;
   const vals = { brandname: brandOf(proj), videos: FMT_VID || "1", sku: fmtSkuText(proj) };
   const raw = formatOf(proj);
-  const filled = raw.replace(/\{\{(\w+)\}\}/g, (_, k) =>
+  const filled = raw.replace(/\{\{([\w฀-๿]+)\}\}/g, (_, k) =>
     vals[k] != null && vals[k] !== "" ? vals[k] : `…..ยังไม่มี${k}…..`);
   const mine = FORMATS[proj] != null;
 
@@ -4931,6 +4936,9 @@ function renderDetail(){
           }<button class="skuadd" id="dBriefAdd">＋ วางลิงก์บรีฟ</button></div></div>
       <div class="dfield wide2"><label>โน้ต</label>
         <input data-d="note" value="${esc(r.note || "")}" placeholder="โน้ต"></div>
+      ${custCols(r.project).map(c => `<div class="dfield"><label>${esc(c.th)}</label>
+        <input data-d="${esc(c.k)}" value="${esc(r[c.k] || "")}" placeholder="-"${
+          c.type === "num" ? ` inputmode="numeric"` : ""}></div>`).join("")}
     </div>
 
     ${clips.length ? `<div class="dsect"><h3>แยกรายคลิป (${clips.length} คลิป)</h3>
@@ -5124,16 +5132,43 @@ let COLNUM = {};         // ช่วงตัวเลขต่อคอลั�
 //   list = เลือกจากค่าที่มีอยู่จริง · text = พิมพ์ค้น + มีค่า/ว่าง · num = ช่วงตัวเลข
 // คอลัมน์ "งาน" เอาออกจากตารางแล้ว — ตัวย่อบอกแค่ไลน์สินค้าซึ่ง SKU บอกอยู่แล้ว
 // ช่อง code ยังอยู่ (เป็นส่วนหนึ่งของคีย์แถวและยังขึ้นชีต) แก้ได้ในลิ้นชัก ⤢
+// ═══ คอลัมน์ที่ทีมเพิ่มเองรายโปรเจกต์ ═══
+// เก็บค่าไว้บนแถวเลย (r.x_อะไรสักอย่าง) ไม่ได้แยกไปเก็บที่อื่น — ทำแบบนี้ทีเดียวแล้ว
+// ทุกอย่างที่อ่านช่องจากแถวได้ก็ใช้ได้ทันที: setField/EDITS (บันทึกลงเครื่อง) · ตัวกรอง · ลิ้นชักรายละเอียด ·
+// Export CSV · ตัวแปรใน Command — ไม่ต้องไปไล่ต่อสายให้ทีละที่
+// ⚠️ ขึ้นต้น x_ เสมอ กันชนกับชื่อช่องจริงของระบบ (ถ้าเผลอตั้งชื่อ rate จะทับเรทจริงทันที)
+const LS_CUSTCOL = "cf_custcol_v1";
+const CUST_PFX = "x_";
+let CUSTCOL = {};
+function loadCustCol(){
+  try { CUSTCOL = JSON.parse(lsGet(LS_CUSTCOL) || "{}") || {}; } catch(e){ CUSTCOL = {}; }
+}
+function saveCustCol(){ try { lsSet(LS_CUSTCOL, JSON.stringify(CUSTCOL)); } catch(e){} }
+const custCols = proj => CUSTCOL[proj] || [];
+const custDef = f => custCols(PROJ).find(c => c.k === f);
+// ชื่อคอลัมน์เป็นภาษาไทยได้ แต่คีย์ต้องปลอดภัยพอจะเป็นชื่อตัวแปรใน Command ({{x_...}})
+function custKey(proj, label){
+  const base = CUST_PFX + (String(label).trim().toLowerCase()
+    .replace(/[^a-z0-9ก-๙]+/gi, "_").replace(/^_+|_+$/g, "") || "col");
+  const used = new Set(custCols(proj).map(c => c.k));
+  let k = base, n = 2;
+  while (used.has(k)) k = base + "_" + n++;
+  return k;
+}
 const FILTERABLE = { handle:"ครีเอเตอร์", videos:"วิดีโอ", kind:"กลุ่ม",
   status:"สถานะ", rate:"เรท", paytype:"รูปแบบภาษี", net3:"จ่ายจริง", sku:"SKU",
   postdate:"โพสต์", deadline:"กำหนดส่ง", brief:"บรีฟ", note:"โน้ต" };
 const FILTER_KIND = { handle:"text", brief:"text", note:"text",
   postdate:"text", deadline:"text", rate:"num", net3:"num" };
-const fkind = f => FILTER_KIND[f] || "list";
+// คอลัมน์ที่เพิ่มเองบอกชนิดมาเอง ที่เหลือใช้ของเดิม
+const fkind = f => FILTER_KIND[f] || (custDef(f) ? custDef(f).type : "list");
+const fLabel = f => FILTERABLE[f] || (custDef(f) ? custDef(f).th : f);
 // ลำดับคอลัมน์ในหัวตาราง → ชื่อช่อง (0=ปุ่มลาก, 14=ปุ่มลบ ไม่มีตัวกรอง)
 const FILTER_COL = [[1,"handle"],[2,"videos"],[3,"kind"],[4,"status"],
   [5,"rate"],[6,"paytype"],[7,"net3"],[8,"sku"],[9,"postdate"],[10,"deadline"],
   [11,"brief"],[12,"note"]];
+// คอลัมน์ที่เพิ่มเองต่อท้าย Commission (13) ปุ่มลบเลื่อนไปอยู่หลังสุดเสมอ
+const filterCols = () => FILTER_COL.concat(custCols(PROJ).map((c, i) => [14 + i, c.k]));
 const filterText = (f, v) => f === "status" ? (ST_TH[v] || v || "—")
   : f === "paytype" ? payType(v).label
   : f === "code" ? (codeLabel(v) || "—") : (v || "—");
@@ -5178,7 +5213,7 @@ function openColFilter(field, th){
   const kind = fkind(field);
   const pop = document.createElement("div");
   pop.className = "fpop" + (field === "sku" ? " skupop" : "");
-  const head = `<div class="fhead">${esc(FILTERABLE[field])}
+  const head = `<div class="fhead">${esc(fLabel(field))}
      <button data-clear="1">ล้างตัวกรองนี้</button></div>`;
 
   if (kind === "list"){
@@ -5373,24 +5408,31 @@ function renderCoord(){
       <th>SKU</th><th class="opt">โพสต์</th><th class="opt">กำหนดส่ง</th>
       <th class="opt">บรีฟ</th><th class="opt">โน้ต</th>
       <th class="opt" title="ใช้กับ KOC — ยังไม่ขึ้นชีต">Commission</th>
+      ${custCols(PROJ).map(c => `<th class="opt w-cust"
+        title="คอลัมน์ที่เพิ่มเองในโปรเจกต์นี้ — ใช้ใน Command ได้ด้วย {{${esc(c.k)}}}">${esc(c.th)}</th>`).join("")}
       <th class="w-del"></th>
     </tr></thead><tbody>${rows.length
       ? rows.map(r => coordRow(r, all.indexOf(r))).join("")
-      : `<tr><td colspan="15" style="text-align:center;color:var(--dim);padding:22px">
+      : `<tr><td colspan="${15 + custCols(PROJ).length}" style="text-align:center;color:var(--dim);padding:22px">
           ไม่มีแถวที่ตรงกับตัวกรอง —
           <button class="cmdbtn" id="clearAllF">ล้างตัวกรองทั้งหมด</button></td></tr>`
-    }</tbody></table></div>`;
+    }</tbody></table></div>` +
+    // ช่องชนิด "ตัวเลือก" เสนอค่าที่เคยกรอกไว้ในโปรเจกต์นี้ ไม่ต้องมาตั้งลิสต์ค่าเองอีกที
+    custCols(PROJ).filter(c => c.type === "list").map(c =>
+      `<datalist id="custOpt_${esc(c.k)}">${
+        [...new Set(all.map(r => String(r[c.k] || "").trim()).filter(Boolean))]
+          .map(v => `<option value="${esc(v)}">`).join("")}</datalist>`).join("");
 
   // ปุ่มกรองบนหัวตาราง — จับคู่ด้วยลำดับคอลัมน์ ไม่ใช่ข้อความ
   // (ข้อความซ้ำกันได้ และพอใส่ปุ่มลงไปแล้ว textContent ก็เปลี่ยน)
   const heads = [...document.querySelectorAll("#coordBody thead th")];
-  FILTER_COL.forEach(([i, f]) => {
+  filterCols().forEach(([i, f]) => {
     const th = heads[i];
     if (!th) return;
     th.classList.add("hasfilter");
     th.insertAdjacentHTML("beforeend",
       `<button class="fbtn${filterOn(f) ? " on" : ""}" data-filter="${f}"
-        title="กรอง${FILTERABLE[f]}">▼</button>`);
+        title="กรอง${esc(fLabel(f))}">▼</button>`);
   });
   document.querySelectorAll("#coordBody [data-filter]").forEach(b => b.onclick = e => {
     e.stopPropagation(); openColFilter(b.dataset.filter, b.parentElement);
@@ -5717,6 +5759,13 @@ function coordRow(r, i){
     <td class="w-comm opt"><input data-i="${i}" data-f="commission"
         value="${esc(r.commission || "")}"
         placeholder="${(r.kind || "").toUpperCase() === "KOC" ? "เช่น 10%" : "-"}"></td>
+    ${custCols(r.project).map(c => `<td class="opt w-cust">${
+      c.type === "list"
+        ? `<input data-i="${i}" data-f="${esc(c.k)}" list="custOpt_${esc(c.k)}"
+             value="${esc(r[c.k] || "")}" placeholder="-">`
+        : `<input data-i="${i}" data-f="${esc(c.k)}" value="${esc(r[c.k] || "")}"
+             placeholder="-"${c.type === "num" ? ` inputmode="numeric" class="mono"` : ""}>`
+    }</td>`).join("")}
     <td class="w-del"><button class="delrow" data-del="${i}"
         title="ลบ ${esc(r.handle)} ออกจาก ${esc(PROJ)}">🗑</button></td>
   </tr>${subRows(r, i)}`;
@@ -6424,6 +6473,9 @@ function cmdValues(r){
     // ชื่อช่องของคนนี้ — ใช้ระบุตัวคนในข้อความที่ต้องเจาะจงว่าฉบับนี้ของใคร (หนังสือแจ้งเตือน)
     // ใช้ normId เพราะเป็นรูปแบบมาตรฐานที่ไม่มี @ นำหน้า ในข้อความจึงเขียน @{{handle}} ได้ตรงๆ
     handle: normId(r.handle),
+    // คอลัมน์ที่ทีมเพิ่มเองในโปรเจกต์นี้ ใช้เป็นตัวแปรใน Command ได้เลย ({{x_เลขพัสดุ}})
+    // ไม่ต้องมาเพิ่มตัวแปรในโค้ดทุกครั้งที่ทีมอยากได้ช่องใหม่ — นั่นคือเหตุผลที่คีย์ต้องปลอดภัยตั้งแต่ตอนตั้งชื่อ
+    ...Object.fromEntries(custCols(r.project).map(c => [c.k, String(r[c.k] == null ? "" : r[c.k])])),
     // ─── ข้อเท็จจริงของหนังสือแจ้งเตือน ───
     // ลำดับเดียวกับลิงก์เอกสาร: ที่กรอกไว้เฉพาะคนนี้ → ที่กรอกไว้ระดับโปรเจกต์ (แผง ⚖ ในแผนผัง) → ว่าง
     // ผ่าน lawVal() ตัวเดียวกับแผงเต็มจอ ข้อความจึงจัดรูปเหมือนกันเป๊ะ (วันเป็น พ.ศ. · ราคาใส่ลูกน้ำ)
@@ -6531,10 +6583,10 @@ function fillBlock(body, vals, clip){
   // แยกรายคลิป: เอกสาร · SKU · บรีฟ · ฟีดแบคแต่ละดราฟต์
   // ไม่แยก: เรท/รูปแบบภาษี/จ่ายจริง — ตกลงกันเป็นก้อนเดียวทั้งงาน ไม่ได้แยกตามคลิป
   const key = k => clipKey(k, clip);
-  const text = cutDropped(body.replace(/\{\{(\w+)(\?)?\}\}/g, (_, k, opt) =>
+  const text = cutDropped(body.replace(/\{\{([\w฀-๿]+)(\?)?\}\}/g, (_, k, opt) =>
     vals[key(k)] || (opt ? DROP : `…..${gapLabel(key(k))}…..`)));
   const gaps = [];
-  const html = cutDropped(esc(body).replace(/\{\{(\w+)(\?)?\}\}/g, (_, k, opt) => {
+  const html = cutDropped(esc(body).replace(/\{\{([\w฀-๿]+)(\?)?\}\}/g, (_, k, opt) => {
     const g = key(k);
     if (vals[g]) return `<span class="fill">${esc(vals[g])}</span>`;
     if (opt) return DROP;                 // ไม่บังคับ = ไม่นับเป็นช่องว่างที่ต้องไปเติม
@@ -7052,7 +7104,7 @@ function openCmd(proj, handle){
     // (brief ตกไปใช้ guideN เป็นตัวสำรองรายคลิป ดู cmdValues) สแกนแบบเดิมที่จับแค่ {{guide}} ตรงตัว
     // เลยไม่เจอว่าบล็อกนี้ต้องมีคู่มือแยกชุดด้วย ครีเอเตอร์ 2 คลิปเลยไม่มีช่อง "Shooting Guide ชุดที่ 2"
     // ให้ตั้งในหน้าลิงก์เฉพาะคน ทั้งที่ Command จริงต้องการ guide2 — เจอ {{brief}} ก็ต้องนับ guide ด้วยเสมอ
-    if (bl.clip) (bl.b.match(/\{\{(\w+)\}\}/g) || [])
+    if (bl.clip) (bl.b.match(/\{\{([\w฀-๿]+)\}\}/g) || [])
       .map(v => v.slice(2, -2)).forEach(k => {
         if (DOC_BY_KEY[k]) clipDocs.add(k);
         if (k === "brief") clipDocs.add("guide");
@@ -7577,6 +7629,69 @@ function openCmd(proj, handle){
     if (!box.hidden){ loadLaw(); renderLawBox(); box.scrollIntoView({ block:"nearest" }); }
   };
   $("#cmdEditBtn").onclick = () => { CMD_EDITING = true; renderCmdEditor(proj, handle); };
+}
+
+// ═══ แผงจัดการคอลัมน์ที่เพิ่มเอง ═══
+// ยืมกล่อง .fpop + placePop ที่ใช้กับตัวกรองหัวตาราง — หน้าตาเดียวกันและพ้นขอบกล่องตารางเหมือนกัน
+function openCustCol(host){
+  document.querySelectorAll(".fpop").forEach(p => p.remove());
+  const pop = document.createElement("div");
+  pop.className = "fpop skupop";
+  const draw = () => {
+    const list = custCols(PROJ);
+    pop.innerHTML =
+      `<div class="fhead">คอลัมน์ของ ${esc(PROJ)}</div>
+       <div class="flist">${list.length
+         ? list.map(c => `<div class="linkrow">
+             <input data-ccname="${esc(c.k)}" value="${esc(c.th)}" title="แก้ชื่อคอลัมน์">
+             <span class="lawinherit">${c.type === "num" ? "ตัวเลข" : c.type === "list" ? "ตัวเลือก" : "ข้อความ"}</span>
+             <button type="button" data-ccdel="${esc(c.k)}" title="ลบคอลัมน์นี้">✕</button>
+           </div>`).join("")
+         : `<div class="hint" style="padding:8px 10px">ยังไม่มีคอลัมน์ที่เพิ่มเอง</div>`}</div>
+       <div class="fadd">
+         <input id="ccNew" placeholder="ชื่อคอลัมน์ใหม่ เช่น เลขพัสดุ">
+         <select id="ccType" style="width:100%;margin-top:6px">
+           <option value="text">ข้อความ</option>
+           <option value="num">ตัวเลข</option>
+           <option value="list">ตัวเลือก (เสนอค่าที่เคยกรอก)</option>
+         </select>
+         <button type="button" class="cmdbtn" id="ccAdd" style="margin-top:7px;width:100%">เพิ่มคอลัมน์</button>
+         <div class="hint" style="margin-top:7px">ใช้ในโปรเจกต์นี้เท่านั้น · เรียกใน Command ได้ด้วย
+           <code>{{ชื่อคีย์}}</code> ที่ขึ้นบนหัวคอลัมน์</div>
+       </div>`;
+    pop.querySelector("#ccAdd").onclick = () => {
+      const th = (pop.querySelector("#ccNew").value || "").trim();
+      if (!th) return;
+      const type = pop.querySelector("#ccType").value;
+      (CUSTCOL[PROJ] = custCols(PROJ).slice()).push({ k: custKey(PROJ, th), th, type });
+      saveCustCol(); draw(); renderCoord(); placePop(pop, host);
+    };
+    pop.querySelector("#ccNew").onkeydown = e => {
+      if (e.key === "Enter"){ e.preventDefault(); pop.querySelector("#ccAdd").click(); }
+    };
+    pop.querySelectorAll("[data-ccname]").forEach(inp => inp.onchange = () => {
+      const c = custCols(PROJ).find(x => x.k === inp.dataset.ccname);
+      const v = inp.value.trim();
+      if (!c || !v) return draw();
+      c.th = v; saveCustCol(); draw(); renderCoord();     // เปลี่ยนแค่ชื่อที่โชว์ คีย์กับข้อมูลอยู่ที่เดิม
+    });
+    pop.querySelectorAll("[data-ccdel]").forEach(b => b.onclick = () => {
+      const k = b.dataset.ccdel;
+      const used = (COORD[PROJ] || []).filter(r => String(r[k] || "").trim()).length;
+      if (!confirm(`ลบคอลัมน์นี้ออกจาก ${PROJ}?` +
+        (used ? `\nมีข้อมูลกรอกไว้แล้ว ${used} แถว — ค่าที่กรอกไว้จะยังอยู่ในเครื่อง ถ้าเพิ่มคอลัมน์ชื่อเดิมกลับมาจะเห็นอีกครั้ง`
+              : ""))) return;
+      CUSTCOL[PROJ] = custCols(PROJ).filter(x => x.k !== k);
+      delete COLFILTER[k]; delete COLTEXT[k]; delete COLNUM[k];   // ตัวกรองของคอลัมน์ที่ไม่มีแล้วต้องไม่ค้าง
+      saveCustCol(); draw(); renderCoord(); placePop(pop, host);
+    });
+  };
+  draw();
+  host.appendChild(pop);
+  placePop(pop, host);
+  pop.onclick = e => e.stopPropagation();
+  setTimeout(() => document.addEventListener("click", function close(){
+    pop.remove(); document.removeEventListener("click", close); }), 0);
 }
 
 // ═══ ฉลองโปรเจกต์ปิดจ๊อบครบ 100% ═══
@@ -10985,6 +11100,7 @@ $("#qFindIn").addEventListener("keydown", e => {
     closeQFind();
   }
 });
+$("#custColBtn").onclick = e => { e.stopPropagation(); openCustCol($("#custColBtn").parentElement); };
 $("#sheetSel").onchange = selectSheet;
 
 // ปุ่มนี้เหลือหน้าที่เดียว — สั่ง Claude จัดอันดับตาม reference (เสียเงิน ต้องกดเอง)
@@ -11016,12 +11132,14 @@ $("#coordResetEdits").onclick = () => {
 $("#coordExport").onclick = () => {
   const rows = COORD[PROJ] || [];
   if (!rows.length) return;
+  const cc = custCols(PROJ);
   const head = ["Project","Creator","Link","Kind","งาน","สถานะ","เรท","จ่ายจริง",
-                "SKU","โพสต์","บรีฟ","โน้ต","เรทที่ต้องยืนยัน"];
+                "SKU","โพสต์","บรีฟ","โน้ต","เรทที่ต้องยืนยัน"].concat(cc.map(c => c.th));
   const body = rows.map(r => [PROJ, r.handle, "https://www.tiktok.com/@" + r.handle,
     r.kind || "", r.code || "", ST_TH[r.status || ""] || "", r.rate ?? "", r.net3 ?? "",
     r.sku || "", r.postdate || r.deadline || "", r.brief || "", r.note || "",
-    (r.rate_all || []).length > 1 ? (r.rate_all || []).join(" / ") : ""]);
+    (r.rate_all || []).length > 1 ? (r.rate_all || []).join(" / ") : ""]
+    .concat(cc.map(c => r[c.k] || "")));
   const csv = [head, ...body].map(r =>
     r.map(c => `"${String(c).replace(/"/g,'""')}"`).join(",")).join("\n");
   const a = document.createElement("a");
@@ -13246,6 +13364,7 @@ $("#tourAgain").onclick = () => { $("#settings").hidden = true; openCoach(); };
 // ─── เริ่มต้น: โหลดรายการ Sheet แล้วดึงตัวแรกมาเลย ───
 EXCLUDE = lsLoadSet(LS_EX);
 SEEN = lsLoadSet(LS_SEEN);
+loadCustCol();
 LIKED = lsLoadSet(LS_LIKED);
 try { HIDE_LIKED = !!lsGet(LS_HIDELIKED); } catch(e){}
 $("#hideLiked").checked = HIDE_LIKED;
