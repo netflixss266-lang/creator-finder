@@ -1314,19 +1314,19 @@ body.locked{overflow:hidden}
    (เขียว=เสร็จ เหลือง=รอ แดง=พัง มิ้นต์=ปุ่มหลัก) ถ้ายืมสีพวกนั้นมาไฮไลต์
    คนจะอ่านว่าสถานะเปลี่ยน ทั้งที่แค่ "นี่ไงคนที่ค้นหา" — ทองจึงแปลว่าตรงนี้อย่างเดียว
    ⚠️ ต้องแรงกว่าปกติเพราะใบมีสีขอบตามขั้นอยู่แล้ว กรอบจางๆ จะกลืนไปกับของเดิม */
-.mapleaf.found,.mapleafwrap:has(.mapleaf.found){z-index:3}
-.mapleaf.found{animation:mapfound 1.05s ease-out 2;border-color:#FFCF4D!important}
+/* ⚠️ ใส่ที่ตัวห่อ ไม่ใช่ที่ .mapleaf — หนึ่งใบคือสองปุ่มต่อกัน (ตัวใบ + ปุ่ม ▾ เปลี่ยนสถานะ)
+   ที่แบ่งขอบกันคนละครึ่ง ถ้าเรืองแสงแค่ .mapleaf กรอบจะขาดตรงปุ่ม ▾ เหมือนเว้นรูไว้ */
+.mapleafwrap.found{z-index:3;border-radius:9px;animation:mapfound 1.15s ease-out 1}
+.mapleafwrap.found .mapleaf,.mapleafwrap.found .mapst{
+  border-color:#FFCF4D!important;background:rgba(255,207,77,.16)}
 @keyframes mapfound{
-  0%{box-shadow:0 0 0 0 rgba(255,207,77,.85),0 0 0 0 rgba(255,207,77,.55);
-     background:rgba(255,207,77,.22)}
-  55%{box-shadow:0 0 0 3px rgba(255,207,77,.95),0 0 22px 6px rgba(255,207,77,.45);
-     background:rgba(255,207,77,.14)}
-  100%{box-shadow:0 0 0 0 rgba(255,207,77,0),0 0 0 0 rgba(255,207,77,0);
-     background:var(--surface2)}
+  0%{box-shadow:0 0 0 0 rgba(255,207,77,.9),0 0 0 0 rgba(255,207,77,.55)}
+  55%{box-shadow:0 0 0 3px rgba(255,207,77,.95),0 0 22px 7px rgba(255,207,77,.45)}
+  100%{box-shadow:0 0 0 0 rgba(255,207,77,0),0 0 0 0 rgba(255,207,77,0)}
 }
 /* คนที่ตั้งค่าไม่เอาภาพเคลื่อนไหว — ไม่กะพริบ แต่ยังต้องเห็นว่าใบไหน ค้างกรอบทองไว้เฉยๆ */
 @media(prefers-reduced-motion:reduce){
-  .mapleaf.found{animation:none;box-shadow:0 0 0 3px rgba(255,207,77,.9)}
+  .mapleafwrap.found{animation:none;box-shadow:0 0 0 3px rgba(255,207,77,.9)}
 }
 /* ปิดงานแล้ว — เหลือไว้ให้เห็นว่ามีคนนี้อยู่ แต่ไม่ต้องดึงสายตาอีก */
 .mapleaf.done{opacity:.62}
@@ -10917,10 +10917,11 @@ function jumpToMapLeaf(ref){
   closeQFind();
   leaf.scrollIntoView({ block:"center", inline:"center", behavior:"smooth" });
   // เอาของเก่าออกก่อนแล้วบังคับให้ browser คิดใหม่ (offsetWidth) ไม่งั้นกดคนเดิมซ้ำจะไม่กะพริบอีก
-  document.querySelectorAll(".mapleaf.found").forEach(x => x.classList.remove("found"));
-  void leaf.offsetWidth;
-  leaf.classList.add("found");
-  setTimeout(() => leaf.classList.remove("found"), 2200);
+  const wrap = leaf.closest(".mapleafwrap") || leaf;
+  document.querySelectorAll(".mapleafwrap.found").forEach(x => x.classList.remove("found"));
+  void wrap.offsetWidth;
+  wrap.classList.add("found");
+  setTimeout(() => wrap.classList.remove("found"), 1300);
   return true;
 }
 
