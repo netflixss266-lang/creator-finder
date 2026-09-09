@@ -1309,6 +1309,25 @@ body.locked{overflow:hidden}
 .mapleaf.dragging{opacity:.35}
 /* แผ่นที่ลากไม่ได้ อย่าทำเป็นมือจับ — ชี้แล้วนึกว่าลากได้แล้ววางไม่ลงคือบัคในสายตาคนใช้ */
 .mapleaf:not([draggable]){cursor:pointer}
+/* ค้นเจอจาก Ctrl+F — กรอบทองเรืองแสงกะพริบ 2 รอบแล้วหายไปเอง
+   ทองไม่ได้อยู่ในชุดสีของเว็บโดยตั้งใจ: สีที่มีอยู่ล้วนมีความหมายผูกไว้แล้ว
+   (เขียว=เสร็จ เหลือง=รอ แดง=พัง มิ้นต์=ปุ่มหลัก) ถ้ายืมสีพวกนั้นมาไฮไลต์
+   คนจะอ่านว่าสถานะเปลี่ยน ทั้งที่แค่ "นี่ไงคนที่ค้นหา" — ทองจึงแปลว่าตรงนี้อย่างเดียว
+   ⚠️ ต้องแรงกว่าปกติเพราะใบมีสีขอบตามขั้นอยู่แล้ว กรอบจางๆ จะกลืนไปกับของเดิม */
+.mapleaf.found,.mapleafwrap:has(.mapleaf.found){z-index:3}
+.mapleaf.found{animation:mapfound 1.05s ease-out 2;border-color:#FFCF4D!important}
+@keyframes mapfound{
+  0%{box-shadow:0 0 0 0 rgba(255,207,77,.85),0 0 0 0 rgba(255,207,77,.55);
+     background:rgba(255,207,77,.22)}
+  55%{box-shadow:0 0 0 3px rgba(255,207,77,.95),0 0 22px 6px rgba(255,207,77,.45);
+     background:rgba(255,207,77,.14)}
+  100%{box-shadow:0 0 0 0 rgba(255,207,77,0),0 0 0 0 rgba(255,207,77,0);
+     background:var(--surface2)}
+}
+/* คนที่ตั้งค่าไม่เอาภาพเคลื่อนไหว — ไม่กะพริบ แต่ยังต้องเห็นว่าใบไหน ค้างกรอบทองไว้เฉยๆ */
+@media(prefers-reduced-motion:reduce){
+  .mapleaf.found{animation:none;box-shadow:0 0 0 3px rgba(255,207,77,.9)}
+}
 /* ปิดงานแล้ว — เหลือไว้ให้เห็นว่ามีคนนี้อยู่ แต่ไม่ต้องดึงสายตาอีก */
 .mapleaf.done{opacity:.62}
 .mapleaf.done .h{color:var(--hi)}
@@ -10874,6 +10893,37 @@ function closeQFind(){
   // คืนโฟกัสให้ที่เดิมเฉพาะตอนที่มันยังอยู่บนหน้าจริงๆ — แผงอาจถูกปิด/วาดใหม่ไปแล้วระหว่างนี้
   if (back && back.isConnected && back.offsetParent !== null) back.focus();
 }
+// ── โหมดแผนผัง: ใช้ตอนกางแผนผังอยู่ (เฉพาะตอนนั้น) ──
+// อยู่หน้า Coordinator เหมือนกันก็จริง แต่สิ่งที่คนกำลังมองคนละอย่าง — บนแผนผังคนมองหา
+// "ใบของคนนี้อยู่ขั้นไหน" ไม่ใช่ลิ้นชักรายละเอียด เด้งไปที่ใบจึงตรงกับที่กำลังทำอยู่มากกว่า
+const qfMapMode = () => !$("#mapView").hidden;
+// พาไปที่ใบของคนนั้นบนแผนผัง แล้วกะพริบกรอบทองให้เห็นว่าอยู่ตรงไหน
+// ⚠️ ใบมีเฉพาะแผ่น "ขั้นตอนงาน" ของโปรเจกต์นั้นๆ — แผ่นรวมทุกโปรเจกต์มีแต่การ์ด ไม่มีใบ
+// เลยต้องสลับแผ่นให้ก่อนเสมอ ไม่งั้นกดแล้วเงียบเพราะหาใบไม่เจอ
+function jumpToMapLeaf(ref){
+  const find = () => document.querySelector(
+    `#mapBody [data-mapwho="${CSS.escape(ref.handle)}"][data-mapproj="${CSS.escape(ref.proj)}"]`);
+  let leaf = find();
+  if (!leaf){
+    const r = (COORD[ref.proj] || []).find(x => normId(x.handle) === ref.handle);
+    // ตัวกรองกลุ่มบนแผนผังซ่อนคนนี้อยู่ ก็ต้องปลดก่อน ไม่งั้นวาดใหม่ก็ยังไม่มีใบให้เจอ
+    if (r && MAP_KIND !== "all" && kindOf(r) !== MAP_KIND) MAP_KIND = "all";
+    MAP_PROJ = ref.proj;
+    MAP_MODE = "flow";
+    renderMap();
+    leaf = find();
+  }
+  if (!leaf) return false;
+  closeQFind();
+  leaf.scrollIntoView({ block:"center", inline:"center", behavior:"smooth" });
+  // เอาของเก่าออกก่อนแล้วบังคับให้ browser คิดใหม่ (offsetWidth) ไม่งั้นกดคนเดิมซ้ำจะไม่กะพริบอีก
+  document.querySelectorAll(".mapleaf.found").forEach(x => x.classList.remove("found"));
+  void leaf.offsetWidth;
+  leaf.classList.add("found");
+  setTimeout(() => leaf.classList.remove("found"), 2200);
+  return true;
+}
+
 // ── โหมด pool: ใช้ตอนอยู่หน้าหาครีเอเตอร์ ──
 // หน้านั้นทำงานกับคนใน pool (จากชีต/Supabase) ไม่ใช่คนที่รับงานไปแล้วใน Coordinator
 // ค้นด้วยชุดข้อมูลผิดก็เท่ากับหาไม่เจอทั้งที่คนนั้นอยู่ตรงหน้า — เลยสลับชุดข้อมูลตามหน้าที่เปิดอยู่
@@ -11026,13 +11076,19 @@ function pickPoolFind(ref){
 function renderQFind(){
   const q = $("#qFindIn").value.trim();
   const pool = qfPoolMode();
+  const onMap = qfMapMode();
   QF_INFO = null;
   QF = q ? (pool ? poolSugItems(q) : creatorSugItems(q)) : [];
   if (QF_AT >= QF.length) QF_AT = 0;
   $("#qFindN").className = "qfind-n" + (q && !QF.length ? " none" : "");
   $("#qFindN").textContent = !q ? "" : QF.length ? `${QF.length} คน` : "ไม่เจอ";
   $("#qFindList").innerHTML = !q
-    ? `<div class="qfind-foot">${pool
+    ? `<div class="qfind-foot">${
+        onMap
+        ? `พิมพ์ชื่อครีเอเตอร์ — ค้นทุกโปรเจกต์พร้อมกัน<br>
+           ↑↓ เลือก · Enter เด้งไปที่ใบของคนนั้นบนแผนผัง · Esc ปิด<br>
+           <span style="color:var(--dim)">สลับแผ่นให้เองถ้าคนนั้นอยู่คนละโปรเจกต์</span>`
+        : pool
         ? `พิมพ์ชื่อครีเอเตอร์ — ค้นทั้ง pool ${POOL.length} คน<br>
            ↑↓ เลือก · Enter เลื่อนไปที่การ์ดคนนั้น · Esc ปิด<br>
            <span style="color:var(--dim)">ไม่แตะตัวกรองและไม่ปิดอะไรที่เปิดค้างไว้</span>`
@@ -11057,6 +11113,7 @@ function renderQFind(){
 async function pickQFind(ref){
   if (!ref) return;
   if (ref.kind === "pool"){ QF_INFO = ref.handle; return renderQFInfo(); }
+  if (qfMapMode() && jumpToMapLeaf(ref)) return;
   closeQFind();
   closeOverlays();
   if (document.body.dataset.view !== "coord"){
