@@ -1896,6 +1896,22 @@ main{padding:22px 24px;overflow-y:auto;max-height:calc(100vh - 62px)}
   .linkrow{flex-wrap:wrap}
   .linkrow label{flex:1 1 100%}
 }
+/* ตารางไลฟ์ — ช่องเดียวคุมทุกรอบ แล้วโชว์ค่าที่ตัวแปรจะได้จริงแยกรายรอบใต้ช่อง */
+.linkrow.live label{color:var(--accent)}
+.livevars{margin:0 0 10px 11.7em;display:flex;flex-direction:column;gap:4px}
+.livevars .lvrow{display:flex;flex-wrap:wrap;gap:4px 14px;align-items:baseline;
+  font-size:.78rem;color:var(--fg)}
+.livevars .lvrow b{color:var(--mute);font-size:.72rem;flex:0 0 3.4em}
+.livevars .lvrow span{white-space:nowrap}
+.livevars .lvrow .w{flex-basis:100%}
+.livevars code{color:var(--dim);font-size:.72rem;margin-right:5px}
+.livevars .none{color:var(--warn);white-space:normal}
+/* ช่องที่ไม่มีบล็อกไหนใช้แล้วแต่ยังมีค่าค้าง — เห็นได้ ล้างได้ แต่ไม่ปนกับช่องที่ยังต้องกรอก */
+.deadhead{margin:14px 0 2px;font-size:.78rem;color:var(--warn);
+  border-top:1px solid var(--line);padding-top:10px}
+.deadhead span{color:var(--dim)}
+.deadwrap{opacity:.72}
+@media(max-width:620px){ .livevars{margin-left:0} }
 .fbfoot{display:flex;align-items:center;gap:12px;flex-wrap:wrap;
   border-top:1px solid var(--line);padding-top:11px}
 .cmdblk .cmdt{flex:1;min-width:0;font-size:.8rem;font-weight:600;padding:4px 8px}
@@ -6209,6 +6225,26 @@ function docLabel(k){
 // guide มาก่อน docs เพราะบล็อก 5 พูดถึงคู่มือถ่ายทำก่อนเอกสารร่วมงาน
 // sg/agreement ไม่ได้อยู่ในบล็อกไหนของต้นแบบเลย (มีไว้ให้บล็อกที่ทีมเพิ่มเองเรียกใช้) เลยไปต่อท้ายสุด
 const CMD_LINK_ORDER = ["guide", "docs", "timeline", "script", "cart", "hashtag", "form", "sign", "sg", "agreement"];
+// ─── ช่องไหนยังมีบล็อกไหนใช้อยู่จริง ───
+// ทะเบียนช่อง (DOCS) กับตัวข้อความเป็นคนละที่ — ของที่เลิกใช้แล้วจึงค้างเป็นช่องเปล่าให้กรอกไปเรื่อยๆ
+// ทั้งที่กรอกไปก็ไม่มีอะไรอ่าน (เคยเจอกับ {{payment}} ที่ต้องมาไล่ลบเองทีหลัง)
+// อ่านจากตัวข้อความจริงของโปรเจกต์นั้นแทน — ทีมแก้ต้นแบบเมื่อไหร่ ช่องก็โผล่/หายตามเอง ไม่ต้องแก้โค้ด
+function cmdKeysUsed(list){
+  const s = new Set();
+  (list || []).forEach(bl => (String(bl.b || "").match(/\{\{([\w฀-๿]+)\??\}\}/g) || [])
+    .forEach(v => {
+      const k = v.slice(2, -2).replace(/\?$/, "");
+      s.add(k);
+      // {{brief}} ตกไปใช้ Shooting Guide เป็นตัวสำรอง — ช่องคู่มือจึงยังถูกใช้อยู่จริง
+      if (k === "brief") s.add("guide");
+      // ช่องรายชุด ({{cart2}}) นับเป็นการใช้ทะเบียนเดียวกับชุดแรก
+      const d = docSplit(k);
+      if (d) s.add(d.d.k);
+    }));
+  // เอกสารร่วมงานมีช่องตั้งต้นแยก KOL/KOC — บล็อกเรียกผ่าน {{docs}} ตัวเดียว
+  if (s.has("docs")){ s.add("docsKOL"); s.add("docsKOC"); }
+  return s;
+}
 const CMD_LINK_FIELDS = [
   ["docsKOL", "เอกสารสำคัญร่วมงาน — KOL"],
   ["docsKOC", "เอกสารสำคัญร่วมงาน — KOC"],
@@ -6616,7 +6652,20 @@ const CMD_GAP = Object.assign(
     feedback:"ยังไม่มีฟีดแบค", feedback1:"ยังไม่มีฟีดแบค Draft 1",
     feedback2:"ยังไม่มีฟีดแบค Draft 2", feedback3:"ยังไม่มีฟีดแบค Draft 3",
     docs:"ยังไม่มีลิงก์เอกสารของกลุ่มนี้",
-    liveslot:"ยังไม่ได้ลงวันไลฟ์", livedate:"ยังไม่ได้ลงวันไลฟ์", livetime:"ยังไม่ได้ลงเวลาไลฟ์" });
+    liveslot:"ยังไม่ได้ลงวันไลฟ์", livedate:"ยังไม่ได้ลงวันไลฟ์",
+    livetime:"ยังไม่ได้ลงเวลาไลฟ์", livehours:"ยังไม่ได้ลงเวลาไลฟ์" });
+
+// ── ไลฟ์วันนั้นกี่ชั่วโมง ──
+// ดีลไลฟ์ตกลงกันเป็น "กี่ชั่วโมงต่อวัน" ไม่ใช่แค่ช่วงเวลา — คิดจากช่วงที่ลงไว้ ไม่ต้องกรอกซ้ำ
+// ข้ามเที่ยงคืน (22.00–01.00) ต้องได้ 3 ชั่วโมง ไม่ใช่ติดลบ · มีเวลาเดียวไม่มีช่วง = คิดไม่ได้ ปล่อยว่าง
+function liveHours(tm){
+  const m = /^(\d{2})\.(\d{2})–(\d{2})\.(\d{2})$/.exec(String(tm || ""));
+  if (!m) return "";
+  let mins = (+m[3] * 60 + +m[4]) - (+m[1] * 60 + +m[2]);
+  if (mins <= 0) mins += 24 * 60;
+  const h = Math.round(mins / 6) / 10;
+  return `${h} ชั่วโมง`;
+}
 
 // ─── วัน–เวลาไลฟ์ของรอบหนึ่ง ───
 // อ่านจากช่องเดียวกับที่ปฏิทินใช้ (โพสต์ → กำหนดส่ง) ไม่มีที่เก็บใหม่ ไม่มีทางที่สองอันจะไม่ตรงกัน
@@ -6625,7 +6674,7 @@ const CMD_GAP = Object.assign(
 function liveVals(sl){
   const day = sl ? calDayLabel(sl.d) : "";
   const tm  = sl ? (sl.time || "") : "";
-  return { livedate: day, livetime: tm,
+  return { livedate: day, livetime: tm, livehours: liveHours(tm),
            liveslot: day ? (tm ? `${day} เวลา ${tm}` : day) : "" };
 }
 
@@ -7487,12 +7536,14 @@ function openCmd(proj, handle){
   // วัน–เวลาไลฟ์ทั้งสามตัวเก็บอยู่ในช่องเดียวกัน (โพสต์) — ตัวที่ปฏิทินอ่าน หลายรอบคั่นด้วย ·
   // ต้องดักไว้ตรงนี้ ไม่งั้นจะตกไปทางลิงก์เอกสารแล้วเขียนลงช่องที่ไม่มีใครอ่านแบบเงียบๆ
   const ROW_GAP = { rate:"rate", sku:"sku", paytype:"paytype", brief:"brief", videos:"videos",
-                    liveslot:"postdate", livedate:"postdate", livetime:"postdate" };
+                    liveslot:"postdate", livedate:"postdate", livetime:"postdate",
+                    livehours:"postdate" };
   // ช่องที่รูปแบบไม่ตรงไปตรงมาต้องบอกวิธีพิมพ์ในกล่องเลย — คนกดมาจากตัวแดงกลางข้อความ
   // ไม่ได้ผ่านหน้าปฏิทินที่มีคำอธิบายอยู่แล้ว ไม่บอกก็จะพิมพ์รอบเดียวแล้วทับรอบอื่นทิ้ง
   const LIVE_HINT = "\n\nพิมพ์ได้ทั้ง 28 ส.ค. · 28-Aug · 28/08/2026 — ใส่เวลาต่อท้ายได้ (20.00-23.00)" +
     "\nหลายรอบคั่นด้วย ·   เช่น   28 Aug 20.00-23.00 · 30 Aug 19.00-22.00";
-  const GAP_HINT = { liveslot:LIVE_HINT, livedate:LIVE_HINT, livetime:LIVE_HINT };
+  const GAP_HINT = { liveslot:LIVE_HINT, livedate:LIVE_HINT,
+                     livetime:LIVE_HINT, livehours:LIVE_HINT };
   function fillGap(k){
     const r2 = (COORD[proj] || []).find(x => normId(x.handle) === normId(handle));
     if (!r2) return;
@@ -7603,13 +7654,56 @@ function openCmd(proj, handle){
         (_, x) => [k + (x + 2), `${DOC_BY_KEY[k].th} (ชุดที่ ${x + 2}${
           skuOf(r, x + 2) ? " · " + skuOf(r, x + 2) : ""})`]))
     : []);
+  // ── ตัดช่องที่ไม่มีบล็อกไหนใช้แล้วออก ──
+  // ช่องตายคือช่องที่กรอกไปแล้วไม่มีอะไรอ่าน — อยู่ในรายการก็มีแต่ทำให้คิดว่ายังต้องกรอก
+  // "เฉพาะคนนี้" ดูจากบล็อกที่คนนี้ได้จริง · "ใช้ร่วมกัน" ดูจากต้นแบบทั้งโปรเจกต์ (คนละชุดกันจริงๆ)
+  // ⚠️ ช่องที่ยังมีค่าอยู่ต้องไม่ซ่อน — ซ่อนของที่มีค่า = ลบไม่ได้ ล้างไม่ได้ ไม่รู้ด้วยซ้ำว่ามีค้างอยู่
+  //    โชว์ต่อพร้อมป้าย "ไม่มีบล็อกไหนใช้" ให้ตัดสินใจเองว่าจะล้างหรือเก็บไว้
+  const usedMine = () => cmdKeysUsed(cmdBlocksFor(proj, handle)
+    .filter(bl => blockForPay(bl, paid, K) && (!bl.live || liveProj)));
+  const usedAll = () => cmdKeysUsed(cmdBlocks(proj));
+  // ── ตารางไลฟ์ในหน้าลิงก์ ──
+  // วัน–เวลาไลฟ์เป็นข้อมูลรายคนเหมือนลิงก์อื่น แต่ "ที่เก็บ" คือช่องโพสต์ในตาราง ไม่ใช่ถังลิงก์
+  // จึงเขียนลงช่องเดิมตัวเดียวกับที่ปฏิทินอ่าน — ห้ามเก็บซ้ำที่สอง ไม่งั้นปฏิทินกับข้อความจะไม่ตรงกัน
+  // ใต้ช่องโชว์ค่าจริงของทุกตัวแปรแยกรายรอบ จะได้เห็นก่อนว่าพิมพ์แบบนี้แล้ว Command จะได้อะไร
+  const liveRowsHtml = () => {
+    const sls = rowSlots(r);
+    return `<div class="linkrow live">
+        <label title="วัน–เวลาไลฟ์ทุกรอบของคนนี้ — เก็บในช่อง “โพสต์” ช่องเดียวกับที่ปฏิทินอ่าน"
+          >ตารางไลฟ์ (วัน+เวลา)</label>
+        <input data-liverow="1" value="${esc(r.postdate || "")}" spellcheck="false"
+          placeholder="28 Aug 20.00-23.00 · 30 Aug 19.00-22.00">
+        <button type="button" data-liveok="1" title="บันทึกช่องนี้ลงช่องโพสต์">✓</button>
+      </div>
+      <div class="livevars">${sls.length
+        ? sls.map((sl, i) => { const lv = liveVals(sl);
+            return `<div class="lvrow"><b>รอบ ${i + 1}</b>
+              <span><code>{{livedate}}</code>${esc(lv.livedate)}</span>
+              <span><code>{{livetime}}</code>${esc(lv.livetime || "—")}</span>
+              <span><code>{{livehours}}</code>${esc(lv.livehours || "—")}</span>
+              <span class="w"><code>{{liveslot}}</code>${esc(lv.liveslot)}</span></div>`; }).join("")
+        : `<div class="lvrow none">ยังไม่ได้ลงวัน — พิมพ์ในช่องข้างบน
+             แล้วบล็อก “แจ้งเตือนวันไลฟ์” จะขึ้นให้ 1 ใบต่อ 1 รอบ</div>`}</div>`;
+  };
   function renderLinks(){
     const mine = LINK_SCOPE === "mine";
     const own = cmdOwnRead(proj, handle).links || {};
-    $("#linkHint").innerHTML = mine
+    // ช่องที่ยังมีบล็อกใช้ = โชว์ตามปกติ · ไม่มีใครใช้แต่ยังมีค่าค้าง = ไปกองท้ายหน้าแยกให้เห็นชัด
+    // ไม่มีใครใช้และว่างอยู่แล้ว = ไม่ต้องโชว์ ไม่มีอะไรให้ทำกับมัน
+    const used = mine ? usedMine() : usedAll();
+    const has = k => mine ? (own[k] != null && String(own[k]).trim() !== "")
+                          : !!String(CMDLINKS[k] || "").trim();
+    const all = mine ? linkFields() : CMD_LINK_FIELDS;
+    const live = all.filter(([k]) => used.has(k));
+    const dead = all.filter(([k]) => !used.has(k) && has(k));
+    const hid = all.length - live.length - dead.length;
+    $("#linkHint").innerHTML = (mine
       ? `เว้นว่าง = ใช้ค่าที่ผูกกับ SKU ของคนนี้ไว้ที่หน้าตั้งค่า หรือลิงก์ที่ตั้งร่วมกัน (ตัวจางในช่องคือค่าที่จะได้จริง) · บันทึกเองเมื่อคลิกออกจากช่อง`
-      : `<span style="color:var(--warn)">แก้ตรงนี้มีผลกับครีเอเตอร์ทุกคนที่ไม่ได้ตั้งลิงก์ของตัวเอง หรือไม่มี SKU ที่ผูกไว้อยู่แล้ว</span>`;
-    $("#linkRows").innerHTML = (mine ? linkFields() : CMD_LINK_FIELDS).map(([k, label]) => {
+      : `<span style="color:var(--warn)">แก้ตรงนี้มีผลกับครีเอเตอร์ทุกคนที่ไม่ได้ตั้งลิงก์ของตัวเอง หรือไม่มี SKU ที่ผูกไว้อยู่แล้ว</span>`)
+      // บอกไว้ว่าซ่อนไปกี่ช่อง ไม่ใช่หายเฉยๆ แล้วต้องมานั่งเดาว่าช่องที่เคยเห็นไปไหน
+      + (hid ? `<br><span style="color:var(--dim)">ซ่อนช่องที่ไม่มีบล็อกไหนใช้แล้วและยังว่างอยู่ ${hid} ช่อง
+          — เพิ่มบล็อกที่เรียกใช้เมื่อไหร่ ช่องจะกลับมาเอง</span>` : "");
+    const rowHtml = ([k, label]) => {
       const v = mine ? (own[k] != null ? own[k] : "") : (CMDLINKS[k] || "");
       // Timeline ไม่ใช่ลิงก์ เป็นตารางวันหลายบรรทัด — ต้องกด Enter ขึ้นบรรทัดใหม่ได้
       // ดูจากธง text ในทะเบียนเอกสาร ไม่ได้เช็กชื่อช่องตรงๆ เผื่อมีชนิดข้อความอื่นตามมา
@@ -7632,7 +7726,13 @@ function openCmd(proj, handle){
         ${mine && own[k] != null ? `<button type="button" data-linkclr="${esc(k)}"
           title="ใช้${multi ? "ของ" : "ลิงก์"}ร่วมแทน">↺</button>` : ""}
       </div>`;
-    }).join("");
+    };
+    $("#linkRows").innerHTML = (mine && liveProj ? liveRowsHtml() : "")
+      + live.map(rowHtml).join("")
+      // ของที่ไม่มีบล็อกไหนใช้แล้วแต่ยังมีค่าค้างอยู่ — แยกกองไว้ท้ายหน้า ไม่ปนกับช่องที่ยังต้องกรอก
+      + (dead.length ? `<div class="deadhead">ไม่มีบล็อกไหนใช้แล้ว — ยังมีค่าค้างอยู่ ${dead.length} ช่อง
+           <span>ล้างช่องให้ว่างแล้วช่องจะหายไปเอง</span></div>`
+         + `<div class="deadwrap">${dead.map(rowHtml).join("")}</div>` : "");
     // ── บันทึก + ยืนยันเป็นทางเดียวกันเสมอ ──
     // ไม่ว่าจะคลิกออกจากช่อง (onchange) หรือกดปุ่ม ✓ เอง ต้องเข้าที่เดียวกันแล้วเห็นผลเหมือนกัน
     // ไม่งั้นสองทางจะค่อยๆ เพี้ยนจากกันทีหลัง — เจอปัญหาแบบนี้มาแล้วหลายจุดในไฟล์นี้
@@ -7670,6 +7770,26 @@ function openCmd(proj, handle){
     });
     $("#linkRows").querySelectorAll("[data-linkclr]").forEach(b => b.onclick = () =>
       commitLink(b.dataset.linkclr, "", "↺ กลับไปใช้ลิงก์ที่ตั้งร่วมกันแล้ว"));
+    // ── ตารางไลฟ์เขียนลงช่องโพสต์ ไม่ใช่ถังลิงก์ ──
+    // ปลายทางคือช่องในตารางที่ซิงก์ขึ้นชีต/Supabase ตามปกติ ปฏิทินจึงเห็นค่าเดียวกันทันที
+    const commitLive = v => {
+      const r2 = (COORD[proj] || []).find(x => normId(x.handle) === normId(handle));
+      if (!r2) return;
+      setField(r2, "postdate", v);
+      renderCoord();
+      const wasOpen = !$("#linkBox").hidden;
+      openCmd(proj, handle);
+      if (wasOpen){
+        $("#cmdLinkBtn").click();
+        flashLinkMsg("✓ บันทึกตารางไลฟ์แล้ว — ปฏิทินและบล็อกแจ้งเตือนอัปเดตตามแล้ว");
+      }
+    };
+    $("#linkRows").querySelectorAll("[data-liverow]").forEach(inp =>
+      inp.onchange = () => commitLive(inp.value.trim()));
+    $("#linkRows").querySelectorAll("[data-liveok]").forEach(b => {
+      b.onmousedown = e => e.preventDefault();          // กันไม่ให้ onchange จาก blur ยิงซ้อน
+      b.onclick = () => { const inp = $("#linkRows [data-liverow]"); if (inp) commitLive(inp.value.trim()); };
+    });
     document.querySelectorAll("#linkBox .linkscope button").forEach(b => b.onclick = () => {
       LINK_SCOPE = b.dataset.lscope;
       document.querySelectorAll("#linkBox .linkscope button").forEach(x =>
