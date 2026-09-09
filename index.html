@@ -877,6 +877,47 @@ body[data-crew] .crewhide{display:none !important}
 /* ── แถบค้นหาด่วน Ctrl+F ── ลอยมุมขวาบนแบบแถบค้นหาของเบราว์เซอร์
    z-index 85 = สูงกว่าลิ้นชัก (70) เพื่อลอยทับหน้า Command ที่เปิดค้างไว้ได้
    แต่ต่ำกว่าจอล็อก (90) กับคู่มือ (150) ซึ่งเป็นของที่ต้องอยู่บนสุดจริงๆ */
+/* เส้นเวลาการเปลี่ยนแปลงในหน้าตั้งค่า — จุดซ้ายคือหมุดบนเส้น ตำแหน่งปัจจุบันเน้นให้เห็นชัด
+   รายการที่ย้อนไปแล้วจางลงแต่ไม่หาย เพราะยังกดกลับมาได้จนกว่าจะแก้อะไรใหม่ทับ */
+.histkeep{display:flex;align-items:center;gap:6px;font-size:.8rem;color:var(--mute);white-space:nowrap}
+.histkeep input{width:5em;font-size:.84rem;padding:6px 8px}
+.histempty{font-size:.83rem;color:var(--dim);padding:12px 2px;line-height:1.7}
+#histList{display:flex;flex-direction:column;margin-top:10px;
+  max-height:46vh;overflow:auto}
+.histrow{display:flex;align-items:center;gap:11px;padding:7px 2px;position:relative}
+.histrow .dot{flex:none;width:9px;height:9px;border-radius:50%;background:var(--line);
+  box-shadow:0 0 0 3px var(--surface)}
+.histrow::before{content:"";position:absolute;left:4px;top:0;bottom:0;width:1px;background:var(--line)}
+.histrow:first-child::before{top:50%}
+.histrow:last-child::before{bottom:50%}
+.histrow.here .dot{background:var(--accent)}
+.histrow.here{background:rgba(var(--accent-rgb),.07);border-radius:8px}
+.histrow.undone{opacity:.5}
+.histrow.locked .dot{background:var(--warn)}
+.histrow .tx{flex:1;min-width:0;display:flex;flex-direction:column;gap:1px}
+.histrow .tx b{font-size:.84rem;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.histrow .tx i{font-size:.73rem;color:var(--dim);font-style:normal}
+.histrow .now{flex:none;font-size:.72rem;color:var(--accent)}
+.histrow .locked{flex:none;font-size:.72rem;color:var(--warn)}
+.histrow button{flex:none;padding:4px 11px;font-size:.78rem}
+@media(max-width:620px){
+  .histkeep{flex:1 1 100%}
+  .histrow .tx b{white-space:normal}
+}
+/* แถบแจ้งผลย้อนกลับ — ลอยล่างกลางจอ เหนือทุกแผงที่กางอยู่ (ย้อนกลับกดได้จากทุกที่ ก็ต้องเห็นผลจากทุกที่)
+   ต่ำกว่าประตูล็อก (90) และคู่มือ (150) ที่ต้องคลุมทุกอย่างจริงๆ */
+.histtoast{position:fixed;left:50%;bottom:22px;transform:translate(-50%,14px);z-index:88;
+  display:none;align-items:center;gap:11px;max-width:min(620px,calc(100vw - 28px));
+  background:var(--surface);border:1px solid var(--accent);border-radius:11px;
+  padding:9px 10px 9px 15px;font-size:.86rem;color:var(--ink);
+  box-shadow:0 18px 44px rgba(0,0,0,.62);opacity:0;transition:opacity .16s,transform .16s}
+.histtoast.on{display:flex;opacity:1;transform:translate(-50%,0)}
+.histtoast.warn{border-color:var(--warn)}
+.histtoast > span{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.histtoast button{flex:none;background:none;border:1px solid var(--line);color:var(--accent);
+  border-radius:7px;padding:.3em .7em;font-family:inherit;font-size:.82rem}
+.histtoast button:hover{border-color:var(--accent)}
+.histtoast button.x{color:var(--dim);border-color:transparent;padding:.3em .5em}
 .qfind{position:fixed;top:calc(var(--stick,52px) + 10px);right:16px;z-index:85;
   width:min(370px,calc(100vw - 32px));
   background:var(--surface);border:1px solid var(--accent);border-radius:11px;
@@ -2058,6 +2099,7 @@ tr.subrow td.w-status select{width:14.6em}
     <div class="srcchip" id="srcChip" title="ตอนนี้เว็บอ่านชีตด้วยวิธีไหน"></div>
     <button class="gear accent crewhide" id="addBtn" aria-haspopup="dialog">+<span class="lbl"> เพิ่มครีเอเตอร์</span></button>
     <button class="gear" id="gearBtn" aria-haspopup="dialog">⚙<span class="lbl"> ตั้งค่า</span></button>
+    <button class="gear" id="undoBtn" hidden title="ย้อนกลับ (Ctrl+Z)">↶<span class="lbl"> ย้อนกลับ</span></button>
     <button class="gear" id="syncBtn" hidden title="ส่งที่แก้ขึ้นฐานข้อมูลเดี๋ยวนี้">⇧<span class="lbl"> ซิงก์</span></button>
     <button class="gear uibtn" id="uiBtn" title="ขนาดตัวอักษรทั้งเว็บ — กดเพื่อสลับ">A</button>
     <button class="gear" id="lockBtn" title="ล็อกหน้าจอ ต้องใส่รหัสใหม่">🔒<span class="lbl"> ล็อก</span></button>
@@ -2096,6 +2138,9 @@ tr.subrow td.w-status select{width:14.6em}
      เหมือนแถบค้นหาของ Chrome: โผล่มุมขวาบน ค้นแล้วปิด ของที่เปิดค้างไว้อยู่ครบเหมือนเดิม
      ต่างจากช่องคำสั่งใหญ่ในหน้า Coordinate ตรงที่ตัวนี้ "ค้นแล้วไป" อย่างเดียว ไม่รับคำสั่งแก้ข้อมูล
      — ของที่แก้ข้อมูลได้ต้องมองเห็นผลตรวจก่อนกดยืนยันเสมอ กล่องลอยเล็กๆ ไม่มีที่พอให้เห็น -->
+<!-- แจ้งผลย้อนกลับ/เรียกคืน พร้อมปุ่มกลับทางเดิม — กดพลาดต้องแก้ได้จากตรงที่มองอยู่ ไม่ต้องไปหาในหน้าตั้งค่า -->
+<div class="histtoast" id="histToast"></div>
+
 <div class="qfind" id="qFind" hidden>
   <div class="qfind-bar">
     <span class="qfind-ic">⌕</span>
@@ -2712,6 +2757,26 @@ tr.subrow td.w-status select{width:14.6em}
         <b>คืนค่าที่แก้ในเครื่อง</b> ล้างทุกอย่างที่แก้ไว้แต่ยังไม่ได้ซิงก์
       </div>
     </section>
+
+    <!-- ย้อนกลับได้ถึงไหน = ตั้งเป็น "กี่การเปลี่ยนแปลง" ไม่ใช่ "กี่วัน"
+         เพราะสิ่งที่คนจำได้คือ "เมื่อกี้แก้อะไรไปบ้าง" ไม่ใช่ "เมื่อวานตอนบ่ายข้อมูลเป็นยังไง" -->
+    <details class="sect" id="histSect">
+      <summary><h3>ย้อนกลับ · กู้ข้อมูล</h3></summary>
+      <p class="sect-sub">
+        <b>Ctrl+Z</b> ย้อนการเปลี่ยนแปลงล่าสุด · <b>Ctrl+Shift+Z</b> เรียกคืน — กดได้จากทุกหน้า<br>
+        ที่นี่เลือกย้อนกลับไปจุดไหนก็ได้ <b>แยกตามโปรเจกต์</b> — นับเป็นรายการเปลี่ยนแปลง ไม่ใช่เวลา<br>
+        <span style="color:var(--dim)">เก็บไว้ในเครื่องนี้เท่านั้น ไม่ได้ขึ้นฐานข้อมูล —
+          คนอื่นในทีมย้อนของที่เราแก้ไม่ได้ และเราก็ย้อนของที่เขาแก้ไม่ได้เหมือนกัน</span>
+      </p>
+      <div class="pickhead">
+        <select id="histProj" title="ดูประวัติของโปรเจกต์ไหน"></select>
+        <label class="histkeep">เก็บ
+          <input id="histKeep" type="number" min="1" max="200" step="5">
+          รายการล่าสุด</label>
+        <button type="button" class="export ghost" id="histClear">ล้างประวัติโปรเจกต์นี้</button>
+      </div>
+      <div id="histList"></div>
+    </details>
 
     <section class="sect crewhide">
       <h3>Google Sheet</h3>
@@ -4137,6 +4202,228 @@ let PROJ = PROJECTS[0];
 
 const ekey = r => `${r.project}|${normId(r.handle)}|${r.code || ""}`;
 
+// ═══ ประวัติการเปลี่ยนแปลง — Ctrl+Z และหน้ากู้ข้อมูล ═══
+// เก็บเป็น "รายการเปลี่ยนแปลง" ไม่ใช่ภาพรวมทั้งโปรเจกต์ต่อการกดหนึ่งครั้ง — จดเฉพาะแถวที่ขยับจริง
+// (ภาพรวมทั้งโปรเจกต์กินที่เป็นสิบเท่า แล้ว localStorage มีเพดาน พอเต็มคือประวัติหายทั้งกอง)
+// จดทั้งสภาพก่อนและหลัง จึงเดินได้ทั้งสองทาง — ย้อนกลับแล้วเรียกคืนได้ ไม่ใช่ทางเดียว
+// at = ตอนนี้ยืนอยู่ตรงไหนของเส้นเวลา (= list.length คือล่าสุด) · แก้ใหม่ตอนย้อนค้างอยู่ = ตัดอนาคตทิ้ง
+const LS_HIST  = "cf_hist_v1";        // { โปรเจกต์: { list:[…], at:n, ut:เวลาที่ย้อนล่าสุด } }
+const LS_HISTN = "cf_histn_v1";       // { โปรเจกต์: เก็บกี่รายการ }
+const HIST_KEEP_DEF = 30;
+const HIST_KEEP_MAX = 200;
+// ก้อนที่ใหญ่เกินนี้จดแต่หัวเรื่อง ไม่จดตัวข้อมูล (วางชีต 1,500 คน = รายการเดียวหลายเมกะไบต์)
+// แล้วบอกตรงๆ ว่าย้อนไม่ได้ ดีกว่าเงียบไว้ให้เข้าใจว่าย้อนได้แล้วมากดตอนจำเป็นจริงๆ ไม่ได้
+const HIST_ROW_CAP = 300;
+let HIST = {};
+let HISTN = {};
+let HTX = null;                       // รอบที่กำลังจดอยู่
+
+function loadHist(){
+  try { HIST = JSON.parse(lsGet(LS_HIST) || "{}") || {}; } catch(e){ HIST = {}; }
+  try { HISTN = JSON.parse(lsGet(LS_HISTN) || "{}") || {}; } catch(e){ HISTN = {}; }
+}
+function saveHist(){
+  try { lsSet(LS_HIST, JSON.stringify(HIST)); return; } catch(e){}
+  // เต็มโควตา — ทิ้งของเก่าสุดทีละครึ่งจนกว่าจะเขียนลงได้ ดีกว่าเงียบแล้วไม่ได้จดอะไรเลย
+  for (let i = 0; i < 8; i++){
+    let cut = false;
+    for (const p in HIST){
+      const h = HIST[p];
+      if (h.list.length > 1){
+        const n = Math.ceil(h.list.length / 2);
+        h.list.splice(0, n); h.at = Math.max(0, h.at - n); cut = true;
+      }
+    }
+    if (!cut) return;
+    try { lsSet(LS_HIST, JSON.stringify(HIST)); return; } catch(e2){}
+  }
+}
+const histOf = p => (HIST[p] = HIST[p] || { list: [], at: 0, ut: 0 });
+const histKeep = p => Math.max(1, Math.min(HIST_KEEP_MAX, Number(HISTN[p]) || HIST_KEEP_DEF));
+function histTrim(h, keep){
+  const over = h.list.length - keep;
+  if (over > 0){ h.list.splice(0, over); h.at = Math.max(0, h.at - over); }
+}
+function setHistKeep(p, n){
+  HISTN[p] = Math.max(1, Math.min(HIST_KEEP_MAX, Number(n) || HIST_KEEP_DEF));
+  try { lsSet(LS_HISTN, JSON.stringify(HISTN)); } catch(e){}
+  if (HIST[p]) histTrim(HIST[p], HISTN[p]);
+  saveHist();
+}
+// ล้างประวัติของทุกโปรเจกต์ — ใช้ตอนฐานข้อมูลถูกโหลดใหม่ทั้งกอง
+// ของที่จดไว้เทียบกับข้อมูลชุดเก่า เอากลับมาทับข้อมูลชุดใหม่คือทำให้ข้อมูลเพี้ยนแบบเงียบๆ
+function histClearAll(){
+  HIST = {};
+  try { lsSet(LS_HIST, "{}"); } catch(e){}
+  updateUndoBtn();
+}
+
+// สภาพของแถวหนึ่ง ณ ตอนนี้ — ตัวแถว + เงาที่ค้างใน EDITS + ตำแหน่งในโปรเจกต์
+// ต้องเก็บ EDITS ด้วย ไม่งั้นย้อนแล้วค่าที่เห็นถูก แต่ของที่รอซิงก์ขึ้นฐานข้อมูลยังเป็นของใหม่
+// ตำแหน่งก็ต้องเก็บ — ลำดับในตารางคือลำดับที่เขียนลงชีต ย้อนแล้วไปต่อท้ายคือลำดับเพี้ยน
+function histSnap(r){
+  const k = ekey(r);
+  return { k, row: JSON.parse(JSON.stringify(r)),
+           ed: EDITS[k] ? JSON.parse(JSON.stringify(EDITS[k])) : null,
+           at: (COORD[r.project] || []).indexOf(r) };
+}
+const HIST_GONE = k => ({ k, row: null, ed: null, at: -1 });
+
+// ── รอบการจด ── ซ้อนกันได้ (setField ที่ถูกเรียกในลูปของ Quick Order นับเป็นรอบเดียวกัน)
+// "หนึ่งครั้งที่คนกด = หนึ่งครั้งที่ Ctrl+Z" ต้องจริงเสมอ ไม่งั้นต้องกดย้อน 40 ทีเพราะคำสั่งเดียว
+function histBegin(proj, lb){
+  if (HTX){ HTX.depth++; return; }
+  HTX = { proj, lb, depth: 1, rows: new Map() };
+}
+function histTouch(r){                 // จดสภาพก่อนแก้ — ครั้งแรกของแถวนั้นครั้งเดียว
+  if (HTX && r && !HTX.rows.has(r)) HTX.rows.set(r, histSnap(r));
+}
+function histNew(r){                   // แถวเกิดใหม่ในรอบนี้ — ก่อนหน้านี้ยังไม่มี
+  if (HTX && r && !HTX.rows.has(r)) HTX.rows.set(r, HIST_GONE(""));
+}
+function histEnd(){
+  if (!HTX) return;
+  if (--HTX.depth > 0) return;
+  const tx = HTX; HTX = null;
+  const rows = [], projs = new Set();
+  tx.rows.forEach((b, r) => {
+    // ลบไปแล้ว = หาไม่เจอในโปรเจกต์ไหนเลย (เทียบที่ตัวแถวจริง ไม่ใช่คีย์ เพราะคีย์เปลี่ยนตอนย้าย/เปลี่ยนชื่อ)
+    const live = Object.keys(COORD).some(p => (COORD[p] || []).includes(r));
+    const a = live ? histSnap(r) : HIST_GONE(b.k);
+    if (JSON.stringify(b) === JSON.stringify(a)) return;      // ไม่ได้เปลี่ยนอะไรจริง ไม่ต้องจด
+    rows.push({ b, a });
+    if (b.row) projs.add(b.row.project);
+    if (a.row) projs.add(a.row.project);
+  });
+  if (!rows.length) return;
+  const h = histOf(tx.proj);
+  if (h.at < h.list.length) h.list.splice(h.at);              // แก้ใหม่ตอนย้อนค้างอยู่ = ตัดอนาคตทิ้ง
+  const big = rows.length > HIST_ROW_CAP;
+  // ข้ามโปรเจกต์ในรอบเดียว (Quick Order สั่งหลายคนคนละโปรเจกต์) — เก็บเป็นรายการเดียวเพื่อให้
+  // กด Ctrl+Z ครั้งเดียวจบเหมือนที่คนคาดหวัง แต่ต้องเขียนบอกในหัวเรื่องว่าไปแตะโปรเจกต์อื่นด้วย
+  // ที่หัวเรื่องเขียนชื่อโปรเจกต์ไว้อยู่แล้ว (เช่น "ย้าย ccc ไป X") ไม่ต้องต่อท้ายซ้ำอีก
+  const other = [...projs].filter(p => p !== tx.proj && !tx.lb.includes(p));
+  h.list.push({ t: Date.now(), n: rows.length, big, rows: big ? null : rows,
+    lb: tx.lb + (other.length ? ` · แตะ ${other.join(" · ")} ด้วย` : "") });
+  h.at = h.list.length;
+  histTrim(h, histKeep(tx.proj));
+  saveHist();
+  updateUndoBtn();
+}
+
+// ── เอาสภาพที่จดไว้กลับเข้าที่ ──
+// ลบร่องรอยของทั้งคีย์เก่าและคีย์ใหม่ก่อนเสมอ — ย้ายโปรเจกต์/เปลี่ยนชื่อทำให้คีย์ไม่ใช่ตัวเดิม
+// ถ้าลบแค่คีย์เดียวจะเหลือแถวผีอีกใบค้างอยู่คนละโปรเจกต์
+function histPut(from, to){
+  [from, to].forEach(s => {
+    if (!s || !s.k) return;
+    for (const p in COORD){
+      const at = (COORD[p] || []).findIndex(x => ekey(x) === s.k);
+      if (at >= 0) COORD[p].splice(at, 1);
+    }
+    delete EDITS[s.k];
+  });
+  if (!to || !to.row) return;
+  const row = JSON.parse(JSON.stringify(to.row));
+  const list = (COORD[row.project] = COORD[row.project] || []);
+  list.splice(to.at >= 0 ? Math.min(to.at, list.length) : list.length, 0, row);
+  if (to.ed) EDITS[ekey(row)] = JSON.parse(JSON.stringify(to.ed));
+}
+// เดินตัวชี้ไปยังจุดที่ต้องการ ทีละก้าว — ผลลัพธ์จึงเหมือนกดย้อน/เรียกคืนซ้ำๆ เป๊ะ
+// คืนจำนวนก้าวที่เดินได้จริง (0 = ติดก้อนที่ย้อนไม่ได้ หรืออยู่ตรงนั้นอยู่แล้ว)
+function histGo(proj, to){
+  const h = histOf(proj);
+  const want = Math.max(0, Math.min(h.list.length, to));
+  let n = 0;
+  while (h.at > want){
+    const e = h.list[h.at - 1];
+    if (!e.rows) break;                       // ก้อนใหญ่ที่ไม่ได้จดข้อมูลไว้ — ข้ามไปไม่ได้ ต้องหยุด
+    e.rows.forEach(x => histPut(x.a, x.b));
+    h.at--; n++;
+  }
+  while (h.at < want){
+    const e = h.list[h.at];
+    if (!e.rows) break;
+    e.rows.forEach(x => histPut(x.b, x.a));
+    h.at++; n++;
+  }
+  if (n){ h.ut = Date.now(); saveEdits(); saveHist(); markDirty(); }
+  return n;
+}
+const histCanUndo = p => { const h = HIST[p]; return !!(h && h.at > 0 && h.list[h.at - 1].rows); };
+const histCanRedo = p => { const h = HIST[p]; return !!(h && h.at < h.list.length && h.list[h.at].rows); };
+// Ctrl+Z ต้องย้อน "สิ่งที่เพิ่งทำ" ไม่ว่าจะทำในโปรเจกต์ไหน — เลือกจากเวลาของรายการ
+// ไม่ใช่จากโปรเจกต์ที่เปิดค้างอยู่ (แก้ที่ A แล้วสลับไปดู B การกด Ctrl+Z ต้องย้อนของ A)
+function histNewestUndo(){
+  let best = null;
+  for (const p in HIST) if (histCanUndo(p)){
+    const t = HIST[p].list[HIST[p].at - 1].t;
+    if (!best || t > best.t) best = { p, t };
+  }
+  return best && best.p;
+}
+function histNewestRedo(){
+  let best = null;
+  for (const p in HIST) if (histCanRedo(p)){
+    const t = HIST[p].ut || 0;
+    if (!best || t > best.t) best = { p, t };
+  }
+  return best && best.p;
+}
+
+// ── วาดใหม่หลังย้อน/เรียกคืน ──
+// ทุกแผงที่กางอยู่ต้องอ่านข้อมูลใหม่ ไม่ใช่แค่ตาราง — histPut สร้างตัวแถวใบใหม่ทับของเดิม
+// ใครที่ถืออ้างอิงตัวแถวเก่าไว้จะยังโชว์ค่าเก่าค้างอยู่ทั้งที่ข้อมูลจริงเปลี่ยนไปแล้ว
+function histRefresh(){
+  renderProjTabs(); renderCoord();
+  if (!$("#mapView").hidden) renderMap();
+  if ($("#detailPanel").classList.contains("on")){
+    if (detailRow()) renderDetail(); else closeDetail();     // แถวที่เปิดดูอยู่อาจเพิ่งถูกย้อนจนหายไป
+  }
+  if (!$("#settings").hidden) renderHist();
+  updateUndoBtn();
+}
+// แถบแจ้งผลสั้นๆ พร้อมปุ่มย้อนกลับของตัวเอง — กด Ctrl+Z พลาดต้องเอาคืนได้ทันทีจากตรงที่มองอยู่
+// ไม่งั้นต้องไปเปิดหน้าตั้งค่าหาว่าเมื่อกี้ทำอะไรหายไป ซึ่งตอนนั้นก็จำไม่ได้แล้วว่าอะไรหาย
+let HIST_TOAST_T = null;
+function histToast(msg, warn, back, backLb){
+  const el = $("#histToast");
+  if (!el) return;
+  el.className = "histtoast on" + (warn ? " warn" : "");
+  el.innerHTML = `<span>${esc(msg)}</span>` +
+    (back ? `<button type="button" id="histToastBack">${esc(backLb || "เรียกคืน")}</button>` : "") +
+    `<button type="button" class="x" id="histToastX" aria-label="ปิด">✕</button>`;
+  if (back) $("#histToastBack").onclick = () => { el.className = "histtoast"; back(); };
+  $("#histToastX").onclick = () => { el.className = "histtoast"; };
+  clearTimeout(HIST_TOAST_T);
+  HIST_TOAST_T = setTimeout(() => { el.className = "histtoast"; }, back ? 9000 : 4000);
+}
+function doUndo(){
+  const p = histNewestUndo();
+  if (!p) return histToast("ไม่มีอะไรให้ย้อนกลับแล้ว", true);
+  const e = HIST[p].list[HIST[p].at - 1];
+  if (!histGo(p, HIST[p].at - 1))
+    return histToast("ย้อนรายการนี้ไม่ได้ — เป็นก้อนใหญ่เกินกว่าที่เก็บข้อมูลไว้", true);
+  histRefresh();
+  histToast(`ย้อนกลับแล้ว: ${e.lb}${p === PROJ ? "" : ` (${p})`}`, false, () => doRedo(p));
+}
+function doRedo(only){
+  const p = only || histNewestRedo();
+  if (!p || !histCanRedo(p)) return histToast("ไม่มีอะไรให้เรียกคืน", true);
+  const e = HIST[p].list[HIST[p].at];
+  if (!histGo(p, HIST[p].at + 1))
+    return histToast("เรียกคืนรายการนี้ไม่ได้ — เป็นก้อนใหญ่เกินกว่าที่เก็บข้อมูลไว้", true);
+  histRefresh();
+  histToast(`เรียกคืนแล้ว: ${e.lb}${p === PROJ ? "" : ` (${p})`}`, false, () => doUndo(), "ย้อนกลับอีก");
+}
+function updateUndoBtn(){
+  const b = $("#undoBtn");
+  if (!b) return;
+  const p = histNewestUndo();
+  b.hidden = document.body.dataset.view !== "coord" || !p;
+  if (p) b.title = `ย้อนกลับ: ${HIST[p].list[HIST[p].at - 1].lb} (Ctrl+Z)`;
+}
+
 // ─── ซิงก์ขึ้นชีต ───
 // เว็บเป็นหน้าเว็บนิ่งๆ ตัวจับเวลาเดินได้เฉพาะตอนแท็บเปิดอยู่
 // ปิดแท็บ = ไม่มีอะไรซิงก์ เลยต้องบอกบนหน้าจอเสมอว่าค้างส่งอยู่กี่รายการ
@@ -4253,6 +4540,7 @@ async function syncCoordSheet(){
 function updateSyncBar(failed){
   const el = $("#syncBar");
   const btn = $("#syncBtn");
+  updateUndoBtn();          // ปุ่มย้อนกลับซ่อน/โผล่ตามหน้าเหมือนปุ่มซิงก์ ขึ้นกับเงื่อนไขชุดเดียวกัน
   if (btn){
     btn.hidden = document.body.dataset.view !== "coord";
     btn.disabled = SYNCING;
@@ -5113,11 +5401,15 @@ function renderDetail(){
   $("#dCmd").onclick = () => openCmd(r.project, normId(r.handle));
   $("#dDel").onclick = () => {
     if (!confirm(`ลบ ${r.handle} ออกจาก ${r.project}?\nจะหายจากชีตด้วยตอนซิงก์รอบถัดไป`)) return;
+    histBegin(r.project, `ลบ ${normId(r.handle)} ออกจาก ${r.project}`);
+    histTouch(r);
     const list = COORD[r.project] || [], at = list.indexOf(r);
     if (at >= 0) list.splice(at, 1);
     delete EDITS[ekey(r)];
+    histEnd();
     saveEdits(); markDirty(); renderProjTabs(); renderCoord();
     closeDetail();
+    updateUndoBtn();
   };
 }
 
@@ -5618,8 +5910,11 @@ function renderCoord(){
     const r = (COORD[PROJ] || [])[+b.dataset.del];
     if (!r) return;
     if (!confirm(`ลบ ${r.handle} ออกจาก ${PROJ}?\nจะหายจากชีตด้วยตอนซิงก์รอบถัดไป`)) return;
+    histBegin(PROJ, `ลบ ${normId(r.handle)} ออกจาก ${PROJ}`);
+    histTouch(r);
     COORD[PROJ].splice(+b.dataset.del, 1);
     delete EDITS[ekey(r)];
+    histEnd();
     saveEdits(); markDirty(); renderProjTabs(); renderCoord();
   });
 
@@ -5690,7 +5985,21 @@ addEventListener("resize", measureStickyCols);
 
 // ─── แก้ค่าหนึ่งช่อง — ใช้ร่วมกันทั้งตารางและลิ้นชักรายละเอียด ───
 // ที่เดียวจบ จะได้ไม่มีทางที่สองที่แก้ข้อมูลคนละแบบกัน
+// ── ทางเข้าเดียวของทุกการแก้ = ที่เดียวที่ต้องจดประวัติ ──
+// ห่อไว้ชั้นนอกแทนที่จะแทรกในตัวฟังก์ชัน เพราะข้างในมี return กลางทางหลายจุด
+// แทรกข้างในเมื่อไหร่จะมีทางออกที่ลืมปิดรอบการจด แล้วรอบนั้นจะไปกลืนการแก้ครั้งถัดไปแทน
 function setField(r, f, raw){
+  if (!r) return false;
+  histBegin(r.project, `แก้${QO_LABEL[f] || HIST_FIELD_TH[f] || f} · ${normId(r.handle)}`);
+  histTouch(r);
+  const ok = setFieldRaw(r, f, raw);
+  histEnd();
+  return ok;
+}
+// ชื่อไทยของช่องที่ QO_LABEL ไม่มี — ใช้แค่ตั้งหัวเรื่องในประวัติ ไม่ได้ผูกกับตัวอ่านคำสั่ง
+const HIST_FIELD_TH = { handle:"ชื่อ", kind:"กลุ่ม", videos:"จำนวนวิดีโอ", deadline:"กำหนดส่ง",
+  brief:"บรีฟ", commission:"Commission", project:"โปรเจกต์" };
+function setFieldRaw(r, f, raw){
   if (!r) return false;
   const before = ekey(r);
   if (f === "handle"){
@@ -5722,6 +6031,14 @@ function setField(r, f, raw){
 function moveRow(r, to){
   const from = r.project;
   if (!to || to === from) return false;
+  histBegin(from, `ย้าย ${normId(r.handle)} ไป ${to}`);
+  histTouch(r);
+  const ok = moveRowRaw(r, to);
+  histEnd();
+  return ok;
+}
+function moveRowRaw(r, to){
+  const from = r.project;
   const list = COORD[from] || [];
   const at = list.indexOf(r);
   if (at >= 0) list.splice(at, 1);
@@ -10461,9 +10778,87 @@ function openSettings(){
   renderSheetList();
   renderSkuGuide();
   renderAccent();
+  renderHist();
   $("#addMsg").className = "addmsg";
   $("#settings").hidden = false;
 }
+
+// ─── หน้ากู้ข้อมูล ───
+// เส้นเวลาของโปรเจกต์หนึ่ง เรียงใหม่สุดอยู่บน — บอกด้วยว่า "ตอนนี้ยืนอยู่ตรงไหน"
+// เพราะย้อนแล้วรายการที่ย้อนไปไม่ได้หายไปไหน ยังกดกลับมาได้จนกว่าจะแก้อะไรใหม่ทับ
+let HIST_PROJ = "";
+function histProjNow(){
+  if (HIST_PROJ && (PROJECTS.includes(HIST_PROJ) || HIST[HIST_PROJ])) return HIST_PROJ;
+  return (!$("#mapView").hidden && MAP_PROJ) ? MAP_PROJ : PROJ;
+}
+function renderHist(){
+  const sel = $("#histProj");
+  if (!sel) return;
+  const p = histProjNow();
+  // โปรเจกต์ที่ถูกลบไปแล้วแต่ยังมีประวัติค้าง ต้องเลือกดูได้ ไม่งั้นของที่ยังกู้ได้จะเข้าไม่ถึง
+  const list = [...new Set(PROJECTS.concat(Object.keys(HIST)))];
+  sel.innerHTML = list.map(x => `<option value="${esc(x)}"${x === p ? " selected" : ""}>${esc(x)}${
+    HIST[x] && HIST[x].list.length ? ` (${HIST[x].list.length})` : ""}</option>`).join("");
+  $("#histKeep").value = histKeep(p);
+  const h = HIST[p];
+  if (!h || !h.list.length){
+    $("#histList").innerHTML = `<div class="histempty">ยังไม่มีการเปลี่ยนแปลงในโปรเจกต์นี้ —
+      พอแก้อะไรในตาราง แผนผัง หรือช่องคำสั่ง รายการจะมาโผล่ตรงนี้เอง</div>`;
+    return;
+  }
+  const now = Date.now();
+  const when = t => {
+    const d = new Date(t), mins = Math.round((now - t) / 60000);
+    const clock = d.toLocaleTimeString("th-TH", { hour:"2-digit", minute:"2-digit" });
+    return mins < 1 ? "เมื่อครู่" : mins < 60 ? `${mins} นาทีที่แล้ว · ${clock}`
+      : d.toDateString() === new Date(now).toDateString() ? `วันนี้ ${clock}`
+      : `${d.getDate()} ${TH_MON_SHORT[d.getMonth()]} ${clock}`;
+  };
+  // แถวบนสุด = "ตอนนี้" (ยังไม่ย้อนอะไร) กดเพื่อกลับมาสุดทางได้เสมอ
+  const head = `<div class="histrow${h.at === h.list.length ? " here" : ""}">
+      <span class="dot"></span>
+      <div class="tx"><b>ล่าสุด</b><i>สภาพปัจจุบันของข้อมูล</i></div>
+      ${h.at === h.list.length ? `<span class="now">อยู่ตรงนี้</span>`
+        : `<button type="button" class="export" data-histgo="${h.list.length}">มาที่นี่</button>`}
+    </div>`;
+  const rows = h.list.map((e, i) => {
+    // i คือ "สภาพหลังรายการนี้" = ตัวชี้ที่ i+1 · กดที่รายการหนึ่ง = ย้อนให้เหมือนก่อนรายการนั้นเกิด
+    const applied = h.at > i;
+    return `<div class="histrow${h.at === i ? " here" : ""}${applied ? "" : " undone"}${
+        e.rows ? "" : " locked"}">
+      <span class="dot"></span>
+      <div class="tx"><b>${esc(e.lb)}</b><i>${esc(when(e.t))} · ${e.n} แถว${
+        applied ? "" : " · ย้อนไปแล้ว"}</i></div>
+      ${e.rows
+        ? (h.at === i + 1
+            ? `<button type="button" class="export" data-histgo="${i}"
+                 title="ย้อนกลับให้เหมือนก่อนรายการนี้">ย้อนรายการนี้</button>`
+            : `<button type="button" class="export ghost" data-histgo="${i}"
+                 title="ย้อนกลับให้เหมือนก่อนรายการนี้ (ย้อนรายการที่ใหม่กว่าไปด้วยทั้งหมด)">ย้อนถึงตรงนี้</button>`)
+        : `<span class="locked" title="ก้อนใหญ่เกิน ${HIST_ROW_CAP} แถว — จดไว้แต่หัวเรื่อง ไม่ได้เก็บตัวข้อมูล">ย้อนไม่ได้</span>`}
+    </div>`;
+  }).reverse().join("");
+  $("#histList").innerHTML = head + rows;
+  $("#histList").querySelectorAll("[data-histgo]").forEach(b => b.onclick = () => {
+    const to = +b.dataset.histgo, from = h.at;
+    const n = histGo(p, to);
+    if (!n) return histToast("ย้อนไม่ได้ — ติดก้อนใหญ่ที่ไม่ได้เก็บตัวข้อมูลไว้", true);
+    histRefresh();
+    // เดินไปแล้วกี่ก้าวและไปทางไหน — บอกให้ตรงกับที่เกิดขึ้นจริง ไม่ใช่ที่ตั้งใจกด (อาจติดก้อนที่ย้อนไม่ได้กลางทาง)
+    histToast(`${to < from ? "ย้อนกลับ" : "เรียกคืน"} ${n} รายการใน ${p} แล้ว`, false,
+      () => { histGo(p, from); histRefresh(); histToast(`กลับมาที่เดิมแล้ว`); }, "กลับที่เดิม");
+  });
+}
+$("#histProj").onchange = () => { HIST_PROJ = $("#histProj").value; renderHist(); };
+$("#histKeep").onchange = () => { setHistKeep(histProjNow(), $("#histKeep").value); renderHist(); };
+$("#histClear").onclick = () => {
+  const p = histProjNow(), h = HIST[p];
+  if (!h || !h.list.length) return;
+  if (!confirm(`ล้างประวัติ ${h.list.length} รายการของ ${p}?\n\n` +
+    `ข้อมูลที่เห็นอยู่ตอนนี้ไม่เปลี่ยน แต่จะย้อนกลับไปก่อนหน้านี้ไม่ได้อีก`)) return;
+  delete HIST[p];
+  saveHist(); renderHist(); updateUndoBtn();
+};
 
 // ─── ตารางคู่มือถ่ายทำ ตาม SKU ───
 // บอกด้วยว่าแต่ละแถวมีผลกับกี่คน — ตั้งไว้แล้วไม่มีใครได้ SKU นั้นคือตั้งผิด และเงียบมาก
@@ -11771,6 +12166,21 @@ document.addEventListener("keydown", e => {
   e.preventDefault();
   openQFind();
 });
+// ── Ctrl+Z ย้อนกลับ · Ctrl+Shift+Z / Ctrl+Y เรียกคืน ──
+// ⚠️ ต้องเทียบ e.code ด้วย — แป้นไทยส่ง e.key เป็น "ผ" ไม่ใช่ "z" กดแล้วจะเงียบทั้งที่กดถูกปุ่ม
+// ในช่องพิมพ์ยกให้เบราว์เซอร์เสมอ (Ctrl+Z ในช่องข้อความคือย้อนตัวหนังสือที่กำลังพิมพ์ คนละเรื่องกัน)
+document.addEventListener("keydown", e => {
+  if (!(e.ctrlKey || e.metaKey) || e.altKey || e.repeat) return;
+  const z = e.code === "KeyZ" || e.key === "z" || e.key === "Z";
+  const y = e.code === "KeyY" || e.key === "y" || e.key === "Y";
+  if (!z && !y) return;
+  if (!$("#lockView").hidden || !$("#coachView").hidden) return;
+  const a = document.activeElement;
+  if (a && (a.tagName === "INPUT" || a.tagName === "TEXTAREA" || a.isContentEditable)) return;
+  e.preventDefault();
+  (y || e.shiftKey) ? doRedo() : doUndo();
+});
+$("#undoBtn").onclick = doUndo;
 $("#qFindX").onclick = closeQFind;
 $("#qFindIn").addEventListener("input", renderQFind);
 $("#qFindIn").addEventListener("keydown", e => {
@@ -11807,16 +12217,26 @@ function syncRunBtn(){
 ["ref","apiKey"].forEach(id => $("#"+id).addEventListener("input", syncRunBtn));
 syncRunBtn();
 // ─── Coordinate: โหลดใหม่ / ส่งออก / คืนค่าที่แก้ ───
+// ── โหลดใหม่ / คืนค่า = ข้อมูลฐานเปลี่ยนใต้เท้า ประวัติที่จดไว้จึงใช้ไม่ได้อีก ──
+// รายการที่จดไว้เทียบกับข้อมูลชุดเก่า เอากลับมาทับข้อมูลชุดใหม่ = ข้อมูลเพี้ยนแบบเงียบๆ
+// ทิ้งทั้งกองแล้วบอกให้รู้ตัวก่อน ดีกว่าเก็บไว้ให้กดแล้วได้ของที่ไม่ตรงกับอะไรเลย
 $("#coordReload").onclick = async () => {
+  const nh = Object.values(HIST).reduce((s, h) => s + h.list.length, 0);
+  if (nh && !confirm(`โหลดใหม่จากฐานข้อมูล?\n\nประวัติการเปลี่ยนแปลง ${nh} รายการจะถูกล้างไปด้วย ` +
+      `— ที่จดไว้เทียบกับข้อมูลชุดเดิม ใช้กับชุดใหม่ไม่ได้`)) return;
   $("#coordBody").innerHTML = `<div class="loading"><span class="spin"></span>กำลังโหลดจากชีต...</div>`;
   await loadCoordData(true);
+  histClearAll();
   renderProjTabs(); renderCoord();
 };
 
 $("#coordResetEdits").onclick = () => {
   const n = Object.keys(EDITS).length;
-  if (!n || !confirm(`ทิ้งค่าที่แก้ในเครื่องนี้ ${n} รายการ แล้วกลับไปใช้ของในชีต?`)) return;
-  EDITS = {}; saveEdits(); loadCoordData(true).then(() => { renderProjTabs(); renderCoord(); });
+  const nh = Object.values(HIST).reduce((s, h) => s + h.list.length, 0);
+  if (!n || !confirm(`ทิ้งค่าที่แก้ในเครื่องนี้ ${n} รายการ แล้วกลับไปใช้ของในชีต?` +
+      (nh ? `\n\nประวัติการเปลี่ยนแปลง ${nh} รายการจะถูกล้างไปด้วย — ย้อนกลับหลังจากนี้ไม่ได้` : ""))) return;
+  EDITS = {}; saveEdits(); histClearAll();
+  loadCoordData(true).then(() => { renderProjTabs(); renderCoord(); });
 };
 
 $("#coordExport").onclick = () => {
@@ -11854,12 +12274,15 @@ function blankRow(id, proj, kind){
 }
 
 function addToProject(id, proj, kind, changes){
+  histBegin(proj, `เพิ่ม ${normId(id)} เข้า ${proj}`);
   const row = blankRow(id, proj, kind);
   (COORD[proj] = COORD[proj] || []).push(row);
+  histNew(row);
   NEWROWS.push({ project: proj, handle: id });
   saveNewRows(); markDirty();
   // ใส่ข้อมูลที่มากับคำสั่งเดียวกันได้เลย ไม่ต้องเพิ่มก่อนแล้วค่อยกลับมาแก้
   if (changes) for (const f in changes) setField(row, f, changes[f]);
+  histEnd();
   return row;
 }
 
@@ -13009,11 +13432,18 @@ $("#qoParse").onclick = async () => {
 function applyQuickOrder(){
   let n = 0, moved = 0, added = 0, cmds = 0, acts = 0, deleted = 0;
   loadCmdOwn();
+  // คำสั่งชุดเดียว = ประวัติรายการเดียว ต่อให้สั่ง 40 คนพร้อมกัน — กด Ctrl+Z ทีเดียวคืนทั้งชุด
+  // ลงบัญชีไว้ที่โปรเจกต์ของคำสั่งแรก ถ้าข้ามโปรเจกต์ histEnd จะเขียนบอกในหัวเรื่องเอง
+  const first = QO.find(q => q.ok && !q.admin);
+  const ops = QO.filter(q => q.ok && !q.admin).length;
+  histBegin((first && (first.proj || first.moveTo)) || PROJ,
+    `Quick Order ${ops} คำสั่ง`);
   QO.filter(q => q.ok && q.add).forEach(q => {
     addToProject(q.id, q.proj, q.kind, q.changes);
     added++;
   });
   QO.filter(q => q.ok && !q.add && !q.admin).forEach(q => {
+    histTouch(q.row);
     const oldKey = ekey(q.row);
     const ch = Object.assign({}, q.changes);
     delete ch.rateFrom;                      // ใช้โชว์ในหน้าตรวจอย่างเดียว ไม่ใช่ค่าของแถว
@@ -13050,6 +13480,7 @@ function applyQuickOrder(){
     const names = dels.map(q => `${q.id} (${q.proj})`).join("\n");
     if (confirm(`ลบ ${dels.length} คนออกจากโปรเจกต์?\n\n${names}\n\nจะหายจากชีตด้วยตอนซิงก์รอบถัดไป`)){
       dels.forEach(q => {
+        histTouch(q.row);                    // ลบผ่านคำสั่งก็ต้องย้อนคืนได้เหมือนลบจากตาราง
         const list = COORD[q.proj] || [], at = list.indexOf(q.row);
         if (at >= 0) list.splice(at, 1);
         delete EDITS[ekey(q.row)];
@@ -13058,6 +13489,8 @@ function applyQuickOrder(){
       saveEdits(); markDirty();
     }
   }
+  // ปิดรอบการจดก่อนคำสั่งแอดมินที่เหลือ — โหลดใหม่/ซิงก์ไม่ใช่การแก้ข้อมูล และบางตัวล้างประวัติทิ้งด้วย
+  histEnd();
 
   let after = null;
   admins.filter(q => q.admin !== "del").forEach(q => {
@@ -14070,6 +14503,7 @@ loadProjects();
 loadCrit();
 loadCart();
 loadEdits();
+loadHist();
 loadCmdLinks(); loadCmdEdit(); loadCmdOwn();
 loadNewRows();
 shapeCoord(SEED_COORD);
