@@ -1183,6 +1183,9 @@ body.locked{overflow:hidden}
 .calpasteopt{margin-top:10px;font-size:.78rem;color:var(--mute)}
 .calpasteopt .chk{display:flex;align-items:center;gap:7px;cursor:pointer}
 /* คนที่มีหลายรอบ — บอกจำนวนรอบไว้ข้างใบ จะได้รู้ว่าที่เห็นวันนี้เป็นรอบเดียวจากหลายรอบ */
+/* บรรทัด SKU ในใบบนไทม์ไลน์ — ยาวได้ ตัดด้วย ellipsis แทนการดันใบให้กว้างจนตารางเละ */
+.mapleaf .m.sku{max-width:16em;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.mapleaf .m.sku .kk{background:none;padding:0;color:var(--mute)}
 .calrow .rounds{flex:none;font-size:.7rem;color:var(--warn);
   border:1px solid rgba(var(--warn-rgb),.45);background:rgba(var(--warn-rgb),.1);
   border-radius:999px;padding:1px 7px}
@@ -8192,7 +8195,10 @@ function mapBar(s, small){
 // drag = แผ่นนี้มีขั้นตอนให้วางไหม — มีเฉพาะแผ่น "ขั้นตอนงาน"
 // แผ่น "ข้อมูลที่ยังขาด" กับ "เงิน" จัดกลุ่มด้วยอย่างอื่น ลากไปวางแล้วไม่มีความหมาย
 // เคยตั้ง draggable ไว้ทุกแผ่น เลยกลายเป็นลากได้แต่วางไม่ลง — ดูเหมือนเว็บพัง
-function mapLeaf(r, proj, color, drag){
+// sub = อะไรอยู่บรรทัดที่สองในใบ · ค่าเริ่มต้น "info" (กลุ่ม + เรท + จำนวนชุด) เหมือนเดิม
+// "sku" ใช้กับแผ่นปฏิทิน — บนไทม์ไลน์คำถามคือ "วันนี้ใครไลฟ์ขายอะไร" เรทกับกลุ่มไม่ได้ตอบตรงนั้น
+// ส่วนแผ่นขั้นตอนงานยังเป็นเรื่องเงิน/ความพร้อม เลยคงบรรทัดเดิมไว้ ไม่เปลี่ยนตามกัน
+function mapLeaf(r, proj, color, drag, sub){
   const flags = mapFlags(r);
   const clips = clipCount(r);
   const cancel = isCancelled(r);
@@ -8207,12 +8213,18 @@ function mapLeaf(r, proj, color, drag){
         cancel ? " — ยกเลิกงานแล้ว ไม่นับในความคืบหน้าและยอดเงิน" : ""}\nกดเพื่อเปิด Command${
         drag ? " · ลากไปวางที่ขั้นอื่นเพื่อเปลี่ยนสถานะ" : " · กด ▾ เพื่อเปลี่ยนสถานะ"}">
       <span class="h">${done ? "✓ " : ""}${cancel ? "✕ " : ""}${esc(r.handle)}</span>
-      <span class="m"><span class="kk">${esc(r.kind || "?")}</span>
+      ${sub === "sku" ? `<span class="m sku" title="${esc(String(r.sku || "") || "ยังไม่ได้ใส่ SKU")}">${
+        String(r.sku || "").trim()
+          // ตัดชื่อไลน์ที่ซ้ำกันทุกตัวออก (skuShort) เหลือเฉดที่ต่างกันจริง — ใบแคบ ใส่ชื่อเต็มแล้วโดนตัดหมด
+          // หลาย SKU ต่อด้วย + เหมือนที่เขียนในตาราง ชื่อเต็มดูได้จากการชี้ค้าง
+          ? skuParts(r.sku).map(x => `<span class="kk">${esc(skuShort(x))}</span>`).join(" + ")
+          : `<span class="flag">ยังไม่มี SKU</span>`}</span>`
+      : `<span class="m"><span class="kk">${esc(r.kind || "?")}</span>
         ${cancel ? `<span class="flag">ยกเลิก</span>`
           : r.rate != null ? mBaht(r.rate) : `<span class="flag">ไม่มีเรท</span>`}
         ${clips > 1 && !cancel ? `· ${clips} ชุด` : ""}
         ${flags.length ? `<span class="flag" title="${esc(flags.join(" · "))}">⚑${flags.length}</span>` : ""}
-      </span></button>
+      </span>`}</button>
     <button class="mapst" data-mapst="${esc(r.handle)}" data-mapproj="${esc(proj)}"
       title="เปลี่ยนสถานะของ ${esc(r.handle)}">▾</button>
   </span>`;
@@ -8852,7 +8864,7 @@ function mapCalSheet(proj){
       <div class="calrows">${sorted.map(({ r, time }) => {
         const more = rowSlots(r).length;
         return `<div class="calrow">${time ? `<span class="tm">${esc(time)}</span>`
-          : `<span class="tm none">—</span>`}${mapLeaf(r, proj, phaseOf(r.status).c, false)}${
+          : `<span class="tm none">—</span>`}${mapLeaf(r, proj, phaseOf(r.status).c, false, "sku")}${
           more > 1 ? `<span class="rounds" title="คนนี้มีทั้งหมด ${more} รอบในโปรเจกต์นี้">×${more}</span>` : ""}</div>`;
       }).join("")}</div></div>`;
   };
@@ -8866,7 +8878,7 @@ function mapCalSheet(proj){
         <span class="n">${none.length} คน</span></div>
       <div class="calrows">${none.map(r =>
         `<div class="calrow"><span class="tm none">—</span>${
-          mapLeaf(r, proj, phaseOf(r.status).c, false)}</div>`).join("")}</div></div>` : ""}</div>`;
+          mapLeaf(r, proj, phaseOf(r.status).c, false, "sku")}</div>`).join("")}</div></div>` : ""}</div>`;
 }
 // ── วางตารางวันเวลาทีเดียวทั้งชุด ──
 // ทีมมีตารางไลฟ์อยู่แล้วในชีต/แชต (บรรทัดละ "วัน<Tab>ช่วงเวลา") การให้มานั่งพิมพ์ทีละคนในตาราง
