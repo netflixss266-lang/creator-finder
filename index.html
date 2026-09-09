@@ -1157,7 +1157,31 @@ body.locked{overflow:hidden}
   color:var(--accent);border:1px solid rgba(var(--accent-rgb),.45);background:rgba(var(--accent-rgb),.1)}
 .calday.late .calhead .tagx{color:var(--lo);border-color:rgba(var(--lo-rgb),.45);
   background:rgba(var(--lo-rgb),.1)}
-@media(max-width:620px){.mapfmt .lab{display:none}}
+/* แถวในวัน: เวลาอยู่ซ้ายคงที่ ใบอยู่ขวา — ตาไล่คอลัมน์เวลาลงมาได้โดยไม่ต้องอ่านทีละใบ */
+.calrows{display:flex;flex-direction:column;gap:6px}
+.calrow{display:flex;align-items:center;gap:10px}
+.calrow .tm{flex:none;min-width:7.4em;font-family:'IBM Plex Mono',monospace;font-size:.78rem;
+  color:var(--warn);font-variant-numeric:tabular-nums}
+.calrow .tm.none{color:var(--dim)}
+/* วางตารางรวดเดียว */
+.calpastebar{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:12px}
+.calpastebar .hint{font-size:.76rem;color:var(--dim)}
+.calpaste{background:var(--surface);border:1px solid var(--line);border-radius:11px;
+  padding:13px 15px;margin-bottom:14px}
+.calpaste textarea{width:100%;background:var(--surface2);border:1px solid var(--line);
+  color:var(--ink);border-radius:8px;padding:9px 11px;font-family:'IBM Plex Mono',monospace;
+  font-size:.82rem;line-height:1.7;resize:vertical}
+.calpasteact{display:flex;gap:7px;margin-top:9px}
+.calmatch{display:flex;flex-direction:column;gap:6px;max-height:44vh;overflow:auto}
+.calmatchrow{display:flex;align-items:center;gap:10px}
+.calmatchrow .slot{flex:none;min-width:11em;font-family:'IBM Plex Mono',monospace;
+  font-size:.8rem;color:var(--warn)}
+.calmatchrow select{flex:1;min-width:0;font-size:.82rem;padding:6px 9px}
+@media(max-width:620px){
+  .mapfmt .lab{display:none}
+  .calrow{align-items:flex-start;flex-direction:column;gap:3px}
+  .calrow .tm{min-width:0}
+}
 
 /* โครงผัง: ราก → สาขา → ใบ */
 .mapmind{display:flex;align-items:flex-start;gap:0}
@@ -8019,6 +8043,8 @@ function renderMap(){
   document.querySelectorAll("#mapFmt [data-mf]").forEach(b => b.onclick = () => {
     setMapFmt(MAP_PROJ, b.dataset.mf); renderMap();
   });
+  const cpb = $("#calPasteBtn");
+  if (cpb) cpb.onclick = () => renderCalPaste(MAP_PROJ);
   document.querySelectorAll("#mapTabs [data-mp]").forEach(b => b.onclick = () => {
     MAP_PROJ = b.dataset.mp || null; renderMap(); $("#mapBody").scrollIntoView({block:"start"});
   });
@@ -8662,32 +8688,78 @@ function setMapFmt(proj, v){
 // ไม่มีปี = ถือว่าปีนี้ · ไม่รู้จักรูปแบบ = คืน null แล้วไปกองรวมท้ายสุด ดีกว่าเดามั่ว
 const TH_MON_SHORT = ["ม.ค.","ก.พ.","มี.ค.","เม.ย.","พ.ค.","มิ.ย.",
                       "ก.ค.","ส.ค.","ก.ย.","ต.ค.","พ.ย.","ธ.ค."];
+const EN_MON = ["jan","feb","mar","apr","may","jun","jul","aug","sep","oct","nov","dec"];
+// ชื่อเดือนที่รับได้ทั้งหมด → เลขเดือน (0-11) · ไทยเต็ม/ไทยย่อ/อังกฤษเต็ม/อังกฤษย่อ
+function monthOf(name){
+  const t = String(name || "").trim().toLowerCase().replace(/\./g, "");
+  if (!t) return -1;
+  let i = TH_MONTHS.findIndex(x => x === name.trim());
+  if (i >= 0) return i;
+  i = TH_MON_SHORT.findIndex(x => x.replace(/\./g, "") === t);
+  if (i >= 0) return i;
+  i = EN_MON.findIndex(x => t.startsWith(x));            // aug · august · sept
+  if (i >= 0) return i;
+  i = TH_MONTHS.findIndex(x => name.trim().startsWith(x.slice(0, 3)));   // มิถุ… · พฤษ…
+  return i;
+}
+const fixYear = y => (y > 2400 ? y - 543 : y);
+// ⚠️ ปีต้องเป็น 4 หลักเท่านั้น — ถ้ายอมรับ 2 หลักด้วย "28-Aug 20.00-23.00" จะอ่าน "20" เป็นปี ค.ศ. 2020
+// (เจอมาแล้วตอนทดสอบ) ข้อมูลจริงไม่มีใครเขียนปีสองหลักอยู่แล้ว ตัดทิ้งได้เลย
+// ชื่อเดือนต้องรับจุดกลางคำด้วย ("มิ.ย." คือ มิ + . + ย + .) ไม่งั้นเดือนย่อไทยอ่านไม่ออกเลย
+// ชื่อเดือนต้องรับจุดกลางคำด้วย ("มิ.ย." คือ มิ + . + ย + .) ไม่งั้นเดือนย่อไทยอ่านไม่ออกเลย
+// ⚠️ เขียนเป็น regex literal ตรงๆ อย่าประกอบจากสตริง — escape หายง่ายมากเวลาแก้ไฟล์ด้วยสคริปต์
+const RE_ISO   = /(\d{4})-(\d{1,2})-(\d{1,2})/;
+const RE_SLASH = /(\d{1,2})[\/.-](\d{1,2})[\/.-](\d{4})/;
+const RE_DMON  = /(\d{1,2})\s*[-–\/. ]\s*([A-Za-zก-๏]+(?:\.[A-Za-zก-๏]+)*\.?)(?:\s*,?\s*(\d{4}))?/;
+const RE_MOND  = /([A-Za-zก-๏]+(?:\.[A-Za-zก-๏]+)*\.?)\s*[-–\/. ]?\s*(\d{1,2})(?:\s*,?\s*(\d{4}))?/;
+// ── อ่านวันที่จากข้อความอิสระ ──
+// รับทุกแบบที่เจอจริง: 2026-06-17 · 07/17/2026 · 25/06/2026 · 30-08-2026 · 28 พฤษภาคม
+//   17 มิ.ย. 2569 · 30 Aug · 28-Aug · Aug 30 · Aug 30, 2026 · 30 August 2026
+// ⚠️ หาวันที่ "ที่ไหนก็ได้ในข้อความ" ไม่บังคับให้ทั้งช่องเป็นวันที่ล้วน เพราะทีมพิมพ์เวลาต่อท้าย
+// ในช่องเดียวกัน ("28-Aug 20.00-23.00") — บังคับให้ตรงทั้งช่องเมื่อไหร่ อ่านไม่ออกทั้งแถวทันที
 function parseAnyDate(v){
   const t = String(v || "").trim();
   if (!t) return null;
-  let m = /^(\d{4})-(\d{1,2})-(\d{1,2})$/.exec(t);                       // 2026-06-17
+  let m = RE_ISO.exec(t);
   if (m) return new Date(+m[1], +m[2] - 1, +m[3]);
-  m = /^(\d{1,2})[\/.-](\d{1,2})[\/.-](\d{4})$/.exec(t);                 // 07/17/2026
+  m = RE_SLASH.exec(t);
   if (m){
-    let a = +m[1], b = +m[2], y = +m[3];
-    // เลขไหนเกิน 12 ตัวนั้นคือวันแน่ๆ · ถ้าทั้งคู่ไม่เกิน อ่านแบบ เดือน/วัน ตามที่ชีตพ่นออกมา
-    const [mo, d] = b > 12 ? [a, b] : a > 12 ? [b, a] : [a, b];
-    if (y > 2400) y -= 543;
-    return new Date(y, mo - 1, d);
+    const a = +m[1], b = +m[2];
+    const [mo, d] = b > 12 ? [a, b] : a > 12 ? [b, a] : [a, b];   // เลขเกิน 12 ตัวนั้นคือวันแน่ๆ
+    return new Date(fixYear(+m[3]), mo - 1, d);
   }
-  m = /^(\d{1,2})\s+(\S+)\s*(\d{4})?$/.exec(t);                          // 28 พฤษภาคม (2569)
-  if (m){
-    const name = m[2];
-    let mo = TH_MONTHS.findIndex(x => x === name);
-    if (mo < 0) mo = TH_MON_SHORT.findIndex(x => x === name);
-    if (mo < 0) mo = TH_MONTHS.findIndex(x => name.startsWith(x.slice(0, 3)));
-    if (mo < 0) return null;
-    let y = m[3] ? +m[3] : new Date().getFullYear();
-    if (y > 2400) y -= 543;
-    return new Date(y, mo, +m[1]);
-  }
+  m = RE_DMON.exec(t);                                            // 28-Aug · 17 มิ.ย. 2569
+  if (m && monthOf(m[2]) >= 0)
+    return new Date(m[3] ? fixYear(+m[3]) : new Date().getFullYear(), monthOf(m[2]), +m[1]);
+  m = RE_MOND.exec(t);                                            // Aug 30 · Aug 30, 2026
+  if (m && monthOf(m[1]) >= 0)
+    return new Date(m[3] ? fixYear(+m[3]) : new Date().getFullYear(), monthOf(m[1]), +m[2]);
   return null;
 }
+// ── อ่านเวลา/ช่วงเวลาจากข้อความเดียวกัน ──
+// ทีมเขียน "20.00 - 23.00" บ้าง "19.00-21.00" บ้าง "20:00" เดี่ยวๆ บ้าง
+// ⚠️ ต้องตัดส่วนที่เป็นวันที่ทิ้งก่อน ไม่งั้น "25/06/2026" จะโดนอ่านเป็นเวลา
+function parseTimeText(v){
+  let t = String(v || "").trim();
+  if (!t) return "";
+  [RE_ISO, RE_SLASH, RE_DMON, RE_MOND].forEach(re => { t = t.replace(re, " "); });
+  const hits = [];
+  const hhmm = /(\d{1,2})[.:](\d{2})/g;
+  let m;
+  while ((m = hhmm.exec(t)) && hits.length < 2){
+    const h = +m[1], mi = +m[2];
+    if (h <= 23 && mi <= 59) hits.push(`${String(h).padStart(2, "0")}.${m[2]}`);
+  }
+  if (!hits.length) return "";
+  return hits.length > 1 ? `${hits[0]}–${hits[1]}` : hits[0];
+}
+// เวลาเริ่ม เป็นนาที ไว้เรียงลำดับในวันเดียวกัน (ไม่มีเวลา = ไปท้ายวัน)
+function timeMins(v){
+  const t = parseTimeText(v);
+  const m = /^(\d{2})\.(\d{2})/.exec(t);
+  return m ? +m[1] * 60 + +m[2] : 1e6;
+}
+
 // วันของแถวนี้ — โพสต์ก่อน ไม่มีค่อยใช้กำหนดส่ง (โพสต์คือวันที่เกิดขึ้นจริง กำหนดส่งคือแผน)
 function rowDate(r){
   return parseAnyDate(r.postdate) || parseAnyDate(r.deadline);
@@ -8722,22 +8794,33 @@ function mapCalSheet(proj){
         <div class="v" style="font-size:1.1rem">${esc(calDayLabel(days[days.length - 1].d))}</div>
         <div class="s">${days[days.length - 1].rows.length} คน</div></div>` : ""}
     </div>`;
+  const pasteBtn = `<div class="calpastebar">
+      <button class="cmdbtn" id="calPasteBtn">⇥ วางตารางวันเวลารวดเดียว</button>
+      <span class="hint">ก๊อปจากชีต/แชตมาวางได้เลย — คั่นวันกับเวลาด้วย Tab หรือเว้นวรรค</span>
+    </div><div id="calPasteBox"></div>`;
   if (!days.length && none.length)
-    return head + `<div class="mapempty">ยังไม่มีใครมีวันที่เลย —
+    return head + pasteBtn + `<div class="mapempty">ยังไม่มีใครมีวันที่เลย —
       ใส่วันในช่อง <b>โพสต์</b> หรือ <b>กำหนดส่ง</b> ที่ตาราง แล้วคนนั้นจะมาโผล่ตรงนี้เอง<br>
       <span style="color:var(--dim)">พิมพ์ได้ทั้ง 17/06/2026 และ 17 มิถุนายน</span></div>`;
   const dayBlock = (d, rs, cls, note) => {
     const done = rs.filter(mapPosted).length;
+    // เรียงตามเวลาเริ่มในวันเดียวกัน — คนไม่ได้ใส่เวลาไปท้ายวัน (timeMins คืนค่าสูงสุด)
+    const sorted = rs.slice().sort((a, b) =>
+      (timeMins(a.postdate || a.deadline) - timeMins(b.postdate || b.deadline))
+      || String(a.handle).localeCompare(String(b.handle)));
     return `<div class="calday${cls}">
       <div class="calhead"><span class="dd">${d.getDate()}</span>
         <span class="mm">${esc(TH_MONTHS[d.getMonth()])} ${d.getFullYear() + 543}</span>
         <span class="dow">${esc(TH_DOW[d.getDay()])}</span>
         <span class="n">${rs.length} คน${done ? ` · โพสต์แล้ว ${done}` : ""}</span>
         ${note ? `<span class="tagx">${note}</span>` : ""}</div>
-      <div class="mapleaves">${rs.map(r =>
-        mapLeaf(r, proj, phaseOf(r.status).c, false)).join("")}</div></div>`;
+      <div class="calrows">${sorted.map(r => {
+        const tm = parseTimeText(r.postdate || r.deadline);
+        return `<div class="calrow">${tm ? `<span class="tm">${esc(tm)}</span>`
+          : `<span class="tm none">—</span>`}${mapLeaf(r, proj, phaseOf(r.status).c, false)}</div>`;
+      }).join("")}</div></div>`;
   };
-  return head + `<div class="calwrap">${days.map(({ d, rows: rs }) => {
+  return head + pasteBtn + `<div class="calwrap">${days.map(({ d, rows: rs }) => {
     const late = d < today && rs.some(r => !mapPosted(r) && !isCancelled(r));
     const isToday = +d === +today;
     return dayBlock(d, rs, isToday ? " today" : late ? " late" : "",
@@ -8748,6 +8831,84 @@ function mapCalSheet(proj){
       <div class="mapleaves">${none.map(r =>
         mapLeaf(r, proj, phaseOf(r.status).c, false)).join("")}</div></div>` : ""}</div>`;
 }
+// ── วางตารางวันเวลาทีเดียวทั้งชุด ──
+// ทีมมีตารางไลฟ์อยู่แล้วในชีต/แชต (บรรทัดละ "วัน<Tab>ช่วงเวลา") การให้มานั่งพิมพ์ทีละคนในตาราง
+// คือทำงานซ้ำสองรอบ — วางมาทั้งก้อนแล้วจับคู่กับคนในโปรเจกต์ทีเดียวจบ
+// ⚠️ ไม่เขียนทับให้เองทันที ต้องเห็นก่อนว่าใครได้วันไหน แล้วแก้คู่ได้ก่อนกดยืนยัน
+// (เขียนทับ postdate ของคนที่มีวันอยู่แล้ว = ตารางที่ยืนยันกับครีเอเตอร์ไปแล้วเปลี่ยนเงียบๆ)
+let CALPASTE = [];
+function calParsePaste(text){
+  return String(text || "").split(/\r?\n/).map(line => {
+    const t = line.trim();
+    if (!t) return null;
+    const d = parseAnyDate(t);
+    if (!d) return null;
+    return { d, time: parseTimeText(t), raw: t };
+  }).filter(Boolean);
+}
+// ข้อความที่จะเขียนลงช่อง "โพสต์" — เดือนย่อไทยเพราะตัวอ่านรับได้ และคนอ่านในชีตก็เข้าใจ
+const calSlotText = s => `${s.d.getDate()} ${TH_MON_SHORT[s.d.getMonth()]}` +
+  (s.time ? ` ${s.time}` : "");
+function renderCalPaste(proj){
+  const box = $("#calPasteBox");
+  if (!box) return;
+  const rows = mapRows(proj);
+  // เสนอคู่ให้ก่อน: คนที่ยังไม่มีวันขึ้นก่อนตามลำดับในโปรเจกต์ แล้วค่อยวนไปคนที่มีวันแล้ว
+  const order = rows.filter(r => !rowDate(r)).concat(rows.filter(r => rowDate(r)));
+  box.innerHTML = `<div class="calpaste">
+    <textarea id="calPasteIn" rows="6" spellcheck="false"
+      placeholder="28-Aug&#9;20.00 - 23.00&#10;29-Aug&#9;20.00 - 23.00&#10;6 Sep&#9;19.00-21.00"></textarea>
+    <div class="calpasteact">
+      <button class="cmdbtn" id="calPasteRead">อ่านตาราง</button>
+      <button class="cmdbtn" id="calPasteClose">ปิด</button>
+    </div>
+    <div id="calPastePrev"></div></div>`;
+  const prev = () => {
+    const el = $("#calPastePrev");
+    if (!CALPASTE.length){ el.innerHTML = ""; return; }
+    el.innerHTML = `<div class="hint" style="margin:10px 0 7px">อ่านได้ <b>${CALPASTE.length}</b> ช่วง —
+        เลือกว่าช่วงไหนของใคร แล้วกดยืนยัน (เว้นเป็น “ไม่ใส่” ได้ถ้ายังไม่รู้)</div>
+      <div class="calmatch">${CALPASTE.map((sl, i) => `<div class="calmatchrow">
+        <span class="slot">${esc(calSlotText(sl))}</span>
+        <select data-calwho="${i}">
+          <option value="">— ไม่ใส่ —</option>
+          ${order.map((r, j) => `<option value="${esc(normId(r.handle))}"${
+            j === i ? " selected" : ""}>${esc(r.handle)}${rowDate(r) ? " (มีวันแล้ว)" : ""}</option>`).join("")}
+        </select></div>`).join("")}</div>
+      <button class="run" id="calPasteGo" style="margin-top:10px">ใส่ลงตาราง</button>`;
+    $("#calPasteGo").onclick = () => {
+      let n = 0;
+      CALPASTE.forEach((sl, i) => {
+        const who = (el.querySelector(`[data-calwho="${i}"]`) || {}).value;
+        if (!who) return;
+        const r = rows.find(x => normId(x.handle) === who);
+        if (!r) return;
+        setField(r, "postdate", calSlotText(sl));
+        n++;
+      });
+      CALPASTE = [];
+      renderCoord(); renderMap();
+      const b = $("#calPasteBox");
+      if (b) b.innerHTML = `<div class="hint" style="color:var(--hi);padding:8px 0">
+        ✓ ใส่วันเวลาให้แล้ว ${n} คน</div>`;
+    };
+  };
+  $("#calPasteRead").onclick = () => {
+    CALPASTE = calParsePaste($("#calPasteIn").value);
+    if (!CALPASTE.length){
+      $("#calPastePrev").innerHTML = `<div class="hint" style="color:var(--lo);margin-top:8px">
+        อ่านวันที่ไม่ได้สักบรรทัด — ต้องมีวันในบรรทัดนั้น เช่น 28-Aug · 30 Aug · 17 มิ.ย. · 25/06/2026</div>`;
+      return;
+    }
+    prev();
+  };
+  $("#calPasteIn").onkeydown = e => {
+    if (e.key === "Enter" && (e.ctrlKey || e.metaKey)) $("#calPasteRead").click();
+  };
+  $("#calPasteClose").onclick = () => { CALPASTE = []; box.innerHTML = ""; };
+  $("#calPasteIn").focus();
+}
+
 const calDayLabel = d => `${d.getDate()} ${TH_MON_SHORT[d.getMonth()]} ${d.getFullYear() + 543}`;
 
 function mapAllSheet(){
