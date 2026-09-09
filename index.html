@@ -1180,6 +1180,12 @@ body.locked{overflow:hidden}
 .calmatchrow .src{flex:none;font-size:.72rem;color:var(--dim);min-width:8.6em}
 .calmatchrow .src.ok{color:var(--hi)}
 .calmatchrow .src.bad{color:var(--lo)}
+.calpasteopt{margin-top:10px;font-size:.78rem;color:var(--mute)}
+.calpasteopt .chk{display:flex;align-items:center;gap:7px;cursor:pointer}
+/* คนที่มีหลายรอบ — บอกจำนวนรอบไว้ข้างใบ จะได้รู้ว่าที่เห็นวันนี้เป็นรอบเดียวจากหลายรอบ */
+.calrow .rounds{flex:none;font-size:.7rem;color:var(--warn);
+  border:1px solid rgba(var(--warn-rgb),.45);background:rgba(var(--warn-rgb),.1);
+  border-radius:999px;padding:1px 7px}
 @media(max-width:620px){
   .mapfmt .lab{display:none}
   .calrow{align-items:flex-start;flex-direction:column;gap:3px}
@@ -8763,9 +8769,28 @@ function timeMins(v){
   return m ? +m[1] * 60 + +m[2] : 1e6;
 }
 
-// วันของแถวนี้ — โพสต์ก่อน ไม่มีค่อยใช้กำหนดส่ง (โพสต์คือวันที่เกิดขึ้นจริง กำหนดส่งคือแผน)
+// ── หนึ่งคนมีได้หลายรอบ ──
+// ⚠️ ช่อง "โพสต์" มีช่องเดียวต่อคน แต่งานไลฟ์คนหนึ่งไลฟ์ได้หลายวัน — เก็บหลายรอบไว้ในช่องเดียว
+// คั่นด้วย · (หรือ , ; และขึ้นบรรทัดใหม่ก็อ่านได้) แล้วแตกเป็นรายรอบตอนวาดปฏิทิน
+// เลือกวิธีนี้เพราะช่องนี้เป็นข้อความอิสระอยู่แล้ว — ขึ้นชีตได้ · แก้ในตารางได้ · ซิงก์ได้ ไม่ต้องแตะโครงข้อมูล
+const SLOT_SEP = /\s*(?:·|\||;|,|\/{2,}|\n)\s*/;
+function parseSlots(v){
+  const t = String(v || "").trim();
+  if (!t) return [];
+  return t.split(SLOT_SEP).map(part => {
+    const d = parseAnyDate(part);
+    return d ? { d, time: parseTimeText(part), raw: part.trim() } : null;
+  }).filter(Boolean).sort((a, b) => a.d - b.d || timeMins(a.raw) - timeMins(b.raw));
+}
+// ทุกรอบของแถวนี้ — โพสต์ก่อน ไม่มีค่อยใช้กำหนดส่ง (โพสต์คือวันที่เกิดขึ้นจริง กำหนดส่งคือแผน)
+function rowSlots(r){
+  const a = parseSlots(r.postdate);
+  return a.length ? a : parseSlots(r.deadline);
+}
+// รอบแรกสุด — ใช้ตอบคำถาม "คนนี้มีวันหรือยัง" และตอนเรียงลำดับ
 function rowDate(r){
-  return parseAnyDate(r.postdate) || parseAnyDate(r.deadline);
+  const a = rowSlots(r);
+  return a.length ? a[0].d : null;
 }
 const dayKey = d => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
 const TH_DOW = ["อาทิตย์","จันทร์","อังคาร","พุธ","พฤหัสบดี","ศุกร์","เสาร์"];
@@ -8775,21 +8800,26 @@ const TH_DOW = ["อาทิตย์","จันทร์","อังคาร
 function mapCalSheet(proj){
   const rows = mapRows(proj);
   if (!rows.length) return `<div class="mapempty">ยังไม่มีใครในโปรเจกต์นี้</div>`;
+  // หนึ่งคนอาจโผล่หลายวัน — วนที่ "รอบ" ไม่ใช่ที่ "คน" ไม่งั้นเห็นแค่รอบแรกของแต่ละคน
   const byDay = new Map(), none = [];
   rows.forEach(r => {
-    const d = rowDate(r);
-    if (!d){ none.push(r); return; }
-    const k = dayKey(d);
-    if (!byDay.has(k)) byDay.set(k, { d, rows: [] });
-    byDay.get(k).rows.push(r);
+    const slots = rowSlots(r);
+    if (!slots.length){ none.push(r); return; }
+    slots.forEach(sl => {
+      const k = dayKey(sl.d);
+      if (!byDay.has(k)) byDay.set(k, { d: sl.d, rows: [] });
+      byDay.get(k).rows.push({ r, time: sl.time });
+    });
   });
   const today = new Date(); today.setHours(0, 0, 0, 0);
   const days = [...byDay.values()].sort((a, b) => a.d - b.d);
   const scheduled = rows.length - none.length;
+  const totalSlots = days.reduce((n, x) => n + x.rows.length, 0);
   const head = `<div class="mapsum">
       <div class="mapstat"><div class="k">มีวันแล้ว</div><div class="v">${scheduled}${
         none.length ? `<span style="font-size:.6em;color:var(--dim)">/${rows.length}</span>` : ""}</div>
-        <div class="s">${days.length} วัน${none.length ? `<br><span style="color:var(--warn)">ยังไม่ได้ลงวัน ${none.length} คน</span>` : ""}</div></div>
+        <div class="s">${days.length} วัน · ${totalSlots} รอบ${
+          none.length ? `<br><span style="color:var(--warn)">ยังไม่ได้ลงวัน ${none.length} คน</span>` : ""}</div></div>
       ${days.length ? `<div class="mapstat"><div class="k">วันแรก</div>
         <div class="v" style="font-size:1.1rem">${esc(calDayLabel(days[0].d))}</div>
         <div class="s">${days[0].rows.length} คน</div></div>
@@ -8805,34 +8835,38 @@ function mapCalSheet(proj){
     return head + pasteBtn + `<div class="mapempty">ยังไม่มีใครมีวันที่เลย —
       ใส่วันในช่อง <b>โพสต์</b> หรือ <b>กำหนดส่ง</b> ที่ตาราง แล้วคนนั้นจะมาโผล่ตรงนี้เอง<br>
       <span style="color:var(--dim)">พิมพ์ได้ทั้ง 17/06/2026 และ 17 มิถุนายน</span></div>`;
+  // rs = รายการ "รอบ" ของวันนั้น ({r, time}) ไม่ใช่รายชื่อคน — คนเดียวลงได้หลายรอบในวันเดียว
   const dayBlock = (d, rs, cls, note) => {
-    const done = rs.filter(mapPosted).length;
-    // เรียงตามเวลาเริ่มในวันเดียวกัน — คนไม่ได้ใส่เวลาไปท้ายวัน (timeMins คืนค่าสูงสุด)
+    const done = rs.filter(x => mapPosted(x.r)).length;
+    const people = new Set(rs.map(x => normId(x.r.handle))).size;
     const sorted = rs.slice().sort((a, b) =>
-      (timeMins(a.postdate || a.deadline) - timeMins(b.postdate || b.deadline))
-      || String(a.handle).localeCompare(String(b.handle)));
+      (timeMins(a.time) - timeMins(b.time))
+      || String(a.r.handle).localeCompare(String(b.r.handle)));
     return `<div class="calday${cls}">
       <div class="calhead"><span class="dd">${d.getDate()}</span>
         <span class="mm">${esc(TH_MONTHS[d.getMonth()])} ${d.getFullYear() + 543}</span>
         <span class="dow">${esc(TH_DOW[d.getDay()])}</span>
-        <span class="n">${rs.length} คน${done ? ` · โพสต์แล้ว ${done}` : ""}</span>
+        <span class="n">${rs.length > people ? `${rs.length} รอบ · ${people} คน` : `${people} คน`}${
+          done ? ` · โพสต์แล้ว ${done}` : ""}</span>
         ${note ? `<span class="tagx">${note}</span>` : ""}</div>
-      <div class="calrows">${sorted.map(r => {
-        const tm = parseTimeText(r.postdate || r.deadline);
-        return `<div class="calrow">${tm ? `<span class="tm">${esc(tm)}</span>`
-          : `<span class="tm none">—</span>`}${mapLeaf(r, proj, phaseOf(r.status).c, false)}</div>`;
+      <div class="calrows">${sorted.map(({ r, time }) => {
+        const more = rowSlots(r).length;
+        return `<div class="calrow">${time ? `<span class="tm">${esc(time)}</span>`
+          : `<span class="tm none">—</span>`}${mapLeaf(r, proj, phaseOf(r.status).c, false)}${
+          more > 1 ? `<span class="rounds" title="คนนี้มีทั้งหมด ${more} รอบในโปรเจกต์นี้">×${more}</span>` : ""}</div>`;
       }).join("")}</div></div>`;
   };
   return head + pasteBtn + `<div class="calwrap">${days.map(({ d, rows: rs }) => {
-    const late = d < today && rs.some(r => !mapPosted(r) && !isCancelled(r));
+    const late = d < today && rs.some(x => !mapPosted(x.r) && !isCancelled(x.r));
     const isToday = +d === +today;
     return dayBlock(d, rs, isToday ? " today" : late ? " late" : "",
       isToday ? "วันนี้" : late ? "เลยวันแล้ว" : "");
   }).join("")}${none.length ? `<div class="calday none">
       <div class="calhead"><span class="dd">—</span><span class="mm">ยังไม่ได้ลงวัน</span>
         <span class="n">${none.length} คน</span></div>
-      <div class="mapleaves">${none.map(r =>
-        mapLeaf(r, proj, phaseOf(r.status).c, false)).join("")}</div></div>` : ""}</div>`;
+      <div class="calrows">${none.map(r =>
+        `<div class="calrow"><span class="tm none">—</span>${
+          mapLeaf(r, proj, phaseOf(r.status).c, false)}</div>`).join("")}</div></div>` : ""}</div>`;
 }
 // ── วางตารางวันเวลาทีเดียวทั้งชุด ──
 // ทีมมีตารางไลฟ์อยู่แล้วในชีต/แชต (บรรทัดละ "วัน<Tab>ช่วงเวลา") การให้มานั่งพิมพ์ทีละคนในตาราง
@@ -8903,22 +8937,38 @@ function renderCalPaste(proj){
         <span class="src ${sl.unknown ? "bad" : sl.who ? "ok" : ""}">${
           sl.unknown ? `ไม่พบ “${esc(sl.unknown)}”` : sl.who ? "จากชื่อในบรรทัด" : "เดาจากลำดับ"}</span>
         </div>`).join("")}</div>
+      <div class="calpasteopt">
+        <label class="chk"><input type="checkbox" id="calPasteKeep" checked>
+          เก็บรอบเดิมไว้ด้วย (ต่อท้าย) — เอาออกถ้าอยากเขียนทับตารางเดิมทั้งหมด</label>
+      </div>
       <button class="run" id="calPasteGo" style="margin-top:10px">ใส่ลงตาราง</button>`;
     $("#calPasteGo").onclick = () => {
-      let n = 0;
+      // ⚠️ รวมรอบของคนเดียวกันก่อนเขียน — ถ้าเขียนทีละรอบ รอบหลังจะทับรอบแรกจนเหลือรอบเดียว
+      // (ช่อง "โพสต์" มีช่องเดียวต่อคน) คนที่มีตารางไลฟ์หลายวันจะหายไปเกือบหมดแบบไม่รู้ตัว
+      const add = new Map();
       CALPASTE.forEach((sl, i) => {
         const who = (el.querySelector(`[data-calwho="${i}"]`) || {}).value;
         if (!who) return;
+        if (!add.has(who)) add.set(who, []);
+        add.get(who).push(sl);
+      });
+      const keep = $("#calPasteKeep") && $("#calPasteKeep").checked;
+      let people = 0, slots = 0;
+      add.forEach((list, who) => {
         const r = rows.find(x => normId(x.handle) === who);
         if (!r) return;
-        setField(r, "postdate", calSlotText(sl));
-        n++;
+        // ต่อท้ายของเดิม (ค่าเริ่มต้น) — ตารางที่ยืนยันกับครีเอเตอร์ไปแล้วไม่ควรหายเพราะวางเพิ่ม
+        const old = keep ? parseSlots(r.postdate).map(x => x.raw) : [];
+        const merged = old.concat(list.map(calSlotText))
+          .filter((v, i, a) => a.indexOf(v) === i);        // รอบซ้ำเป๊ะ ใส่ครั้งเดียวพอ
+        setField(r, "postdate", merged.join(" · "));
+        people++; slots += list.length;
       });
       CALPASTE = [];
       renderCoord(); renderMap();
       const b = $("#calPasteBox");
       if (b) b.innerHTML = `<div class="hint" style="color:var(--hi);padding:8px 0">
-        ✓ ใส่วันเวลาให้แล้ว ${n} คน</div>`;
+        ✓ ใส่แล้ว ${slots} รอบ ให้ ${people} คน</div>`;
     };
   };
   $("#calPasteRead").onclick = () => {
