@@ -1110,11 +1110,10 @@ body.locked{overflow:hidden}
 .overlay.full .modal-head h2{font-family:'Bebas Neue','Space Grotesk',sans-serif;
   font-size:1.55rem;font-weight:400;letter-spacing:.06em;color:var(--accent)}
 .overlay.full .modal-head .x{font-size:1.3rem;padding:6px 12px}
-.setbody{flex:1;padding:8px 26px 60px;max-width:1180px;width:100%;margin:0 auto}
-@media(min-width:900px){
-  .setbody{columns:2;column-gap:34px}
-  .setbody > .sect{break-inside:avoid;display:inline-block;width:100%}
-}
+/* เรียงลงมาคอลัมน์เดียว ไม่แบ่งสองแถบ — แบ่งสองแถบแล้วลำดับที่ตาไล่ไม่ตรงกับลำดับที่เขียนไว้
+   (CSS columns เติมแถบซ้ายจนสุดก่อนค่อยขึ้นแถบขวา) หาหัวข้อทีต้องกวาดตาสองรอบ
+   จำกัดความกว้างไว้ที่ 920 ไม่ปล่อยเต็มจอ — บรรทัดยาวเกิน ~90 ตัวอักษรตาหลุดบรรทัดตอนอ่านย้อน */
+.setbody{flex:1;padding:8px 26px 60px;max-width:920px;width:100%;margin:0 auto}
 .overlay.full .sect{background:var(--surface);border:1px solid var(--line);
   border-radius:8px;padding:18px 20px;margin-top:16px}
 .overlay.full .sect:first-child{margin-top:16px}
@@ -2100,7 +2099,7 @@ tr.subrow td.w-status select{width:14.6em}
     <button class="gear accent crewhide" id="addBtn" aria-haspopup="dialog">+<span class="lbl"> เพิ่มครีเอเตอร์</span></button>
     <button class="gear" id="gearBtn" aria-haspopup="dialog">⚙<span class="lbl"> ตั้งค่า</span></button>
     <button class="gear" id="undoBtn" hidden title="ย้อนกลับ (Ctrl+Z)">↶<span class="lbl"> ย้อนกลับ</span></button>
-    <button class="gear" id="syncBtn" hidden title="ส่งที่แก้ขึ้นฐานข้อมูลเดี๋ยวนี้">⇧<span class="lbl"> ซิงก์</span></button>
+    <button class="gear" id="syncBtn" hidden title="ส่งที่แก้ขึ้นฐานข้อมูลเดี๋ยวนี้ (Ctrl+S)">⇧<span class="lbl"> ซิงก์</span></button>
     <button class="gear uibtn" id="uiBtn" title="ขนาดตัวอักษรทั้งเว็บ — กดเพื่อสลับ">A</button>
     <button class="gear" id="lockBtn" title="ล็อกหน้าจอ ต้องใส่รหัสใหม่">🔒<span class="lbl"> ล็อก</span></button>
     <button class="gear cartbtn empty crewhide" id="cartBtn" aria-haspopup="dialog"
@@ -12181,6 +12180,25 @@ document.addEventListener("keydown", e => {
   (y || e.shiftKey) ? doRedo() : doUndo();
 });
 $("#undoBtn").onclick = doUndo;
+
+// ── Ctrl+S ซิงก์ขึ้นฐานข้อมูลเดี๋ยวนี้ ──
+// ⚠️ ต้อง preventDefault ทุกครั้งที่จับได้ ไม่ว่าจะซิงก์จริงหรือไม่ — ไม่งั้นกล่อง "บันทึกหน้าเว็บ"
+// ของเบราว์เซอร์เด้งขึ้นมาแทน ซึ่งไม่มีประโยชน์อะไรกับหน้านี้เลย
+// ⚠️ e.code เหมือน Ctrl+Z — แป้นไทยส่ง e.key เป็น "ห"
+// ทำงานได้แม้โฟกัสอยู่ในช่องพิมพ์ (ต่างจาก Ctrl+Z ที่ในช่องพิมพ์แปลว่าย้อนตัวหนังสือ) แต่ต้องเด้ง
+// โฟกัสออกจากช่องก่อน — ช่องในตารางบันทึกตอน onchange ซึ่งยิงตอนออกจากช่อง ถ้าไม่เด้งออกก่อน
+// ค่าที่เพิ่งพิมพ์ค้างอยู่จะไม่ถูกนับ แล้วจะซิงก์ของเก่าขึ้นไปทั้งที่เพิ่งแก้ตรงหน้าเมื่อกี้
+document.addEventListener("keydown", e => {
+  if (!(e.ctrlKey || e.metaKey) || e.altKey || e.shiftKey || e.repeat) return;
+  if (e.code !== "KeyS" && e.key !== "s" && e.key !== "S" && e.key !== "ห") return;
+  if (!$("#lockView").hidden || !$("#coachView").hidden) return;
+  e.preventDefault();
+  const a = document.activeElement;
+  if (a && (a.tagName === "INPUT" || a.tagName === "TEXTAREA")) a.blur();
+  if (SYNCING) return histToast("กำลังซิงก์อยู่แล้ว รอสักครู่", true);
+  if (!DIRTY) return histToast("ไม่มีอะไรค้างรอซิงก์", true);
+  syncCoord(true);
+});
 $("#qFindX").onclick = closeQFind;
 $("#qFindIn").addEventListener("input", renderQFind);
 $("#qFindIn").addEventListener("keydown", e => {
