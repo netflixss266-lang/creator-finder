@@ -6050,6 +6050,15 @@ Hashtag:📱
   // ตลอดกาลทั้งที่งานเรียบร้อยดี · ord สูงสุดเพื่อให้อยู่ท้ายสุดเสมอ ไม่ปนกับลำดับที่ส่งจริง
   // ข้อความแก้ได้ทั้งรายคนและระดับโปรเจกต์เหมือนบล็อกอื่นทุกประการ (CMDOWN → CMDEDIT → ในโค้ด)
   { t:"หนังสือแจ้งเตือนตามสัญญา", law:true, ord:99, b: LAW_CMD_BODY },
+
+  // ── แจ้งเตือนวันไลฟ์ ──
+  // งานไลฟ์ไม่ได้จบในข้อความชุดเดียวเหมือนงานคลิป — ต้องเตือนซ้ำในวันที่มีไลฟ์จริงทุกวัน
+  // live:true = แตกเป็นชุดละ "รอบไลฟ์" ตามวันที่ลงไว้ หนึ่งข้อความต่อหนึ่งวัน
+  // ไม่ยัดทุกวันไว้ในข้อความเดียว เพราะที่ส่งจริงคือ "วันนี้มีไลฟ์" ไม่ใช่ตารางทั้งเดือน
+  // ขึ้นเฉพาะโปรเจกต์ที่ตั้งแผนผังเป็น "ปฏิทินวันที่ · LIVE" — โปรเจกต์งานคลิปไม่มีวันไลฟ์ให้เตือน
+  { t:"แจ้งเตือนวันไลฟ์", live:true, ord:90, b:
+`สวัสดีครับครีเอเตอร์ แอดมินขออนุญาตแจ้งสำหรับวันนี้มีไลฟ์ {{sku}}
+ช่วง {{liveslot}} นะครับ🙇‍♂️` },
 ];
 
 // ─── ต้นแบบรุ่นก่อนหน้า ───
@@ -6606,7 +6615,19 @@ const CMD_GAP = Object.assign(
     net:"คิดไม่ได้ ต้องมีเรท+รูปแบบภาษี", brief:"ยังไม่มีลิงก์บรีฟ",
     feedback:"ยังไม่มีฟีดแบค", feedback1:"ยังไม่มีฟีดแบค Draft 1",
     feedback2:"ยังไม่มีฟีดแบค Draft 2", feedback3:"ยังไม่มีฟีดแบค Draft 3",
-    docs:"ยังไม่มีลิงก์เอกสารของกลุ่มนี้" });
+    docs:"ยังไม่มีลิงก์เอกสารของกลุ่มนี้",
+    liveslot:"ยังไม่ได้ลงวันไลฟ์", livedate:"ยังไม่ได้ลงวันไลฟ์", livetime:"ยังไม่ได้ลงเวลาไลฟ์" });
+
+// ─── วัน–เวลาไลฟ์ของรอบหนึ่ง ───
+// อ่านจากช่องเดียวกับที่ปฏิทินใช้ (โพสต์ → กำหนดส่ง) ไม่มีที่เก็บใหม่ ไม่มีทางที่สองอันจะไม่ตรงกัน
+// {{liveslot}} = วัน + เวลาในตัวเดียว เพราะข้อความจริงพูดถึงมันเป็นก้อนเดียว ("ช่วง … นะครับ")
+// ยังไม่ได้ใส่เวลา = เอาแค่วัน ไม่ปล่อยให้ทั้งบรรทัดหายหรือขึ้นช่องแดงทั้งที่รู้วันแล้ว
+function liveVals(sl){
+  const day = sl ? calDayLabel(sl.d) : "";
+  const tm  = sl ? (sl.time || "") : "";
+  return { livedate: day, livetime: tm,
+           liveslot: day ? (tm ? `${day} เวลา ${tm}` : day) : "" };
+}
 
 // ─── คีย์เดียวกันแต่คนละคลิป ───
 // ชุดแรกใช้คีย์เดิมเสมอ (cart · sku · feedback1) ของที่เก็บไว้ก่อนหน้าจะได้ไม่ต้องย้าย
@@ -6771,7 +6792,7 @@ function cmdBlocksAll(proj){
   const mk = (id, def, ord, custom) => {
     const ed = cmdEditOne(proj, id);
     return { id, t:(ed && ed.t) || def.t, b:(ed && ed.b != null) ? ed.b : def.b,
-             clip: !!def.clip, kind: def.kind || "", law: !!def.law,
+             clip: !!def.clip, kind: def.kind || "", law: !!def.law, live: !!def.live,
              // null = ได้ทุกคน · ต้องส่งต่อจากต้นแบบ ไม่งั้นตัวกรอง "มีเรทชำระไหม" จะไม่เห็นค่านี้เลย
              pay: def.pay == null ? null : !!def.pay,
              ord, custom, edited: !!ed, hidden: hid.has(id), base: def };
@@ -7182,8 +7203,13 @@ function openCmd(proj, handle){
   // เอาเฉพาะบล็อกของกลุ่มนี้ แล้วเรียงตามที่ควรเห็น (ord ทับลำดับดิบได้)
   const K = kindOf(r);
   const paid = hasPayRate(r);
+  // รอบไลฟ์ของคนนี้ — ตัวเดียวกับที่แผ่นปฏิทินอ่าน คนหนึ่งลงได้หลายรอบ
+  const liveRounds = rowSlots(r);
+  // บล็อกไลฟ์ขึ้นเฉพาะโปรเจกต์ที่ตั้งแผนผังเป็นปฏิทินวันที่ — โปรเจกต์งานคลิปไม่มีวันไลฟ์ให้เตือน
+  // ถ้าโชว์ทุกโปรเจกต์ ทุกคนจะได้บล็อกที่ขึ้นช่องแดง "ยังไม่ได้ลงวันไลฟ์" ค้างไว้ตลอดกาล
+  const liveProj = mapFmt(proj) === "cal";
   cmdBlocksFor(proj, handle)
-    .filter(bl => blockForPay(bl, paid, K))
+    .filter(bl => blockForPay(bl, paid, K) && (!bl.live || liveProj))
     .forEach(bl => {
     const id = bl.id;
     // บล็อก 5 ไม่มี {{guide}} ตรงๆ ในตัวข้อความเลย — พูดถึงคู่มือถ่ายทำผ่าน {{brief}} เท่านั้น
@@ -7195,6 +7221,22 @@ function openCmd(proj, handle){
         if (DOC_BY_KEY[k]) clipDocs.add(k);
         if (k === "brief") clipDocs.add("guide");
       });
+    // ── บล็อกไลฟ์แตกเป็นชุดละ "รอบไลฟ์" ไม่ใช่ชุดละคลิป ──
+    // คนละมิติกัน: คลิป = จำนวนงานที่รับ · รอบ = วันที่ต้องขึ้นไลฟ์จริง คนทำคลิปเดียวก็ไลฟ์ 5 วันได้
+    // ยังไม่ได้ลงวัน = ยังขึ้นให้หนึ่งใบพร้อมช่องแดง จะได้เห็นว่าคนนี้ยังไม่มีวัน ไม่ใช่หายไปเงียบๆ
+    if (bl.live){
+      const sls = liveRounds.length ? liveRounds : [null];
+      sls.forEach((sl, i) => blocks.push(Object.assign(
+        { t: bl.t + (sl ? ` — ${calDayLabel(sl.d)}${sl.time ? ` · ${sl.time}` : ""}`
+                        : " — ยังไม่ได้ลงวันไลฟ์"),
+          mine: bl.mine, id, custom: bl.custom, law:false,
+          // sentKey ยุบรอบ 1 กับ 0 เป็นคีย์เดียวกันอยู่แล้ว — มีรอบเดียวจึงไม่ต้องขึ้นเลข ".1" ให้รก
+          clip: sls.length > 1 ? i + 1 : 0,
+          sent: isSent(proj, handle, id, i + 1) },
+        // clip = 0 เสมอ: {{sku}} ของบล็อกนี้ต้องเป็นของทั้งดีล ไม่ใช่ SKU ชุดที่ i
+        fillBlock(bl.b, Object.assign({}, vals, liveVals(sl)), 0))));
+      return;
+    }
     // 0 = บล็อกเดียวไม่แยกคลิป · 1..n = ชุดของคลิปที่ n
     const rounds = (bl.clip && clips > 1) ? Array.from({length:clips}, (_, x) => x + 1) : [0];
     rounds.forEach(n => blocks.push(Object.assign(
@@ -7442,7 +7484,15 @@ function openCmd(proj, handle){
   // ── เติมช่องว่างจากตรงที่เห็น ──
   // ค่าอยู่คนละที่กัน: บางอันเป็นข้อมูลแถว บางอันเป็นเอกสารรายคน บางอันเป็นฟีดแบค
   // ปุ่มเดียวกันหมด ผู้ใช้ไม่ต้องรู้ว่าอันไหนเก็บที่ไหน
-  const ROW_GAP = { rate:"rate", sku:"sku", paytype:"paytype", brief:"brief", videos:"videos" };
+  // วัน–เวลาไลฟ์ทั้งสามตัวเก็บอยู่ในช่องเดียวกัน (โพสต์) — ตัวที่ปฏิทินอ่าน หลายรอบคั่นด้วย ·
+  // ต้องดักไว้ตรงนี้ ไม่งั้นจะตกไปทางลิงก์เอกสารแล้วเขียนลงช่องที่ไม่มีใครอ่านแบบเงียบๆ
+  const ROW_GAP = { rate:"rate", sku:"sku", paytype:"paytype", brief:"brief", videos:"videos",
+                    liveslot:"postdate", livedate:"postdate", livetime:"postdate" };
+  // ช่องที่รูปแบบไม่ตรงไปตรงมาต้องบอกวิธีพิมพ์ในกล่องเลย — คนกดมาจากตัวแดงกลางข้อความ
+  // ไม่ได้ผ่านหน้าปฏิทินที่มีคำอธิบายอยู่แล้ว ไม่บอกก็จะพิมพ์รอบเดียวแล้วทับรอบอื่นทิ้ง
+  const LIVE_HINT = "\n\nพิมพ์ได้ทั้ง 28 ส.ค. · 28-Aug · 28/08/2026 — ใส่เวลาต่อท้ายได้ (20.00-23.00)" +
+    "\nหลายรอบคั่นด้วย ·   เช่น   28 Aug 20.00-23.00 · 30 Aug 19.00-22.00";
+  const GAP_HINT = { liveslot:LIVE_HINT, livedate:LIVE_HINT, livetime:LIVE_HINT };
   function fillGap(k){
     const r2 = (COORD[proj] || []).find(x => normId(x.handle) === normId(handle));
     if (!r2) return;
@@ -7467,7 +7517,8 @@ function openCmd(proj, handle){
       return;
     } else if (ROW_GAP[k]){
       const cur = r2[ROW_GAP[k]] ?? "";
-      const v = prompt(`${CMD_GAP[k]} ของ ${normId(handle)}`, cur === null ? "" : String(cur));
+      const v = prompt(`${CMD_GAP[k]} ของ ${normId(handle)}${GAP_HINT[k] || ""}`,
+        cur === null ? "" : String(cur));
       if (v == null) return;
       setField(r2, ROW_GAP[k], v.trim());
     } else {
@@ -8042,7 +8093,7 @@ function renderMap(){
   $("#mapFmt").innerHTML = MAP_PROJ && MAP_MODE === "flow"
     ? `<span class="lab">รูปแบบ</span>` + MAP_FMTS.map(([id, label]) =>
         `<button role="tab" data-mf="${id}" aria-selected="${fmt === id}"
-          title="${id === "cal" ? "เรียงตามวันที่ — เหมาะกับงานที่คนละคนทำคนละวัน เช่นงานไลฟ์"
+          title="${id === "cal" ? "เรียงตามวันที่ — เหมาะกับงานไลฟ์ ที่คนละคนขึ้นคนละวัน\nเปิดแล้ว Command ของโปรเจกต์นี้จะมีบล็อก “แจ้งเตือนวันไลฟ์” เพิ่มให้ 1 ใบต่อ 1 รอบ"
                                 : "เรียงตามขั้นตอนงาน — แบบมาตรฐาน"}">${esc(label)}</button>`).join("")
     : "";
   $("#mapTitle").textContent = MAP_PROJ || "ทุกโปรเจกต์";
@@ -8689,7 +8740,9 @@ function mapFlowSheet(proj){
 // งานบางแบบไม่ได้เดินเป็น "ขั้นตอน" แต่เดินเป็น "วันที่" — งานไลฟ์คือคนละคนไลฟ์คนละวัน
 // ถามว่า "ใครอยู่ขั้นไหน" ไม่ตรงกับที่ทีมต้องรู้เท่ากับ "วันนี้ใครไลฟ์" เลยให้เลือกรูปแบบได้รายโปรเจกต์
 const LS_MAPFMT = "cf_mapfmt_v1";
-const MAP_FMTS = [["flow", "◈ ขั้นตอนงาน"], ["cal", "🗓 ปฏิทินวันที่"]];
+// ป้าย LIVE ไม่ใช่แค่ชื่อสวยๆ — เปิดรูปแบบนี้แล้ว Command จะมีบล็อก "แจ้งเตือนวันไลฟ์" ขึ้นมาด้วย
+// (ดู bl.live ใน openCmd) ป้ายจึงต้องบอกให้รู้ว่ากดแล้วได้อะไรเพิ่ม ไม่ใช่แค่หน้าตาแผนผังเปลี่ยน
+const MAP_FMTS = [["flow", "◈ ขั้นตอนงาน"], ["cal", "🗓 ปฏิทินวันที่ · LIVE"]];
 // โปรเจกต์ที่รู้อยู่แล้วว่าเป็นงานตามวัน — เปิดมาได้ปฏิทินเลย ไม่ต้องให้ไปตั้งเองก่อน
 // (ยังสลับกลับเป็นขั้นตอนงานได้ตลอด ถ้าตั้งเองแล้วค่าที่ตั้งชนะเสมอ)
 const MAPFMT_DEFAULT = { "TikTok Live": "cal" };
