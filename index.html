@@ -1177,6 +1177,9 @@ body.locked{overflow:hidden}
 .calmatchrow .slot{flex:none;min-width:11em;font-family:'IBM Plex Mono',monospace;
   font-size:.8rem;color:var(--warn)}
 .calmatchrow select{flex:1;min-width:0;font-size:.82rem;padding:6px 9px}
+.calmatchrow .src{flex:none;font-size:.72rem;color:var(--dim);min-width:8.6em}
+.calmatchrow .src.ok{color:var(--hi)}
+.calmatchrow .src.bad{color:var(--lo)}
 @media(max-width:620px){
   .mapfmt .lab{display:none}
   .calrow{align-items:flex-start;flex-direction:column;gap:3px}
@@ -8837,13 +8840,31 @@ function mapCalSheet(proj){
 // ⚠️ ไม่เขียนทับให้เองทันที ต้องเห็นก่อนว่าใครได้วันไหน แล้วแก้คู่ได้ก่อนกดยืนยัน
 // (เขียนทับ postdate ของคนที่มีวันอยู่แล้ว = ตารางที่ยืนยันกับครีเอเตอร์ไปแล้วเปลี่ยนเงียบๆ)
 let CALPASTE = [];
-function calParsePaste(text){
+// ระบุชื่อคนไว้หน้าบรรทัดได้: "jutharat.fern⇥28-Aug⇥20.00-23.00"
+// ⚠️ ต้องตัดชื่อออกก่อนอ่านวันที่เสมอ — ชื่อครีเอเตอร์มีตัวเลขปนเยอะ (nunr2008 · everoselive24)
+// ถ้าปล่อยไว้ ตัวอ่านวันที่จะไปหยิบเลขในชื่อมาเป็นวัน/ปี แล้วลงวันผิดแบบเงียบๆ
+// ไม่ใส่ชื่อก็ยังได้เหมือนเดิม — ตกไปใช้การเดาตามลำดับ แล้วให้คนตรวจก่อนกดยืนยันอยู่ดี
+function calSplitName(line, rows){
+  const t = String(line || "").trim();
+  const m = /^\s*@?([A-Za-z0-9._-]+)\s*[\t,|]?\s*(.*)$/.exec(t);
+  if (!m) return { who: null, rest: t, named: false };
+  const cand = normId(m[1]);
+  const hit = (rows || []).find(r => normId(r.handle) === cand);
+  if (hit) return { who: normId(hit.handle), rest: m[2].trim(), named: true };
+  // เขียนชื่อมาแต่ไม่มีในโปรเจกต์ — ต้องบอก ไม่ใช่เงียบแล้วไปเดาลำดับให้
+  // (เดาให้ = ใส่วันผิดคน ซึ่งแย่กว่าบอกตรงๆ ว่าไม่รู้จักชื่อนี้)
+  if (/[A-Za-z_]/.test(m[1]) && m[2].trim() && parseAnyDate(m[2]) && !parseAnyDate(m[1]))
+    return { who: null, rest: m[2].trim(), named: true, unknown: m[1] };
+  return { who: null, rest: t, named: false };
+}
+function calParsePaste(text, rows){
   return String(text || "").split(/\r?\n/).map(line => {
     const t = line.trim();
     if (!t) return null;
-    const d = parseAnyDate(t);
+    const { who, rest, named, unknown } = calSplitName(t, rows);
+    const d = parseAnyDate(rest);
     if (!d) return null;
-    return { d, time: parseTimeText(t), raw: t };
+    return { d, time: parseTimeText(rest), raw: t, who, named, unknown };
   }).filter(Boolean);
 }
 // ข้อความที่จะเขียนลงช่อง "โพสต์" — เดือนย่อไทยเพราะตัวอ่านรับได้ และคนอ่านในชีตก็เข้าใจ
@@ -8857,7 +8878,7 @@ function renderCalPaste(proj){
   const order = rows.filter(r => !rowDate(r)).concat(rows.filter(r => rowDate(r)));
   box.innerHTML = `<div class="calpaste">
     <textarea id="calPasteIn" rows="6" spellcheck="false"
-      placeholder="28-Aug&#9;20.00 - 23.00&#10;29-Aug&#9;20.00 - 23.00&#10;6 Sep&#9;19.00-21.00"></textarea>
+      placeholder="ใส่ชื่อครีเอเตอร์หน้าบรรทัดได้ (ไม่ใส่ก็ได้ เดี๋ยวเดาตามลำดับให้)&#10;jutharat.fern&#9;28-Aug&#9;20.00 - 23.00&#10;nunr2008&#9;29-Aug&#9;20.00 - 23.00&#10;6 Sep&#9;19.00-21.00"></textarea>
     <div class="calpasteact">
       <button class="cmdbtn" id="calPasteRead">อ่านตาราง</button>
       <button class="cmdbtn" id="calPasteClose">ปิด</button>
@@ -8871,10 +8892,17 @@ function renderCalPaste(proj){
       <div class="calmatch">${CALPASTE.map((sl, i) => `<div class="calmatchrow">
         <span class="slot">${esc(calSlotText(sl))}</span>
         <select data-calwho="${i}">
-          <option value="">— ไม่ใส่ —</option>
-          ${order.map((r, j) => `<option value="${esc(normId(r.handle))}"${
-            j === i ? " selected" : ""}>${esc(r.handle)}${rowDate(r) ? " (มีวันแล้ว)" : ""}</option>`).join("")}
-        </select></div>`).join("")}</div>
+          <option value=""${sl.unknown ? " selected" : ""}>— ไม่ใส่ —</option>
+          ${order.map((r, j) => {
+            // ระบุชื่อมาในบรรทัด = ใช้ชื่อนั้น · ไม่ได้ระบุ = เดาตามลำดับเหมือนเดิม
+            const pick = sl.who ? normId(r.handle) === sl.who : (!sl.named && j === i);
+            return `<option value="${esc(normId(r.handle))}"${pick ? " selected" : ""}>${
+              esc(r.handle)}${rowDate(r) ? " (มีวันแล้ว)" : ""}</option>`;
+          }).join("")}
+        </select>
+        <span class="src ${sl.unknown ? "bad" : sl.who ? "ok" : ""}">${
+          sl.unknown ? `ไม่พบ “${esc(sl.unknown)}”` : sl.who ? "จากชื่อในบรรทัด" : "เดาจากลำดับ"}</span>
+        </div>`).join("")}</div>
       <button class="run" id="calPasteGo" style="margin-top:10px">ใส่ลงตาราง</button>`;
     $("#calPasteGo").onclick = () => {
       let n = 0;
@@ -8894,7 +8922,7 @@ function renderCalPaste(proj){
     };
   };
   $("#calPasteRead").onclick = () => {
-    CALPASTE = calParsePaste($("#calPasteIn").value);
+    CALPASTE = calParsePaste($("#calPasteIn").value, rows);
     if (!CALPASTE.length){
       $("#calPastePrev").innerHTML = `<div class="hint" style="color:var(--lo);margin-top:8px">
         อ่านวันที่ไม่ได้สักบรรทัด — ต้องมีวันในบรรทัดนั้น เช่น 28-Aug · 30 Aug · 17 มิ.ย. · 25/06/2026</div>`;
