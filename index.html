@@ -1091,6 +1091,23 @@ body.locked{overflow:hidden}
   line-height:1.85;white-space:pre-wrap;word-break:break-word;color:var(--ink);
   max-height:44vh;overflow:auto}
 @media(max-width:560px){.fmtgrid{grid-template-columns:1fr}}
+/* คอมมิชชั่น % — กินเต็มแถว เลขลัดต้องมีที่วาง ช่องกว้าง 8em ของคอลัมน์ขวาใส่ไม่พอ */
+.fmtpct{grid-column:1/-1;display:flex;align-items:center;gap:8px 12px;flex-wrap:wrap;
+  font-size:.78rem;color:var(--mute)}
+.fmtpct .lab{flex:0 0 auto;min-width:6.5em}
+.pctctl{display:flex;align-items:stretch;border:1px solid var(--line);border-radius:8px;overflow:hidden}
+.pctctl button{background:var(--surface2);border:0;color:var(--ink);font-size:1rem;
+  width:2.2em;cursor:pointer}
+.pctctl button:hover{color:var(--accent)}
+.pctctl input{width:4.6em;border:0;border-radius:0;text-align:right;font-size:.95rem;
+  padding:6px 4px;font-variant-numeric:tabular-nums;-moz-appearance:textfield}
+.pctctl input::-webkit-outer-spin-button,.pctctl input::-webkit-inner-spin-button{-webkit-appearance:none;margin:0}
+.pctctl .unit{display:flex;align-items:center;padding:0 8px 0 2px;color:var(--mute);background:var(--surface)}
+.pctchips{display:flex;gap:6px;flex-wrap:wrap}
+.pctchips button{background:none;border:1px solid var(--line);color:var(--mute);border-radius:999px;
+  padding:3px 10px;font-size:.78rem;cursor:pointer}
+.pctchips button[aria-pressed="true"]{border-color:var(--accent);color:var(--accent);
+  background:rgba(var(--accent-rgb),.1)}
 .modal-head{display:flex;align-items:center;justify-content:space-between;
   gap:12px;margin-bottom:4px}
 .modal-head h2{font-family:'Space Grotesk',sans-serif;font-size:1.05rem;font-weight:700}
@@ -4811,6 +4828,11 @@ const FORMAT_NOBUDGET_DEFAULT =
 // แยกแบบไม่มี Budget ไปเก็บอีกกุญแจ แทนที่จะรื้อโครงเดิม = ของที่ทีมแก้ไว้ไม่ต้องย้ายและไม่มีทางหาย
 const LS_FORMAT_NB = "cf_format_nb_v1";
 const LS_FMTKIND = "cf_fmtkind_v1";       // { โปรเจกต์: "budget" | "nobudget" } — จำว่าโปรเจกต์นี้ใช้แบบไหน
+// คอมมิชชั่นเก็บเป็น "ตัวเลขล้วน" รายโปรเจกต์ ใส่ % ตอนเติมลงข้อความเท่านั้น
+// เดิมเป็นช่องข้อความอิสระ พิมพ์ "15" ลืม % ข้อความที่ส่งออกไปจะเป็น "คอมมิชชั่นพิเศษ 15" เฉยๆ
+// และหายทุกครั้งที่ปิดหน้าต่าง ทั้งที่แต่ละโปรเจกต์ใช้เลขเดิมตลอด
+const LS_FMTCOMM = "cf_fmtcomm_v1";       // { โปรเจกต์: "15" }
+let FMT_COMM_BY = {};
 const FMT_KINDS = [
   { k:"budget",   th:"💰 มี Budget",    def: FORMAT_DEFAULT },
   { k:"nobudget", th:"🎁 ไม่มี Budget", def: FORMAT_NOBUDGET_DEFAULT },
@@ -4823,6 +4845,7 @@ function loadFormats(){
   try { FORMATS = JSON.parse(lsGet(LS_FORMAT) || "{}") || {}; } catch(e){}
   try { FORMATS_NB = JSON.parse(lsGet(LS_FORMAT_NB) || "{}") || {}; } catch(e){}
   try { FMT_KIND_BY = JSON.parse(lsGet(LS_FMTKIND) || "{}") || {}; } catch(e){}
+  try { FMT_COMM_BY = JSON.parse(lsGet(LS_FMTCOMM) || "{}") || {}; } catch(e){}
 }
 function saveFormats(){
   try { lsSet(LS_FORMAT, JSON.stringify(FORMATS)); } catch(e){}
@@ -4848,7 +4871,7 @@ function renderFormat(){
   const K = fmtKind(FMT_KIND);
   $("#fmtTitle").textContent = `Format ขอเรท · ${proj}`;
   const vals = { brandname: brandOf(proj), videos: FMT_VID || "1", sku: fmtSkuText(proj),
-                 commission: FMT_COMM.trim() };
+                 commission: FMT_COMM !== "" ? FMT_COMM + "%" : "" };
   const raw = formatOf(proj, K.k);
   const filled = raw.replace(/\{\{([\w฀-๿]+)\}\}/g, (_, k) =>
     vals[k] != null && vals[k] !== "" ? vals[k] : `…..ยังไม่มี${FMT_GAP[k] || k}…..`);
@@ -4875,8 +4898,18 @@ function renderFormat(){
          <label>แบรนด์<input value="${esc(vals.brandname)}" disabled
            title="แก้ที่หน้าจัดการโปรเจกต์ (ปุ่ม ⚙ ท้ายแท็บ)"></label>
          ${uses("videos") ? `<label>จำนวนวิดีโอ<input id="fmtVid" type="number" min="1" step="1" value="${esc(FMT_VID)}"></label>` : ""}
-         ${uses("commission") ? `<label>Commission<input id="fmtComm" value="${esc(FMT_COMM)}"
-           placeholder="เช่น 15%" autocomplete="off"></label>` : ""}
+         ${uses("commission") ? `<div class="fmtpct">
+           <span class="lab">Commission</span>
+           <div class="pctctl">
+             <button type="button" data-pctstep="-1" aria-label="ลด 1%" title="ลด 1%">−</button>
+             <input id="fmtComm" type="number" min="0" max="100" step="0.5" inputmode="decimal"
+               value="${esc(FMT_COMM)}" placeholder="0" aria-label="Commission เป็นเปอร์เซ็นต์">
+             <span class="unit">%</span>
+             <button type="button" data-pctstep="1" aria-label="เพิ่ม 1%" title="เพิ่ม 1%">+</button>
+           </div>
+           <div class="pctchips">${[5, 10, 15, 20, 25, 30].map(n =>
+             `<button type="button" data-pct="${n}" aria-pressed="${FMT_COMM !== "" && Number(FMT_COMM) === n}">${n}%</button>`).join("")}</div>
+         </div>` : ""}
          ${uses("sku") ? `<label class="wide">สินค้าที่จะเสนอ — บรรทัดละอย่าง
            <textarea id="fmtSku" rows="3" placeholder="ว่างไว้ = ใช้ SKU ทั้งหมดที่มีในโปรเจกต์นี้">${esc(vals.sku)}</textarea></label>` : ""}
        </div>
@@ -4905,7 +4938,20 @@ function renderFormat(){
     $("#fmtCancel").onclick = () => { FMT_EDIT = false; rerender(); };
   } else {
     if ($("#fmtVid")) $("#fmtVid").onchange = () => { FMT_VID = String(Math.max(1, Number($("#fmtVid").value) || 1)); rerender(); };
-    if ($("#fmtComm")) $("#fmtComm").onchange = () => { FMT_COMM = $("#fmtComm").value; rerender(); };
+    // ── คอมมิชชั่น % ── ทางเข้าเดียวทั้งพิมพ์ · กด −/+ · กดเลขลัด จะได้ปัดและจำเหมือนกันทุกทาง
+    // รับ "15%" "15" "7.5" ได้หมด · เกิน 0–100 ปัดเข้าขอบ · ลบจนว่าง = ยังไม่ได้ตั้ง (ขึ้นแดงในข้อความ)
+    const setPct = v => {
+      const s = String(v == null ? "" : v).replace(/[%\s,]/g, "");
+      const n = Number(s);
+      FMT_COMM = s === "" || !isFinite(n) ? "" : String(Math.round(Math.min(100, Math.max(0, n)) * 10) / 10);
+      if (FMT_COMM === "") delete FMT_COMM_BY[proj]; else FMT_COMM_BY[proj] = FMT_COMM;
+      try { lsSet(LS_FMTCOMM, JSON.stringify(FMT_COMM_BY)); } catch(e){}
+      rerender();
+    };
+    if ($("#fmtComm")) $("#fmtComm").onchange = () => setPct($("#fmtComm").value);
+    body.querySelectorAll("[data-pctstep]").forEach(b => b.onclick = () =>
+      setPct((Number(FMT_COMM) || 0) + Number(b.dataset.pctstep)));
+    body.querySelectorAll("[data-pct]").forEach(b => b.onclick = () => setPct(b.dataset.pct));
     if ($("#fmtSku")) $("#fmtSku").onchange = () => { FMT_SKU = $("#fmtSku").value; rerender(); };
     $("#fmtCopy").onclick = () => {
       const btn = $("#fmtCopy");
@@ -4924,7 +4970,8 @@ function renderFormat(){
 }
 function openFormat(){
   loadFormats();
-  FMT_EDIT = false; FMT_SKU = null; FMT_COMM = "";
+  FMT_EDIT = false; FMT_SKU = null;
+  FMT_COMM = FMT_COMM_BY[PROJ] || "";           // เลขที่ตั้งไว้ของโปรเจกต์นี้ ไม่ต้องกรอกใหม่ทุกครั้ง
   FMT_KIND = fmtKind(FMT_KIND_BY[PROJ]).k;     // ไม่เคยเลือก = มี Budget (แบบเดิมก่อนมีสองแบบ)
   $("#fmtPanel").hidden = false;
   renderFormat();
