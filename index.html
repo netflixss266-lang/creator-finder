@@ -3909,8 +3909,12 @@ const LS_PROJ = "cf_projects_v1";
 const DEFAULT_PROJECTS = [];
 // ชื่อแบรนด์เดาจากชื่อโปรเจกต์ได้พอสมควร แต่แก้ได้เสมอ และของใหม่ต้องกรอกเอง
 // ตัดส่วนที่เป็นเฟส/กลุ่มออก: "Red Chamber Phase 2" → "Red Chamber" · "OBSBOT-KOL" → "OBSBOT"
+// กลุ่มท้ายชื่อคั่นด้วยขีด ("OBSBOT-KOC") หรือเว้นวรรคเฉยๆ ("Red Chamber KOC") ก็ได้ทั้งคู่
+// เดิมรับแค่ขีด → "Red Chamber KOC" ได้แบรนด์เป็น "Red Chamber KOC" ทั้งดุ้น
+// แล้ว {{brandname}} ในข้อความ Command ที่ส่งให้ครีเอเตอร์ก็ขึ้นชื่อกลุ่มติดไปด้วย
+// \b กันชื่อที่บังเอิญลงท้ายด้วยตัวอักษรชุดนี้ติดกัน (เช่น "BrandKOL") ไม่ให้โดนตัด
 const guessBrand = name => String(name || "")
-  .replace(/\s*[-–]\s*(KOL|KOC)\s*$/i, "")
+  .replace(/\s*[-–]?\s*\b(KOL|KOC)\s*$/i, "")
   .replace(/\s+(phase|ph|เฟส)\s*\d+\s*$/i, "")
   .trim() || String(name || "");
 let PROJ_LIST = DEFAULT_PROJECTS.map(name => ({ name, done:false, brand: guessBrand(name) }));
@@ -3982,7 +3986,8 @@ function renameProject(from, to){
 // เคยยืมชื่อมาจาก DEFAULT_PROJECTS แต่ตอนนี้ลิสต์นั้นว่างแล้ว (บัญชีใหม่เริ่มจากศูนย์)
 // สองอย่างนี้คนละเรื่องกัน: อันนี้คือชื่อที่ COORD_PROJECTS ในสคริปต์รู้จัก ต้องเขียนไว้ตรงๆ
 const SCRIPT_KNOWN = ["Red Chamber Phase 1", "Red Chamber Phase 2",
-                      "OBSBOT-KOL", "OBSBOT-KOC", "TikTok Live", "COSRX", "Midea"];
+                      "OBSBOT-KOL", "OBSBOT-KOC", "TikTok Live", "COSRX", "Midea",
+                      "Red Chamber KOC"];
 // เตือนเรื่องชีตมีความหมายแค่ตอนเส้นทางชีตยังใช้งานได้จริง (admin ที่ตั้ง Apps Script ไว้)
 // editor ไม่แตะชีตเลยแม้แต่ทางอ้อม (canSync() คืน false เสมอ) เตือนไปก็เป็นแค่สัญญาณรบกวน
 // ชี้ให้ไปแก้ Apps Script ที่ตัวเองไม่มีสิทธิ์เข้าและไม่จำเป็นต้องรู้จักด้วยซ้ำ
@@ -12473,17 +12478,28 @@ const QO_FIELDS = [
 // คำสั่งที่พิมพ์ในช่องคำสั่ง เทียบกับ alias ของแต่ละขั้นใน STAGES โดยตรง
 // ไม่มีตารางคำแยกอีกชุดแล้ว จะได้ไม่ต้องแก้สองที่ทุกครั้งที่เพิ่มขั้น
 
+// ขีด/ขีดล่าง/เว้นวรรคถือเป็นตัวคั่นเดียวกัน — "OBSBOT-KOC" กับ "obsbot koc" คือชื่อเดียวกัน
+const projNorm = s => String(s || "").trim().toLowerCase().replace(/[-_–]+/g, " ").replace(/\s+/g, " ");
+const projGroup = s => (projNorm(s).match(/\b(kol|koc)$/) || [])[1] || "";
 function matchProject(s){
-  const t = String(s).trim().toLowerCase().replace(/\s+/g, " ");
-  let hit = PROJECTS.find(p => p.toLowerCase() === t);
+  const t = projNorm(s);
+  let hit = PROJECTS.find(p => projNorm(p) === t);
   if (hit) return hit;
+  // ชื่อเล่นชุดเดียวกับที่ findProjects ใช้ (rc2 · rc koc · obs kol) — ต้องครอบทั้งข้อความพอดี
+  const al = findProjects(t).find(h => h.at === 0 && h.len === t.length);
+  if (al) return al.proj;
   // "Red Chamber 2" -> "Red Chamber Phase 2"
   const digits = (t.match(/\d+/) || [])[0];
-  const words = t.replace(/\d+/g, "").trim();
+  const g = projGroup(t);
+  const words = t.replace(/\d+/g, "").replace(/\b(kol|koc)$/, "").trim();
   hit = PROJECTS.find(p => {
-    const pl = p.toLowerCase();
+    // ⚠️ กลุ่มท้ายชื่อต้องตรงกัน — ตัวเดาเทียบแค่ 6 ตัวอักษรแรก ("red ch") พอมี Red Chamber KOC
+    // แล้ว "red chamber-koc" ที่พิมพ์ขีดมาจะหลุดไปลง Red Chamber Phase 1 (ตัวแรกในลิสต์) แบบเงียบๆ
+    // พิมพ์ "red chamber" เฉยๆ ไม่มีกลุ่ม ก็ยังได้ Phase 1 เหมือนเดิม ไม่ไปโดน KOC
+    if (projGroup(p) !== g) return false;
+    const pl = projNorm(p);
     const pd = (pl.match(/\d+/) || [])[0];
-    return pl.replace(/phase|\d+/g, "").trim().startsWith(words.slice(0, 6))
+    return pl.replace(/phase|\d+|\b(kol|koc)$/g, "").trim().startsWith(words.slice(0, 6))
            && (!digits || digits === pd);
   });
   return hit || null;
@@ -12514,6 +12530,17 @@ function findProjects(text){
     if (mm) aliases.push(`${mm[1].toLowerCase()} ${mm[2]}`, `rc${mm[2]}`, `rc ${mm[2]}`);
     if (p === "OBSBOT-KOL") aliases.push("obs-kol", "obs kol", "obsbot kol");
     if (p === "OBSBOT-KOC") aliases.push("obs-koc", "obs koc", "obsbot koc");
+    // แบรนด์หลายคำ + กลุ่มท้ายชื่อ → ตัวย่อแบบที่ทีมเรียก rc1/rc2 อยู่แล้ว
+    // "Red Chamber KOC" → rc koc · rc-koc · rckoc · red chamber-koc
+    // แบรนด์คำเดียว (OBSBOT) ไม่ทำ — ตัวย่อตัวเดียว "o koc" ชนกับข้อความทั่วไปง่ายเกิน
+    const gm = p.match(/^(.*?)[\s\-–]+(KOL|KOC)$/i);
+    if (gm){
+      const ws = gm[1].trim().split(/\s+/), k = gm[2].toLowerCase();
+      if (ws.length >= 2){
+        const ini = ws.map(w => w[0]).join("").toLowerCase();
+        aliases.push(`${ini} ${k}`, `${ini}-${k}`, `${ini}${k}`, `${gm[1].trim().toLowerCase()}-${k}`);
+      }
+    }
     aliases.forEach(a => {
       const at = low.indexOf(a);
       if (at >= 0) hits.push({ proj: p, at, len: a.length });
