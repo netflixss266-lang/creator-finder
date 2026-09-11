@@ -1108,6 +1108,31 @@ body.locked{overflow:hidden}
   padding:3px 10px;font-size:.78rem;cursor:pointer}
 .pctchips button[aria-pressed="true"]{border-color:var(--accent);color:var(--accent);
   background:rgba(var(--accent-rgb),.1)}
+/* ── Blacklist ── แดงชัดทุกที่ที่เห็นชื่อ ติดดำคือเรื่องที่ต้องสะดุดตา ไม่ใช่ป้ายเล็กๆ ที่กวาดตาข้าม */
+.card.bl{border-color:rgba(var(--lo-rgb),.6)}
+.tag.bl{color:var(--lo);border-color:rgba(var(--lo-rgb),.55);background:rgba(var(--lo-rgb),.12);font-weight:700}
+.notebtn{background:none;border:1px solid var(--line);color:var(--accent);border-radius:6px;
+  padding:1px 8px;font-size:.78rem;cursor:pointer}
+#blSect textarea{width:100%;min-height:4.8em;font-size:.86rem;line-height:1.6}
+.blrow{display:flex;gap:8px;margin-top:8px;flex-wrap:wrap}
+.blrow input{flex:1 1 16em;min-width:0}
+.blrow .run{flex:none;background:var(--lo);border-color:var(--lo)}
+.blwarn{border:1px solid rgba(var(--warn-rgb),.5);background:rgba(var(--warn-rgb),.08);border-radius:8px;
+  padding:10px 12px;margin-bottom:10px;font-size:.8rem;line-height:1.7;color:var(--ink)}
+.blwarn code{display:block;margin-top:6px;white-space:pre-wrap;word-break:break-all;font-size:.76rem}
+.blhead{display:flex;align-items:center;gap:10px;margin:14px 0 6px;flex-wrap:wrap;font-size:.82rem}
+.blhead input{flex:1 1 10em;max-width:16em;font-size:.82rem;padding:5px 9px}
+#blList{display:flex;flex-direction:column;gap:4px;max-height:34vh;overflow:auto}
+.blitem{display:flex;align-items:center;gap:10px;padding:6px 8px;border:1px solid var(--line);
+  border-radius:7px;font-size:.82rem}
+.blitem .nm{flex:none;font-weight:700;color:var(--lo)}
+.blitem .k{flex:none;font-size:.72rem;color:var(--dim)}
+.blitem .why{flex:1;min-width:0;color:var(--mute);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.blitem .why i{color:var(--dim)}
+.blitem button{flex:none;background:none;border:1px solid var(--line);color:var(--mute);border-radius:6px;
+  padding:2px 10px;font-size:.76rem;cursor:pointer}
+.blitem button:hover{border-color:var(--lo);color:var(--lo)}
+.blempty{font-size:.82rem;color:var(--dim);padding:6px 2px}
 .modal-head{display:flex;align-items:center;justify-content:space-between;
   gap:12px;margin-bottom:4px}
 .modal-head h2{font-family:'Space Grotesk',sans-serif;font-size:1.05rem;font-weight:700}
@@ -2741,6 +2766,31 @@ tr.subrow td.w-status select{width:14.6em}
       <div id="bulkPreview"></div>
       <div class="addmsg" id="bulkMsg"></div>
     </details>
+
+    <!-- Blacklist — วางชื่อทีเดียวหลายคน เหตุผลใส่หรือไม่ใส่ก็ได้ · ปลดทีละคนจากลิสต์ข้างล่าง
+         ติดทั้งฝั่ง KOL และ KOC ของคนนั้น เพราะคนเดียวกันติดดำฝั่งหนึ่งแล้วไปรับอีกฝั่งก็คือรับคนเดิมกลับมา -->
+    <details class="sect" id="blSect">
+      <summary><h3>🚫 Blacklist ครีเอเตอร์</h3></summary>
+      <p class="sect-sub">
+        วางชื่อได้ทีละหลายคน — บรรทัดละคน มี @ หรือเป็นลิงก์ TikTok ก็ได้<br>
+        คนที่ติดจะ<b>ถูกซ่อนจากผลค้นหา</b> และขึ้นป้ายแดงตอนค้นชื่อ · ติดทั้งฝั่ง KOL และ KOC ของคนนั้น<br>
+        <span style="color:var(--dim)">วางผ่าน “วางทีละหลายคน” ก็ได้ — ตั้งหัวคอลัมน์เป็น 🚫 Blacklist
+        (ใส่ Y/✓ หรือพิมพ์เหตุผลในช่อง · ช่องว่างไม่ปลดคนที่ติดอยู่แล้ว)</span>
+      </p>
+      <div id="blWarn"></div>
+      <textarea id="blText" rows="3" placeholder="@creator1&#10;https://www.tiktok.com/@creator2"></textarea>
+      <div class="blrow">
+        <input id="blWhy" maxlength="200" autocomplete="off"
+               placeholder="เหตุผล (ไม่บังคับ) เช่น ส่งงานช้า · ติดต่อไม่ได้เกิน 48 ชม.">
+        <button type="button" class="run" id="blAdd">🚫 ติด Blacklist</button>
+      </div>
+      <div class="addmsg" id="blMsg"></div>
+      <div class="blhead">
+        <b id="blCount"></b>
+        <input id="blFind" placeholder="ค้นชื่อในลิสต์" autocomplete="off">
+      </div>
+      <div id="blList"></div>
+    </details>
   </div>
 </div>
 
@@ -3152,6 +3202,8 @@ function extractHandles(text){
 let CPF_MED = null;     // ค่ากลาง CPF ของผลลัพธ์ชุดปัจจุบัน
 let HIDDEN_NORATE = 0;  // ถูกซ่อนเพราะกรองงบแต่ไม่มีเรท
 let HIDDEN_EX = 0;      // ถูกตัดเพราะอยู่ในลิสต์ที่เคยใช้แล้ว
+let HIDDEN_BL = 0;      // ถูกซ่อนเพราะติด Blacklist
+let SHOW_BL = false;    // กดดูคนติด Blacklist ชั่วคราว (ไม่จำ — เปิดหน้าใหม่ซ่อนเหมือนเดิม)
 let RATE_SKIPPED = false; // มีค่าในช่องงบค้างไว้ แต่ดีล Barter ไม่ใช้
 
 // ─── รายการ Google Sheet (จัดการที่หน้าตั้งค่าเท่านั้น) ───
@@ -3712,6 +3764,7 @@ async function run(opt){
 
   HIDDEN_NORATE = 0;
   HIDDEN_EX = 0;
+  HIDDEN_BL = 0;
   HIDDEN_LIKED = 0;
   HIDDEN_LIKECAT = 0;
   // หมวดที่อ่านมาอาจไม่มีใน pool ที่เปิดอยู่ตอนนี้เลย (สลับชีต/แท็บไปแล้ว) — กรองแล้วจะว่างเปล่า
@@ -3721,6 +3774,8 @@ async function run(opt){
   const liveTest = (LIVES.find(d => d.id === LIVEF) || LIVES[0]).test;
 
   let filtered = POOL.filter(p => {
+    // ติด Blacklist ซ่อนก่อนตัวกรองอื่นทั้งหมด — นับแยกไว้บอกในแถบสรุป ไม่หายเงียบๆ
+    if (p.blacklist && !SHOW_BL){ HIDDEN_BL++; return false; }
     if (EXCLUDE.has(normId(p.id))){ HIDDEN_EX++; return false; }
     if (HIDE_LIKED && LIKED.has(normId(p.id))){ HIDDEN_LIKED++; return false; }
     if (catOnly && !catsOf(p).some(c => LIKE_CATS.has(c))){ HIDDEN_LIKECAT++; return false; }
@@ -3845,6 +3900,12 @@ function render(){
     notes.push(`กรองเหลือเฉพาะหมวดที่ติดมากับลิสต์ — ตัดออก <b>${HIDDEN_LIKECAT} คน</b>`);
   if (LIKE_CAT_ON && LIKE_CATS.size && !CATS.some(c => LIKE_CATS.has(c)))
     notes.push(`<span style="color:var(--warn)">หมวดที่ติดมากับลิสต์ไม่มีใน pool นี้เลย</span> — ข้ามตัวกรองหมวดไว้ก่อน`);
+  if (HIDDEN_BL)
+    notes.push(`<span style="color:var(--lo)">ซ่อน <b>${HIDDEN_BL} คน</b> ที่ติด Blacklist</span> ` +
+               `<button type="button" class="notebtn" id="blToggle">แสดง</button>`);
+  else if (SHOW_BL && RESULTS.some(p => p.blacklist))
+    notes.push(`<span style="color:var(--lo)">กำลังแสดงคนติด Blacklist <b>${RESULTS.filter(p => p.blacklist).length} คน</b></span> ` +
+               `<button type="button" class="notebtn" id="blToggle">ซ่อน</button>`);
   if (HIDDEN_EX)
     notes.push(`ตัดออก <b>${HIDDEN_EX} คน</b> ที่อยู่ในลิสต์เคยใช้แล้ว`);
   if (HIDDEN_NORATE)
@@ -3854,6 +3915,7 @@ function render(){
   if (RATE_SKIPPED)
     notes.push(`ดีล <b>Barter</b> ไม่คิดเป็นเงิน — ช่วงงบที่ใส่ไว้ถูกข้าม`);
   $("#resNote").innerHTML = notes.join(" · ");
+  if ($("#blToggle")) $("#blToggle").onclick = () => { SHOW_BL = !SHOW_BL; runLive(); };
 
   if (!RESULTS.length){
     $("#results").innerHTML = `<div class="empty"><h3>ไม่มีครีเอเตอร์ตรงเงื่อนไข</h3><div>ลองผ่อนตัวกรอง เช่น ขยายช่วง followers หรือช่วงงบ</div></div>`;
@@ -9956,6 +10018,30 @@ async function sbProfile(){
    เพื่อให้ส่วนที่เหลือของเว็บทำงานได้เหมือนอ่านจากชีต */
 const POOL_SOURCE = "supabase";
 const SB_POOL_COLS = "kind,cat,handle,link,follower,rate,live";
+// ─── Blacklist ─── คอลัมน์ pool.blacklist (ว่าง = ไม่ติด · มีข้อความ = ติด และข้อความคือเหตุผล)
+// เก็บที่ฐานข้อมูลกองกลาง ไม่ใช่ในเครื่อง — บัญชีดำที่เห็นแค่เครื่องเดียวคือคนอื่นในทีมรับคนนั้นกลับเข้ามาได้
+// ⚠️ ถามก่อนเสมอว่ามีคอลัมน์หรือยัง ถ้าใส่ชื่อคอลัมน์ที่ไม่มีลงใน select ทั้ง pool จะโหลดไม่ขึ้น (400)
+//    ยังไม่มี = ฟีเจอร์ปิดตัวเองและบอกให้รู้ ไม่ใช่รับชื่อไปแล้วทิ้งเงียบๆ
+let BL_READY = null;             // null = ยังไม่ได้ถาม · true มีคอลัมน์ · false ยังไม่มี
+async function blProbe(){
+  if (BL_READY !== null) return BL_READY;
+  try {
+    const r = await sbAuthed(SB_URL + "/rest/v1/pool?select=blacklist&limit=1");
+    if (r.ok) BL_READY = true;
+    else if (r.status === 400) BL_READY = false;     // 42703 คอลัมน์ไม่มี — ค่าอื่น (เน็ต/สิทธิ์) ไม่ฟันธง ถามใหม่รอบหน้า
+  } catch(e){}
+  return BL_READY === true;
+}
+// ค่าในคอลัมน์ Blacklist ของไฟล์ที่วางมา — ทีมเขียนได้หลายแบบ
+// ว่าง/ไม่/N = ไม่ติด (และไม่ไปปลดคนที่ติดอยู่แล้ว) · Y/✓/ติด = ติดโดยไม่มีเหตุผล · อย่างอื่น = ติด และใช้เป็นเหตุผล
+const BL_NO  = /^(|-|–|—|n|no|0|false|none|ok|ไม่|ไม่ติด)$/i;
+const BL_YES = /^(y|yes|1|true|✓|✔|x|ติด|blacklist|black\s*list|bl|แบล็[คก]\s*ลิสต์|บัญชีดำ)$/i;
+function blValue(v){
+  const s = String(v == null ? "" : v).trim();
+  if (BL_NO.test(s)) return "";
+  if (BL_YES.test(s)) return "Blacklist";
+  return s.slice(0, 200);
+}
 
 function sbRowToPool(row){
   return {
@@ -9964,6 +10050,7 @@ function sbRowToPool(row){
     cat:  (row.cat || "").trim(),
     kind: (row.kind || "").trim().toUpperCase(),
     live: (row.live || "").trim(),
+    blacklist: String(row.blacklist == null ? "" : row.blacklist).trim(),
     id:   (row.handle || "").trim(),
     link: (row.link || "").trim(),
     fol:  parseFollowers(row.follower != null ? String(row.follower) : "0"),
@@ -10043,7 +10130,8 @@ function dedupePool(list){
     const k = (p.kind || "") + "|" + normId(p.id);
     const prev = by.get(k);
     if (!prev){ by.set(k, p); return; }
-    ["cat", "link", "live", "av"].forEach(f => { if (!prev[f] && p[f]) prev[f] = p[f]; });
+    // blacklist ด้วย — แถวซ้ำแถวเดียวติดอยู่ ต้องถือว่าคนนั้นติด ไม่ใช่เอาแถวแรกที่บังเอิญว่าง
+    ["cat", "link", "live", "av", "blacklist"].forEach(f => { if (!prev[f] && p[f]) prev[f] = p[f]; });
     if (!prev.fol && p.fol) prev.fol = p.fol;
     // แถวที่รู้เรทจริงชนะแถวที่ยังไม่รู้ — ของซ้ำส่วนใหญ่ต่างกันตรงนี้จุดเดียว (แถวหนึ่งเรทว่าง)
     if (prev.unknown && !p.unknown){
@@ -10056,7 +10144,8 @@ function dedupePool(list){
   return [...by.values()];
 }
 async function fetchPoolSB(){
-  const data = await sbFetchAll("/rest/v1/pool?select=" + SB_POOL_COLS + "&order=handle.asc",
+  const cols = (await blProbe()) ? SB_POOL_COLS + ",blacklist" : SB_POOL_COLS;
+  const data = await sbFetchAll("/rest/v1/pool?select=" + cols + "&order=handle.asc",
     "โหลดข้อมูลจาก Supabase ไม่สำเร็จ");
   return dedupePool(data.filter(x => (x.handle || "").trim()).map(sbRowToPool));
 }
@@ -10167,6 +10256,8 @@ function sbCreatorRow(it){
     link: it.link || "",
     follower: it.follower != null ? String(it.follower) : "",
     rate: it.rate != null ? String(it.rate) : "",
+    // ส่งเฉพาะตอนมีคอลัมน์จริง — ใส่ชื่อคอลัมน์ที่ไม่มีลงไป ทั้งชุดจะ 400 แม้คนอื่นในชุดไม่ได้ติดดำเลย
+    ...(BL_READY && it.blacklist ? { blacklist: String(it.blacklist).slice(0, 200) } : {}),
   };
 }
 async function sbPostPool(payload){
@@ -10563,7 +10654,7 @@ function cardHTML(p){
   const rate = fmtRate(p);
   const v = cpf(p);
   const link = safeLinkUrl(p.link);
-  return `<div class="card ${p.fav?'fav':''} ${inCart?'incart':''} ${seen?'seen':''}" data-id="${esc(normId(p.id))}">
+  return `<div class="card ${p.fav?'fav':''} ${inCart?'incart':''} ${seen?'seen':''} ${p.blacklist?'bl':''}" data-id="${esc(normId(p.id))}">
     ${seen?`<span class="seenflag">เปิดแล้ว</span>`:""}
     <div class="card-top">
       <div class="who">
@@ -10575,6 +10666,8 @@ function cardHTML(p){
       ${scoreHTML}
     </div>
     <div class="meta">
+      ${p.blacklist ? `<span class="tag bl" title="${esc(p.blacklist === "Blacklist" ? "ติด Blacklist (ไม่ได้ใส่เหตุผล)" : "ติด Blacklist: " + p.blacklist)}">🚫 Blacklist${
+        p.blacklist !== "Blacklist" ? ` · ${esc(p.blacklist.slice(0, 40))}` : ""}</span>` : ""}
       ${p.fav ? `<span class="tag fav">★ แนวที่ชอบ</span>`
         : p.aff >= .6 ? `<span class="tag near" title="โปรไฟล์ใกล้กับลิสต์แนวที่ชอบ">ใกล้แนว ${Math.round(p.aff*100)}%</span>` : ""}
       ${catsOf(p).map(c => `<span class="tag">${esc(c)}</span>`).join("")}
@@ -10616,6 +10709,8 @@ function toggleCart(id, btn){
   } else {
     const p = RESULTS.find(x => normId(x.id) === id);
     if (!p) return;
+    // ติด Blacklist แล้วยังใส่ตะกร้าได้ (บางทีตั้งใจดูเทียบ) แต่ต้องถามก่อนหนึ่งครั้งเสมอ
+    if (p.blacklist && !confirm(`${p.id} ติด Blacklist${p.blacklist !== "Blacklist" ? `\nเหตุผล: ${p.blacklist}` : ""}\n\nยังจะใส่ตะกร้าอยู่ไหม?`)) return;
     CART.set(id, { cat:p.cat, id:p.id, link:p.link, av:p.av, fol:p.fol,
                    rate:p.rate, barter:p.barter, unknown:p.unknown,
                    fav:!!p.fav, aff:p.aff ?? null, score:p.score ?? null, reason:p.reason || "" });
@@ -11308,6 +11403,9 @@ function openAdd(){
   $("#acCatList").innerHTML = CATS.map(c => `<option value="${esc(c)}">`).join("");
   ["acId","acCat","acLink","acFol","acRate"].forEach(id => $("#"+id).value = "");
   $("#acMsg").className = "addmsg";
+  $("#blMsg").className = "addmsg";
+  renderBlacklist();
+  blProbe().then(renderBlacklist);          // ถามฐานข้อมูลว่ามีคอลัมน์หรือยัง แล้ววาดใหม่ตามจริง
   $("#addPanel").hidden = false;
   $("#acId").focus();
 }
@@ -11356,7 +11454,7 @@ $("#acSave").onclick = async () => {
     if (ADD_KIND === KIND){ renderCatChips(pickedCats()); refreshExclude(); }
     // บอกทีละช่องว่าเปลี่ยนจากอะไรเป็นอะไร — อัปเดตทับของเดิมคือเรื่องที่ต้องเห็นกับตา
     // ช่องที่เว้นว่างไว้บอกด้วยว่าไม่ได้แตะ ไม่งั้นจะไม่แน่ใจว่าว่างแล้วของเดิมหายไหม
-    const kept = Object.keys(POOL_COL_TH).filter(k => !(k in patch));
+    const kept = Object.keys(POOL_COL_TH).filter(k => !(k in patch) && k !== "blacklist");
     setAcMsg(`✓ อัปเดต <b>${esc(cur.id)}</b> ใน ${esc(ADD_KIND)} แล้ว — ยึดตามที่กรอกใหม่<br>` +
       Object.keys(patch).map(k => `${POOL_COL_TH[k]}: <s style="color:var(--dim)">${esc(was[k] || "ว่าง")}</s> → <b>${esc(patch[k])}</b>`).join("<br>") +
       (kept.length ? `<br><span style="color:var(--dim)">ไม่ได้แตะ: ${kept.map(k => POOL_COL_TH[k]).join(" · ")} (ช่องว่างไม่ทับของเดิม)</span>` : ""), "ok");
@@ -11397,7 +11495,8 @@ $("#acSave").onclick = async () => {
 // เดาให้ว่าคอลัมน์ไหนคืออะไร แต่ให้คนยืนยันก่อนเขียน
 // เดาผิดแล้วเขียนลงชีตเลย = ข้อมูลทีมเพี้ยนโดยไม่มีใครรู้
 const BULK_ROLES = { skip:"— ไม่เอา —", id:"ID", link:"Link",
-                     follower:"Follower", rate:"Rate", budget:"Budget", cat:"Cat" };
+                     follower:"Follower", rate:"Rate", budget:"Budget", cat:"Cat",
+                     blacklist:"🚫 Blacklist" };
 let BULK = { rows: [], roles: [] };
 
 // ─── ลากไฟล์มาวาง ───
@@ -11489,6 +11588,7 @@ const HEAD_WORDS = {
   rate:    /^(rate|เรท|ราคา|ค่าตัว)$/i,
   budget:  /^(budget|งบ|งบประมาณ)$/i,
   cat:     /^(cat|category|หมวด|หมวดหมู่|ประเภท)$/i,
+  blacklist:/^(blacklist|black\s*list|bl|แบล็[คก]\s*ลิสต์|บัญชีดำ|ติดดำ)$/i,
 };
 // คืนบทบาทของแต่ละคอลัมน์ถ้าบรรทัดนี้เป็นหัวตาราง ไม่ใช่ก็คืน null
 function headerRoles(row){
@@ -11571,8 +11671,18 @@ async function bulkSave(){
              // สคริปต์เขียนตามชื่อหัวคอลัมน์ในชีต — ยังไม่มี Budget ก็แค่ถูกมองข้าม
              // ส่งไปเลยเพื่อให้วันที่ชีตกับสคริปต์พร้อม ไม่ต้องกลับมาแก้ตรงนี้อีก
              budget: iOf("budget") >= 0 ? r[iOf("budget")] : "",
-             cat: iOf("cat") >= 0 ? (r[iOf("cat")] || cat) : cat };
+             cat: iOf("cat") >= 0 ? (r[iOf("cat")] || cat) : cat,
+             blacklist: iOf("blacklist") >= 0 ? blValue(r[iOf("blacklist")]) : "" };
   }).filter(x => x.id);
+
+  // เลือกคอลัมน์ Blacklist ไว้แต่ฐานข้อมูลยังไม่มีที่เก็บ — หยุดก่อนเขียนอะไรทั้งนั้น
+  // ปล่อยผ่านคือเพิ่มคนเข้าไปครบ แต่ป้ายติดดำหายหมด ซึ่งคนวางจะคิดว่าติดให้แล้ว
+  if (iOf("blacklist") >= 0 && !(await blProbe())){
+    msg.className = "addmsg on err";
+    msg.innerHTML = `ยังไม่ได้เพิ่มอะไร — ฐานข้อมูล<b>ยังไม่มีคอลัมน์ Blacklist</b> ` +
+      `ต้องรัน SQL หนึ่งบรรทัดก่อน (ดูกล่อง 🚫 Blacklist ด้านล่าง) หรือเปลี่ยนหัวคอลัมน์นั้นเป็น “ไม่เอา”`;
+    return;
+  }
 
   // ไฟล์ที่ export มาบางทีมีคนซ้ำกันเองในไฟล์ (พิมพ์/ก๊อปซ้ำตอนรวมลิสต์) — แถวซ้ำมักมีบางช่อง
   // ว่างกว่าอีกแถว จึงรวมเป็นคนเดียวโดยเลือกช่องที่มีค่าจริงจากทุกแถวที่ id ตรงกัน ไม่ใช่ทิ้งข้อมูลทีหลัง
@@ -11582,7 +11692,7 @@ async function bulkSave(){
     const prev = byId.get(it.id);
     if (!prev){ byId.set(it.id, it); return; }
     dupInFile++;
-    ["link", "follower", "rate", "budget", "cat"].forEach(k => { if (!prev[k] && it[k]) prev[k] = it[k]; });
+    ["link", "follower", "rate", "budget", "cat", "blacklist"].forEach(k => { if (!prev[k] && it[k]) prev[k] = it[k]; });
   });
   const merged = [...byId.values()];
 
@@ -11669,6 +11779,9 @@ async function bulkSave(){
   msg.className = "addmsg on " + (landed === todo.length ? "ok" : "err");
   msg.innerHTML = `เพิ่มเข้าฐานข้อมูลแล้ว <b>${landed}/${todo.length}</b> คน` +
     (updated ? `<br>อัปเดตรายละเอียดของคนที่มีอยู่แล้ว <b>${updated}</b> คน (ยึดตามที่วางมาใหม่)` : "") +
+    (merged.some(x => x.blacklist)
+      ? `<br><span style="color:var(--lo)">🚫 ติด Blacklist <b>${merged.filter(x => x.blacklist).length}</b> คน</span>` +
+        ` — ซ่อนจากผลค้นหาแล้ว` : "") +
     (dupInPool.length - upd.length > 0
       ? `<br>มีอยู่แล้วและไม่มีอะไรต้องเปลี่ยน ${dupInPool.length - upd.length} คน` : "") +
     (failed.length ? `<br><span style="color:var(--lo)">ไม่สำเร็จ ${failed.length}: ${esc(failed.slice(0,5).join(", "))}</span>` : "");
@@ -11678,6 +11791,104 @@ async function bulkSave(){
 $("#addBtn").onclick = openAdd;
 $("#closeAdd").onclick = () => { $("#addPanel").hidden = true; };
 $("#addPanel").onclick = e => { if (e.target.id === "addPanel") $("#addPanel").hidden = true; };
+
+// ─── กล่อง Blacklist ───
+// อ่านจาก pool ทั้งสองกลุ่ม (POOL_ALL) ไม่ใช่แค่กลุ่มที่เปิดดูอยู่ — ลิสต์บัญชีดำต้องครบเสมอ
+const blSource = () => POOL_ALL.length ? POOL_ALL : POOL;
+function blSetMsg(t, k){ const e = $("#blMsg"); e.className = "addmsg on " + k; e.innerHTML = t; }
+function renderBlacklist(){
+  if (!$("#blList")) return;
+  const off = BL_READY === false;
+  $("#blAdd").disabled = off;
+  $("#blWarn").innerHTML = off
+    ? `<div class="blwarn">⚠ <b>ยังใช้ไม่ได้ — ฐานข้อมูลยังไม่มีคอลัมน์ Blacklist</b><br>
+        เปิด Supabase → SQL Editor แล้วรันบรรทัดนี้ครั้งเดียว (รันซ้ำได้ ไม่พัง) จากนั้นรีเฟรชหน้าเว็บ<br>
+        <code>alter table public.pool add column if not exists blacklist text not null default '';</code></div>`
+    : "";
+  // รวมเป็นรายคน — คนเดียวอาจมีสองแถว (KOL + KOC) โชว์บรรทัดเดียวพร้อมบอกว่าติดฝั่งไหนบ้าง
+  const by = new Map();
+  blSource().filter(p => p.blacklist).forEach(p => {
+    const h = normId(p.id);
+    const o = by.get(h) || { h, id: p.id, why: p.blacklist, kinds: new Set() };
+    if (p.kind) o.kinds.add(p.kind);
+    by.set(h, o);
+  });
+  const q = ($("#blFind").value || "").trim().toLowerCase().replace(/^@/, "");
+  const all = [...by.values()].sort((a, b) => a.h.localeCompare(b.h));
+  const list = q ? all.filter(o => o.h.toLowerCase().includes(q) || o.why.toLowerCase().includes(q)) : all;
+  $("#blCount").textContent = off ? "" : `ติด Blacklist อยู่ ${all.length} คน${q ? ` · ตรงคำค้น ${list.length}` : ""}`;
+  $("#blFind").hidden = off || !all.length;
+  $("#blList").innerHTML = off ? "" : !all.length
+    ? `<div class="blempty">ยังไม่มีใครติด Blacklist</div>`
+    : list.map(o => `<div class="blitem">
+        <span class="nm">🚫 ${esc(o.id)}</span>
+        <span class="k">${esc([...o.kinds].join(" · "))}</span>
+        <span class="why" title="${esc(o.why)}">${o.why === "Blacklist" ? `<i>ไม่ได้ใส่เหตุผล</i>` : esc(o.why)}</span>
+        <button type="button" data-blun="${esc(o.h)}" title="เอา ${esc(o.id)} ออกจาก Blacklist">ปลด</button>
+      </div>`).join("");
+  $("#blList").querySelectorAll("[data-blun]").forEach(b => b.onclick = () => blUnmark(b.dataset.blun));
+}
+// ใส่ค่าลงทุกแถวในเครื่องของคนนั้น (ทุกกลุ่ม) — ไม่ต้องโหลด pool ใหม่ทั้งก้อน
+function blApplyLocal(h, val){
+  blSource().forEach(p => { if (normId(p.id) === h) p.blacklist = val; });
+  if (POOL !== blSource()) POOL.forEach(p => { if (normId(p.id) === h) p.blacklist = val; });
+}
+async function blMark(){
+  if (!(await blProbe())) return renderBlacklist();
+  const hs = [...extractHandles($("#blText").value)];
+  if (!hs.length) return blSetMsg("ยังไม่ได้วางชื่อ — บรรทัดละคน มี @ หรือเป็นลิงก์ TikTok ก็ได้", "err");
+  const val = ($("#blWhy").value || "").trim().slice(0, 200) || "Blacklist";
+  $("#blAdd").disabled = true;
+  let marked = 0, added = 0, already = 0;
+  const failed = [];
+  for (const h of hs){
+    blSetMsg(`กำลังติด Blacklist ${marked + added + already + failed.length + 1}/${hs.length}...`, "busy");
+    const rows = blSource().filter(p => normId(p.id) === h);
+    try {
+      if (rows.length){
+        if (rows.every(p => p.blacklist === val)){ already++; continue; }
+        // ไม่ใส่ kind — ติดทุกแถวของคนนี้ทั้ง KOL และ KOC · ใช้ชื่อตามที่เก็บจริง ตัวกรองต้องตรงตัวอักษร
+        await sbUpdateCreator(rows[0].id, "", { blacklist: val });
+        blApplyLocal(h, val); marked++;
+      } else {
+        // ยังไม่มีใน pool — เพิ่มเข้าไปพร้อมป้าย ไม่งั้นวันหลังมีคนเพิ่มคนนี้เข้ามาใหม่จะไม่รู้ว่าเคยติดดำ
+        const it = { kind: ADD_KIND, id: h, link: "", follower: "", rate: "", cat: "", blacklist: val };
+        await sbAddCreator(it);
+        const p = sbRowToPool({ kind: ADD_KIND, handle: h, blacklist: val,
+                                link: `https://www.tiktok.com/@${h}` });
+        POOL_ALL.push(p);
+        if (!p.kind || p.kind === KIND) POOL.push(p);
+        added++;
+      }
+    } catch(e){ failed.push(`${h} (${(e && e.message) || "error"})`); }
+  }
+  $("#blAdd").disabled = false;
+  if (!failed.length) $("#blText").value = "";
+  blSetMsg([
+    marked ? `🚫 ติด Blacklist <b>${marked}</b> คน` : "",
+    added ? `เพิ่มเข้า pool (${esc(ADD_KIND)}) พร้อมป้าย <b>${added}</b> คน — ยังไม่เคยมีในฐานข้อมูล` : "",
+    already ? `ติดอยู่แล้วด้วยเหตุผลเดียวกัน ${already} คน` : "",
+    failed.length ? `<span style="color:var(--lo)">ไม่สำเร็จ ${failed.length}: ${esc(failed.slice(0, 5).join(", "))}</span>` : "",
+  ].filter(Boolean).join("<br>"), failed.length ? "err" : "ok");
+  renderBlacklist();
+  if (RESULTS.length) runLive();            // คนที่เพิ่งติดต้องหายจากผลค้นหาที่เปิดค้างอยู่ทันที
+}
+async function blUnmark(h){
+  const rows = blSource().filter(p => normId(p.id) === h);
+  if (!rows.length) return;
+  const why = rows.find(p => p.blacklist)?.blacklist || "";
+  if (!confirm(`ปลด ${rows[0].id} ออกจาก Blacklist?\n${why && why !== "Blacklist" ? `\nเหตุผลที่ติดไว้: ${why}\n` : ""}` +
+               `\nคนนี้จะกลับมาโผล่ในผลค้นหา และทุกคนในทีมจะเห็นว่าไม่ได้ติดแล้ว`)) return;
+  try {
+    await sbUpdateCreator(rows[0].id, "", { blacklist: "" });
+    blApplyLocal(h, "");
+    blSetMsg(`ปลด <b>${esc(rows[0].id)}</b> ออกจาก Blacklist แล้ว`, "ok");
+  } catch(e){ blSetMsg("ปลดไม่สำเร็จ: " + esc((e && e.message) || "error"), "err"); }
+  renderBlacklist();
+  if (RESULTS.length) runLive();
+}
+$("#blAdd").onclick = blMark;
+$("#blFind").addEventListener("input", renderBlacklist);
 
 function updateSeenBar(){
   const n = RESULTS.filter(p => SEEN.has(normId(p.id))).length;
@@ -12113,7 +12324,8 @@ function poolSugItems(q){
     .map(p => ({ p, h: normId(p.id) }))
     .filter(x => x.h && x.h.toLowerCase().indexOf(ql) >= 0)
     .map(x => ({ kind:"pool", handle: x.h, shown: shown.has(x.h),
-      sub: [fmtFol(x.p.fol) + " fol", fmtRate(x.p) || "ยังไม่รู้เรท", x.p.cat || ""]
+      // ค้นชื่อเจอคนติดดำต้องเห็นทันทีตรงนั้น — ผลค้นหาปกติซ่อนคนนี้ไว้ ทางนี้คือทางที่จะเจอชื่อ
+      sub: [x.p.blacklist ? "🚫 Blacklist" : "", fmtFol(x.p.fol) + " fol", fmtRate(x.p) || "ยังไม่รู้เรท", x.p.cat || ""]
         .filter(Boolean).join(" · ") }))
     .sort((a, b) => (b.shown - a.shown)
       || ((a.handle.toLowerCase().indexOf(ql) === 0 ? 0 : 1) - (b.handle.toLowerCase().indexOf(ql) === 0 ? 0 : 1))
@@ -12175,6 +12387,9 @@ function poolPatchFor(x, cur){
   put("follower", x.follower, cur.rawFol);
   put("rate", x.rate, cur.rawRate);
   put("cat", x.cat, cur.cat);
+  // ติดดำผ่านไฟล์ได้ แต่ปลดผ่านไฟล์ไม่ได้ (ช่องว่าง/"ไม่" ไม่ทับ) — ไฟล์เก่าที่ไม่มีคอลัมน์นี้วางซ้ำ
+  // ต้องไม่ปลดคนที่ทีมติดดำไว้แบบเงียบๆ · ปลดได้ทางเดียวคือกดปลดทีละคนในกล่อง Blacklist
+  if (BL_READY) put("blacklist", x.blacklist, cur.blacklist);
   return { patch, was };
 }
 // เอาของที่เพิ่งเขียนขึ้นฐานข้อมูลใส่ของในเครื่องให้ตรงกันทันที ไม่ต้องโหลด pool ใหม่ทั้งก้อน
@@ -12184,7 +12399,7 @@ function poolApplyPatch(c, patch){
   if (patch.follower != null){ c.rawFol = patch.follower; c.fol = parseFollowers(patch.follower); }
   if (patch.rate != null){ c.rawRate = patch.rate; Object.assign(c, rateInfo(patch.rate)); }
 }
-const POOL_COL_TH = { link:"Link", follower:"Follower", rate:"Rate", cat:"Cat" };
+const POOL_COL_TH = { link:"Link", follower:"Follower", rate:"Rate", cat:"Cat", blacklist:"Blacklist" };
 function renderQFInfo(){
   const p = qfPoolFind(QF_INFO);
   const box = $("#qFindList");
