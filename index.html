@@ -1135,6 +1135,47 @@ body.locked{overflow:hidden}
 .blempty{font-size:.82rem;color:var(--dim);padding:6px 2px}
 /* แถวชื่อ+งานซ้ำ — บล็อกการซิงก์ขึ้นฐานข้อมูลทั้งโปรเจกต์ ต้องหาเจอด้วยตาตั้งแต่ในตาราง */
 .ctable tr.dupkey > td{background:rgba(var(--lo-rgb),.07)}
+/* ── หน้าเพิ่มครีเอเตอร์เต็มจอ ── หัวตรึง: ชื่อ · ลงกลุ่ม · ปิด แล้วแท็บงานอยู่ใต้หัว */
+#addPanel .addhead{flex-direction:column;align-items:stretch;gap:10px;padding-bottom:0}
+#addPanel .addtop{display:flex;align-items:center;gap:14px;flex-wrap:wrap}
+#addPanel .addtop h2{flex:1;min-width:10em}
+#addPanel .addkind{display:flex;align-items:center;gap:8px}
+#addPanel .addkind .lab{font-size:.78rem;color:var(--mute)}
+.addtabs{display:flex;gap:2px;overflow-x:auto;margin:0 -2px}
+.addtabs button{flex:none;background:none;border:0;border-bottom:2px solid transparent;color:var(--mute);
+  font:inherit;font-size:.9rem;font-weight:600;padding:9px 14px 10px;cursor:pointer;white-space:nowrap}
+.addtabs button:hover{color:var(--ink)}
+.addtabs button[aria-selected="true"]{color:var(--accent);border-bottom-color:var(--accent)}
+.addbody{max-width:1120px;width:100%;margin:0 auto;padding:6px 26px 60px}
+.addpane[hidden]{display:none}
+.addone{max-width:640px}
+.addnote{margin:12px 0 0}
+.stephead{display:flex;align-items:center;gap:9px;margin-bottom:6px}
+.stephead h3{margin:0}
+.stephead .step{flex:none;width:1.6em;height:1.6em;border-radius:50%;display:grid;place-items:center;
+  font-size:.78rem;font-weight:700;color:var(--accent-ink,#000);background:var(--accent)}
+#addPanel .bulkpaste{grid-template-columns:1fr 15em}
+#addPanel .bulkpaste textarea{min-height:190px}
+.blgrid{display:grid;grid-template-columns:minmax(0,1.05fr) minmax(0,1fr);gap:16px;align-items:start}
+.blgrid > .sect{margin-top:16px}
+#blSect #blList{max-height:62vh}
+@media(max-width:860px){
+  .blgrid{grid-template-columns:1fr}
+  #addPanel .bulkpaste{grid-template-columns:1fr}
+  .addbody{padding:6px 14px 50px}
+}
+/* ── ตัวเลขวิ่ง ── นับตามของที่ "เสร็จจริง" เท่านั้น ไม่วิ่งนำหน้าคำขอที่ยังไม่กลับมา */
+.runprog{margin-top:14px;border:1px solid var(--line);border-radius:10px;padding:12px 14px;background:var(--surface2)}
+.rp-top{display:flex;align-items:baseline;justify-content:space-between;gap:10px;font-size:.84rem}
+.rp-lab{color:var(--mute)}
+.rp-nums{font-variant-numeric:tabular-nums;color:var(--mute);white-space:nowrap}
+.rp-nums .rp-n{font-size:1.5rem;color:var(--ink)}
+.rp-bar{height:6px;border-radius:999px;background:var(--line);overflow:hidden;margin-top:8px}
+.rp-bar i{display:block;height:100%;width:0;background:var(--accent);border-radius:999px}
+.runprog.done .rp-bar i{background:var(--hi)}
+.runprog.bad .rp-bar i{background:var(--warn)}
+.rp-sub{margin-top:7px;font-size:.76rem;color:var(--dim);line-height:1.5}
+.rp-sub .bad{color:var(--lo)}
 .duptag{flex:none;font-size:.68rem;font-weight:700;color:var(--lo);white-space:nowrap;
   border:1px solid rgba(var(--lo-rgb),.55);background:rgba(var(--lo-rgb),.12);border-radius:999px;padding:0 7px}
 .modal-head{display:flex;align-items:center;justify-content:space-between;
@@ -2700,101 +2741,143 @@ tr.subrow td.w-status select{width:14.6em}
   </aside>
 </div>
 
-<!-- ═══ เพิ่มครีเอเตอร์เข้าชีต ═══ -->
-<div class="overlay" id="addPanel" hidden>
+<!-- ═══ เพิ่มครีเอเตอร์ — เต็มจอ ═══
+     เดิมเป็นกล่องเล็กซ้อนสามส่วน (ทีละคน · วางหลายคน · Blacklist) ต้องเลื่อนยาว และตารางตัวอย่างไม่มีที่วาง
+     แยกเป็นแท็บงาน เห็นทีละงาน · "ลงกลุ่ม" ย้ายขึ้นหัว เพราะใช้กับทุกงาน (เพิ่ม และติดดำคนที่ยังไม่มีใน pool) -->
+<div class="overlay full" id="addPanel" hidden>
   <div class="modal" role="dialog" aria-modal="true" aria-labelledby="addTitle">
-    <div class="modal-head">
-      <h2 id="addTitle">เพิ่มครีเอเตอร์เข้าชีต</h2>
-      <button class="x" id="closeAdd" aria-label="ปิด">✕</button>
+    <div class="modal-head addhead">
+      <div class="addtop">
+        <h2 id="addTitle">เพิ่มครีเอเตอร์</h2>
+        <div class="addkind">
+          <span class="lab">ลงกลุ่ม</span>
+          <div class="tabs sub" id="addKind" role="tablist"></div>
+        </div>
+        <button class="x" id="closeAdd" aria-label="ปิด">✕</button>
+      </div>
+      <div class="addtabs" id="addTabs" role="tablist">
+        <button type="button" role="tab" data-addtab="one" aria-selected="true">➕ ทีละคน</button>
+        <button type="button" role="tab" data-addtab="bulk" aria-selected="false">⇥ วางหลายคน / ลากไฟล์</button>
+        <button type="button" role="tab" data-addtab="bl" aria-selected="false">🚫 Blacklist</button>
+      </div>
     </div>
 
-    <section class="sect">
-      <div class="field">
-        <label>ลงแท็บไหน</label>
-        <div class="tabs" id="addKind" role="tablist"></div>
-      </div>
+    <div class="addbody">
 
-      <div class="row2">
-        <div class="field">
-          <label>ID ครีเอเตอร์ *</label>
-          <input id="acId" placeholder="เช่น homgroonn" autocomplete="off">
-        </div>
-        <div class="field">
-          <label>ประเภท (Cat)</label>
-          <input id="acCat" list="acCatList" placeholder="เช่น Beauty" autocomplete="off">
-          <datalist id="acCatList"></datalist>
-        </div>
-      </div>
+      <!-- ── ทีละคน ── -->
+      <section class="addpane" data-pane="one">
+        <div class="sect addone">
+          <div class="row2">
+            <div class="field">
+              <label>ID ครีเอเตอร์ *</label>
+              <input id="acId" placeholder="เช่น homgroonn" autocomplete="off">
+            </div>
+            <div class="field">
+              <label>ประเภท (Cat)</label>
+              <input id="acCat" list="acCatList" placeholder="เช่น Beauty" autocomplete="off">
+              <datalist id="acCatList"></datalist>
+            </div>
+          </div>
 
-      <div class="field">
-        <label>Link</label>
-        <input id="acLink" placeholder="เว้นว่างได้ — จะสร้างจาก ID ให้เอง">
-      </div>
+          <div class="field">
+            <label>Link</label>
+            <input id="acLink" placeholder="เว้นว่างได้ — จะสร้างจาก ID ให้เอง">
+          </div>
 
-      <div class="row2">
-        <div class="field">
-          <label>Follower</label>
-          <input id="acFol" placeholder="เช่น 12500 หรือ 12.5K" autocomplete="off">
+          <div class="row2">
+            <div class="field">
+              <label>Follower</label>
+              <input id="acFol" placeholder="เช่น 12500 หรือ 12.5K" autocomplete="off">
+            </div>
+            <div class="field">
+              <label>Rate</label>
+              <input id="acRate" placeholder="เช่น 1500" autocomplete="off">
+              <div class="quick">
+                <button type="button" data-rate="Barter">Barter</button>
+                <button type="button" data-rate="Unknown Rate">Unknown Rate</button>
+              </div>
+            </div>
+          </div>
+
+          <button class="run" id="acSave">บันทึก</button>
+          <div class="addmsg" id="acMsg"></div>
+          <p class="sect-sub addnote">มีคนนี้อยู่แล้ว = อัปเดตเฉพาะช่องที่กรอกใหม่ · ช่องที่เว้นว่างไม่ทับของเดิม</p>
         </div>
-        <div class="field">
-          <label>Rate</label>
-          <input id="acRate" placeholder="เช่น 1500" autocomplete="off">
-          <div class="quick">
-            <button type="button" data-rate="Barter">Barter</button>
-            <button type="button" data-rate="Unknown Rate">Unknown Rate</button>
+      </section>
+
+      <!-- ── วางหลายคน / ลากไฟล์ ── สองขั้น: วาง → ตรวจหัวคอลัมน์แล้วกดเพิ่ม -->
+      <section class="addpane" data-pane="bulk" id="bulkSect" hidden>
+        <div class="sect">
+          <div class="stephead"><span class="step">1</span><h3>วางข้อความ หรือลากไฟล์</h3></div>
+          <p class="sect-sub">
+            ก๊อปจากชีต/ตาราง/แชทมาวางได้เลย บรรทัดละคน คั่นด้วย Tab หรือเว้นวรรคหลายเคาะ<br>
+            <code style="font-size:.79rem;color:var(--mute)">_khongprodpam&#9;https://www.tiktok.com/@_khongprodpam&#9;1166&#9;2K - 19K</code>
+          </p>
+          <!-- วางข้อความหรือลากไฟล์มาก็ได้ — ทั้งสองทางลงเอยที่ช่องเดียวกันแล้วตรวจด้วยตัวอ่านตัวเดียว -->
+          <div class="bulkpaste">
+            <textarea id="bulkText" placeholder="วางที่นี่ แล้วกดตรวจ"></textarea>
+            <label class="dropzone" id="bulkDrop">
+              <input type="file" id="bulkFile" accept=".csv,.tsv,.txt,text/plain" multiple hidden>
+              <span class="ic">⤓</span>
+              <b>ลากไฟล์มาวางตรงนี้</b>
+              <span class="sub">หรือกดเพื่อเลือกไฟล์<br>.csv · .tsv · .txt</span>
+            </label>
+          </div>
+          <button class="run" id="bulkParse" style="margin-top:10px">ตรวจแล้วดูตัวอย่าง</button>
+        </div>
+
+        <div class="sect">
+          <div class="stephead"><span class="step">2</span><h3>ตรวจหัวคอลัมน์ แล้วกดเพิ่ม</h3></div>
+          <div id="bulkPreview">
+            <p class="sect-sub" style="margin:0">วางข้อมูลในขั้นที่ 1 แล้วกด “ตรวจแล้วดูตัวอย่าง” — ตัวอย่างและหัวคอลัมน์จะขึ้นตรงนี้</p>
+          </div>
+          <div class="runprog" id="bulkProg" hidden>
+            <div class="rp-top"><span class="rp-lab"></span><span class="rp-nums"><b class="rp-n">0</b> / <span class="rp-t">0</span></span></div>
+            <div class="rp-bar"><i></i></div>
+            <div class="rp-sub"></div>
+          </div>
+          <div class="addmsg" id="bulkMsg"></div>
+        </div>
+      </section>
+
+      <!-- ── Blacklist ── ซ้าย: ติดชื่อ · ขวา: ลิสต์คนที่ติดอยู่
+           ติดทั้งฝั่ง KOL และ KOC ของคนนั้น เพราะคนเดียวกันติดดำฝั่งหนึ่งแล้วไปรับอีกฝั่งก็คือรับคนเดิมกลับมา -->
+      <section class="addpane" data-pane="bl" id="blSect" hidden>
+        <div class="blgrid">
+          <div class="sect">
+            <div class="stephead"><h3>ติด Blacklist</h3></div>
+            <p class="sect-sub">
+              วางชื่อได้ทีละหลายคน — บรรทัดละคน มี @ หรือเป็นลิงก์ TikTok ก็ได้<br>
+              คนที่ติดจะ<b>ถูกซ่อนจากผลค้นหา</b> และขึ้นป้ายแดงตอนค้นชื่อ · ติดทั้งฝั่ง KOL และ KOC ของคนนั้น<br>
+              <span style="color:var(--dim)">วางผ่านแท็บ “วางหลายคน” ก็ได้ — ตั้งหัวคอลัมน์เป็น 🚫 Blacklist
+              (ใส่ Y/✓ หรือพิมพ์เหตุผลในช่อง · ช่องว่างไม่ปลดคนที่ติดอยู่แล้ว)</span>
+            </p>
+            <div id="blWarn"></div>
+            <textarea id="blText" rows="5" placeholder="@creator1&#10;https://www.tiktok.com/@creator2"></textarea>
+            <div class="blrow">
+              <input id="blWhy" maxlength="200" autocomplete="off"
+                     placeholder="เหตุผล (ไม่บังคับ) เช่น ส่งงานช้า · ติดต่อไม่ได้เกิน 48 ชม.">
+              <button type="button" class="run" id="blAdd">🚫 ติด Blacklist</button>
+            </div>
+            <div class="runprog" id="blProg" hidden>
+              <div class="rp-top"><span class="rp-lab"></span><span class="rp-nums"><b class="rp-n">0</b> / <span class="rp-t">0</span></span></div>
+              <div class="rp-bar"><i></i></div>
+              <div class="rp-sub"></div>
+            </div>
+            <div class="addmsg" id="blMsg"></div>
+          </div>
+
+          <div class="sect">
+            <div class="blhead">
+              <b id="blCount"></b>
+              <input id="blFind" placeholder="ค้นชื่อในลิสต์" autocomplete="off">
+            </div>
+            <div id="blList"></div>
           </div>
         </div>
-      </div>
+      </section>
 
-      <button class="run" id="acSave">บันทึกลงชีต</button>
-      <div class="addmsg" id="acMsg"></div>
-    </section>
-
-    <details class="sect" id="bulkSect">
-      <summary><h3>วางทีละหลายคน</h3></summary>
-      <p class="sect-sub">
-        ก๊อปจากชีต/ตาราง/แชทมาวางได้เลย บรรทัดละคน คั่นด้วย Tab หรือเว้นวรรคหลายเคาะ<br>
-        <code style="font-size:.79rem;color:var(--mute)">_khongprodpam&#9;https://www.tiktok.com/@_khongprodpam&#9;1166&#9;2K - 19K</code>
-      </p>
-      <!-- วางข้อความหรือลากไฟล์มาก็ได้ — ทั้งสองทางลงเอยที่ช่องเดียวกันแล้วตรวจด้วยตัวอ่านตัวเดียว -->
-      <div class="bulkpaste">
-        <textarea id="bulkText" placeholder="วางที่นี่ แล้วกดตรวจ"></textarea>
-        <label class="dropzone" id="bulkDrop">
-          <input type="file" id="bulkFile" accept=".csv,.tsv,.txt,text/plain" multiple hidden>
-          <span class="ic">⤓</span>
-          <b>ลากไฟล์มาวางตรงนี้</b>
-          <span class="sub">หรือกดเพื่อเลือกไฟล์<br>.csv · .tsv · .txt</span>
-        </label>
-      </div>
-      <button class="run" id="bulkParse" style="margin-top:10px">ตรวจแล้วดูตัวอย่าง</button>
-      <div id="bulkPreview"></div>
-      <div class="addmsg" id="bulkMsg"></div>
-    </details>
-
-    <!-- Blacklist — วางชื่อทีเดียวหลายคน เหตุผลใส่หรือไม่ใส่ก็ได้ · ปลดทีละคนจากลิสต์ข้างล่าง
-         ติดทั้งฝั่ง KOL และ KOC ของคนนั้น เพราะคนเดียวกันติดดำฝั่งหนึ่งแล้วไปรับอีกฝั่งก็คือรับคนเดิมกลับมา -->
-    <details class="sect" id="blSect">
-      <summary><h3>🚫 Blacklist ครีเอเตอร์</h3></summary>
-      <p class="sect-sub">
-        วางชื่อได้ทีละหลายคน — บรรทัดละคน มี @ หรือเป็นลิงก์ TikTok ก็ได้<br>
-        คนที่ติดจะ<b>ถูกซ่อนจากผลค้นหา</b> และขึ้นป้ายแดงตอนค้นชื่อ · ติดทั้งฝั่ง KOL และ KOC ของคนนั้น<br>
-        <span style="color:var(--dim)">วางผ่าน “วางทีละหลายคน” ก็ได้ — ตั้งหัวคอลัมน์เป็น 🚫 Blacklist
-        (ใส่ Y/✓ หรือพิมพ์เหตุผลในช่อง · ช่องว่างไม่ปลดคนที่ติดอยู่แล้ว)</span>
-      </p>
-      <div id="blWarn"></div>
-      <textarea id="blText" rows="3" placeholder="@creator1&#10;https://www.tiktok.com/@creator2"></textarea>
-      <div class="blrow">
-        <input id="blWhy" maxlength="200" autocomplete="off"
-               placeholder="เหตุผล (ไม่บังคับ) เช่น ส่งงานช้า · ติดต่อไม่ได้เกิน 48 ชม.">
-        <button type="button" class="run" id="blAdd">🚫 ติด Blacklist</button>
-      </div>
-      <div class="addmsg" id="blMsg"></div>
-      <div class="blhead">
-        <b id="blCount"></b>
-        <input id="blFind" placeholder="ค้นชื่อในลิสต์" autocomplete="off">
-      </div>
-      <div id="blList"></div>
-    </details>
+    </div>
   </div>
 </div>
 
@@ -11451,11 +11534,28 @@ function openAdd(){
   renderBlacklist();
   blProbe().then(renderBlacklist);          // ถามฐานข้อมูลว่ามีคอลัมน์หรือยัง แล้ววาดใหม่ตามจริง
   $("#addPanel").hidden = false;
-  $("#acId").focus();
+  let t = "one";
+  try { t = lsGet(LS_ADDTAB) || "one"; } catch(e){}
+  setAddTab(t);                              // เปิดแท็บเดิมที่ใช้ล่าสุด — คนวางไฟล์ประจำไม่ต้องกดเปลี่ยนทุกครั้ง
 }
 
 document.querySelectorAll(".quick button").forEach(b =>
   b.onclick = () => { $("#acRate").value = b.dataset.rate; });
+
+// ─── แท็บงานในหน้าเพิ่มครีเอเตอร์ ───
+// เห็นทีละงาน (ทีละคน · วางหลายคน · Blacklist) — จำแท็บล่าสุดไว้ในเครื่อง
+const LS_ADDTAB = "cf_addtab_v1";
+const ADD_TABS = { one: "#acId", bulk: "#bulkText", bl: "#blText" };
+function setAddTab(tab){
+  const t = ADD_TABS[tab] ? tab : "one";
+  document.querySelectorAll("#addTabs [data-addtab]").forEach(b =>
+    b.setAttribute("aria-selected", String(b.dataset.addtab === t)));
+  document.querySelectorAll("#addPanel .addpane").forEach(p => { p.hidden = p.dataset.pane !== t; });
+  try { lsSet(LS_ADDTAB, t); } catch(e){}
+  if (!$("#addPanel").hidden) $(ADD_TABS[t]).focus();
+}
+document.querySelectorAll("#addTabs [data-addtab]").forEach(b =>
+  b.onclick = () => setAddTab(b.dataset.addtab));
 
 $("#acSave").onclick = async () => {
   const id = $("#acId").value.trim().replace(/^@/, "");
@@ -11697,6 +11797,54 @@ function renderBulk(){
   $("#bulkSave").onclick = bulkSave;
 }
 
+// ─── ตัวเลขวิ่ง ───
+// ขยับตามของที่ "เสร็จจริง" เท่านั้น (set() รับจำนวนที่ยืนยันแล้ว) แต่ไม่กระโดดทีละก้อน —
+// เพิ่มครีเอเตอร์ส่งเป็นชุดละ 200 ถ้าวาดตรงๆ ตัวเลขจะค้างที่ 0 แล้วโดด 200 · 400 ทีเดียว ดูเหมือนแอปค้าง
+// เลยค่อยๆ ไหลไปหาเป้าในเวลาเท่ากับที่ชุดก่อนหน้าใช้จริง ตัวเลขจึงเดินต่อเนื่องและถึงเป้าพอดีกับชุดถัดไป
+// ไม่มีวันแสดงเกินจำนวนที่ยืนยันแล้ว — ถ้าคำขอค้าง ตัวเลขก็ค้างให้เห็นตามจริง
+function runProg(el){
+  const $n = el.querySelector(".rp-n"), $t = el.querySelector(".rp-t"), $bar = el.querySelector(".rp-bar i"),
+        $lab = el.querySelector(".rp-lab"), $sub = el.querySelector(".rp-sub");
+  let total = 0, shown = 0, from = 0, target = 0, t0 = 0, dur = 400, raf = 0, lastSet = 0;
+  const draw = v => {
+    $n.textContent = Math.round(v).toLocaleString("en-US");
+    $bar.style.width = (total ? Math.min(100, v / total * 100) : 100) + "%";
+  };
+  const tick = now => {
+    const k = Math.min(1, (now - t0) / dur);
+    shown = from + (target - from) * (1 - Math.pow(1 - k, 2));
+    draw(shown);
+    raf = k < 1 ? requestAnimationFrame(tick) : 0;
+  };
+  return {
+    start(n, label){
+      cancelAnimationFrame(raf); raf = 0;
+      total = n; shown = from = target = 0; lastSet = performance.now();
+      el.hidden = false; el.classList.remove("done", "bad");
+      $t.textContent = n.toLocaleString("en-US");
+      $lab.textContent = label || ""; $sub.innerHTML = "";
+      draw(0);
+    },
+    label(t){ $lab.textContent = t; },
+    sub(html){ $sub.innerHTML = html; },
+    set(v){
+      const now = performance.now();
+      // เวลาที่ใช้ไหล = เวลาที่ชุดล่าสุดใช้จริง (ขอบ 250ms–2.5s) — เดินเร็วตามเน็ตจริง
+      dur = Math.max(250, Math.min(2500, now - lastSet)); lastSet = now;
+      from = shown; target = Math.min(v, total); t0 = now;
+      // แท็บไม่ได้เปิดดูอยู่ = เบราว์เซอร์หยุด requestAnimationFrame — ถ้ารอภาพเคลื่อนไหว ตัวเลขจะค้าง 0
+      // ตลอดช่วงที่ไปทำอย่างอื่น แล้วโดดทีเดียวตอนกลับมา · วาดค่าจริงทันทีแทน กลับมาดูเมื่อไหร่ก็เห็นของล่าสุด
+      if (document.hidden){ cancelAnimationFrame(raf); raf = 0; shown = target; draw(target); return; }
+      if (!raf) raf = requestAnimationFrame(tick);
+    },
+    finish(ok){
+      cancelAnimationFrame(raf); raf = 0;
+      shown = target; draw(target);
+      el.classList.add(ok ? "done" : "bad");
+    },
+  };
+}
+
 async function bulkSave(){
   const msg = $("#bulkMsg");
   const iOf = role => BULK.roles.indexOf(role);
@@ -11770,6 +11918,14 @@ async function bulkSave(){
     (dupInPool.length - upd.length > 0
       ? ` · มีอยู่แล้วและไม่มีอะไรเปลี่ยน ${dupInPool.length - upd.length} คน` : "") + "...";
   $("#bulkSave").disabled = true;
+  // งานทั้งหมด = คนใหม่ที่ต้องเพิ่ม + คนเดิมที่ต้องอัปเดต — นับรวมเป็นตัวเลขเดียว แถบเต็มเมื่อทุกอย่างเสร็จ
+  const prog = runProg($("#bulkProg"));
+  prog.start(todo.length + upd.length, todo.length ? "กำลังเพิ่มคนใหม่" : "กำลังอัปเดตคนเดิม");
+  const progSub = (added, updDone, bad) => prog.sub(
+    [todo.length ? `เพิ่มคนใหม่ ${added.toLocaleString("en-US")}/${todo.length.toLocaleString("en-US")}` : "",
+     upd.length ? `อัปเดตคนเดิม ${updDone.toLocaleString("en-US")}/${upd.length.toLocaleString("en-US")}` : "",
+     bad ? `<span class="bad">ไม่สำเร็จ ${bad}</span>` : ""].filter(Boolean).join(" · "));
+  progSub(0, 0, 0);
 
   let ok = 0; const failed = [], failedIds = new Set();
   const all = todo.map(it => Object.assign({ kind: ADD_KIND }, it));
@@ -11790,21 +11946,27 @@ async function bulkSave(){
       }
     }
     // บอกความคืบหน้าทุกชุด ไม่ใช่เงียบยาวจนจบ — ของเดิมแยกไม่ออกว่ากำลังทำอยู่หรือค้างไปแล้ว
-    msg.innerHTML = `กำลังเพิ่ม <b>${Math.min(i + chunk.length, all.length)}/${all.length}</b> คน...` +
-      (failed.length ? ` <span style="color:var(--lo)">ไม่สำเร็จ ${failed.length}</span>` : "");
+    const addedSoFar = Math.min(i + chunk.length, all.length);
+    prog.set(addedSoFar);
+    progSub(addedSoFar, 0, failed.length);
   }
 
   // อัปเดตคนที่มีอยู่แล้วด้วยรายละเอียดใหม่ — ทำหลังเพิ่มของใหม่ จะได้ไม่ค้างถ้าอัปเดตบางคนพัง
-  let updated = 0;
+  let updated = 0, updDone = 0;
+  if (upd.length) prog.label("กำลังอัปเดตคนเดิม");
   for (const u of upd){
     try {
       await sbUpdateCreator(u.id, u.kind, u.patch);
       updated++;
       poolApplyPatch(u.cur, u.patch);
     } catch(e){ failed.push(u.id + " (อัปเดตไม่สำเร็จ: " + ((e && e.message) || "error") + ")"); }
+    updDone++;
+    prog.set(all.length + updDone);
+    progSub(all.length, updDone, failed.length);
   }
 
   // นับจากฐานข้อมูลจริง
+  prog.label("กำลังตรวจผลจากฐานข้อมูล");
   let landed = 0;
   try {
     const fresh = await fetchPoolSB();
@@ -11829,6 +11991,9 @@ async function bulkSave(){
     (dupInPool.length - upd.length > 0
       ? `<br>มีอยู่แล้วและไม่มีอะไรต้องเปลี่ยน ${dupInPool.length - upd.length} คน` : "") +
     (failed.length ? `<br><span style="color:var(--lo)">ไม่สำเร็จ ${failed.length}: ${esc(failed.slice(0,5).join(", "))}</span>` : "");
+  const allOk = !failed.length && landed === todo.length;
+  prog.label(allOk ? "เสร็จแล้ว" : "เสร็จ — มีบางส่วนไม่สำเร็จ (ดูรายละเอียดข้างล่าง)");
+  prog.finish(allOk);
   $("#bulkSave").disabled = false;
 }
 
@@ -11885,8 +12050,12 @@ async function blMark(){
   $("#blAdd").disabled = true;
   let marked = 0, added = 0, already = 0;
   const failed = [];
+  const prog = runProg($("#blProg"));
+  prog.start(hs.length, "กำลังติด Blacklist");
+  $("#blMsg").className = "addmsg";
   for (const h of hs){
-    blSetMsg(`กำลังติด Blacklist ${marked + added + already + failed.length + 1}/${hs.length}...`, "busy");
+    // นับเฉพาะคนที่ทำเสร็จแล้ว (ก่อนคนนี้) — ตัวเลขไม่วิ่งนำคำขอที่ยังไม่กลับมา
+    prog.set(marked + added + already + failed.length);
     const rows = blSource().filter(p => normId(p.id) === h);
     try {
       if (rows.length){
@@ -11914,6 +12083,12 @@ async function blMark(){
     already ? `ติดอยู่แล้วด้วยเหตุผลเดียวกัน ${already} คน` : "",
     failed.length ? `<span style="color:var(--lo)">ไม่สำเร็จ ${failed.length}: ${esc(failed.slice(0, 5).join(", "))}</span>` : "",
   ].filter(Boolean).join("<br>"), failed.length ? "err" : "ok");
+  prog.set(hs.length);
+  prog.label(failed.length ? "เสร็จ — มีบางคนไม่สำเร็จ" : "เสร็จแล้ว");
+  prog.sub([marked ? `ติดใหม่ ${marked}` : "", added ? `เพิ่มเข้า pool ${added}` : "",
+            already ? `ติดอยู่แล้ว ${already}` : "",
+            failed.length ? `<span class="bad">ไม่สำเร็จ ${failed.length}</span>` : ""].filter(Boolean).join(" · "));
+  prog.finish(!failed.length);
   renderBlacklist();
   if (RESULTS.length) runLive();            // คนที่เพิ่งติดต้องหายจากผลค้นหาที่เปิดค้างอยู่ทันที
 }
