@@ -11197,10 +11197,6 @@ $("#acSave").onclick = async () => {
   const id = $("#acId").value.trim().replace(/^@/, "");
   if (!id) return setAcMsg("ต้องใส่ ID ครีเอเตอร์", "err");
 
-  // ถ้าอยู่ในกลุ่มที่โหลดมาแล้ว เช็คซ้ำได้ทันที
-  if (ADD_KIND === KIND && POOL.some(p => normId(p.id) === normId(id)))
-    return setAcMsg(`มี ${esc(id)} อยู่ใน ${esc(ADD_KIND)} อยู่แล้ว`, "err");
-
   const item = { kind: ADD_KIND, id,
     cat: $("#acCat").value.trim(),
     link: $("#acLink").value.trim(),
@@ -11208,6 +11204,46 @@ $("#acSave").onclick = async () => {
     rate: $("#acRate").value.trim() };
 
   $("#acSave").disabled = true;
+  setAcMsg("กำลังตรวจว่ามีคนนี้อยู่แล้วไหม...", "busy");
+
+  // ── มีคนนี้อยู่แล้ว = อัปเดตด้วยของใหม่ ไม่ใช่ปฏิเสธ ──
+  // เดิมขึ้นแค่ "มีอยู่แล้ว" แล้วจบ — เรทขึ้น/ฟอลเพิ่ม/ย้ายหมวดต้องไปแก้ที่อื่นเอง
+  // และถ้าเพิ่มเข้าอีกกลุ่มที่ไม่ได้เปิดดูอยู่ ไม่เช็คซ้ำเลย ได้แถวซ้ำเข้าไปแทน
+  let existing;
+  try { existing = await poolExistingFor(ADD_KIND); }
+  catch(err){
+    $("#acSave").disabled = false;
+    return setAcMsg("ตรวจคนเดิมไม่ได้ — ยังไม่ได้บันทึกอะไร: " + esc((err && err.message) || ""), "err");
+  }
+  const cur = existing.get(normId(id));
+  if (cur){
+    const { patch, was } = poolPatchFor(item, cur);
+    if (!Object.keys(patch).length){
+      $("#acSave").disabled = false;
+      return setAcMsg(`มี <b>${esc(cur.id)}</b> อยู่ใน ${esc(ADD_KIND)} แล้ว และข้อมูลที่กรอกตรงกับของเดิมทุกช่อง — ไม่มีอะไรต้องเปลี่ยน`, "ok");
+    }
+    setAcMsg(`มี <b>${esc(cur.id)}</b> อยู่แล้ว — กำลังอัปเดตด้วยข้อมูลใหม่...`, "busy");
+    try {
+      // ใช้ชื่อตามที่เก็บในฐานข้อมูลจริง ไม่ใช่ที่พิมพ์มา — ตัวกรองต้องตรงตัวอักษร ไม่งั้นแก้ได้ 0 แถว
+      await sbUpdateCreator(cur.id, cur.kind || "", patch);
+    } catch(err){
+      $("#acSave").disabled = false;
+      return setAcMsg("อัปเดตไม่สำเร็จ: " + esc((err && err.message) || "ไม่ทราบสาเหตุ"), "err");
+    }
+    poolApplyPatch(cur, patch);
+    if (ADD_KIND === KIND){ renderCatChips(pickedCats()); refreshExclude(); }
+    // บอกทีละช่องว่าเปลี่ยนจากอะไรเป็นอะไร — อัปเดตทับของเดิมคือเรื่องที่ต้องเห็นกับตา
+    // ช่องที่เว้นว่างไว้บอกด้วยว่าไม่ได้แตะ ไม่งั้นจะไม่แน่ใจว่าว่างแล้วของเดิมหายไหม
+    const kept = Object.keys(POOL_COL_TH).filter(k => !(k in patch));
+    setAcMsg(`✓ อัปเดต <b>${esc(cur.id)}</b> ใน ${esc(ADD_KIND)} แล้ว — ยึดตามที่กรอกใหม่<br>` +
+      Object.keys(patch).map(k => `${POOL_COL_TH[k]}: <s style="color:var(--dim)">${esc(was[k] || "ว่าง")}</s> → <b>${esc(patch[k])}</b>`).join("<br>") +
+      (kept.length ? `<br><span style="color:var(--dim)">ไม่ได้แตะ: ${kept.map(k => POOL_COL_TH[k]).join(" · ")} (ช่องว่างไม่ทับของเดิม)</span>` : ""), "ok");
+    ["acId","acCat","acLink","acFol","acRate"].forEach(x => $("#"+x).value = "");
+    $("#acId").focus();
+    $("#acSave").disabled = false;
+    return;
+  }
+
   setAcMsg("กำลังบันทึก...", "busy");
   try {
     await sbAddCreator(item);
@@ -11430,28 +11466,26 @@ async function bulkSave(){
 
   // ทำดัชนีไว้ก่อนแล้วเทียบทีเดียว — ของเดิมเป็นลูปซ้อนลูป (ลิสต์ 1,700 คน × pool 4,900 คน
   // = เรียก normId ราว 8 ล้านครั้ง) ซึ่งจอค้างไปหลายวินาทีตั้งแต่ยังไม่ได้ยิงอะไรออกไปเลย
-  const poolIds = new Set(POOL.map(p => normId(p.id)));
   // ── คนที่มีอยู่แล้ว = อัปเดตด้วยของใหม่ ไม่ใช่เพิ่มซ้ำ ──
-  // ⚠️ กติกา: ของใหม่ชนะเฉพาะ "ช่องที่กรอกมาจริง" — ช่องว่างไม่ทับของเดิม
-  // ตรวจกับข้อมูลจริงแล้ว ถ้าปล่อยให้ช่องว่างทับด้วย จะมี 153 คนเสียเรทที่มีอยู่ไปเลย
-  // (ลิสต์ที่วางมาทีหลังมักกรอกไม่ครบเท่าของเดิม — มีแค่ ID กับ Link)
-  const poolBy = new Map(POOL.map(p => [normId(p.id), p]));
-  const dupInPool = merged.filter(x => poolIds.has(x.id)).map(x => x.id);
-  const todo = merged.filter(x => !dupInPool.includes(x.id));
+  // เทียบกับกลุ่มที่จะลง (ADD_KIND) ไม่ใช่กลุ่มที่เปิดดูอยู่ — ดู poolExistingFor
+  // กติกาทับของเดิมอยู่ใน poolPatchFor ตัวเดียวกับเพิ่มทีละคน สองทางจะได้ไม่เพี้ยนจากกันทีหลัง
+  let poolBy;
+  try { poolBy = await poolExistingFor(ADD_KIND); }
+  catch(e){
+    msg.className = "addmsg on err";
+    msg.textContent = "ตรวจคนเดิมไม่ได้ — ยังไม่ได้เพิ่มอะไร (กันไม่ให้คนเดิมถูกเพิ่มซ้ำเป็นแถวใหม่): " +
+      ((e && e.message) || "");
+    return;
+  }
+  const dupInPool = merged.filter(x => poolBy.has(x.id)).map(x => x.id);
+  const dupSet = new Set(dupInPool);
+  const todo = merged.filter(x => !dupSet.has(x.id));
   const upd = [];
-  merged.filter(x => poolIds.has(x.id)).forEach(x => {
+  merged.filter(x => dupSet.has(x.id)).forEach(x => {
     const cur = poolBy.get(x.id);
-    if (!cur) return;
-    const patch = {};
-    const put = (col, val, now) => {
-      const v = String(val == null ? "" : val).trim();
-      if (v && v !== String(now == null ? "" : now).trim()) patch[col] = v;
-    };
-    put("link", x.link, cur.link);
-    put("follower", x.follower, cur.rawFol);
-    put("rate", x.rate, cur.rawRate);
-    put("cat", x.cat, cur.cat);
-    if (Object.keys(patch).length) upd.push({ id: x.id, kind: cur.kind || "", patch, cur });
+    const { patch } = poolPatchFor(x, cur);
+    // ชื่อตามที่เก็บในฐานข้อมูลจริง ไม่ใช่ที่วางมา — ตัวกรอง PATCH ต้องตรงตัวอักษร
+    if (Object.keys(patch).length) upd.push({ id: cur.id, kind: cur.kind || "", patch, cur });
   });
   msg.className = "addmsg on busy";
   msg.innerHTML = `กำลังเพิ่ม ${todo.length} คน` +
@@ -11490,12 +11524,7 @@ async function bulkSave(){
     try {
       await sbUpdateCreator(u.id, u.kind, u.patch);
       updated++;
-      // อัปเดตของในเครื่องให้ตรงกันทันที ไม่ต้องโหลด pool ใหม่ทั้งก้อน
-      const c = u.cur;
-      if (u.patch.link != null) c.link = u.patch.link;
-      if (u.patch.cat != null) c.cat = u.patch.cat;
-      if (u.patch.follower != null){ c.rawFol = u.patch.follower; c.fol = parseFollowers(u.patch.follower); }
-      if (u.patch.rate != null){ c.rawRate = u.patch.rate; Object.assign(c, rateInfo(u.patch.rate)); }
+      poolApplyPatch(u.cur, u.patch);
     } catch(e){ failed.push(u.id + " (อัปเดตไม่สำเร็จ: " + ((e && e.message) || "error") + ")"); }
   }
 
@@ -11981,16 +12010,59 @@ function qfRateText(p){
   if (p.rawRate != null) return p.rawRate;
   return p.unknown ? "" : (p.barter ? (p.rate ? p.rate + "/Barter" : "Barter") : String(p.rate ?? ""));
 }
+// ⚠️ ขอแถวที่ถูกแก้กลับมานับด้วยเสมอ (return=representation) — PATCH ที่ตัวกรองไม่ตรงแถวไหนเลย
+// ตอบ 204 สำเร็จเหมือนกันทุกประการ ถ้าใช้ return=minimal จะขึ้นว่า "อัปเดตแล้ว" ทั้งที่ไม่มีอะไรเปลี่ยน
+// (เช่นชื่อในฐานข้อมูลเขียนต่างจากที่ส่งไป) — นับได้ 0 แถวต้องถือว่าไม่สำเร็จ แล้วบอกให้รู้
 async function sbUpdateCreator(handle, kind, patch){
   const f = "handle=eq." + encodeURIComponent(handle) +
             (kind ? "&kind=eq." + encodeURIComponent(kind) : "");
-  const r = await sbAuthed(SB_URL + "/rest/v1/pool?" + f,
-    { method:"PATCH", headers:{ Prefer:"return=minimal" }, body: JSON.stringify(patch) });
+  const r = await sbAuthed(SB_URL + "/rest/v1/pool?" + f + "&select=handle",
+    { method:"PATCH", headers:{ Prefer:"return=representation" }, body: JSON.stringify(patch) });
   if (!r.ok){
     const j = await r.json().catch(() => ({}));
     throw new Error(j.message || j.hint || ("บันทึกไม่สำเร็จ (HTTP " + r.status + ")"));
   }
+  const rows = await r.json().catch(() => []);
+  if (!Array.isArray(rows) || !rows.length)
+    throw new Error("ไม่เจอแถวของคนนี้ในฐานข้อมูล — ไม่มีอะไรถูกแก้");
+  return rows.length;
 }
+// ─── คนเดิมที่มีอยู่แล้วในกลุ่มที่จะลง ───
+// ⚠️ ต้องเทียบกับกลุ่มที่ "จะเพิ่มเข้า" ไม่ใช่กลุ่มที่ "เปิดดูอยู่" — POOL ถูกคัดเหลือแค่กลุ่มที่เปิดดู
+// เดิมเทียบกับ POOL ตรงๆ เพิ่มเข้า KOC ตอนเปิดดู KOL อยู่ = มองไม่เห็นคนเดิมใน KOC เลยสักคน
+// คนเดิมจึงถูกเพิ่มซ้ำเป็นแถวใหม่แทนที่จะถูกอัปเดต · คนเดียวกันคนละกลุ่มถือเป็นคนละแถว (ตรงกับ dedupePool)
+async function poolExistingFor(kind){
+  const K = String(kind || "").toUpperCase();
+  let src = POOL_ALL.some(p => p.kind) ? POOL_ALL : null;
+  // โหลดมาแค่กลุ่มเดียว (ชีตแยกแท็บ) และกลุ่มที่จะลงไม่ใช่กลุ่มนั้น — ไม่มีข้อมูลในมือให้เทียบ ต้องไปถามฐานข้อมูล
+  if (!src) src = K === KIND ? POOL : await fetchPoolSB();
+  return new Map(src.filter(p => !p.kind || p.kind === K).map(p => [normId(p.id), p]));
+}
+// ช่องที่ของใหม่จะทับของเดิม — กติกาเดียวกันทั้งเพิ่มทีละคนและวางหลายคน:
+// ของใหม่ชนะเฉพาะช่องที่กรอกมาจริง ช่องว่างไม่ทับของเดิม
+// (ตรวจกับข้อมูลจริงแล้ว ปล่อยช่องว่างทับด้วย = 153 คนเสียเรทที่มีอยู่ไปเลย เพราะลิสต์ที่วางทีหลัง
+// มักกรอกไม่ครบเท่าของเดิม มีแค่ ID กับ Link)
+function poolPatchFor(x, cur){
+  const patch = {}, was = {};
+  const put = (col, val, now) => {
+    const v = String(val == null ? "" : val).trim();
+    const n = String(now == null ? "" : now).trim();
+    if (v && v !== n){ patch[col] = v; was[col] = n; }
+  };
+  put("link", x.link, cur.link);
+  put("follower", x.follower, cur.rawFol);
+  put("rate", x.rate, cur.rawRate);
+  put("cat", x.cat, cur.cat);
+  return { patch, was };
+}
+// เอาของที่เพิ่งเขียนขึ้นฐานข้อมูลใส่ของในเครื่องให้ตรงกันทันที ไม่ต้องโหลด pool ใหม่ทั้งก้อน
+function poolApplyPatch(c, patch){
+  if (patch.link != null) c.link = patch.link;
+  if (patch.cat != null) c.cat = patch.cat;
+  if (patch.follower != null){ c.rawFol = patch.follower; c.fol = parseFollowers(patch.follower); }
+  if (patch.rate != null){ c.rawRate = patch.rate; Object.assign(c, rateInfo(patch.rate)); }
+}
+const POOL_COL_TH = { link:"Link", follower:"Follower", rate:"Rate", cat:"Cat" };
 function renderQFInfo(){
   const p = qfPoolFind(QF_INFO);
   const box = $("#qFindList");
@@ -12063,7 +12135,9 @@ async function qfSaveInfo(p, btn){
   btn.disabled = true;
   msg.className = "qfmsg busy"; msg.textContent = "กำลังบันทึก...";
   try {
-    await sbUpdateCreator(was, wasKind, patch);
+    // ตัวกรองใช้ชื่อตามที่เก็บในฐานข้อมูลจริง (p.id) ไม่ใช่ normId — ชื่อที่เก็บไว้มีตัวพิมพ์ใหญ่ปนได้
+    // แล้ว PATCH ที่ไม่ตรงแถวไหนเลยเดิมเงียบ ขึ้น "บันทึกแล้ว" ทั้งที่ไม่มีอะไรเปลี่ยน (ตอนนี้ sbUpdateCreator ฟ้องแล้ว)
+    await sbUpdateCreator(p.id, wasKind, patch);
   } catch(e){
     msg.className = "qfmsg err"; msg.textContent = (e && e.message) || "บันทึกไม่สำเร็จ";
     btn.disabled = false; return;
