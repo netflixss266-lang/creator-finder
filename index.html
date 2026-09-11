@@ -4776,17 +4776,66 @@ const FORMAT_DEFAULT =
 
 ขอบคุณมากเลยนะครับ 🙏🏻😊`;
 
+// ─── แบบไม่มี Budget ───
+// ได้สินค้าฟรี + คอมมิชชั่น ไม่มีค่าตัว — ต้นแบบข้างบน (มี Budget) ขอเรทและแจ้งหักภาษี 3% / ทำจ่าย 30 วัน
+// ส่งแบบนั้นไปหาคนที่เราไม่ได้จะจ่ายเงิน = ไปขอเรทเขาเอง แล้วต้องมาถอยทีหลังว่าจริงๆ ไม่มีงบ
+const FORMAT_NOBUDGET_DEFAULT =
+`สวัสดีครับ🙏 แอดมินจากบริษัท ALTA Global Commerce ขออนุญาตติดต่องานสำหรับโพสต์วิดีโอลงช่อง Tiktok  นะครับ
+
+- SOW : รีวิวสินค้าผ่าน Video + ติดตะกร้า (คอมมิชชั่นพิเศษ {{commission}}) + Gencode 60 Days🛒📦
+- Platform : Tiktok📱
+- Extra Commission {{commission}}
+- แบรนด์จัดส่งสินค้าให้ฟรี โดยไม่ต้องส่งคืน
+
+
+แบรนด์ : {{brandname}}
+สินค้า : {{sku}}
+(ทางแบรนด์พิจารณาเลือกสินค้าที่เหมาะสมสำหรับรีวิวภายหลังจากคอนเฟิร์มร่วมงาน)
+
+📌📌เงื่อนไข📌📌
+✅ ทีมมีบรีฟให้รายละเอียดสินค้าและรูปแบบคอนเทนต์คร่าวๆ
+✅ ไม่ตรวจสคริป
+✅ ทางทีมมีการตรวจดราฟเบื้องต้น
+✅ แบรนด์จัดส่งสินค้าให้ฟรี โดยไม่ต้องส่งคืน
+
+🙂หากสนใจแอดมินขอทราบรายละเอียดเพิ่มเติมดังนี้นะครับ
+1) สินค้าที่สนใจ (ทางแบรนด์จะพิจารณาตามเหมาะสมอีกครั้ง) ______
+2) Gencode ฟรีสูงสุดที่ให้ได้ (ขั้นต่ำ 60 days)  _______
+3) เรทนำไปใช้ในเชิงพาณิชย์ (หาก free แจ้งได้เลยนะคะ)  _______
+4) เบอร์โทรและ ID Line ที่ใช้ในเพื่อใช้ในการติดต่อคุยงานยามฉุกเฉินในกรณีที่คอนเฟิร์มร่วมงาน ______
+5) สะดวกลงช่องทาง Shopee หรือFacebook ด้วยไหม  ______
+
+ขอบคุณมากเลยนะครับ 🙏🏻😊`;
+
+// ของที่แก้ไว้ก่อนมีสองแบบอยู่ใน cf_format_v1 — ต้นแบบเดิมคือแบบขอเรท จึงเป็นของแบบมี Budget อยู่แล้ว
+// แยกแบบไม่มี Budget ไปเก็บอีกกุญแจ แทนที่จะรื้อโครงเดิม = ของที่ทีมแก้ไว้ไม่ต้องย้ายและไม่มีทางหาย
+const LS_FORMAT_NB = "cf_format_nb_v1";
+const LS_FMTKIND = "cf_fmtkind_v1";       // { โปรเจกต์: "budget" | "nobudget" } — จำว่าโปรเจกต์นี้ใช้แบบไหน
+const FMT_KINDS = [
+  { k:"budget",   th:"💰 มี Budget",    def: FORMAT_DEFAULT },
+  { k:"nobudget", th:"🎁 ไม่มี Budget", def: FORMAT_NOBUDGET_DEFAULT },
+];
+const FMT_GAP = { brandname:"ชื่อแบรนด์", videos:"จำนวนวิดีโอ", sku:"สินค้า", commission:"Commission" };
 let FORMATS = {};
+let FORMATS_NB = {};
+let FMT_KIND_BY = {};
 function loadFormats(){
   try { FORMATS = JSON.parse(lsGet(LS_FORMAT) || "{}") || {}; } catch(e){}
+  try { FORMATS_NB = JSON.parse(lsGet(LS_FORMAT_NB) || "{}") || {}; } catch(e){}
+  try { FMT_KIND_BY = JSON.parse(lsGet(LS_FMTKIND) || "{}") || {}; } catch(e){}
 }
 function saveFormats(){
   try { lsSet(LS_FORMAT, JSON.stringify(FORMATS)); } catch(e){}
+  try { lsSet(LS_FORMAT_NB, JSON.stringify(FORMATS_NB)); } catch(e){}
 }
-const formatOf = proj => FORMATS[proj] != null ? FORMATS[proj] : FORMAT_DEFAULT;
-// ค่าที่ใช้เติมช่องว่าง — จำนวนวิดีโอกับรายการสินค้าปรับได้ทุกครั้งก่อนส่ง
+const fmtKind = k => FMT_KINDS.find(x => x.k === k) || FMT_KINDS[0];
+const fmtStore = k => k === "nobudget" ? FORMATS_NB : FORMATS;
+const formatOf = (proj, k) => fmtStore(k)[proj] != null ? fmtStore(k)[proj] : fmtKind(k).def;
+// ค่าที่ใช้เติมช่องว่าง — จำนวนวิดีโอ · คอมมิชชั่น · รายการสินค้า ปรับได้ทุกครั้งก่อนส่ง
 let FMT_EDIT = false;
+let FMT_KIND = "budget";
 let FMT_VID = "1";
+let FMT_COMM = "";
 let FMT_SKU = null;          // null = ใช้ลิสต์ SKU ของโปรเจกต์
 
 const fmtSkuText = proj => FMT_SKU != null ? FMT_SKU
@@ -4796,16 +4845,26 @@ const fmtSkuText = proj => FMT_SKU != null ? FMT_SKU
 function renderFormat(){
   const proj = PROJ;
   const body = $("#fmtBody");
+  const K = fmtKind(FMT_KIND);
   $("#fmtTitle").textContent = `Format ขอเรท · ${proj}`;
-  const vals = { brandname: brandOf(proj), videos: FMT_VID || "1", sku: fmtSkuText(proj) };
-  const raw = formatOf(proj);
+  const vals = { brandname: brandOf(proj), videos: FMT_VID || "1", sku: fmtSkuText(proj),
+                 commission: FMT_COMM.trim() };
+  const raw = formatOf(proj, K.k);
   const filled = raw.replace(/\{\{([\w฀-๿]+)\}\}/g, (_, k) =>
-    vals[k] != null && vals[k] !== "" ? vals[k] : `…..ยังไม่มี${k}…..`);
-  const mine = FORMATS[proj] != null;
+    vals[k] != null && vals[k] !== "" ? vals[k] : `…..ยังไม่มี${FMT_GAP[k] || k}…..`);
+  const mine = fmtStore(K.k)[proj] != null;
+  // ช่องกรอกโผล่ตามตัวแปรที่ต้นแบบใช้จริง ไม่ใช่ตามแบบ — แก้ต้นแบบเอา {{videos}} ออก ช่องจำนวนวิดีโอก็หายเอง
+  // ไม่งั้นจะมีช่องที่กรอกแล้วไม่ไปโผล่ในข้อความ ซึ่งทำให้คิดว่าข้อความที่ก๊อปไปมีค่านั้นแล้ว
+  const uses = k => raw.includes(`{{${k}}}`);
+  // แท็บสลับแบบ — ล็อกไว้ตอนกำลังแก้ต้นแบบ สลับกลางคันแล้วที่พิมพ์ค้างไว้จะหายไปเงียบๆ
+  const tabs = `<div class="tabs sub" role="tablist" style="margin-bottom:12px">${FMT_KINDS.map(x =>
+    `<button role="tab" data-fmtkind="${x.k}" aria-selected="${x.k === K.k}"${FMT_EDIT ? " disabled" : ""}
+      title="${fmtStore(x.k)[proj] != null ? "ใช้ต้นแบบที่แก้ไว้ของโปรเจกต์นี้" : "ใช้ต้นแบบตั้งต้น"}">${esc(x.th)}${
+      fmtStore(x.k)[proj] != null ? " ✎" : ""}</button>`).join("")}</div>`;
 
-  body.innerHTML = FMT_EDIT
-    ? `<p class="sect-sub">แก้ต้นแบบของ <b>${esc(proj)}</b> — โปรเจกต์อื่นไม่เปลี่ยนตาม<br>
-         ตัวแปรที่ใส่ได้: <code>{{brandname}}</code> <code>{{videos}}</code> <code>{{sku}}</code></p>
+  body.innerHTML = tabs + (FMT_EDIT
+    ? `<p class="sect-sub">แก้ต้นแบบ <b>${esc(K.th)}</b> ของ <b>${esc(proj)}</b> — อีกแบบและโปรเจกต์อื่นไม่เปลี่ยนตาม<br>
+         ตัวแปรที่ใส่ได้: ${Object.keys(FMT_GAP).map(k => `<code>{{${k}}}</code>`).join(" ")}</p>
        <textarea id="fmtText" style="min-height:46vh;font-size:.9rem;line-height:1.7">${esc(raw)}</textarea>
        <div class="dd-act" style="margin-top:10px;flex-wrap:wrap">
          <button type="button" class="run" id="fmtSave">บันทึก</button>
@@ -4815,29 +4874,39 @@ function renderFormat(){
     : `<div class="fmtgrid">
          <label>แบรนด์<input value="${esc(vals.brandname)}" disabled
            title="แก้ที่หน้าจัดการโปรเจกต์ (ปุ่ม ⚙ ท้ายแท็บ)"></label>
-         <label>จำนวนวิดีโอ<input id="fmtVid" type="number" min="1" step="1" value="${esc(FMT_VID)}"></label>
-         <label class="wide">สินค้าที่จะเสนอ — บรรทัดละอย่าง
-           <textarea id="fmtSku" rows="3" placeholder="ว่างไว้ = ใช้ SKU ทั้งหมดที่มีในโปรเจกต์นี้">${esc(vals.sku)}</textarea></label>
+         ${uses("videos") ? `<label>จำนวนวิดีโอ<input id="fmtVid" type="number" min="1" step="1" value="${esc(FMT_VID)}"></label>` : ""}
+         ${uses("commission") ? `<label>Commission<input id="fmtComm" value="${esc(FMT_COMM)}"
+           placeholder="เช่น 15%" autocomplete="off"></label>` : ""}
+         ${uses("sku") ? `<label class="wide">สินค้าที่จะเสนอ — บรรทัดละอย่าง
+           <textarea id="fmtSku" rows="3" placeholder="ว่างไว้ = ใช้ SKU ทั้งหมดที่มีในโปรเจกต์นี้">${esc(vals.sku)}</textarea></label>` : ""}
        </div>
        <pre class="fmtprev" id="fmtPrev">${esc(filled)}</pre>
        <div class="dd-act" style="margin-top:11px;flex-wrap:wrap">
          <button type="button" class="run" id="fmtCopy">คัดลอกข้อความ</button>
          <button type="button" class="export" id="fmtEdit">✎ แก้ format</button>
          ${mine ? `<button type="button" class="export ghost" id="fmtReset">คืนค่าตั้งต้น</button>` : ""}
-         <span class="picksum">${mine ? "ใช้ต้นแบบที่แก้ไว้ของโปรเจกต์นี้" : "ใช้ต้นแบบตั้งต้น"}</span>
-       </div>`;
+         <span class="picksum">${esc(K.th)} · ${mine ? "ใช้ต้นแบบที่แก้ไว้ของโปรเจกต์นี้" : "ใช้ต้นแบบตั้งต้น"}</span>
+       </div>`);
 
   const rerender = () => renderFormat();
+  body.querySelectorAll("[data-fmtkind]").forEach(b => b.onclick = () => {
+    FMT_KIND = b.dataset.fmtkind;
+    // จำแยกรายโปรเจกต์ — โปรเจกต์ที่ไม่มีงบมักไม่มีงบทั้งโปรเจกต์ เปิดครั้งหน้าจะได้ไม่ต้องสลับทุกรอบ
+    FMT_KIND_BY[proj] = FMT_KIND;
+    try { lsSet(LS_FMTKIND, JSON.stringify(FMT_KIND_BY)); } catch(e){}
+    rerender();
+  });
   if (FMT_EDIT){
     $("#fmtSave").onclick = () => {
-      const v = $("#fmtText").value;
-      if (v === FORMAT_DEFAULT) delete FORMATS[proj]; else FORMATS[proj] = v;
+      const v = $("#fmtText").value, store = fmtStore(K.k);
+      if (v === K.def) delete store[proj]; else store[proj] = v;
       saveFormats(); FMT_EDIT = false; rerender();
     };
     $("#fmtCancel").onclick = () => { FMT_EDIT = false; rerender(); };
   } else {
-    $("#fmtVid").onchange = () => { FMT_VID = String(Math.max(1, Number($("#fmtVid").value) || 1)); rerender(); };
-    $("#fmtSku").onchange = () => { FMT_SKU = $("#fmtSku").value; rerender(); };
+    if ($("#fmtVid")) $("#fmtVid").onchange = () => { FMT_VID = String(Math.max(1, Number($("#fmtVid").value) || 1)); rerender(); };
+    if ($("#fmtComm")) $("#fmtComm").onchange = () => { FMT_COMM = $("#fmtComm").value; rerender(); };
+    if ($("#fmtSku")) $("#fmtSku").onchange = () => { FMT_SKU = $("#fmtSku").value; rerender(); };
     $("#fmtCopy").onclick = () => {
       const btn = $("#fmtCopy");
       navigator.clipboard.writeText(filled).then(() => {
@@ -4849,13 +4918,14 @@ function renderFormat(){
   }
   const rst = $("#fmtReset");
   if (rst) rst.onclick = () => {
-    if (!confirm(`คืน Format ของ ${proj} เป็นค่าตั้งต้น? ที่แก้ไว้จะหาย`)) return;
-    delete FORMATS[proj]; saveFormats(); FMT_EDIT = false; rerender();
+    if (!confirm(`คืน Format ${K.th} ของ ${proj} เป็นค่าตั้งต้น? ที่แก้ไว้จะหาย\n(อีกแบบไม่ถูกแตะ)`)) return;
+    delete fmtStore(K.k)[proj]; saveFormats(); FMT_EDIT = false; rerender();
   };
 }
 function openFormat(){
   loadFormats();
-  FMT_EDIT = false; FMT_SKU = null;
+  FMT_EDIT = false; FMT_SKU = null; FMT_COMM = "";
+  FMT_KIND = fmtKind(FMT_KIND_BY[PROJ]).k;     // ไม่เคยเลือก = มี Budget (แบบเดิมก่อนมีสองแบบ)
   $("#fmtPanel").hidden = false;
   renderFormat();
 }
