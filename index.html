@@ -1133,6 +1133,10 @@ body.locked{overflow:hidden}
   padding:2px 10px;font-size:.76rem;cursor:pointer}
 .blitem button:hover{border-color:var(--lo);color:var(--lo)}
 .blempty{font-size:.82rem;color:var(--dim);padding:6px 2px}
+/* แถวชื่อ+งานซ้ำ — บล็อกการซิงก์ขึ้นฐานข้อมูลทั้งโปรเจกต์ ต้องหาเจอด้วยตาตั้งแต่ในตาราง */
+.ctable tr.dupkey > td{background:rgba(var(--lo-rgb),.07)}
+.duptag{flex:none;font-size:.68rem;font-weight:700;color:var(--lo);white-space:nowrap;
+  border:1px solid rgba(var(--lo-rgb),.55);background:rgba(var(--lo-rgb),.12);border-radius:999px;padding:0 7px}
 .modal-head{display:flex;align-items:center;justify-content:space-between;
   gap:12px;margin-bottom:4px}
 .modal-head h2{font-family:'Space Grotesk',sans-serif;font-size:1.05rem;font-weight:700}
@@ -4066,11 +4070,20 @@ function renameProject(from, to){
 // สองอย่างนี้คนละเรื่องกัน: อันนี้คือชื่อที่ COORD_PROJECTS ในสคริปต์รู้จัก ต้องเขียนไว้ตรงๆ
 const SCRIPT_KNOWN = ["Red Chamber Phase 1", "Red Chamber Phase 2",
                       "OBSBOT-KOL", "OBSBOT-KOC", "TikTok Live", "COSRX", "Midea",
-                      "Red Chamber KOC"];
+                      "Red Chamber KOC", "GJD Earphone"];
+// ลิสต์ข้างบนเป็นแค่ค่าเดาตั้งต้น — คำตอบจริงจากสคริปต์ตอนซิงก์ชนะเสมอ (จำไว้ในเครื่อง)
+const LS_SCRIPTPROJ = "cf_scriptproj_v1";     // { โปรเจกต์: true รับแล้ว | false ไม่รู้จัก }
+let SCRIPT_SAW = {};
+try { SCRIPT_SAW = JSON.parse(lsGet(LS_SCRIPTPROJ) || "{}") || {}; } catch(e){}
+function scriptSaw(name, ok){
+  SCRIPT_SAW[name] = !!ok;
+  try { lsSet(LS_SCRIPTPROJ, JSON.stringify(SCRIPT_SAW)); } catch(e){}
+}
 // เตือนเรื่องชีตมีความหมายแค่ตอนเส้นทางชีตยังใช้งานได้จริง (admin ที่ตั้ง Apps Script ไว้)
 // editor ไม่แตะชีตเลยแม้แต่ทางอ้อม (canSync() คืน false เสมอ) เตือนไปก็เป็นแค่สัญญาณรบกวน
 // ชี้ให้ไปแก้ Apps Script ที่ตัวเองไม่มีสิทธิ์เข้าและไม่จำเป็นต้องรู้จักด้วยซ้ำ
-const needsScript = name => canSync() && !SCRIPT_KNOWN.includes(name);
+const needsScript = name => canSync() &&
+  (SCRIPT_SAW[name] != null ? !SCRIPT_SAW[name] : !SCRIPT_KNOWN.includes(name));
 // สถานะตามที่ทีมใช้จริงในชีต — ของเก่ายังอยู่ท้ายลิสต์ไว้ไม่ให้ค่าเดิมหาย
 // ─── ขั้นตอนงาน เรียงตามลำดับที่งานเดินจริง ───
 // ลำดับในนี้มีความหมาย ไม่ใช่แค่ลำดับในเมนู — ใช้ตัดสินว่าขั้นไหน "ผ่านมาแล้ว"
@@ -4544,6 +4557,17 @@ function canSync(){ return !!(HOOK.url && HOOK.token) && !isCrew(); }
 // ═══ ซิงก์ขึ้นฐานข้อมูล (ทุกคน) ═══
 // นี่คือเส้นทางหลักแล้ว — ทุกคนที่แก้อะไรจะถูกดันขึ้น Supabase กองเดียวกัน
 // ชีตเป็นขั้นที่สอง ทำต่อให้เฉพาะตอน admin เป็นคนกดและตั้ง Apps Script ไว้
+// กุญแจเดียวกับที่ฐานข้อมูลใช้ (ชื่อหลัง normId + งาน) — ใช้ทั้งตอนซิงก์และตอนวาดตาราง
+const coordKey = r => `${normId(r.handle)}|${r.code || ""}`;
+function coordDupKeys(rows){
+  const m = new Map();
+  (rows || []).forEach(r => {
+    const k = coordKey(r);
+    const o = m.get(k) || { handle: normId(r.handle), code: r.code || "", n: 0 };
+    o.n++; m.set(k, o);
+  });
+  return [...m.values()].filter(o => o.n > 1);
+}
 async function syncCoordSB(){
   const failed = [];
   try { await sbSaveProjects(); }
@@ -4552,6 +4576,18 @@ async function syncCoordSB(){
     const rows = COORD[p] || [];
     // ว่างมาตั้งแต่แรกก็ไม่ต้องยุ่ง — กันกรณีโหลดไม่สำเร็จแล้วเผลอล้างของจริงทิ้ง
     if (!rows.length && !(LOADED_COUNT[p] > 0)) continue;
+    // ── ชื่อ+งานซ้ำกันในโปรเจกต์เดียว = ฐานข้อมูลปฏิเสธทั้งชุด ──
+    // กุญแจในฐานข้อมูลคือ (เจ้าของ, โปรเจกต์, ชื่อ, งาน) ส่งสองแถวกุญแจเดียวกันในคำขอเดียว Postgres ตอบ 500
+    // "ON CONFLICT DO UPDATE command cannot affect row a second time" ซึ่งอ่านแล้วไม่รู้ว่าต้องไปแก้ที่ใคร
+    // ไม่รวมแถวให้เอง — สองแถวอาจมีข้อมูลต่างกัน เลือกให้เองคือทิ้งของที่ทีมพิมพ์ไว้แบบเงียบๆ
+    // บอกชื่อตรงๆ แล้วข้ามโปรเจกต์นี้ไปทั้งก้อน ของในเครื่องยังอยู่ครบ (ยังค้างรอซิงก์)
+    const dup = coordDupKeys(rows);
+    if (dup.length){
+      failed.push(`${p}: มีชื่อซ้ำกันในโปรเจกต์ — ${dup.map(d =>
+        `${d.handle} (งาน ${d.code || "ว่าง"}) ×${d.n}`).join(" · ")} · ลบแถวที่ซ้ำก่อนแล้วซิงก์ใหม่ ` +
+        `(ยังไม่ได้บันทึกโปรเจกต์นี้ขึ้นฐานข้อมูล ของในเครื่องยังอยู่ครบ)`);
+      continue;
+    }
     try {
       await sbUpsertCoord(rows.map(coordRowToSB));
       await sbDeleteCoordMissing(p,
@@ -4588,11 +4624,10 @@ async function syncCoordSheet(){
     // ส่งไปแค่บางกลุ่มเมื่อไหร่ อีกกลุ่มหายจากชีตทันที
     const rows = COORD[p] || [];
     if (!rows.length && !(LOADED_COUNT[p] > 0)) continue;
-    // Apps Script มีรายชื่อโปรเจกต์ของตัวเอง ส่งชื่อที่มันไม่รู้จักไปก็โดนตีกลับ
-    if (needsScript(p)){
-      failed.push(`${p}: ยังไม่มีในสคริปต์ — เติมชื่อนี้ใน COORD_PROJECTS แล้ว deploy ใหม่ก่อน`);
-      continue;
-    }
+    // ⚠️ ไม่ตัดสินเองจากลิสต์ในหน้าเว็บแล้ว ส่งไปให้สคริปต์ตอบ แล้วแปลคำตอบให้อ่านรู้เรื่อง
+    // เดิมเช็คกับ SCRIPT_KNOWN ที่เขียนตายไว้ในโค้ด = ทุกโปรเจกต์ใหม่ต้องรอแก้เว็บ + deploy เว็บก่อน
+    // แถมหน้าเว็บที่เปิดค้างไว้เป็นรุ่นเก่า ยังฟ้อง "ไม่มีในสคริปต์" ต่อทั้งที่สคริปต์รับชื่อนั้นแล้ว
+    // สคริปต์ปฏิเสธชื่อที่ไม่รู้จักตั้งแต่บรรทัดแรกก่อนแตะชีต ส่งไปจึงไม่มีอะไรเสียหาย
     const payload = rows.map(r => ({
       handle: r.handle, link: r.link || `https://www.tiktok.com/@${r.handle}`,
       kind: r.kind || "", code: r.code || "", status: r.status || "",
@@ -4609,11 +4644,16 @@ async function syncCoordSheet(){
                                project: p, rows: payload,
                                force: FORCE_PROJ.has(p) }) });
       const said = await res.json().catch(() => null);
-      if (said && said.ok === false){
+      // จำไว้ว่าสคริปต์รับชื่อนี้หรือไม่ — ป้าย ! ในหน้าจัดการโปรเจกต์ใช้ของจริงจากคำตอบล่าสุด
+      if (said && said.ok === false && /ไม่รู้จักโปรเจกต์/.test(String(said.error || ""))){
+        scriptSaw(p, false);
+        failed.push(`${p} (ชีต): Apps Script ยังไม่รู้จักโปรเจกต์นี้ — เติม '${p}' ท้าย COORD_PROJECTS ` +
+                    `ใน รหัส.gs แล้ว Deploy → Manage deployments → ✏️ → New version`);
+      } else if (said && said.ok === false){
         failed.push(`${p} (ชีต): ${said.error}`);
         // สคริปต์หยุดไว้เพราะแถวหายเยอะผิดปกติ — ต้องให้คนยืนยันก่อน ไม่ใช่ retry เอง
         if (said.needForce) NEED_FORCE.push({ proj: p, had: said.had, now: said.now });
-      }
+      } else if (said && said.ok) scriptSaw(p, true);
     } catch(e){ failed.push(`${p} (ชีต): ${e.message}`); }
   }
   FORCE_PROJ.clear();
@@ -6317,8 +6357,11 @@ function coordRow(r, i){
   const ownCmd = Object.keys(oc.blocks || {}).length + Object.keys(oc.links || {}).length;
   // เคยได้รับหนังสือแจ้งเตือนไหม — ต้องเห็นตั้งแต่ในตาราง ไม่ใช่ต้องเปิด Command เข้าไปดูทีละคน
   const warned = lawWarnedAt(r.project, r.handle);
+  // ชื่อ+งานซ้ำกับแถวอื่นในโปรเจกต์เดียวกัน — ซิงก์ขึ้นฐานข้อมูลไม่ได้จนกว่าจะลบให้เหลือแถวเดียว
+  // ต้องเห็นตั้งแต่ในตาราง ไม่ใช่รู้ตอนกดซิงก์แล้วต้องมานั่งไล่หาว่าแถวไหน
+  const dupN = (COORD[r.project] || []).filter(x => coordKey(x) === coordKey(r)).length;
   const cls = [clips.length ? "hasclips" : "", isCancelled(r) ? "cancelled" : "",
-               warned ? "warned" : ""].filter(Boolean).join(" ");
+               warned ? "warned" : "", dupN > 1 ? "dupkey" : ""].filter(Boolean).join(" ");
   return `<tr draggable="true" data-row="${i}"${cls ? ` class="${cls}"` : ""}>
     <td class="w-move" title="ลากขึ้นลงเพื่อสลับลำดับ">⠿</td>
     <td class="who"><div class="wrapper">
@@ -6328,6 +6371,7 @@ function coordRow(r, i){
         : `<span class="chev-gap"></span>`}
       <input class="nm" data-i="${i}" data-f="handle" value="${esc(r.handle)}"
              title="แก้ชื่อได้ — ลิงก์จะตามไปเอง">
+      ${dupN > 1 ? `<span class="duptag" title="ชื่อ ${esc(normId(r.handle))} งาน ${esc(r.code || "ว่าง")} ซ้ำกัน ${dupN} แถวในโปรเจกต์นี้ — ซิงก์ขึ้นฐานข้อมูลไม่ได้จนกว่าจะลบแถวที่ซ้ำ (หรือเปลี่ยนช่องงานให้ต่างกัน)">ซ้ำ ×${dupN}</span>` : ""}
       <a class="go" href="https://www.tiktok.com/@${esc(r.handle)}" target="_blank"
          rel="noopener noreferrer" title="เปิด TikTok">↗</a>
       <button class="icobtn" data-detail="${i}"
