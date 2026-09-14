@@ -1137,6 +1137,7 @@ body.locked{overflow:hidden}
 /* ── Blacklist ── แดงชัดทุกที่ที่เห็นชื่อ ติดดำคือเรื่องที่ต้องสะดุดตา ไม่ใช่ป้ายเล็กๆ ที่กวาดตาข้าม */
 .card.bl{border-color:rgba(var(--lo-rgb),.6)}
 .tag.bl{color:var(--lo);border-color:rgba(var(--lo-rgb),.55);background:rgba(var(--lo-rgb),.12);font-weight:700}
+#refreshBtn.pending{border-color:var(--accent);color:var(--accent);background:rgba(var(--accent-rgb),.1)}
 .notebtn{background:none;border:1px solid var(--line);color:var(--accent);border-radius:6px;
   padding:1px 8px;font-size:.78rem;cursor:pointer}
 #blSect textarea{width:100%;min-height:4.8em;font-size:.86rem;line-height:1.6}
@@ -2485,6 +2486,8 @@ tr.subrow td.w-status select{width:14.6em}
     <div class="res-head">
       <h2>ผลลัพธ์ <span class="n" id="resN"></span></h2>
       <div class="headact">
+        <!-- ซ่อนคนที่เปิดแล้วเฉพาะตอนกดรีเฟรช — กดเปิดทีละคนแล้วการ์ดหายทันทีคือกริดขยับใต้มือ กดพลาดคนถัดไป -->
+        <button class="export ghost" id="refreshBtn" hidden>↻ รีเฟรช</button>
         <button class="export ghost" id="seenBtn" hidden></button>
       </div>
     </div>
@@ -3317,6 +3320,12 @@ let CPF_MED = null;     // ค่ากลาง CPF ของผลลัพธ
 let HIDDEN_NORATE = 0;  // ถูกซ่อนเพราะกรองงบแต่ไม่มีเรท
 let HIDDEN_EX = 0;      // ถูกตัดเพราะอยู่ในลิสต์ที่เคยใช้แล้ว
 let HIDDEN_BL = 0;      // ถูกซ่อนเพราะติด Blacklist
+// ── ซ่อนคนที่เปิดแล้ว ──
+// ซ่อนตาม "ภาพนิ่ง" ของรายชื่อที่เปิดแล้ว ณ ตอนโหลดหน้า / ตอนกดรีเฟรชล่าสุด — ไม่ใช่ SEEN สดๆ
+// ถ้าใช้ของสด คนที่เพิ่งกดเปิดจะหายทันที (หรือหายตอนแตะตัวกรองนิดเดียว) กริดขยับใต้มือ กดพลาดคนถัดไป
+let SEEN_HIDE = new Set();
+let HIDDEN_SEEN = 0;
+let SHOW_SEEN = false;  // กดดูคนที่เปิดแล้วชั่วคราว
 let SHOW_BL = false;    // กดดูคนติด Blacklist ชั่วคราว (ไม่จำ — เปิดหน้าใหม่ซ่อนเหมือนเดิม)
 let RATE_SKIPPED = false; // มีค่าในช่องงบค้างไว้ แต่ดีล Barter ไม่ใช้
 
@@ -3879,6 +3888,7 @@ async function run(opt){
   HIDDEN_NORATE = 0;
   HIDDEN_EX = 0;
   HIDDEN_BL = 0;
+  HIDDEN_SEEN = 0;
   HIDDEN_LIKED = 0;
   HIDDEN_LIKECAT = 0;
   // หมวดที่อ่านมาอาจไม่มีใน pool ที่เปิดอยู่ตอนนี้เลย (สลับชีต/แท็บไปแล้ว) — กรองแล้วจะว่างเปล่า
@@ -3890,6 +3900,7 @@ async function run(opt){
   let filtered = POOL.filter(p => {
     // ติด Blacklist ซ่อนก่อนตัวกรองอื่นทั้งหมด — นับแยกไว้บอกในแถบสรุป ไม่หายเงียบๆ
     if (p.blacklist && !SHOW_BL){ HIDDEN_BL++; return false; }
+    if (!SHOW_SEEN && SEEN_HIDE.has(normId(p.id))){ HIDDEN_SEEN++; return false; }
     if (EXCLUDE.has(normId(p.id))){ HIDDEN_EX++; return false; }
     if (HIDE_LIKED && LIKED.has(normId(p.id))){ HIDDEN_LIKED++; return false; }
     if (catOnly && !catsOf(p).some(c => LIKE_CATS.has(c))){ HIDDEN_LIKECAT++; return false; }
@@ -4014,6 +4025,12 @@ function render(){
     notes.push(`กรองเหลือเฉพาะหมวดที่ติดมากับลิสต์ — ตัดออก <b>${HIDDEN_LIKECAT} คน</b>`);
   if (LIKE_CAT_ON && LIKE_CATS.size && !CATS.some(c => LIKE_CATS.has(c)))
     notes.push(`<span style="color:var(--warn)">หมวดที่ติดมากับลิสต์ไม่มีใน pool นี้เลย</span> — ข้ามตัวกรองหมวดไว้ก่อน`);
+  if (HIDDEN_SEEN)
+    notes.push(`ซ่อน <b>${HIDDEN_SEEN} คน</b> ที่เปิดดูแล้ว ` +
+               `<button type="button" class="notebtn" id="seenToggle">แสดง</button>`);
+  else if (SHOW_SEEN && RESULTS.some(p => SEEN_HIDE.has(normId(p.id))))
+    notes.push(`กำลังแสดงคนที่เปิดดูแล้ว <b>${RESULTS.filter(p => SEEN_HIDE.has(normId(p.id))).length} คน</b> ` +
+               `<button type="button" class="notebtn" id="seenToggle">ซ่อน</button>`);
   if (HIDDEN_BL)
     notes.push(`<span style="color:var(--lo)">ซ่อน <b>${HIDDEN_BL} คน</b> ที่ติด Blacklist</span> ` +
                `<button type="button" class="notebtn" id="blToggle">แสดง</button>`);
@@ -4030,6 +4047,7 @@ function render(){
     notes.push(`ดีล <b>Barter</b> ไม่คิดเป็นเงิน — ช่วงงบที่ใส่ไว้ถูกข้าม`);
   $("#resNote").innerHTML = notes.join(" · ");
   if ($("#blToggle")) $("#blToggle").onclick = () => { SHOW_BL = !SHOW_BL; runLive(); };
+  if ($("#seenToggle")) $("#seenToggle").onclick = () => { SHOW_SEEN = !SHOW_SEEN; run({ rank: false }); };
 
   if (!RESULTS.length){
     $("#results").innerHTML = `<div class="empty"><h3>ไม่มีครีเอเตอร์ตรงเงื่อนไข</h3><div>ลองผ่อนตัวกรอง เช่น ขยายช่วง followers หรือช่วงงบ</div></div>`;
@@ -12258,11 +12276,29 @@ function updateSeenBar(){
   b.hidden = !SEEN.size;
   b.textContent = `เปิดแล้ว ${n}/${RESULTS.length} · ล้าง`;
   b.title = `ทั้งหมดที่เคยเปิด ${SEEN.size} คน — กดเพื่อล้างเครื่องหมาย`;
+  // ปุ่มรีเฟรชบอกว่ามีคนที่เพิ่งเปิดรอซ่อนอยู่กี่คน — กดแล้วคนพวกนั้นหาย คนใหม่ขึ้นมาแทนที่
+  const r = $("#refreshBtn");
+  const pending = RESULTS.filter(p => SEEN.has(normId(p.id)) && !SEEN_HIDE.has(normId(p.id))).length;
+  r.hidden = !(RESULTS.length || HIDDEN_SEEN || SEEN.size);
+  r.classList.toggle("pending", pending > 0);
+  r.textContent = pending ? `↻ รีเฟรช · ซ่อนที่เพิ่งเปิด ${pending}` : "↻ รีเฟรช";
+  r.title = pending
+    ? `ซ่อน ${pending} คนที่เพิ่งกดเปิด แล้วดึงคนถัดไปขึ้นมาแทน`
+    : "กรองใหม่ — ซ่อนทุกคนที่เปิดดูแล้ว (ไม่จัดอันดับด้วย Reference ใหม่)";
 }
 
+// รีเฟรช = จับภาพรายชื่อที่เปิดแล้วตอนนี้ แล้วกรองใหม่ — คนที่เพิ่งเปิดหายไปตอนนี้ ไม่ใช่ตอนกดเปิด
+$("#refreshBtn").onclick = () => {
+  SEEN_HIDE = new Set(SEEN);
+  SHOW_SEEN = false;
+  run({ rank: false });
+};
+
 $("#seenBtn").onclick = () => {
-  if (!confirm(`ล้างเครื่องหมาย "เปิดแล้ว" ทั้งหมด ${SEEN.size} คน?`)) return;
-  SEEN.clear(); lsSaveSet(LS_SEEN, SEEN); render();
+  if (!confirm(`ล้างเครื่องหมาย "เปิดแล้ว" ทั้งหมด ${SEEN.size} คน?\nคนที่ถูกซ่อนไว้จะกลับมาในผลลัพธ์`)) return;
+  SEEN.clear(); lsSaveSet(LS_SEEN, SEEN);
+  SEEN_HIDE.clear();                 // ล้างเครื่องหมายแล้ว คนที่ซ่อนไว้ต้องกลับมาด้วย ไม่ใช่ซ่อนค้างทั้งที่ไม่ได้ติดป้ายแล้ว
+  run({ rank: false });
 };
 
 // ─── ตัดรายชื่อที่เคยใช้ ───
@@ -15300,6 +15336,7 @@ $("#tourAgain").onclick = () => { $("#settings").hidden = true; openCoach(); };
 // ─── เริ่มต้น: โหลดรายการ Sheet แล้วดึงตัวแรกมาเลย ───
 EXCLUDE = lsLoadSet(LS_EX);
 SEEN = lsLoadSet(LS_SEEN);
+SEEN_HIDE = new Set(SEEN);        // เปิดหน้าใหม่ = คนที่เคยเปิดไว้แล้วถูกซ่อนตั้งแต่แรก (เหมือนกดรีเฟรชไว้ให้)
 loadCustCol();
 loadMapFmt();
 LIKED = lsLoadSet(LS_LIKED);
