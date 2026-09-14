@@ -1677,6 +1677,27 @@ details.sect .field:first-of-type{margin-top:13px}
 .srow .del{background:none;border:1px solid var(--line);color:var(--dim);
   border-radius:7px;padding:5px 10px;font-size:.76rem;flex:none}
 .srow .del:hover{border-color:var(--lo);color:var(--lo)}
+/* ── ตะกร้าเป็นตาราง ── แถบคัดลอกตรึงบนสุด · คอลัมน์ลำดับกับปุ่มลบคลุมไม่ได้ ก๊อปไปแต่ ID + Link */
+.carttools{position:sticky;top:-14px;z-index:2;display:flex;align-items:center;gap:10px;flex-wrap:wrap;
+  margin:-14px -18px 8px;padding:12px 18px 10px;background:var(--surface);border-bottom:1px solid var(--line)}
+.carttools .chk{display:flex;align-items:center;gap:6px;font-size:.78rem;color:var(--mute);cursor:pointer}
+.cartcopymsg{flex:1 1 100%;font-size:.74rem;color:var(--dim)}
+.cartcopymsg.ok{color:var(--hi)}
+.cartwrap{overflow-x:auto}
+.carttable{width:100%;border-collapse:collapse;table-layout:fixed;font-size:.84rem}
+.carttable th{text-align:left;font-size:.72rem;font-weight:600;color:var(--mute);padding:6px 8px;
+  border-bottom:1px solid var(--line)}
+.carttable td{padding:7px 8px;border-bottom:1px solid var(--line);vertical-align:middle}
+.carttable .n{width:2.6em;color:var(--dim);user-select:none;-webkit-user-select:none}
+.carttable .id{width:34%;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.carttable .lk{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.carttable .lk a{color:var(--accent)}
+.carttable .act{width:4.2em;text-align:right;user-select:none;-webkit-user-select:none}
+.carttable .act .rm{background:none;border:1px solid var(--line);color:var(--mute);border-radius:6px;
+  padding:2px 10px;font:inherit;font-size:.76rem;cursor:pointer}
+.carttable .act .rm:hover{border-color:var(--lo);color:var(--lo)}
+.carttable tbody tr:hover td{background:rgba(var(--accent-rgb),.05)}
+.carttable ::selection{background:rgba(var(--accent-rgb),.35)}
 .snone{font-size:.8rem;color:var(--dim);padding:16px;text-align:center;
   border:1px dashed var(--line);border-radius:9px}
 
@@ -2754,7 +2775,8 @@ tr.subrow td.w-status select{width:14.6em}
 <!-- ═══ ตะกร้า — ลิ้นชักเลื่อนเข้ามาจากขวา ═══ -->
 <div class="drawer" id="cart">
   <div class="scrim" id="cartScrim"></div>
-  <aside class="panel" role="dialog" aria-modal="true" aria-labelledby="cartTitle">
+  <!-- กว้างขึ้น — ตาราง TikTok ID + Link ต้องเห็นลิงก์พอจะเช็คด้วยตาก่อนก๊อปไปวาง -->
+  <aside class="panel wide" role="dialog" aria-modal="true" aria-labelledby="cartTitle">
     <div class="drawer-head">
       <h2 id="cartTitle">ตะกร้า <span class="n" id="cartHeadN"></span></h2>
       <button class="x" id="closeCart" aria-label="ปิด">✕</button>
@@ -11048,22 +11070,72 @@ function updateCartBtn(){
   $("#cartHeadN").textContent = CART.size ? `(${CART.size})` : "";
 }
 
+// ─── ตะกร้าเป็นตาราง TikTok ID + Link ก๊อปวางชีตได้ทันที ───
+// ลิงก์ตัดพารามิเตอร์ท้าย (?is_from_webapp=…) ออก — ติดมาจากตอนก๊อปลิงก์ในแอป ยาวและรกเวลาวางลงชีต
+// ไม่มีลิงก์หรือลิงก์ใช้ไม่ได้ = สร้างจาก ID ให้ จะได้ไม่มีแถวที่ช่อง Link ว่าง
+const LS_CARTHEAD = "cf_carthead_v1";
+const cartId = p => String(p.id || "").trim().replace(/^@/, "");
+function cartLink(p){
+  const safe = safeLinkUrl(p.link);
+  return safe ? safe.replace(/[?#].*$/, "") : `https://www.tiktok.com/@${normId(p.id)}`;
+}
+// คั่นด้วย Tab = วางลงชีตแล้วแยกคอลัมน์ให้เอง (ID ช่องหนึ่ง Link อีกช่อง)
+function cartTSV(items, withHead){
+  const rows = items.map(p => [cartId(p), cartLink(p)]);
+  if (withHead) rows.unshift(["TikTok ID", "Link"]);
+  return rows.map(r => r.join("\t")).join("\n");
+}
+
 function renderCart(){
   const items = [...CART.values()];
   $("#cartList").innerHTML = items.length
-    ? items.map(p => `<div class="crow" data-id="${esc(normId(p.id))}">
-        <div class="av">${initials(p.id)}${
-          safeImgUrl(p.av) ? `<img src="${esc(safeImgUrl(p.av))}" alt="" loading="lazy"
-            referrerpolicy="no-referrer">` : ""}</div>
-        <div class="info">
-          <div class="nm">${esc(p.id)}</div>
-          <div class="sub">${fmtFol(p.fol)} · ${esc(fmtRate(p) || "ยังไม่รู้เรท")}</div>
-        </div>
-        ${safeLinkUrl(p.link) ? `<a class="rm" href="${esc(safeLinkUrl(p.link))}"
-             target="_blank" rel="noopener noreferrer">เปิด ↗</a>` : ""}
-        <button class="rm out" data-id="${esc(normId(p.id))}">เอาออก</button>
-      </div>`).join("")
+    ? `<div class="carttools">
+         <button type="button" class="run" id="cartCopy">📋 คัดลอก TikTok ID + Link</button>
+         <label class="chk"><input type="checkbox" id="cartHead"> มีหัวคอลัมน์</label>
+         <span class="cartcopymsg" id="cartCopyMsg">หรือคลิกที่ตารางแล้วกด Ctrl+C</span>
+       </div>
+       <div class="cartwrap">
+         <table class="carttable" id="cartTable">
+           <thead><tr><th class="n">#</th><th class="id">TikTok ID</th><th class="lk">Link</th><th class="act"></th></tr></thead>
+           <tbody>${items.map((p, i) => `<tr data-id="${esc(normId(p.id))}">
+             <td class="n">${i + 1}</td>
+             <td class="id">${esc(cartId(p))}</td>
+             <td class="lk"><a href="${esc(cartLink(p))}" target="_blank" rel="noopener noreferrer">${esc(cartLink(p))}</a></td>
+             <td class="act"><button class="rm out" data-id="${esc(normId(p.id))}" title="เอา ${esc(cartId(p))} ออกจากตะกร้า">ลบ</button></td>
+           </tr>`).join("")}</tbody>
+         </table>
+       </div>`
     : `<div class="snone">ตะกร้าว่าง — กด <b>🛒 ใส่ตะกร้า</b> ที่การ์ดเพื่อหยิบเก็บไว้</div>`;
+
+  if (items.length){
+    const head = $("#cartHead"), msg = $("#cartCopyMsg"), tbl = $("#cartTable");
+    try { head.checked = lsGet(LS_CARTHEAD) === "1"; } catch(e){}
+    head.onchange = () => { try { lsSet(LS_CARTHEAD, head.checked ? "1" : ""); } catch(e){} };
+    $("#cartCopy").onclick = () => {
+      navigator.clipboard.writeText(cartTSV(items, head.checked)).then(() => {
+        msg.className = "cartcopymsg ok";
+        msg.textContent = `คัดลอกแล้ว ${items.length} คน ✓ — วางในชีตได้เลย ID กับ Link แยกคอลัมน์ให้เอง`;
+      }).catch(() => {
+        msg.className = "cartcopymsg";
+        msg.textContent = "ก๊อปไม่ได้ — คลิกที่ตารางแล้วกด Ctrl+C แทน";
+      });
+    };
+    // คลิกที่ตาราง = คลุมทั้งตาราง (คอลัมน์ลำดับกับปุ่มลบไม่ติดไปด้วย) · ลากคลุมบางแถวเองก็ได้
+    tbl.addEventListener("mouseup", e => {
+      if (e.target.closest("a, button")) return;
+      const sel = getSelection();
+      if (sel && !sel.isCollapsed && tbl.contains(sel.anchorNode)) return;
+      const rg = document.createRange();
+      rg.selectNode(tbl);
+      sel.removeAllRanges(); sel.addRange(rg);
+      msg.className = "cartcopymsg ok";
+      msg.textContent = "คลุมทั้งตารางแล้ว — กด Ctrl+C แล้ววางในชีตได้เลย";
+    });
+    tbl.addEventListener("copy", () => {
+      msg.className = "cartcopymsg ok";
+      msg.textContent = "คัดลอกแล้ว ✓";
+    });
+  }
 
   document.querySelectorAll("#cartList .rm.out").forEach(b => b.onclick = () => {
     CART.delete(b.dataset.id); saveCart(); updateCartBtn(); renderCart();
