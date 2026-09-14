@@ -1097,6 +1097,8 @@ body.locked{overflow:hidden}
 .fmtside{position:sticky;top:84px}
 .fmtside .fmtgrid{margin-top:0}
 .fmtact{margin-top:14px;flex-wrap:wrap}
+.fmtskunote{grid-column:1/-1;display:flex;align-items:center;justify-content:space-between;gap:8px;
+  margin-top:-4px;font-size:.72rem;color:var(--dim)}
 .fmtsrc{display:block;margin-top:8px}
 .fmthint{font-size:.78rem;color:var(--dim);margin-bottom:8px;min-height:1.4em}
 .fmthint.ok{color:var(--hi)}
@@ -5037,6 +5039,13 @@ const LS_FMTKIND = "cf_fmtkind_v1";       // { โปรเจกต์: "budget
 // และหายทุกครั้งที่ปิดหน้าต่าง ทั้งที่แต่ละโปรเจกต์ใช้เลขเดิมตลอด
 const LS_FMTCOMM = "cf_fmtcomm_v1";       // { โปรเจกต์: "15" }
 let FMT_COMM_BY = {};
+// สินค้าที่จะเสนอ + จำนวนวิดีโอ — จำรายโปรเจกต์เหมือนคอมมิชชั่น
+// เดิมอยู่แค่ในตัวแปรชั่วคราว เปิดหน้า Format ใหม่ทุกครั้งถูกล้างกลับเป็นลิสต์ SKU ของโปรเจกต์
+// และบันทึกตอนคลิกออกจากช่องเท่านั้น — พิมพ์แล้วกด Esc ปิดเลยคือหายทันที ต้องพิมพ์ใหม่ทุกรอบ
+const LS_FMTSKU = "cf_fmtsku_v1";         // { โปรเจกต์: "ข้อความที่พิมพ์ไว้" }
+const LS_FMTVID = "cf_fmtvid_v1";         // { โปรเจกต์: "2" }
+let FMT_SKU_BY = {};
+let FMT_VID_BY = {};
 const FMT_KINDS = [
   { k:"budget",   th:"💰 มี Budget",    def: FORMAT_DEFAULT },
   { k:"nobudget", th:"🎁 ไม่มี Budget", def: FORMAT_NOBUDGET_DEFAULT },
@@ -5050,6 +5059,8 @@ function loadFormats(){
   try { FORMATS_NB = JSON.parse(lsGet(LS_FORMAT_NB) || "{}") || {}; } catch(e){}
   try { FMT_KIND_BY = JSON.parse(lsGet(LS_FMTKIND) || "{}") || {}; } catch(e){}
   try { FMT_COMM_BY = JSON.parse(lsGet(LS_FMTCOMM) || "{}") || {}; } catch(e){}
+  try { FMT_SKU_BY = JSON.parse(lsGet(LS_FMTSKU) || "{}") || {}; } catch(e){}
+  try { FMT_VID_BY = JSON.parse(lsGet(LS_FMTVID) || "{}") || {}; } catch(e){}
 }
 function saveFormats(){
   try { lsSet(LS_FORMAT, JSON.stringify(FORMATS)); } catch(e){}
@@ -5063,11 +5074,15 @@ let FMT_EDIT = false;
 let FMT_KIND = "budget";
 let FMT_VID = "1";
 let FMT_COMM = "";
-let FMT_SKU = null;          // null = ใช้ลิสต์ SKU ของโปรเจกต์
-
-const fmtSkuText = proj => FMT_SKU != null ? FMT_SKU
-  : [...new Set((COORD[proj] || []).flatMap(r => skuParts(r.sku)))].join("\n")
+// ลิสต์ SKU ของโปรเจกต์ — ค่าตั้งต้นเมื่อยังไม่ได้พิมพ์เอง (หรือลบจนว่าง)
+const fmtSkuDefault = proj =>
+  [...new Set((COORD[proj] || []).flatMap(r => skuParts(r.sku)))].join("\n")
     || (skuListFor(proj) || []).join("\n");
+const fmtSkuText = proj => FMT_SKU_BY[proj] != null ? FMT_SKU_BY[proj] : fmtSkuDefault(proj);
+function saveFmtSku(proj, text){
+  if (String(text || "").trim() === "") delete FMT_SKU_BY[proj]; else FMT_SKU_BY[proj] = text;
+  try { lsSet(LS_FMTSKU, JSON.stringify(FMT_SKU_BY)); } catch(e){}
+}
 
 function renderFormat(){
   const proj = PROJ;
@@ -5115,7 +5130,12 @@ function renderFormat(){
              `<button type="button" data-pct="${n}" aria-pressed="${FMT_COMM !== "" && Number(FMT_COMM) === n}">${n}%</button>`).join("")}</div>
          </div>` : ""}
          ${uses("sku") ? `<label class="wide">สินค้าที่จะเสนอ — บรรทัดละอย่าง
-           <textarea id="fmtSku" rows="3" placeholder="ว่างไว้ = ใช้ SKU ทั้งหมดที่มีในโปรเจกต์นี้">${esc(vals.sku)}</textarea></label>` : ""}
+           <textarea id="fmtSku" rows="3" placeholder="ว่างไว้ = ใช้ SKU ทั้งหมดที่มีในโปรเจกต์นี้">${esc(vals.sku)}</textarea></label>
+         <div class="fmtskunote">
+           <span>จำไว้ให้โปรเจกต์นี้อัตโนมัติ</span>
+           <button type="button" class="notebtn" id="fmtSkuReset"${FMT_SKU_BY[proj] == null ? " hidden" : ""}
+             title="ทิ้งที่พิมพ์ไว้ แล้วกลับไปใช้ SKU ทั้งหมดของโปรเจกต์">↺ ใช้ SKU ของโปรเจกต์</button>
+         </div>` : ""}
        </div>
        <div class="dd-act fmtact">
          <button type="button" class="run" id="fmtCopy">คัดลอกข้อความ</button>
@@ -5146,7 +5166,12 @@ function renderFormat(){
     };
     $("#fmtCancel").onclick = () => { FMT_EDIT = false; rerender(); };
   } else {
-    if ($("#fmtVid")) $("#fmtVid").onchange = () => { FMT_VID = String(Math.max(1, Number($("#fmtVid").value) || 1)); rerender(); };
+    if ($("#fmtVid")) $("#fmtVid").onchange = () => {
+      FMT_VID = String(Math.max(1, Number($("#fmtVid").value) || 1));
+      FMT_VID_BY[proj] = FMT_VID;
+      try { lsSet(LS_FMTVID, JSON.stringify(FMT_VID_BY)); } catch(e){}
+      rerender();
+    };
     // ── คอมมิชชั่น % ── ทางเข้าเดียวทั้งพิมพ์ · กด −/+ · กดเลขลัด จะได้ปัดและจำเหมือนกันทุกทาง
     // รับ "15%" "15" "7.5" ได้หมด · เกิน 0–100 ปัดเข้าขอบ · ลบจนว่าง = ยังไม่ได้ตั้ง (ขึ้นแดงในข้อความ)
     const setPct = v => {
@@ -5161,10 +5186,23 @@ function renderFormat(){
     body.querySelectorAll("[data-pctstep]").forEach(b => b.onclick = () =>
       setPct((Number(FMT_COMM) || 0) + Number(b.dataset.pctstep)));
     body.querySelectorAll("[data-pct]").forEach(b => b.onclick = () => setPct(b.dataset.pct));
-    if ($("#fmtSku")) $("#fmtSku").onchange = () => { FMT_SKU = $("#fmtSku").value; rerender(); };
+    // ── สินค้าที่จะเสนอ ── บันทึกทุกตัวอักษรที่พิมพ์ ไม่รอคลิกออกจากช่อง (Esc ปิดกลางคันก็ไม่หาย)
+    // อัปเดตข้อความตัวอย่างตรงนั้นเลยโดยไม่วาดทั้งหน้าใหม่ — วาดใหม่ทุกตัวอักษรช่องจะหลุดโฟกัสระหว่างพิมพ์
+    if ($("#fmtSku")){
+      $("#fmtSku").addEventListener("input", () => {
+        saveFmtSku(proj, $("#fmtSku").value);
+        const v2 = Object.assign({}, vals, { sku: fmtSkuText(proj) });
+        $("#fmtPrev").textContent = raw.replace(/\{\{([\w฀-๿]+)\}\}/g, (_, k) =>
+          v2[k] != null && v2[k] !== "" ? v2[k] : `…..ยังไม่มี${FMT_GAP[k] || k}…..`);
+        const rs = $("#fmtSkuReset");
+        if (rs) rs.hidden = FMT_SKU_BY[proj] == null;
+      });
+    }
+    if ($("#fmtSkuReset")) $("#fmtSkuReset").onclick = () => { saveFmtSku(proj, ""); rerender(); };
     $("#fmtCopy").onclick = () => {
       const btn = $("#fmtCopy");
-      navigator.clipboard.writeText(filled).then(() => {
+      // ก๊อปจากข้อความที่เห็นจริงตอนนี้ — ช่องสินค้าอัปเดตตัวอย่างสดโดยไม่วาดใหม่ ตัวแปร filled เลยเก่าได้
+      navigator.clipboard.writeText($("#fmtPrev").textContent).then(() => {
         btn.textContent = "คัดลอกแล้ว ✓";
         setTimeout(() => { const b = $("#fmtCopy"); if (b) b.textContent = "คัดลอกข้อความ"; }, 1600);
       }).catch(() => { btn.textContent = "ก๊อปไม่ได้"; });
@@ -5195,8 +5233,9 @@ function renderFormat(){
 }
 function openFormat(){
   loadFormats();
-  FMT_EDIT = false; FMT_SKU = null;
+  FMT_EDIT = false;
   FMT_COMM = FMT_COMM_BY[PROJ] || "";           // เลขที่ตั้งไว้ของโปรเจกต์นี้ ไม่ต้องกรอกใหม่ทุกครั้ง
+  FMT_VID = FMT_VID_BY[PROJ] || "1";
   FMT_KIND = fmtKind(FMT_KIND_BY[PROJ]).k;     // ไม่เคยเลือก = มี Budget (แบบเดิมก่อนมีสองแบบ)
   $("#fmtPanel").hidden = false;
   renderFormat();
