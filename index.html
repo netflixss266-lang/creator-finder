@@ -1091,6 +1091,24 @@ body.locked{overflow:hidden}
   line-height:1.85;white-space:pre-wrap;word-break:break-word;color:var(--ink);
   max-height:44vh;overflow:auto}
 @media(max-width:560px){.fmtgrid{grid-template-columns:1fr}}
+/* เต็มจอ: ซ้ายช่องปรับค่า (ตรึงไว้ตอนเลื่อน) · ขวาข้อความยาวเต็มความสูง คลุมง่าย ไม่ต้องเลื่อนในกล่องเล็ก */
+#fmtPanel .fmtwrap{max-width:1240px;width:100%;margin:0 auto;padding:14px 26px 40px}
+.fmtlayout{display:grid;grid-template-columns:minmax(0,380px) minmax(0,1fr);gap:22px;align-items:start}
+.fmtside{position:sticky;top:84px}
+.fmtside .fmtgrid{margin-top:0}
+.fmtact{margin-top:14px;flex-wrap:wrap}
+.fmtsrc{display:block;margin-top:8px}
+.fmthint{font-size:.78rem;color:var(--dim);margin-bottom:8px;min-height:1.4em}
+.fmthint.ok{color:var(--hi)}
+.fmthint kbd{font-family:inherit;font-size:.72rem;border:1px solid var(--line);border-bottom-width:2px;
+  border-radius:4px;padding:0 5px;color:var(--mute)}
+#fmtPanel .fmtprev{max-height:none;min-height:calc(100vh - 170px);cursor:text;font-size:.95rem}
+#fmtPanel .fmtprev::selection{background:rgba(var(--accent-rgb),.35)}
+@media(max-width:860px){
+  .fmtlayout{grid-template-columns:1fr}
+  .fmtside{position:static}
+  #fmtPanel .fmtprev{min-height:0}
+}
 /* คอมมิชชั่น % — กินเต็มแถว เลขลัดต้องมีที่วาง ช่องกว้าง 8em ของคอลัมน์ขวาใส่ไม่พอ */
 .fmtpct{grid-column:1/-1;display:flex;align-items:center;gap:8px 12px;flex-wrap:wrap;
   font-size:.78rem;color:var(--mute)}
@@ -2658,13 +2676,14 @@ tr.subrow td.w-status select{width:14.6em}
 </div>
 
 <!-- ═══ Format ขอเรท — ข้อความทักครั้งแรก แยกต้นแบบตามโปรเจกต์ ═══ -->
-<div class="overlay" id="fmtPanel" hidden>
-  <div class="modal wide" role="dialog" aria-modal="true" aria-labelledby="fmtTitle">
+<!-- เต็มจอ — เดิมเป็นกล่องลอยบนพื้นมืด ลากคลุมข้อความแล้วปล่อยเมาส์เลยขอบกล่อง = คลิกโดนพื้นหลัง กล่องปิดกลางคัน -->
+<div class="overlay full" id="fmtPanel" hidden>
+  <div class="modal" role="dialog" aria-modal="true" aria-labelledby="fmtTitle">
     <div class="modal-head">
       <h2 id="fmtTitle">Format ขอเรท</h2>
       <button class="x" id="closeFmt" aria-label="ปิด">✕</button>
     </div>
-    <div id="fmtBody"></div>
+    <div class="fmtwrap"><div id="fmtBody"></div></div>
   </div>
 </div>
 
@@ -5079,7 +5098,7 @@ function renderFormat(){
          <button type="button" class="export" id="fmtCancel">ยกเลิก</button>
          ${mine ? `<button type="button" class="export ghost" id="fmtReset">คืนค่าตั้งต้น</button>` : ""}
        </div>`
-    : `<div class="fmtgrid">
+    : `<div class="fmtlayout"><div class="fmtside"><div class="fmtgrid">
          <label>แบรนด์<input value="${esc(vals.brandname)}" disabled
            title="แก้ที่หน้าจัดการโปรเจกต์ (ปุ่ม ⚙ ท้ายแท็บ)"></label>
          ${uses("videos") ? `<label>จำนวนวิดีโอ<input id="fmtVid" type="number" min="1" step="1" value="${esc(FMT_VID)}"></label>` : ""}
@@ -5098,13 +5117,18 @@ function renderFormat(){
          ${uses("sku") ? `<label class="wide">สินค้าที่จะเสนอ — บรรทัดละอย่าง
            <textarea id="fmtSku" rows="3" placeholder="ว่างไว้ = ใช้ SKU ทั้งหมดที่มีในโปรเจกต์นี้">${esc(vals.sku)}</textarea></label>` : ""}
        </div>
-       <pre class="fmtprev" id="fmtPrev">${esc(filled)}</pre>
-       <div class="dd-act" style="margin-top:11px;flex-wrap:wrap">
+       <div class="dd-act fmtact">
          <button type="button" class="run" id="fmtCopy">คัดลอกข้อความ</button>
          <button type="button" class="export" id="fmtEdit">✎ แก้ format</button>
          ${mine ? `<button type="button" class="export ghost" id="fmtReset">คืนค่าตั้งต้น</button>` : ""}
-         <span class="picksum">${esc(K.th)} · ${mine ? "ใช้ต้นแบบที่แก้ไว้ของโปรเจกต์นี้" : "ใช้ต้นแบบตั้งต้น"}</span>
-       </div>`);
+       </div>
+       <p class="picksum fmtsrc">${esc(K.th)} · ${mine ? "ใช้ต้นแบบที่แก้ไว้ของโปรเจกต์นี้" : "ใช้ต้นแบบตั้งต้น"}</p>
+     </div>
+     <div class="fmtmain">
+       <div class="fmthint" id="fmtHint">คลิกที่ข้อความ = คลุมทั้งหมด แล้วกด <kbd>Ctrl</kbd>+<kbd>C</kbd> · ลากคลุมบางส่วนเองก็ได้</div>
+       <pre class="fmtprev" id="fmtPrev" title="คลิกเพื่อคลุมทั้งข้อความ">${esc(filled)}</pre>
+     </div>
+   </div>`);
 
   const rerender = () => renderFormat();
   body.querySelectorAll("[data-fmtkind]").forEach(b => b.onclick = () => {
@@ -5146,6 +5170,22 @@ function renderFormat(){
       }).catch(() => { btn.textContent = "ก๊อปไม่ได้"; });
     };
     $("#fmtEdit").onclick = () => { FMT_EDIT = true; rerender(); };
+    // ── คลิกที่ข้อความ = คลุมทั้งหมด ── พร้อมกด Ctrl+C ทันที ไม่ต้องลากจากบนสุดลงล่างสุดเอง
+    // ลากคลุมบางส่วนเองยังได้ — ถ้าตอนปล่อยเมาส์มีส่วนที่คลุมอยู่ในข้อความแล้ว ไม่ไปทับ
+    const pre = $("#fmtPrev"), hint = $("#fmtHint");
+    pre.addEventListener("mouseup", () => {
+      const sel = getSelection();
+      if (sel && !sel.isCollapsed && pre.contains(sel.anchorNode)) return;
+      const rg = document.createRange();
+      rg.selectNodeContents(pre);
+      sel.removeAllRanges(); sel.addRange(rg);
+      hint.className = "fmthint ok";
+      hint.innerHTML = `คลุมทั้งข้อความแล้ว — กด <kbd>Ctrl</kbd>+<kbd>C</kbd> ได้เลย`;
+    });
+    pre.addEventListener("copy", () => {
+      hint.className = "fmthint ok";
+      hint.textContent = "คัดลอกแล้ว ✓";
+    });
   }
   const rst = $("#fmtReset");
   if (rst) rst.onclick = () => {
@@ -10018,7 +10058,14 @@ function mapMoneySheet(proj){
 $("#mapBtn").onclick = () => openMap(PROJ);
 $("#fmtBtn").onclick = openFormat;
 $("#closeFmt").onclick = () => { $("#fmtPanel").hidden = true; };
-$("#fmtPanel").onclick = e => { if (e.target.id === "fmtPanel") $("#fmtPanel").hidden = true; };
+// ปิดเมื่อ "กดและปล่อย" บนพื้นหลังเท่านั้น — ลากคลุมข้อความจากข้างในแล้วปล่อยเมาส์ข้างนอก
+// เบราว์เซอร์ยิง click ที่ตัวแม่ร่วม (พื้นหลัง) กล่องเลยปิดกลางคันทั้งที่แค่กำลังคลุมข้อความ
+let FMT_DOWN_BG = false;
+$("#fmtPanel").addEventListener("mousedown", e => { FMT_DOWN_BG = e.target.id === "fmtPanel"; });
+$("#fmtPanel").onclick = e => {
+  if (e.target.id === "fmtPanel" && FMT_DOWN_BG) $("#fmtPanel").hidden = true;
+  FMT_DOWN_BG = false;
+};
 $("#closeMap").onclick = () => openTable(MAP_PROJ);
 $("#mapView").onclick = e => { if (e.target.id === "mapView") openTable(MAP_PROJ); };
 
