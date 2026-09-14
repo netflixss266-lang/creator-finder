@@ -1097,6 +1097,7 @@ body.locked{overflow:hidden}
 .fmtside{position:sticky;top:84px}
 .fmtside .fmtgrid{margin-top:0}
 .fmtact{margin-top:14px;flex-wrap:wrap}
+.fmtvidnote{grid-column:1/-1;margin:-4px 0 0;font-size:.74rem;line-height:1.6;color:var(--warn)}
 .fmtdraft{font-size:.78rem;color:var(--dim);margin:0 0 8px;padding:7px 10px;border-radius:7px;
   border:1px dashed var(--line)}
 .fmtdraft.saved{color:var(--mute);border-color:rgba(var(--accent-rgb),.45)}
@@ -5010,7 +5011,7 @@ const FORMAT_DEFAULT =
 const FORMAT_NOBUDGET_DEFAULT =
 `สวัสดีครับ🙏 แอดมินจากบริษัท ALTA Global Commerce ขออนุญาตติดต่องานสำหรับโพสต์วิดีโอลงช่อง Tiktok  นะครับ
 
-- SOW : รีวิวสินค้าผ่าน Video + ติดตะกร้า (คอมมิชชั่นพิเศษ {{commission}}) + Gencode 60 Days🛒📦
+- SOW : รีวิวสินค้าผ่าน {{videos}} Video + ติดตะกร้า (คอมมิชชั่นพิเศษ {{commission}}) + Gencode 60 Days🛒📦
 - Platform : Tiktok📱
 - Extra Commission {{commission}}
 - แบรนด์จัดส่งสินค้าให้ฟรี โดยไม่ต้องส่งคืน
@@ -5148,7 +5149,9 @@ function renderFormat(){
     : `<div class="fmtlayout"><div class="fmtside"><div class="fmtgrid">
          <label>แบรนด์<input value="${esc(vals.brandname)}" disabled
            title="แก้ที่หน้าจัดการโปรเจกต์ (ปุ่ม ⚙ ท้ายแท็บ)"></label>
-         ${uses("videos") ? `<label>จำนวนวิดีโอ<input id="fmtVid" type="number" min="1" step="1" value="${esc(FMT_VID)}"></label>` : ""}
+         <label>จำนวนวิดีโอ<input id="fmtVid" type="number" min="1" step="1" value="${esc(FMT_VID)}"></label>
+         ${uses("videos") ? "" : `<p class="fmtvidnote">⚠ format ที่แก้ไว้ของแท็บนี้ยังไม่มี <code>{{videos}}</code> —
+           จำนวนนี้จะยังไม่ขึ้นในข้อความ กด ✎ แก้ format แล้วใส่ <code>{{videos}}</code> ตรงที่ต้องการ</p>`}
          ${uses("commission") ? `<div class="fmtpct">
            <span class="lab">Commission</span>
            <div class="pctctl">
