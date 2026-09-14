@@ -1097,6 +1097,11 @@ body.locked{overflow:hidden}
 .fmtside{position:sticky;top:84px}
 .fmtside .fmtgrid{margin-top:0}
 .fmtact{margin-top:14px;flex-wrap:wrap}
+.fmtdraft{font-size:.78rem;color:var(--dim);margin:0 0 8px;padding:7px 10px;border-radius:7px;
+  border:1px dashed var(--line)}
+.fmtdraft.saved{color:var(--mute);border-color:rgba(var(--accent-rgb),.45)}
+.fmtdraft.restored{color:var(--ink);border-style:solid;border-color:rgba(var(--warn-rgb),.6);
+  background:rgba(var(--warn-rgb),.08)}
 .fmtskunote{grid-column:1/-1;display:flex;align-items:center;justify-content:space-between;gap:8px;
   margin-top:-4px;font-size:.72rem;color:var(--dim)}
 .fmtsrc{display:block;margin-top:8px}
@@ -5046,9 +5051,28 @@ const LS_FMTSKU = "cf_fmtsku_v1";         // { โปรเจกต์: "ข้
 const LS_FMTVID = "cf_fmtvid_v1";         // { โปรเจกต์: "2" }
 let FMT_SKU_BY = {};
 let FMT_VID_BY = {};
+// ── ร่าง format ที่แก้ค้างไว้ ──
+// เดิมบันทึกเฉพาะตอนกดปุ่มบันทึก — กด Esc/✕ ระหว่างแก้คือหายหมดโดยไม่มีอะไรเตือน
+// ตอนนี้จำร่างทุกตัวอักษรที่พิมพ์ แต่ "ยังไม่ใช้จริง" จนกว่าจะกดบันทึก (ข้อความที่ก๊อปส่งยังเป็นฉบับที่บันทึกไว้)
+// เปิดกลับมาเจอร่างค้าง = เข้าโหมดแก้พร้อมร่างให้เลย แยกรายโปรเจกต์ × KOL/KOC
+const LS_FMTDRAFT = "cf_fmtdraft_v1";     // { "โปรเจกต์|budget": { t: ข้อความ, at: เวลา } }
+let FMT_DRAFT = {};
+const fmtDraftKey = (proj, k) => proj + "|" + k;
+const fmtDraft = (proj, k) => FMT_DRAFT[fmtDraftKey(proj, k)] || null;
+function setFmtDraft(proj, k, text){
+  const key = fmtDraftKey(proj, k);
+  // เหมือนฉบับที่บันทึกไว้ทุกตัวอักษร = ไม่มีอะไรค้าง ไม่ต้องเก็บร่าง
+  if (text == null || text === formatOf(proj, k)) delete FMT_DRAFT[key];
+  else FMT_DRAFT[key] = { t: text, at: Date.now() };
+  try { lsSet(LS_FMTDRAFT, JSON.stringify(FMT_DRAFT)); } catch(e){}
+}
+const fmtClock = at => new Date(at).toLocaleString("th-TH",
+  { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" });
 const FMT_KINDS = [
-  { k:"budget",   th:"💰 มี Budget",    def: FORMAT_DEFAULT },
-  { k:"nobudget", th:"🎁 ไม่มี Budget", def: FORMAT_NOBUDGET_DEFAULT },
+  // ชื่อที่ทีมเรียกจริงคือ KOL = มีงบ (ขอเรท) · KOC = ไม่มีงบ (ได้สินค้า + คอมมิชชั่น)
+  // คีย์ข้างในยังเป็น budget / nobudget เหมือนเดิม — ต้นแบบที่แก้ไว้และแท็บที่จำไว้จะได้ไม่ต้องย้าย
+  { k:"budget",   th:"KOL", tip:"มีงบ — ขอเรท + แจ้งหักภาษี/ระยะทำจ่าย", def: FORMAT_DEFAULT },
+  { k:"nobudget", th:"KOC", tip:"ไม่มีงบ — ได้สินค้าฟรี + คอมมิชชั่น",    def: FORMAT_NOBUDGET_DEFAULT },
 ];
 const FMT_GAP = { brandname:"ชื่อแบรนด์", videos:"จำนวนวิดีโอ", sku:"สินค้า", commission:"Commission" };
 let FORMATS = {};
@@ -5061,6 +5085,7 @@ function loadFormats(){
   try { FMT_COMM_BY = JSON.parse(lsGet(LS_FMTCOMM) || "{}") || {}; } catch(e){}
   try { FMT_SKU_BY = JSON.parse(lsGet(LS_FMTSKU) || "{}") || {}; } catch(e){}
   try { FMT_VID_BY = JSON.parse(lsGet(LS_FMTVID) || "{}") || {}; } catch(e){}
+  try { FMT_DRAFT = JSON.parse(lsGet(LS_FMTDRAFT) || "{}") || {}; } catch(e){}
 }
 function saveFormats(){
   try { lsSet(LS_FORMAT, JSON.stringify(FORMATS)); } catch(e){}
@@ -5088,6 +5113,9 @@ function renderFormat(){
   const proj = PROJ;
   const body = $("#fmtBody");
   const K = fmtKind(FMT_KIND);
+  // มีร่างค้างของแท็บนี้ = เปิดโหมดแก้พร้อมร่างให้เลย ไม่ต้องไปกด "แก้ format" แล้วงงว่าที่พิมพ์ไว้ไปไหน
+  const draft = fmtDraft(proj, K.k);
+  if (!FMT_EDIT && draft) FMT_EDIT = true;
   $("#fmtTitle").textContent = `Format ขอเรท · ${proj}`;
   const vals = { brandname: brandOf(proj), videos: FMT_VID || "1", sku: fmtSkuText(proj),
                  commission: FMT_COMM !== "" ? FMT_COMM + "%" : "" };
@@ -5101,13 +5129,17 @@ function renderFormat(){
   // แท็บสลับแบบ — ล็อกไว้ตอนกำลังแก้ต้นแบบ สลับกลางคันแล้วที่พิมพ์ค้างไว้จะหายไปเงียบๆ
   const tabs = `<div class="tabs sub" role="tablist" style="margin-bottom:12px">${FMT_KINDS.map(x =>
     `<button role="tab" data-fmtkind="${x.k}" aria-selected="${x.k === K.k}"${FMT_EDIT ? " disabled" : ""}
-      title="${fmtStore(x.k)[proj] != null ? "ใช้ต้นแบบที่แก้ไว้ของโปรเจกต์นี้" : "ใช้ต้นแบบตั้งต้น"}">${esc(x.th)}${
-      fmtStore(x.k)[proj] != null ? " ✎" : ""}</button>`).join("")}</div>`;
+      title="${esc(x.tip)} · ${fmtStore(x.k)[proj] != null ? "ใช้ต้นแบบที่แก้ไว้ของโปรเจกต์นี้" : "ใช้ต้นแบบตั้งต้น"}${
+        fmtDraft(proj, x.k) ? " · มีร่างที่ยังไม่ได้บันทึก" : ""}">${esc(x.th)}${
+      fmtStore(x.k)[proj] != null ? " ✎" : ""}${fmtDraft(proj, x.k) ? " · ร่าง" : ""}</button>`).join("")}</div>`;
 
   body.innerHTML = tabs + (FMT_EDIT
-    ? `<p class="sect-sub">แก้ต้นแบบ <b>${esc(K.th)}</b> ของ <b>${esc(proj)}</b> — อีกแบบและโปรเจกต์อื่นไม่เปลี่ยนตาม<br>
+    ? `<p class="sect-sub">แก้ต้นแบบ <b>${esc(K.th)}</b> (${esc(K.tip)}) ของ <b>${esc(proj)}</b> — อีกแบบและโปรเจกต์อื่นไม่เปลี่ยนตาม<br>
          ตัวแปรที่ใส่ได้: ${Object.keys(FMT_GAP).map(k => `<code>{{${k}}}</code>`).join(" ")}</p>
-       <textarea id="fmtText" style="min-height:46vh;font-size:.9rem;line-height:1.7">${esc(raw)}</textarea>
+       <div class="fmtdraft${draft ? " restored" : ""}" id="fmtDraftNote">${draft
+         ? `↺ กู้ร่างที่แก้ค้างไว้ (${esc(fmtClock(draft.at))}) — <b>ยังไม่ได้ใช้จริง</b> จนกว่าจะกดบันทึก · กดยกเลิกเพื่อทิ้งร่าง`
+         : `พิมพ์แล้วจำร่างให้อัตโนมัติ — ปิดกลางคันก็ไม่หาย · ใช้จริงเมื่อกดบันทึก`}</div>
+       <textarea id="fmtText" style="min-height:46vh;font-size:.9rem;line-height:1.7">${esc(draft ? draft.t : raw)}</textarea>
        <div class="dd-act" style="margin-top:10px;flex-wrap:wrap">
          <button type="button" class="run" id="fmtSave">บันทึก</button>
          <button type="button" class="export" id="fmtCancel">ยกเลิก</button>
@@ -5159,12 +5191,31 @@ function renderFormat(){
     rerender();
   });
   if (FMT_EDIT){
+    // จำร่างทุกตัวอักษร — ไม่วาดหน้าใหม่ระหว่างพิมพ์ แค่อัปเดตบรรทัดบอกสถานะ
+    $("#fmtText").addEventListener("input", () => {
+      setFmtDraft(proj, K.k, $("#fmtText").value);
+      const note = $("#fmtDraftNote");
+      const d = fmtDraft(proj, K.k);
+      note.className = "fmtdraft" + (d ? " saved" : "");
+      note.innerHTML = d
+        ? `✓ จำร่างไว้แล้ว ${esc(fmtClock(d.at))} — <b>ยังไม่ได้ใช้จริง</b> จนกว่าจะกดบันทึก`
+        : `ตรงกับฉบับที่บันทึกไว้แล้ว — ไม่มีอะไรค้าง`;
+    });
     $("#fmtSave").onclick = () => {
       const v = $("#fmtText").value, store = fmtStore(K.k);
       if (v === K.def) delete store[proj]; else store[proj] = v;
-      saveFormats(); FMT_EDIT = false; rerender();
+      saveFormats();
+      setFmtDraft(proj, K.k, null);           // ใช้จริงแล้ว ร่างหมดหน้าที่
+      FMT_EDIT = false; rerender();
     };
-    $("#fmtCancel").onclick = () => { FMT_EDIT = false; rerender(); };
+    $("#fmtCancel").onclick = () => {
+      // ยกเลิก = ทิ้งร่าง — ถ้าต่างจากฉบับที่บันทึกไว้ต้องถามก่อน (อาจตั้งใจแค่ปิดหน้า ไม่ได้ตั้งใจทิ้งที่พิมพ์)
+      const changed = $("#fmtText").value !== formatOf(proj, K.k);
+      if (changed && !confirm(`ทิ้งที่แก้ไว้ใน format ${K.th} ของ ${proj}?\n\nจะกลับไปใช้ฉบับที่บันทึกไว้ล่าสุด เอาที่แก้คืนไม่ได้` +
+                              `\n(ถ้าแค่อยากปิดหน้าไว้ก่อน กด ✕ ได้เลย ร่างยังอยู่)`)) return;
+      setFmtDraft(proj, K.k, null);
+      FMT_EDIT = false; rerender();
+    };
   } else {
     if ($("#fmtVid")) $("#fmtVid").onchange = () => {
       FMT_VID = String(Math.max(1, Number($("#fmtVid").value) || 1));
@@ -5228,7 +5279,9 @@ function renderFormat(){
   const rst = $("#fmtReset");
   if (rst) rst.onclick = () => {
     if (!confirm(`คืน Format ${K.th} ของ ${proj} เป็นค่าตั้งต้น? ที่แก้ไว้จะหาย\n(อีกแบบไม่ถูกแตะ)`)) return;
-    delete fmtStore(K.k)[proj]; saveFormats(); FMT_EDIT = false; rerender();
+    delete fmtStore(K.k)[proj]; saveFormats();
+    setFmtDraft(proj, K.k, null);             // คืนค่าตั้งต้นแล้ว ร่างที่ค้างของแท็บนี้ก็ทิ้งด้วย ไม่งั้นเปิดมาเจอร่างเก่าทับ
+    FMT_EDIT = false; rerender();
   };
 }
 function openFormat(){
@@ -5236,7 +5289,8 @@ function openFormat(){
   FMT_EDIT = false;
   FMT_COMM = FMT_COMM_BY[PROJ] || "";           // เลขที่ตั้งไว้ของโปรเจกต์นี้ ไม่ต้องกรอกใหม่ทุกครั้ง
   FMT_VID = FMT_VID_BY[PROJ] || "1";
-  FMT_KIND = fmtKind(FMT_KIND_BY[PROJ]).k;     // ไม่เคยเลือก = มี Budget (แบบเดิมก่อนมีสองแบบ)
+  // ไม่เคยเลือก = เดาจากชื่อโปรเจกต์ ("… KOC" / "OBSBOT-KOC" → แท็บ KOC) ไม่งั้นเป็น KOL
+  FMT_KIND = fmtKind(FMT_KIND_BY[PROJ] || (projGroup(PROJ) === "koc" ? "nobudget" : "budget")).k;
   $("#fmtPanel").hidden = false;
   renderFormat();
 }
