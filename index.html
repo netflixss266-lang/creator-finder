@@ -2261,7 +2261,11 @@ tr.subrow td.w-status select{width:14.6em}
       <button type="button" class="eye" id="lockEye" aria-label="ดู/ซ่อนรหัส"
               title="ดู/ซ่อนรหัส">👁</button>
     </div>
+    <!-- ใช้ตอนตั้งรหัสใหม่จากลิงก์ในเมลเท่านั้น — พิมพ์ซ้ำกันพิมพ์ผิดแล้วล็อกตัวเองออก -->
+    <input id="lockPw2" type="password" autocomplete="new-password" placeholder="พิมพ์รหัสใหม่อีกครั้ง"
+           class="lockemail" hidden>
     <button class="run" type="submit" id="lockGo">เข้าใช้งาน</button>
+    <button type="button" class="lockswap" id="lockForgot" hidden>ลืมรหัสผ่าน — ส่งลิงก์ตั้งใหม่เข้าอีเมล</button>
     <button type="button" class="lockswap" id="lockSwap" hidden>ยังไม่มีบัญชี — สมัครที่นี่</button>
     <button type="button" class="lockcancel" id="lockCancel" hidden>ไม่รู้รหัส — กลับหน้าแรก</button>
     <div class="lockmsg" id="lockMsg"></div>
@@ -10726,6 +10730,8 @@ function askLogin(){
   $("#lockCancel").hidden = true;
   $("#lockSwap").hidden = false;
   $("#lockSwap").textContent = signup ? "มีบัญชีอยู่แล้ว — เข้าสู่ระบบ" : "ยังไม่มีบัญชี — สมัครที่นี่";
+  $("#lockForgot").hidden = signup;
+  $("#lockPw2").hidden = true;
   $("#lockEmail").value = "";
   $("#lockName").value = "";
   $("#lockCoord").value = "";
@@ -10733,8 +10739,10 @@ function askLogin(){
   $("#lockPw").placeholder = signup ? "ตั้งรหัสผ่าน (อย่างน้อย 10 ตัว)" : "รหัสผ่าน";
   $("#lockPw").autocomplete = signup ? "new-password" : "current-password";
   $("#lockGo").textContent = signup ? "สมัครและเข้าใช้งาน" : "เข้าสู่ระบบ";
-  $("#lockMsg").className = "lockmsg";
-  $("#lockMsg").textContent = "";
+  // ลิงก์ในเมลหมดอายุ/ใช้ไปแล้ว — บอกตรงนี้ ไม่งั้นคนกดลิงก์จะเห็นแค่หน้าล็อกอินเฉยๆ ไม่รู้ว่าเกิดอะไร
+  $("#lockMsg").className = LOCK_NOTE ? "lockmsg err" : "lockmsg";
+  $("#lockMsg").textContent = LOCK_NOTE;
+  LOCK_NOTE = "";
   $("#lockView").hidden = false;
   applyGateShow();
   setTimeout(() => $("#lockEmail").focus(), 50);
@@ -10742,6 +10750,30 @@ function askLogin(){
   return new Promise(resolve => {
     $("#lockEye").onclick = () => { GATE_SHOW = !GATE_SHOW; applyGateShow(); };
     $("#lockCancel").onclick = null;
+    // ตอบเหมือนกันทุกกรณี ไม่ว่าอีเมลนี้มีบัญชีหรือไม่ — ไม่ให้หน้านี้กลายเป็นที่เช็คว่าใครมีบัญชีบ้าง
+    $("#lockForgot").onclick = async () => {
+      const email = $("#lockEmail").value.trim();
+      const msg = $("#lockMsg");
+      if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)){
+        msg.className = "lockmsg err";
+        msg.textContent = "ใส่อีเมลในช่องด้านบนก่อน แล้วกดลืมรหัสผ่านอีกครั้ง";
+        $("#lockEmail").focus();
+        return;
+      }
+      $("#lockForgot").disabled = true;
+      msg.className = "lockmsg busy";
+      msg.textContent = "กำลังส่งลิงก์...";
+      try {
+        await sbRecover(email);
+        msg.className = "lockmsg";
+        msg.textContent = "ถ้ามีบัญชีนี้ ลิงก์ตั้งรหัสใหม่ส่งไปที่ " + email + " แล้ว — เปิดเมลบนเครื่องนี้ ลิงก์ใช้ได้ 1 ชั่วโมง";
+      } catch(err){
+        msg.className = "lockmsg err";
+        msg.textContent = (err && err.message) || "ส่งลิงก์ไม่สำเร็จ";
+      }
+      // กันกดรัว — Supabase จำกัดส่งเมลต่อชั่วโมง กดซ้ำๆ จะโดนบล็อกทั้งทีม
+      setTimeout(() => { $("#lockForgot").disabled = false; }, 60000);
+    };
     // สลับโหมดแล้ววาดใหม่ แต่ต้องส่งต่อ resolve ตัวเดิม ไม่งั้นคนที่รอ requireLogin อยู่จะค้าง
     $("#lockSwap").onclick = () => {
       LOCK_MODE = signup ? "login" : "signup";
@@ -10793,8 +10825,124 @@ function askLogin(){
   });
 }
 
+// ─── ลืมรหัสผ่าน ───
+// ส่งเมล → กดลิงก์ → Supabase พากลับมาหน้านี้พร้อม #access_token=...&type=recovery
+// session ที่ได้จากลิงก์ใช้ได้แค่ตั้งรหัสใหม่แล้วเข้าใช้งานต่อ ต้องมี app_users ที่ active เหมือนล็อกอินปกติ
+// ปลายทางต้องอยู่ใน Redirect URLs ของ Supabase ไม่งั้นลิงก์ในเมลเด้งไป Site URL แทน
+let LOCK_NOTE = "";
+const SB_RESET_TO = location.origin + location.pathname;
+async function sbRecover(email){
+  const r = await fetch(SB_URL + "/auth/v1/recover?redirect_to=" + encodeURIComponent(SB_RESET_TO),
+    { method:"POST", headers: sbHeaders(false), body: JSON.stringify({ email }) });
+  if (r.ok) return true;
+  const j = await r.json().catch(() => ({}));
+  if (r.status === 429) throw new Error("ขอลิงก์บ่อยเกินไป — รอสักครู่แล้วลองใหม่");
+  throw new Error(j.error_description || j.msg || j.error || `ส่งลิงก์ไม่สำเร็จ (${r.status})`);
+}
+// อ่านผลจากลิงก์ในเมลแล้วลบออกจากแถบที่อยู่ทันที — token ไม่ควรค้างให้ก๊อปลิงก์ไปส่งต่อ หรือโผล่ในประวัติ
+function recoveryFromHash(){
+  const h = location.hash.replace(/^#/, "");
+  if (!/(^|&)(type=recovery|error=)/.test(h)) return null;
+  const q = new URLSearchParams(h);
+  try { history.replaceState(null, "", location.pathname + location.search); } catch(e){}
+  if (q.get("error")){
+    const expired = /expired|invalid/i.test(q.get("error_code") + " " + q.get("error_description"));
+    return { error: expired
+      ? "ลิงก์ตั้งรหัสใหม่หมดอายุหรือถูกใช้ไปแล้ว — กด “ลืมรหัสผ่าน” เพื่อขอลิงก์ใหม่"
+      : "ลิงก์ตั้งรหัสใหม่ใช้ไม่ได้ (" + (q.get("error_description") || q.get("error")) + ")" };
+  }
+  if (!q.get("access_token")) return null;
+  return { access_token: q.get("access_token"), refresh_token: q.get("refresh_token") || "",
+           expires_in: +q.get("expires_in") || 3600 };
+}
+async function sbSetPassword(password){
+  const r = await fetch(SB_URL + "/auth/v1/user",
+    { method:"PUT", headers: sbHeaders(true), body: JSON.stringify({ password }) });
+  const j = await r.json().catch(() => ({}));
+  if (!r.ok){
+    const m = j.error_description || j.msg || j.error || "";
+    if (/same/i.test(m)) throw new Error("รหัสใหม่ต้องไม่ซ้ำกับรหัสเดิม");
+    if (/weak|short|characters/i.test(m)) throw new Error("รหัสสั้นหรือเดาง่ายเกินไป — ยาวอย่างน้อย 10 ตัว");
+    throw new Error(m || `ตั้งรหัสไม่สำเร็จ (${r.status})`);
+  }
+  if (j && j.id && SESSION){ SESSION.user = j; saveSession(SESSION); }
+}
+function askNewPassword(){
+  $("#lockTitle").textContent = "ตั้งรหัสผ่านใหม่";
+  $("#lockHint").textContent = ((SESSION.user || {}).email || "") + " — ตั้งรหัสใหม่แล้วเข้าใช้งานได้เลย";
+  $("#lockPin").hidden = true;
+  $("#lockEmail").hidden = true;
+  $("#lockName").hidden = true;
+  $("#lockCoord").hidden = true;
+  $("#lockSwap").hidden = true;
+  $("#lockForgot").hidden = true;
+  $("#lockCancel").hidden = true;
+  $("#lockPwRow").hidden = false;
+  $("#lockPw2").hidden = false;
+  $("#lockPw").value = ""; $("#lockPw2").value = "";
+  $("#lockPw").placeholder = "รหัสใหม่ (อย่างน้อย 10 ตัว)";
+  $("#lockPw").autocomplete = "new-password";
+  $("#lockGo").textContent = "บันทึกรหัสใหม่และเข้าใช้งาน";
+  $("#lockMsg").className = "lockmsg";
+  $("#lockMsg").textContent = "";
+  $("#lockView").hidden = false;
+  applyGateShow();
+  setTimeout(() => $("#lockPw").focus(), 50);
+
+  return new Promise(resolve => {
+    $("#lockEye").onclick = () => { GATE_SHOW = !GATE_SHOW; applyGateShow(); };
+    $("#lockForm").onsubmit = async e => {
+      e.preventDefault();
+      const pw = $("#lockPw").value, pw2 = $("#lockPw2").value;
+      const fail = t => { $("#lockMsg").className = "lockmsg err"; $("#lockMsg").textContent = t; };
+      if (pw.length < 10) return fail("รหัสต้องยาวอย่างน้อย 10 ตัว");
+      if (pw !== pw2){ $("#lockPw2").select(); return fail("รหัสสองช่องไม่ตรงกัน"); }
+      $("#lockGo").disabled = true;
+      $("#lockMsg").className = "lockmsg busy";
+      $("#lockMsg").textContent = "กำลังบันทึกรหัสใหม่...";
+      try {
+        await sbSetPassword(pw);
+        const p = await sbProfile();
+        if (!p || !p.is_active){
+          await sbLogout();
+          LOCK_NOTE = p ? "ตั้งรหัสใหม่แล้ว แต่บัญชีนี้ถูกระงับการใช้งาน" : "ตั้งรหัสใหม่แล้ว แต่ยังไม่มีสิทธิ์ใช้งาน — ติดต่อแอดมิน";
+          $("#lockGo").disabled = false;
+          resolve(await askLogin());
+          return;
+        }
+        sbTouchSeen();
+        $("#lockMsg").textContent = "ตั้งรหัสใหม่แล้ว — กำลังเข้าใช้งาน...";
+        // หน้านี้เปิดมาตอนยังไม่มี session = ของในเครื่องโหลดจากช่องว่าง เปิดใหม่ให้อ่านช่องของบัญชีนี้
+        if (nsStale()){ location.reload(); return; }
+        $("#lockGo").disabled = false;
+        $("#lockPw2").hidden = true;
+        $("#lockView").hidden = true;
+        resolve(true);
+      } catch(err){
+        $("#lockGo").disabled = false;
+        fail((err && err.message) || "ตั้งรหัสไม่สำเร็จ");
+      }
+    };
+  });
+}
+
 // ประตูหน้าเว็บ: มี session ที่ยังใช้ได้ + บัญชี active → เข้าเลย, ไม่งั้นขอ login
 async function requireLogin(){
+  const rec = recoveryFromHash();
+  if (rec && rec.error) LOCK_NOTE = rec.error;
+  if (rec && rec.access_token){
+    // session เดิมในเครื่อง (ถ้ามี) ถูกแทนที่ — คนกดลิงก์คือเจ้าของอีเมลที่ขอรีเซ็ต
+    saveSession({ access_token: rec.access_token, refresh_token: rec.refresh_token,
+                  expires_at: Date.now() + rec.expires_in * 1000, user: null });
+    try {
+      const r = await fetch(SB_URL + "/auth/v1/user", { headers: sbHeaders(true) });
+      const u = r.ok ? await r.json() : null;
+      if (u && u.id){ SESSION.user = u; saveSession(SESSION); return await askNewPassword(); }
+    } catch(e){}
+    saveSession(null);
+    LOCK_NOTE = "ลิงก์ตั้งรหัสใหม่หมดอายุหรือถูกใช้ไปแล้ว — กด “ลืมรหัสผ่าน” เพื่อขอลิงก์ใหม่";
+    return await askLogin();
+  }
   loadSession();
   if (await sbValidSession()){
     const p = await sbProfile();
@@ -10844,6 +10992,7 @@ function applyGateShow(){
   const t = GATE_SHOW ? "text" : "password";
   document.querySelectorAll("#lockPin input").forEach(i => i.type = t);
   $("#lockPw").type = t;
+  $("#lockPw2").type = t;
   $("#lockEye").classList.toggle("on", GATE_SHOW);
   $("#lockEye").textContent = GATE_SHOW ? "🙈" : "👁";
 }
@@ -10903,6 +11052,8 @@ async function askGate(name){
   $("#lockName").hidden = true;
   $("#lockCoord").hidden = true;
   $("#lockSwap").hidden = true;
+  $("#lockForgot").hidden = true;
+  $("#lockPw2").hidden = true;
   $("#lockGo").textContent = mode === "set" ? "ตั้งรหัสแล้วเข้าใช้งาน" : "เข้าใช้งาน";
 
   const pinLen = GATE_PIN[name] || 0;
