@@ -5314,7 +5314,10 @@ function renderFormat(){
       hint.className = "fmthint ok";
       hint.innerHTML = `คลุมทั้งข้อความแล้ว — กด <kbd>Ctrl</kbd>+<kbd>C</kbd> ได้เลย`;
     });
-    pre.addEventListener("copy", () => {
+    pre.addEventListener("copy", e => {
+      // วางลง Docs/อีเมลแล้วต้องเป็นตัวดำ ไม่ใช่ตัวขาวของธีมมืด · ช่องว่างและขึ้นบรรทัดคงไว้ตามต้นฉบับ
+      const t = getSelection().toString();
+      copyAsBlack(e, t, `<div style="${COPY_BLACK};white-space:pre-wrap">${esc(t).replace(/\n/g, "<br>")}</div>`);
       hint.className = "fmthint ok";
       hint.textContent = "คัดลอกแล้ว ✓";
     });
@@ -11073,6 +11076,18 @@ function updateCartBtn(){
 // ─── ตะกร้าเป็นตาราง TikTok ID + Link ก๊อปวางชีตได้ทันที ───
 // ลิงก์ตัดพารามิเตอร์ท้าย (?is_from_webapp=…) ออก — ติดมาจากตอนก๊อปลิงก์ในแอป ยาวและรกเวลาวางลงชีต
 // ไม่มีลิงก์หรือลิงก์ใช้ไม่ได้ = สร้างจาก ID ให้ จะได้ไม่มีแถวที่ช่อง Link ว่าง
+// ─── ก๊อปแล้ววางเป็นตัวอักษรสีดำ ───
+// ก๊อปจากหน้าเว็บตรงๆ (คลุมแล้ว Ctrl+C) เบราว์เซอร์แนบสีของธีมมืดติดไปด้วย — ตัวขาว/ตัวสีเขียว
+// วางลงชีตหรือ Docs ที่พื้นขาวแล้วแทบมองไม่เห็น ต้องไปเปลี่ยนสีเองทุกครั้ง
+// ดักตอน copy แล้วเขียนคลิปบอร์ดเอง: ข้อความล้วน (แอปแชต) + HTML บังคับตัวอักษรสีดำ (ชีต/Docs)
+const COPY_BLACK = "color:#000000";
+function copyAsBlack(e, text, html){
+  if (!e.clipboardData || !text) return false;
+  e.clipboardData.setData("text/plain", text);
+  e.clipboardData.setData("text/html", html);
+  e.preventDefault();
+  return true;
+}
 const LS_CARTHEAD = "cf_carthead_v1";
 const cartId = p => String(p.id || "").trim().replace(/^@/, "");
 function cartLink(p){
@@ -11131,9 +11146,31 @@ function renderCart(){
       msg.className = "cartcopymsg ok";
       msg.textContent = "คลุมทั้งตารางแล้ว — กด Ctrl+C แล้ววางในชีตได้เลย";
     });
-    tbl.addEventListener("copy", () => {
+    tbl.addEventListener("copy", e => {
+      const sel = getSelection();
+      if (!sel || sel.isCollapsed || !sel.rangeCount) return;
+      const rg = sel.getRangeAt(0);
+      const cellOf = n => { const el = n && (n.nodeType === 1 ? n : n.parentElement); return el ? el.closest("td, th") : null; };
+      const a = cellOf(rg.startContainer), b = cellOf(rg.endContainer);
+      let text, html;
+      if (a && a === b){
+        // คลุมอยู่ในช่องเดียว — ก๊อปเฉพาะส่วนที่คลุม
+        text = sel.toString();
+        html = `<span style="${COPY_BLACK}">${esc(text)}</span>`;
+      } else {
+        // คลุมหลายช่อง/ทั้งตาราง — ประกอบใหม่เฉพาะ ID + Link ของแถวที่โดนคลุม (ไม่เอาเลขลำดับ/ปุ่มลบ)
+        // หัวคอลัมน์ติดไปด้วยตามช่องติ๊ก "มีหัวคอลัมน์" เหมือนปุ่มคัดลอก
+        const rows = [...tbl.querySelectorAll("tbody tr")].filter(tr => rg.intersectsNode(tr))
+          .map(tr => CART.get(tr.dataset.id)).filter(Boolean).map(p => [cartId(p), cartLink(p)]);
+        if (!rows.length) return;
+        if (head.checked && rg.intersectsNode(tbl.tHead)) rows.unshift(["TikTok ID", "Link"]);
+        text = rows.map(r => r.join("\t")).join("\n");
+        html = `<table>${rows.map(r => `<tr>${r.map(c =>
+          `<td style="${COPY_BLACK}">${esc(c)}</td>`).join("")}</tr>`).join("")}</table>`;
+      }
+      copyAsBlack(e, text, html);
       msg.className = "cartcopymsg ok";
-      msg.textContent = "คัดลอกแล้ว ✓";
+      msg.textContent = "คัดลอกแล้ว ✓ — วางแล้วเป็นตัวอักษรสีดำ";
     });
   }
 
