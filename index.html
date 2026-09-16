@@ -1766,6 +1766,7 @@ details.sect .field:first-of-type{margin-top:13px}
   font-size:.8rem;color:var(--mute);line-height:1.4}
 .chk input{width:auto;flex:none;accent-color:var(--accent);cursor:pointer}
 .chk:hover{color:var(--ink)}
+.catpure{margin:0 0 9px}
 
 .chips{display:flex;flex-wrap:wrap;gap:7px}
 .chip{border:1px solid var(--line);background:var(--surface);color:var(--mute);
@@ -2372,6 +2373,10 @@ tr.subrow td.w-status select{width:14.6em}
         <div class="dd-act">
           <button type="button" id="catNone">ล้างที่เลือก</button>
         </div>
+        <!-- ล้วน = คนนั้นต้องมีแค่หมวดที่เลือกเท่านั้น (เลือก Beauty ได้คนที่เป็น Beauty อย่างเดียว)
+             ปิด = ขอแค่มีหมวดที่เลือกติดอยู่ก็พอ ถึงจะมีหมวดอื่นพ่วงมาด้วย -->
+        <label class="chk catpure"><input type="checkbox" id="catPure" checked>
+          เอาเฉพาะหมวดที่เลือกล้วน — ไม่เอาคนที่มีหมวดอื่นพ่วง</label>
         <div class="chips fbody-scroll" id="catChips"></div>
       </div>
     </details>
@@ -3286,6 +3291,8 @@ let SEEN = new Set();
 const LS_LIKED = "cf_liked_v1";
 const LS_HIDELIKED = "cf_hideliked_v1";
 // หมวดที่ติดมากับชีตที่โยนลงมา — เก็บตามที่สะกดไว้ใน pool จะได้เทียบกับ catsOf() ตรงๆ ได้
+const LS_CATPURE = "cf_catpure_v1";   // กรองหมวดแบบล้วน (ค่าตั้งต้น: เปิด)
+let CAT_PURE = true;
 const LS_LIKECAT = "cf_likecat_v1";
 const LS_LIKECATON = "cf_likecaton_v1";
 let LIKED = new Set();
@@ -3684,9 +3691,10 @@ function pickedCats(){
 
 function updateCatSummary(){
   const on = pickedCats();
+  const pure = on.length && CAT_PURE ? " · ล้วน" : "";
   $("#catSum").innerHTML = !on.length ? "ทุกประเภท"
-    : on.length <= 2 ? esc(on.join(", "))
-    : `<b>${on.length}</b> ประเภท · ${esc(on.slice(0,2).join(", "))} …`;
+    : on.length <= 2 ? esc(on.join(", ")) + pure
+    : `<b>${on.length}</b> ประเภท · ${esc(on.slice(0,2).join(", "))} …${pure}`;
 }
 
 function renderCatChips(keepOn = []){
@@ -3931,7 +3939,13 @@ async function run(opt){
     if (catOnly && !catsOf(p).some(c => LIKE_CATS.has(c))){ HIDDEN_LIKECAT++; return false; }
     if (!dealTest(p)) return false;
     if (!liveTest(p)) return false;
-    if (onCats.length && !catsOf(p).some(c => onCats.includes(c))) return false;
+    if (onCats.length){
+      const cs = catsOf(p);
+      // ล้วน = ทุกหมวดของคนนั้นต้องอยู่ในที่เลือกไว้ · คนที่ไม่มีหมวดเลยถือว่าไม่ผ่าน (ตัดสินไม่ได้)
+      const hit = CAT_PURE ? (cs.length && cs.every(c => onCats.includes(c)))
+                           : cs.some(c => onCats.includes(c));
+      if (!hit) return false;
+    }
     if (p.fol < fMin || p.fol > fMax) return false;
     if (rateFilterOn){
       // ไม่รู้เรท = ตัดสินไม่ได้ว่าเข้างบไหม เลยซ่อนไว้แล้วค่อยบอกจำนวน
@@ -12698,6 +12712,12 @@ $("#hideLiked").onchange = e => {
   runLive();
 };
 
+$("#catPure").onchange = e => {
+  CAT_PURE = e.target.checked;
+  lsSet(LS_CATPURE, CAT_PURE ? "1" : "0");
+  runLive();
+};
+
 $("#likeCatOnly").onchange = e => {
   LIKE_CAT_ON = e.target.checked;
   try { lsSet(LS_LIKECATON, LIKE_CAT_ON ? "1" : ""); } catch(err){}
@@ -15643,6 +15663,8 @@ try {
   const a = JSON.parse(lsGet(LS_LIKECAT) || "[]");
   if (Array.isArray(a)) LIKE_CATS = new Set(a.filter(Boolean));
 } catch(e){}
+CAT_PURE = lsGet(LS_CATPURE) !== "0";     // ไม่เคยตั้ง = เปิดไว้ก่อน
+$("#catPure").checked = CAT_PURE;
 try { LIKE_CAT_ON = !!lsGet(LS_LIKECATON); } catch(e){}
 $("#likeCatOnly").checked = LIKE_CAT_ON;
 loadProjects();
