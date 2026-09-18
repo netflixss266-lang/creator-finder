@@ -17,7 +17,8 @@
   img-src 'self' https: data:;
   connect-src 'self' https://docs.google.com https://api.anthropic.com
               https://script.google.com https://*.googleusercontent.com
-              https://sosfberpszbqvghyymzi.supabase.co;
+              https://sosfberpszbqvghyymzi.supabase.co
+              wss://sosfberpszbqvghyymzi.supabase.co;
   form-action 'none';
   base-uri 'none';
   object-src 'none'">
@@ -4712,6 +4713,7 @@ function markDirty(){
   DIRTY = true;
   try { lsSet(LS_DIRTY, "1"); } catch(e){}
   updateSyncBar();
+  autoSyncSoon();
 }
 function clearDirty(){
   DIRTY = false; NEWROWS = [];
@@ -4757,8 +4759,10 @@ async function syncCoordSB(){
     }
     try {
       await sbUpsertCoord(rows.map(coordRowToSB));
-      await sbDeleteCoordMissing(p,
-        new Set(rows.map(r => `${normId(r.handle)}|${r.code || ""}`)));
+      const cut = await sbDeleteCoordMissing(p,
+        new Set(rows.map(r => `${normId(r.handle)}|${r.code || ""}`)), FORCE_PROJ.has(p));
+      // ของที่กรอกไว้ถูกเขียนขึ้นแล้ว (upsert ผ่าน) ค้างแค่ส่วนที่จะลบ — ของในฐานยังอยู่ครบ
+      if (cut && cut.needForce) NEED_FORCE.push({ proj: p, had: cut.had, now: cut.now, where: cut.where });
     } catch(e){ failed.push(`${p}: ${e.message}`); }
   }
   return failed;
@@ -4773,14 +4777,110 @@ async function syncCoord(manual){
   const failed = await syncCoordSB();
   // 2) ชีตต่อให้ถ้าเป็น admin ที่ตั้ง Apps Script ไว้ — ล้มก็ไม่กระทบของที่ขึ้นฐานข้อมูลแล้ว
   if (canSync()) failed.push(...await syncCoordSheet());
+  FORCE_PROJ.clear();          // อนุญาตครั้งเดียวต่อการกดยืนยันหนึ่งครั้ง
   SYNCING = false;
   SYNC_AT = Date.now();
   if (!failed.length) clearDirty();
   updateSyncBar(failed);
+  // ส่งของเราขึ้นไปแล้ว ของใหม่จากอีกเครื่องที่ค้างไว้ค่อยดึงลงมาได้โดยไม่ทับใคร
+  if (RT_WAITING && !DIRTY && !failed.length){ RT_WAITING = false; RT_HIT.coord = true; rtPull(); }
   if (manual && !NEED_FORCE.length)
     alert(failed.length ? "ซิงก์ไม่ครบ:\n" + failed.join("\n")
                         : "ซิงก์เรียบร้อย" + (canSync() ? " (ฐานข้อมูล + ชีต)" : ""));
 }
+
+// ═══ ออโต้ซิงก์: แก้เสร็จแล้วดันขึ้นเองภายในไม่กี่วินาที ═══
+// เดิมต้องกด ⇧ ซิงก์ หรือรอรอบชั่วโมง — ของที่ยังไม่ขึ้นจึงค้างอยู่แต่ในเครื่องนาน
+// และนั่นคือช่วงที่อีกเครื่องมองไม่เห็น แล้วเผลอซิงก์ทับกันเอง
+const AUTO_WAIT = 4000;          // นับใหม่ทุกครั้งที่พิมพ์ — หยุดพิมพ์ครบ 4 วิ ค่อยส่ง
+let AUTO_T = null;
+function autoSyncSoon(){
+  clearTimeout(AUTO_T);
+  AUTO_T = setTimeout(() => {
+    // มีเรื่องค้างให้คนตัดสินใจอยู่ (แถวจะหายเยอะ) อย่าเพิ่งยิงซ้ำ ปล่อยให้คนกดเอง
+    if (!DIRTY || SYNCING || NEED_FORCE.length || !SESSION) return;
+    syncCoord(false);
+  }, AUTO_WAIT);
+}
+
+// ═══ เรียลไทม์: ฟังการเปลี่ยนแปลงจากฐานข้อมูลตรงๆ ═══
+// ไม่ได้เอาข้อมูลจากข้อความที่ส่งมาใช้เลย — ใช้แค่เป็นสัญญาณว่า "มีอะไรเปลี่ยน" แล้วไปอ่านใหม่ทั้งชุด
+// ปลอดภัยกว่าการแปะทีละแถว: ไม่ต้องเดาว่าแถวไหนคือแถวไหน และไม่มีทางที่ของจะเพี้ยนครึ่งๆ กลางๆ
+const RT_TABLES = ["coord", "projects", "pool"];
+let RT = null, RT_REF = 0, RT_HB = null, RT_TRIES = 0, RT_WANT = false, RT_T = null;
+let RT_HIT = {};                  // ตารางที่เพิ่งเปลี่ยน รอไปอ่านใหม่
+function rtSend(topic, event, payload){
+  if (RT && RT.readyState === 1) RT.send(JSON.stringify({ topic, event, payload, ref: String(++RT_REF) }));
+}
+function rtStop(){
+  RT_WANT = false;
+  clearInterval(RT_HB); RT_HB = null;
+  if (RT){ try { RT.close(); } catch(e){} RT = null; }
+}
+function rtStart(){
+  RT_WANT = true;
+  if (RT || !SESSION || !SESSION.access_token) return;
+  let ws;
+  try {
+    ws = new WebSocket(SB_URL.replace(/^http/, "ws") + "/realtime/v1/websocket?apikey=" +
+                       encodeURIComponent(SB_KEY) + "&vsn=1.0.0");
+  } catch(e){ return; }
+  RT = ws;
+  ws.onopen = () => {
+    RT_TRIES = 0;
+    // ช่องเดียวพอ ขอเปลี่ยนแปลงของทั้งสามตารางในคราวเดียว
+    // access_token = ตัวบอกว่าเราเป็นใคร ฝั่ง Supabase จะกรองให้เห็นเฉพาะแถวที่ RLS อนุญาต
+    rtSend("realtime:cf", "phx_join", {
+      config: { postgres_changes: RT_TABLES.map(t => ({ event:"*", schema:"public", table:t })) },
+      access_token: SESSION.access_token });
+    RT_HB = setInterval(() => rtSend("phoenix", "heartbeat", {}), 25000);
+  };
+  ws.onmessage = ev => {
+    let m; try { m = JSON.parse(ev.data); } catch(e){ return; }
+    if (m.event === "postgres_changes"){
+      const t = ((m.payload || {}).data || {}).table;
+      if (t) rtChanged(t);
+    }
+  };
+  ws.onclose = () => {
+    clearInterval(RT_HB); RT_HB = null; RT = null;
+    // ต่อใหม่แบบถอยห่างขึ้นเรื่อยๆ สูงสุด 30 วิ — เน็ตสะดุดแล้วกลับมาเองโดยไม่ต้องรีเฟรชหน้า
+    if (RT_WANT) setTimeout(() => { if (RT_WANT) rtStart(); }, Math.min(30000, 2000 * ++RT_TRIES));
+  };
+  ws.onerror = () => { try { ws.close(); } catch(e){} };
+}
+// ต่ออายุสิทธิ์ให้ช่องที่เปิดค้างไว้ ไม่งั้นพอ token หมดอายุ (1 ชม.) จะเงียบไปเฉยๆ
+function rtAuth(){ if (SESSION) rtSend("realtime:cf", "access_token", { access_token: SESSION.access_token }); }
+
+function rtChanged(table){
+  // เสียงสะท้อนจากการซิงก์ของตัวเอง — ไม่ต้องไปอ่านใหม่ให้เสียเที่ยว
+  if (SYNCING || Date.now() - SYNC_AT < 4000) return;
+  RT_HIT[table] = true;
+  clearTimeout(RT_T);
+  RT_T = setTimeout(rtPull, 1500);     // รวมการเปลี่ยนแปลงรัวๆ เป็นรอบเดียว
+}
+async function rtPull(){
+  const hit = RT_HIT; RT_HIT = {};
+  if (SYNCING) return;
+  try {
+    if (hit.pool && POOL_URL === "supabase"){
+      await loadPool("supabase");
+      if (document.body.dataset.view === "find") run({ rank:false });
+    }
+    if (hit.coord || hit.projects){
+      // ของในเครื่องยังไม่ได้ซิงก์ ห้ามโหลดทับ — ทับแล้วของที่พิมพ์ค้างไว้หายทันที
+      // บอกให้รู้แทน แล้วให้คนเลือกเองว่าจะซิงก์ก่อนหรือทิ้งของตัวเอง
+      if (DIRTY){ RT_WAITING = true; updateSyncBar(); return; }
+      RT_WAITING = false;
+      await loadCoordData(true);
+      renderProjTabs(); renderCoord();
+      if (!$("#mapView").hidden) renderMap();
+      if (DETAIL) renderDetail();
+      updateSyncBar();
+    }
+  } catch(e){}
+}
+let RT_WAITING = false;             // มีของใหม่จากอีกเครื่องรออยู่ แต่ยังไม่โหลดเพราะของเรายังไม่ได้ซิงก์
 
 // ═══ ดันขึ้น Google Sheet (admin เท่านั้น) ═══
 // ของเดิมทั้งดุ้น แค่ถูกแยกออกมาเป็นขั้นที่สอง คืน list ของที่พลาดแทนการอัปเดต UI เอง
@@ -4846,11 +4946,12 @@ function updateSyncBar(failed){
   if (NEED_FORCE.length){
     el.className = "syncbar bad";
     el.innerHTML = `<b>ยังไม่ได้เขียนทับ</b> — ` + NEED_FORCE.map(f =>
-      `${esc(f.proj)}: ในชีตมี <b>${f.had}</b> คน แต่จะเขียนทับเหลือ <b>${f.now}</b> คน`).join(" · ") +
+      `${esc(f.proj)}: ใน${esc(f.where || "ชีต")}มี <b>${f.had}</b> คน แต่เครื่องนี้มี <b>${f.now}</b> คน`).join(" · ") +
       ` <button class="export" id="forceSync" style="margin-left:8px;padding:4px 12px">ยืนยันว่าลบจริง</button>
-        <button class="export ghost" id="cancelForce" style="padding:4px 12px">โหลดจากชีตใหม่</button>`;
+        <button class="export ghost" id="cancelForce" style="padding:4px 12px">โหลดใหม่</button>`;
     $("#forceSync").onclick = () => {
-      if (!confirm("ยืนยันเขียนทับ? คนที่หายไปจะถูกลบออกจากชีตจริงๆ")) return;
+      if (!confirm("ยืนยันลบ? คนที่ไม่มีในเครื่องนี้จะถูกลบออกจริงๆ ทั้งฐานข้อมูลและชีต — " +
+                   "ถ้าเพิ่งเพิ่มคนจากอีกเครื่อง ให้กด “โหลดใหม่” แทน")) return;
       NEED_FORCE.forEach(f => FORCE_PROJ.add(f.proj));
       NEED_FORCE = [];
       syncCoord(true);
@@ -4865,10 +4966,19 @@ function updateSyncBar(failed){
     el.className = "syncbar bad";
     el.textContent = "ซิงก์ไม่สำเร็จ: " + failed[0]; return;
   }
+  if (RT_WAITING){
+    el.className = "syncbar warn";
+    el.innerHTML = `<b>มีการแก้จากอีกเครื่อง</b> — ของที่คุณแก้ค้างอยู่ยังไม่ได้ซิงก์
+      <button class="export" id="rtSyncFirst" style="margin-left:8px;padding:4px 12px">ซิงก์ของเราก่อน</button>
+      <button class="export ghost" id="rtTakeTheirs" style="padding:4px 12px">ทิ้งของเรา โหลดใหม่</button>`;
+    $("#rtSyncFirst").onclick = () => syncCoord(true);
+    $("#rtTakeTheirs").onclick = () => { RT_WAITING = false; $("#coordReload").click(); };
+    return;
+  }
   if (DIRTY){
     el.className = "syncbar warn";
-    el.innerHTML = `มีที่แก้ยังไม่ขึ้นฐานข้อมูล — ซิงก์อัตโนมัติทุก 1 ชม. <b>เฉพาะตอนเปิดหน้านี้ค้างไว้</b>
-      หรือกดปุ่ม <b>⇧ ซิงก์</b> มุมขวาบน`;
+    el.innerHTML = `มีที่แก้ยังไม่ขึ้นฐานข้อมูล — กำลังซิงก์ให้เองภายในไม่กี่วินาที
+      หรือกด <b>⇧ ซิงก์</b> / <b>Ctrl+S</b> เพื่อส่งทันที`;
   } else {
     el.className = "syncbar ok";
     const where = canSync() ? "ฐานข้อมูล + ชีต" : "ฐานข้อมูล";
@@ -10320,6 +10430,7 @@ async function sbRefresh(){
   const j = await r.json().catch(() => null);
   if (!j || !j.access_token){ saveSession(null); return false; }
   sbStore(j);
+  rtAuth();                 // ช่องเรียลไทม์ถือ token เดิมอยู่ ต่ออายุให้ด้วย ไม่งั้นเงียบไปตอนหมดอายุ
   return true;
 }
 async function sbValidSession(){
@@ -10328,6 +10439,7 @@ async function sbValidSession(){
   return true;
 }
 async function sbLogout(){
+  rtStop();
   try { if (SESSION) await fetch(SB_URL + "/auth/v1/logout", { method:"POST", headers: sbHeaders(true) }); }
   catch(e){}
   saveSession(null); PROFILE = null;
@@ -10602,18 +10714,24 @@ async function sbUpsertCoord(rows){
 }
 // ลบเฉพาะแถวที่หายไปจริงในโปรเจกต์นั้น — ไม่ล้างทั้งโปรเจกต์แล้วเขียนใหม่
 // (ล้างก่อนเขียนคือช่วงที่ถ้าเน็ตหลุดกลางคัน ข้อมูลทั้งโปรเจกต์หายเกลี้ยง)
-async function sbDeleteCoordMissing(proj, keepKeys){
+// ⚠️ ตัวกันของหาย: "ไม่มีในเครื่องนี้" ไม่ได้แปลว่า "ถูกลบไปแล้ว"
+// เปิดเว็บสองเครื่อง เครื่องที่ข้อมูลเก่ากว่ากดซิงก์ = ของใหม่จากอีกเครื่องหายเงียบๆ (เกิดขึ้นจริงมาแล้ว)
+// หายมากผิดปกติ (เกิน 2 คน และเกิน 30% ของที่มีในฐาน) = หยุดไว้ก่อน ให้คนยืนยันเอง — เหมือนฝั่งชีต
+async function sbDeleteCoordMissing(proj, keepKeys, force){
   const r = await sbAuthed(SB_URL + "/rest/v1/coord?select=handle,code&project=eq." +
                            encodeURIComponent(proj));
-  if (!r.ok) return;
+  if (!r.ok) return null;
   const have = await r.json();
   const gone = have.filter(x => !keepKeys.has(`${normId(x.handle)}|${x.code || ""}`));
+  if (gone.length > 2 && gone.length / Math.max(have.length, 1) > 0.3 && !force)
+    return { needForce: true, had: have.length, now: keepKeys.size, where: "ฐานข้อมูล" };
   for (const g of gone){
     await sbAuthed(SB_URL + "/rest/v1/coord?project=eq." + encodeURIComponent(proj) +
       "&handle=eq." + encodeURIComponent(g.handle) +
       "&code=eq." + encodeURIComponent(g.code || ""),
       { method:"DELETE", headers:{ Prefer:"return=minimal" } });
   }
+  return { deleted: gone.length };
 }
 async function sbSaveProjects(){
   const rows = PROJ_LIST.map((p, i) => ({
@@ -15685,6 +15803,13 @@ loadCmdLinks(); loadCmdEdit(); loadCmdOwn();
 loadNewRows();
 shapeCoord(SEED_COORD);
 setInterval(() => syncCoord(false), SYNC_EVERY);
+// เบราว์เซอร์พักแท็บที่ไม่ได้ดูอยู่ (ตัด WebSocket ทิ้งเงียบๆ) — กลับมาดูเมื่อไหร่ต่อใหม่แล้วอ่านของที่พลาดไป
+document.addEventListener("visibilitychange", () => {
+  if (document.hidden || !SESSION) return;
+  if (!RT) rtStart();
+  RT_HIT.coord = true; RT_HIT.pool = true;
+  clearTimeout(RT_T); RT_T = setTimeout(rtPull, 300);
+});
 // ป้าย LIVE/Done ในปฏิทินขึ้นกับเวลาปัจจุบันล้วนๆ ไม่มี event อะไรมาสั่งให้วาดใหม่เอง
 // เปิดค้างไว้ดูตอนกำลังไลฟ์จริง ต้องขยับเองโดยไม่ต้องกดอะไร — เช็คทุกนาทีพอ ไม่ต้องถี่กว่านั้น
 // วาดใหม่เฉพาะตอนแผนผังเปิดอยู่จริงและเป็นแผ่นปฏิทิน กันเปลืองตอนไม่มีใครดู
@@ -15708,6 +15833,7 @@ foldSummaries();
 
 // ต้อง login ก่อน แล้วค่อยโหลด pool จาก Supabase (ข้อมูลอยู่หลัง login)
 requireLogin().then(async () => {
+  rtStart();                 // ฟังการเปลี่ยนแปลงจากเครื่องอื่นตั้งแต่เข้าเว็บ
   applyRole();                  // ต้องรู้สิทธิ์ก่อนวาดอะไร ไม่งั้นปุ่มที่กดไม่ได้จะโผล่แวบนึง
   await selectSheet();          // โหลด Creator Pool จาก Supabase
   let last = "home";
