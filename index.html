@@ -730,6 +730,10 @@ tr.dropover td{border-top:2px solid var(--accent)}
 .fpop .fadd{border-top:1px solid var(--line);padding:8px}
 .fpop .fadd input{width:100%;font-size:.78rem}
 .skupop{width:300px}
+.skupop .flist label{position:relative;padding-right:26px}
+.skupop .skuoff{position:absolute;right:6px;top:50%;transform:translateY(-50%);
+  background:none;border:0;color:var(--dim);font-size:.82rem;line-height:1;padding:2px 4px;cursor:pointer}
+.skupop .skuoff:hover{color:var(--lo)}
 
 /* ── SKU หลายอัน ── */
 .ctable th.w-sku,.ctable td.w-sku{min-width:9.5em;max-width:13em;position:relative}
@@ -4224,6 +4228,7 @@ function renameProject(from, to){
   remap(EDITS, head);
   remap(CMDOWN, head);
   remap(LOADED_COUNT, k => k === from ? to : k);
+  remap(PROJ_SKU, k => k === from ? to : k);
   [CMDEDIT, CMDADD, CMDHIDE].forEach(o => remap(o, k => k === from ? to : k));
   if (FORCE_PROJ.has(from)){ FORCE_PROJ.delete(from); FORCE_PROJ.add(to); }
   if (PROJ === from) PROJ = to;
@@ -5048,6 +5053,14 @@ async function loadCoordData(force){
     if (ps.length){
       PROJ_LIST = ps.map(x => ({ name: x.name, done: !!x.done,
         brand: typeof x.brand === "string" ? x.brand : guessBrand(x.name) }));
+      // คลัง SKU จากฐานข้อมูลชนะของในเครื่อง แต่ของในเครื่องที่ยังไม่ได้ขึ้นไปต้องไม่หาย — รวมกัน
+      ps.forEach(x => {
+        if (typeof x.skus !== "string") return;
+        const fromDb = x.skus.split("\n").map(v => v.trim()).filter(Boolean);
+        const mine = PROJ_SKU[x.name] || [];
+        PROJ_SKU[x.name] = [...new Set(fromDb.concat(mine))];
+      });
+      saveProjSku(true);
       syncProjects(); saveProjects(true);
     }
   } catch(e){}
@@ -5581,6 +5594,39 @@ const SKU_RC2 = [
 ];
 const skuListFor = proj => proj === "Red Chamber Phase 2" ? SKU_RC2 : null;
 
+// ─── SKU ที่เคยเพิ่มไว้ในโปรเจกต์ ───
+// เดิมตัวเลือกมาจาก "SKU ที่มีคนถืออยู่ตอนนี้" อย่างเดียว — เพิ่ม SKU ใหม่แล้วยังไม่ทันแจกใคร
+// หรือถอดออกจากคนสุดท้าย ตัวเลือกนั้นก็หายไปเลย ต้องพิมพ์ใหม่ทุกรอบ
+// ตอนนี้เก็บเป็นคลังของโปรเจกต์ ค้างไว้จนกว่าจะสั่งเอาออกเอง
+const LS_PSKU = "cf_projsku_v1";
+let PROJ_SKU = {};                     // { ชื่อโปรเจกต์: [SKU, ...] }
+function loadProjSku(){
+  try { const o = JSON.parse(lsGet(LS_PSKU) || "{}"); if (o && typeof o === "object") PROJ_SKU = o; }
+  catch(e){ PROJ_SKU = {}; }
+}
+function saveProjSku(quiet){
+  try { lsSet(LS_PSKU, JSON.stringify(PROJ_SKU)); } catch(e){}
+  if (!quiet) markDirty();             // ขึ้นฐานข้อมูลไปกับรายการโปรเจกต์ ทุกเครื่องจะได้เห็นเหมือนกัน
+}
+function skuRemember(proj, vals){
+  if (!proj) return;
+  const list = PROJ_SKU[proj] || (PROJ_SKU[proj] = []);
+  let add = 0;
+  [].concat(vals).forEach(v => {
+    const t = String(v || "").trim();
+    if (t && !list.includes(t)){ list.push(t); add++; }
+  });
+  if (add) saveProjSku();
+}
+function skuForget(proj, val){
+  const list = PROJ_SKU[proj] || [];
+  const at = list.indexOf(val);
+  if (at < 0) return false;
+  list.splice(at, 1);
+  saveProjSku();
+  return true;
+}
+
 // ─── SKU หลายอันต่อคน ───
 // เก็บเป็นสตริงเดียวคั่นด้วย " + " เหมือนเดิม เพราะ clipsOf() แยกคลิปจากตรงนี้อยู่แล้ว
 // ไม่ต้องเพิ่มคอลัมน์ในชีต และของเก่าที่พิมพ์ไว้แบบผสมก็ยังใช้ได้
@@ -5606,9 +5652,9 @@ function skuOptions(){
   const list = skuListFor(PROJ);
   // ลิสต์ตายตัวของโปรเจกต์เขียนไว้แบบจัดกลุ่มตามไลน์ ไม่ได้เรียงตัวอักษร — เรียงตอนโชว์
   // ไม่ไปเรียงในตัวลิสต์เอง เพราะลำดับในนั้นคือลำดับที่ทีมเขียนไว้ ไม่ควรถูกแตะ
-  if (list) return skuSort(list);
-  // โปรเจกต์ที่ไม่มีลิสต์ตายตัว ใช้ของที่เคยกรอกในโปรเจกต์นั้นเป็นตัวเลือก
-  return skuSort([...new Set((COORD[PROJ] || []).flatMap(r => skuParts(r.sku)))]);
+  // คลังของโปรเจกต์ + ของที่มีคนถืออยู่ตอนนี้ (ของเก่าที่พิมพ์ไว้ก่อนมีคลัง ยังต้องเห็น)
+  const used = (COORD[PROJ] || []).flatMap(r => skuParts(r.sku));
+  return skuSort([...new Set((list || []).concat(PROJ_SKU[PROJ] || [], used))]);
 }
 
 function skuCell(r, i){
@@ -5733,7 +5779,9 @@ function openSkuPicker(r, host, after){
     `<div class="fhead">เลือกได้หลายอัน<button data-clear="1">ล้าง</button></div>
      <div class="flist">${opts.map(v =>
        `<label><input type="checkbox" value="${esc(v)}"${cur.includes(v)?" checked":""}>
-        <span>${esc(v)}</span></label>`).join("") || `<div class="hint" style="padding:8px 10px">
+        <span>${esc(v)}</span>${(PROJ_SKU[PROJ] || []).includes(v)
+          ? `<button class="skuoff" data-off="${esc(v)}" title="เอาออกจากคลัง SKU ของโปรเจกต์นี้ (คนที่ถืออยู่ไม่ถูกแตะ)">✕</button>`
+          : ""}</label>`).join("") || `<div class="hint" style="padding:8px 10px">
         ยังไม่มีตัวเลือก พิมพ์เพิ่มด้านล่างได้</div>`}</div>
      <div class="fadd"><input placeholder="พิมพ์ SKU ใหม่แล้วกด Enter"></div>`;
   host.appendChild(pop);
@@ -5751,8 +5799,17 @@ function openSkuPicker(r, host, after){
     if (e.key !== "Enter") return;
     e.preventDefault();
     const v = add.value.trim();
-    if (v && !cur.includes(v)) commit(cur.concat(v));
+    if (!v) return;
+    skuRemember(PROJ, v);                       // เก็บเข้าคลังก่อน ถึงยังไม่ติ๊กให้ใครก็ยังอยู่
+    if (!cur.includes(v)) commit(cur.concat(v));
+    else { add.value = ""; openSkuPicker(r, host, after); }
   };
+  // เอาออกจากคลัง ไม่ใช่เอาออกจากคนที่ถืออยู่ — สองอย่างนี้คนละเรื่อง กดพลาดแล้วงานไม่หาย
+  pop.querySelectorAll(".skuoff").forEach(b => b.onclick = e => {
+    e.preventDefault(); e.stopPropagation();
+    skuForget(PROJ, b.dataset.off);
+    openSkuPicker(r, host, after);
+  });
   pop.onclick = e => e.stopPropagation();
   setTimeout(() => { add.focus(); document.addEventListener("click", function close(){
     pop.remove(); document.removeEventListener("click", close); }); }, 0);
@@ -6628,6 +6685,9 @@ function setFieldRaw(r, f, raw){
     delete EDITS[before];
     r.handle = clean;
     r.link = `https://www.tiktok.com/@${clean}`;
+  } else if (f === "sku"){
+    r[f] = raw;
+    skuRemember(r.project, skuParts(raw));
   } else if (f === "commission"){
     r[f] = commPct(raw);
   } else if (f === "rate" || f === "net3" || f === "videos"){
@@ -10687,8 +10747,20 @@ const coordRowToSB = (r, i) => ({
 const sbTableErr = (r, what) => new Error(r.status === 404
   ? `ยังไม่ได้สร้างตารางในฐานข้อมูล — ต้องรัน kol-tools/coord_sync.sql ที่ Supabase ก่อน`
   : `${what} (${r.status})`);
+// คลัง SKU ของโปรเจกต์เก็บที่คอลัมน์ skus — ยังไม่ได้รัน SQL ก็ใช้งานได้ แค่ไม่ข้ามเครื่อง
+let SKU_COL = null;
+async function skuColProbe(){
+  if (SKU_COL !== null) return SKU_COL;
+  try {
+    const r = await sbAuthed(SB_URL + "/rest/v1/projects?select=skus&limit=1");
+    if (r.ok) SKU_COL = true;
+    else if (r.status === 400) SKU_COL = false;   // 42703 = ยังไม่มีคอลัมน์ · error อื่นไม่ฟันธง
+  } catch(e){}
+  return SKU_COL === true;
+}
 async function sbFetchProjects(){
-  const r = await sbAuthed(SB_URL + "/rest/v1/projects?select=" + SB_PROJ_COLS + "&order=ord.asc");
+  const cols = (await skuColProbe()) ? SB_PROJ_COLS + ",skus" : SB_PROJ_COLS;
+  const r = await sbAuthed(SB_URL + "/rest/v1/projects?select=" + cols + "&order=ord.asc");
   if (!r.ok) throw sbTableErr(r, "อ่านรายการโปรเจกต์ไม่ได้");
   return await r.json();
 }
@@ -10734,8 +10806,10 @@ async function sbDeleteCoordMissing(proj, keepKeys, force){
   return { deleted: gone.length };
 }
 async function sbSaveProjects(){
-  const rows = PROJ_LIST.map((p, i) => ({
-    owner: sbUid(), name: p.name, brand: p.brand || "", done: !!p.done, ord: i }));
+  const withSku = await skuColProbe();
+  const rows = PROJ_LIST.map((p, i) => Object.assign(
+    { owner: sbUid(), name: p.name, brand: p.brand || "", done: !!p.done, ord: i },
+    withSku ? { skus: (PROJ_SKU[p.name] || []).join("\n") } : {}));
   if (rows.length){
     const r = await sbAuthed(SB_URL + "/rest/v1/projects?on_conflict=owner,name",
       { method:"POST",
@@ -15798,6 +15872,7 @@ loadProjects();
 loadCrit();
 loadCart();
 loadEdits();
+loadProjSku();
 loadHist();
 loadCmdLinks(); loadCmdEdit(); loadCmdOwn();
 loadNewRows();
