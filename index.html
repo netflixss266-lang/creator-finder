@@ -6490,6 +6490,13 @@ addEventListener("resize", measureStickyCols);
 // ── ทางเข้าเดียวของทุกการแก้ = ที่เดียวที่ต้องจดประวัติ ──
 // ห่อไว้ชั้นนอกแทนที่จะแทรกในตัวฟังก์ชัน เพราะข้างในมี return กลางทางหลายจุด
 // แทรกข้างในเมื่อไหร่จะมีทางออกที่ลืมปิดรอบการจด แล้วรอบนั้นจะไปกลืนการแก้ครั้งถัดไปแทน
+// Commission พิมพ์เป็นเลขเปล่าๆ = เปอร์เซ็นต์ เติม % ให้เอง ("10" -> "10%")
+// พิมพ์อย่างอื่นพ่วงมา (เช่น "10% + ค่าตัว 2,000" หรือ "แบ่งครึ่ง") ปล่อยตามที่พิมพ์ ไม่เดาแทน
+const commPct = v => {
+  const t = String(v ?? "").trim();
+  return /^[0-9]+(\.[0-9]+)?$/.test(t) ? t + "%" : t;
+};
+
 function setField(r, f, raw){
   if (!r) return false;
   histBegin(r.project, `แก้${QO_LABEL[f] || HIST_FIELD_TH[f] || f} · ${normId(r.handle)}`);
@@ -6511,6 +6518,8 @@ function setFieldRaw(r, f, raw){
     delete EDITS[before];
     r.handle = clean;
     r.link = `https://www.tiktok.com/@${clean}`;
+  } else if (f === "commission"){
+    r[f] = commPct(raw);
   } else if (f === "rate" || f === "net3" || f === "videos"){
     const s = String(raw).trim();
     r[f] = s === "" ? null : Number(s.replace(/,/g, ""));
@@ -7455,7 +7464,7 @@ function cmdValues(r){
     // ช่องว่างในตารางให้ถือตามจำนวนชุดที่คำนวณได้ (ได้ 2 SKU = อย่างน้อย 2 คลิป)
     videos: String(Number(r.videos) || clipCount(r)),
     // KOC ตกลงกันเป็นส่วนแบ่ง ไม่ใช่เรทเหมา — เก็บเป็นข้อความอิสระ ("10%" · "12% + ค่าตัว 2,000")
-    commission: r.commission || "",
+    commission: commPct(r.commission),
     // ชื่อแบรนด์มาจากโปรเจกต์ ไม่ใช่จากแถว — โปรเจกต์ใหม่ต้องกรอกตอนสร้าง
     brandname: brandOf(r.project),
     // บล็อก 5 ส่ง {{brief}} เป็นคู่มือถ่ายทำ — ชีตไม่ได้กรอกบรีฟไว้ก็ตกมาใช้คู่มือของ SKU
@@ -8168,7 +8177,7 @@ function openCmd(proj, handle){
        <div class="facts">
          ${K === "KOC"
            // KOC ไม่มีขั้นตอนหักภาษี/ทำจ่ายในระบบนี้ — โชว์เรทกับส่วนแบ่ง ไม่โชว์ช่องที่ไม่ได้ใช้
-           ? `Commission <b>${r.commission ? esc(r.commission) : "—"}</b>${
+           ? `Commission <b>${r.commission ? esc(commPct(r.commission)) : "—"}</b>${
                r.rate != null ? ` · เรท <b>฿${rateText(r.rate)}</b>` : ""}`
            : `เรท <b>${r.rate != null ? "฿" + rateText(r.rate) : "—"}</b> ·
               ${r.paytype ? esc(payType(r.paytype).label) : "ยังไม่เลือกรูปแบบภาษี"} ·
