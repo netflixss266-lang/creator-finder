@@ -2681,7 +2681,7 @@ tr.subrow td.w-status select{width:14.6em}
   <div class="coord-head">
     <div class="tabs sub" id="projTabs" role="tablist"></div>
     <!-- ภาพรวมทั้งโปรเจกต์ — อยู่ติดแท็บโปรเจกต์เพราะมันคือ "อีกมุมของข้อมูลชุดเดียวกัน" -->
-    <button class="mapbtn" id="mapBtn" title="ดูภาพรวมทั้งโปรเจกต์เป็นแผนผัง">◈ Map</button>
+    <button class="mapbtn" id="mapBtn" title="ดูภาพรวมทั้งโปรเจกต์เป็นแผนผัง (กด M)">◈ Map</button>
     <!-- ข้อความทักครั้งแรกเพื่อขอเรท — ยังไม่มีคนในตาราง เลยเป็นของโปรเจกต์ ไม่ใช่ของรายคน -->
     <button class="mapbtn" id="fmtBtn" title="ข้อความขอเรทสำหรับทักครีเอเตอร์ครั้งแรก">✉ Format ขอเรท</button>
     <div class="coord-sum" id="coordSum"></div>
@@ -2983,6 +2983,7 @@ tr.subrow td.w-status select{width:14.6em}
       <summary><h3>ย้อนกลับ · กู้ข้อมูล</h3></summary>
       <p class="sect-sub">
         <b>Ctrl+Z</b> ย้อนการเปลี่ยนแปลงล่าสุด · <b>Ctrl+Shift+Z</b> เรียกคืน — กดได้จากทุกหน้า<br>
+        <b>M</b> เปิด/ปิดแผนผังของโปรเจกต์ที่เปิดอยู่ — ใช้ในหน้า Coordinator (ตอนไม่ได้พิมพ์อยู่ในช่อง)<br>
         ที่นี่เลือกย้อนกลับไปจุดไหนก็ได้ <b>แยกตามโปรเจกต์</b> — นับเป็นรายการเปลี่ยนแปลง ไม่ใช่เวลา<br>
         <span style="color:var(--dim)">เก็บไว้ในเครื่องนี้เท่านั้น ไม่ได้ขึ้นฐานข้อมูล —
           คนอื่นในทีมย้อนของที่เราแก้ไม่ได้ และเราก็ย้อนของที่เขาแก้ไม่ได้เหมือนกัน</span>
@@ -13524,6 +13525,27 @@ document.addEventListener("keydown", e => {
   if (SYNCING) return histToast("กำลังซิงก์อยู่แล้ว รอสักครู่", true);
   if (!DIRTY) return histToast("ไม่มีอะไรค้างรอซิงก์", true);
   syncCoord(true);
+});
+// ── M เปิด/ปิดแผนผังของโปรเจกต์ที่เปิดอยู่ ──
+// แป้นเดียวไม่มีตัวกด — ต้องไม่แย่งตอนพิมพ์ ไม่งั้นพิมพ์ชื่อที่มีตัว m ไม่ได้
+// ⚠️ e.code ด้วย — แป้นไทยส่ง e.key เป็น "ท"
+// ตามหน้าที่อยู่: ตารางของโปรเจกต์ไหน = แผนผังของโปรเจกต์นั้น · อยู่ในแผนผัง = กลับตารางของแผ่นที่ดูอยู่
+// ลิ้นชัก/หน้าต่างอื่นเปิดทับอยู่ ไม่ทำอะไร — กดพลาดแล้วหน้าจอเปลี่ยนใต้สิ่งที่กำลังทำ จะงง
+document.addEventListener("keydown", e => {
+  if (e.ctrlKey || e.metaKey || e.altKey || e.shiftKey || e.repeat) return;
+  if (e.code !== "KeyM" && e.key !== "m" && e.key !== "M" && e.key !== "ท") return;
+  const a = document.activeElement;
+  if (a && (a.tagName === "INPUT" || a.tagName === "TEXTAREA" ||
+            a.tagName === "SELECT" || a.isContentEditable)) return;
+  if (!$("#lockView").hidden || !$("#coachView").hidden) return;
+  if (document.body.dataset.view !== "coord") return;
+  const cover = ["#fmtPanel", "#projPanel", "#addPanel", "#settings"].some(s => $(s) && !$(s).hidden)
+    || ["#detailPanel", "#cmdPanel"].some(s => $(s) && $(s).classList.contains("on"))
+    || !!document.querySelector(".fpop") || !$("#qFind").hidden;
+  if (cover) return;
+  e.preventDefault();
+  if (!$("#mapView").hidden) openTable(MAP_PROJ);
+  else if (PROJECTS.length) openMap(PROJ);
 });
 $("#qFindX").onclick = closeQFind;
 $("#qFindIn").addEventListener("input", renderQFind);
