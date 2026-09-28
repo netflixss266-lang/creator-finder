@@ -1593,7 +1593,7 @@ body.locked{overflow:hidden}
 .mapdock .dk-s.cur{opacity:.4;border-style:solid}
 .mapdock .dk-s.over{background:rgba(var(--accent-rgb),.2);border-color:var(--accent);border-style:solid}
 @media (max-width:760px){.mapdock{display:none}}
-body.mapdrag .mapstage.zero{display:block;opacity:.75}
+body.mapdrag .mapbranch.dragopen .mapstage.zero{display:block;opacity:.75}
 body.mapdrag .mapstage.zero .lab{border:1px dashed var(--line);border-radius:7px;
   padding:6px 10px;color:var(--dim)}
 body.mapdrag [data-drop]{border-radius:8px;transition:background .1s}
@@ -6941,7 +6941,7 @@ const CMD_BLOCKS = [
   // ไม่แยกรายชุด — ข้อความนี้ถือเรทรวมของทั้งดีล แยกเมื่อไหร่จะกลายเป็นแจ้งเรทเต็มสองรอบ
   // ครีเอเตอร์ได้กี่ SKU ก็ขึ้นครบในบรรทัดเดียว จำนวน video เดินตามช่องในตาราง
   // kind = โชว์เฉพาะกลุ่มนี้ — KOC ตกลงกันด้วย Commission ไม่ใช่เรทเหมา ใช้ข้อความคนละใบ
-  { t:"1. ขอคอนเฟิร์มการร่วมงาน", pay:true, b:
+  { t:"1. ขอคอนเฟิร์มการร่วมงาน", to:"Waiting Confirm", pay:true, b:
 `สวัสดีครับ🙏😊 แอดมินจาก Alta Global Commerce นะครับ ขออนุญาต Confirm✅ การร่วมงาน
 
 สำหรับแบรนด์: {{brandname}} ({{sku}})
@@ -6950,7 +6950,7 @@ const CMD_BLOCKS = [
 
 หากครีเอเตอร์คอนเฟิร์มการร่วมงาน กรุณาตอบกลับ “Confirm” เพื่อร่วมงานครับ` },
 
-  { t:"2. ขอให้แอดไลน์", b:
+  { t:"2. ขอให้แอดไลน์", to:"Confirmed", b:
 `รบกวนครีเอเตอร์แอดไลน์ Official ของทาง Alta Global Commerce ครับ😊 แอดไลน์✅ ID: @altathailand
 
 💬สามารถทักไลน์โดยการแคปหลักฐานการคอนเฟิร์มขั้นต้นได้เลยนะค้าบบ😊` },
@@ -6965,7 +6965,7 @@ const CMD_BLOCKS = [
 
 หากครีเอเตอร์คอนเฟิร์มการร่วมงาน กรุณาตอบกลับ “Confirm”` },
 
-  { t:"4. ขอที่อยู่จัดส่ง", b:
+  { t:"4. ขอที่อยู่จัดส่ง", to:"Waiting Delivery", b:
 `แอดมินรบกวนขอที่อยู่สำหรับจัดส่งสินค้าด้วยนะค้าบบ😀` },
 
   { t:"5. ส่งคู่มือการถ่ายทำ", clip:true, b:
@@ -7001,10 +7001,10 @@ const CMD_BLOCKS = [
 📌หากมีการแก้ไขDraft#2-3 ไทม์ไลน์จะปรับเปลี่ยนตามสมควร
 หากต้องการปรับเปลี่ยนไทม์ไลน์จุดไหนสามารถ copy ข้อความ และส่งไทม์ไลน์ที่สะดวกได้เลยนะครับ😊` },
 
-  { t:"8. แจ้งรอจัดส่ง", b:
+  { t:"8. แจ้งรอจัดส่ง", to:"Waiting Delivery", b:
 `ขอบคุณมากครับ🙏😀 แอดมินจะแจ้งให้ทราบ หากมีการจัดส่งนะครับ` },
 
-  { t:"9. ส่ง key content + สคริป", b:
+  { t:"9. ส่ง key content + สคริป", to:"Waiting Draft 1", b:
 `เพื่อความรวดเร็วในการถ่ายวิดีโอแอดมินขอส่ง key content สรุปพร้อมสคริปจากครีเอเตอร์ให้นะครับ
 
 📌📌📌
@@ -7012,21 +7012,21 @@ const CMD_BLOCKS = [
 
 หากเกิดปัญหาในการเข้า Doc รบกวนแจ้งครีเอเตอร์นะครับ😊` },
 
-  { t:"10. Feedback Draft #1", clip:true, b:
+  { t:"10. Feedback Draft #1", to:"Feedback Draft 1", clip:true, b:
 `แอดมินขออนุญาตส่ง Feedback Draft#1 นะครับ😀
 📦สำหรับ: {{sku}}
 📌📌
 
 {{feedback1}}` },
 
-  { t:"11. Feedback Draft #2", clip:true, b:
+  { t:"11. Feedback Draft #2", to:"Feedback Draft 2", clip:true, b:
 `แอดมินขออนุญาตส่ง Feedback Draft#2 นะครับ😀
 📦สำหรับ: {{sku}}
 📌📌
 
 {{feedback2}}` },
 
-  { t:"12. Feedback Draft #3", clip:true, b:
+  { t:"12. Feedback Draft #3", to:"Feedback Draft 3", clip:true, b:
 `แอดมินขออนุญาตส่ง Feedback Draft#3 นะครับ😀
 📦สำหรับ: {{sku}}
 📌📌
@@ -7034,7 +7034,7 @@ const CMD_BLOCKS = [
 {{feedback3}}` },
 
   // clip:true = ครีเอเตอร์ทำหลายคลิปได้บล็อกนี้คนละชุดต่อคลิป ({{cart}} ของคลิป 2 = {{cart2}})
-  { t:"13. Hashtag + Link ตะกร้า", clip:true, b:
+  { t:"13. Hashtag + Link ตะกร้า", to:"Waiting to Post", clip:true, b:
 `แอดมินขออนุญาตอัปเดต Hashtag และ Linkตะกร้า สำหรับโพสต์นะครับ🛒
 📦สำหรับ: {{sku}}
 
@@ -7056,7 +7056,7 @@ Hashtag:📱
 
   // ฟอร์มกับใบรับเงินเป็นคนละขั้นตอนและคนละเวลา — ฟอร์มกรอกครั้งเดียวตอนเริ่ม
   // ใบรับเงินเซ็นตอนจะเบิกจ่าย รวมไว้ก้อนเดียวแล้วส่งซ้ำทั้งก้อนทุกครั้ง
-  { t:"14. ฟอร์มเอกสารหัก ณ ที่จ่าย", pay:true, b:
+  { t:"14. ฟอร์มเอกสารหัก ณ ที่จ่าย", to:"Waiting Payment", pay:true, b:
 `สวัสดีครับ😊
 แอดมินรบกวนครีเอเตอร์กรอกข้อมูลสำหรับออกเอกสารหัก ณ ที่จ่าย และเอกสารอื่น ๆ ประกอบการทำจ่ายในลิ้งด้านล่างนี้นะค้าบ (กรอกเพียงครั้งเดียว✅)
 
@@ -7081,7 +7081,7 @@ Hashtag:📱
   // ── ต่อท้ายลิสต์ ไม่แทรกกลาง ── เลขบล็อกคือคีย์ที่ใช้เก็บของที่แก้ไว้ (CMDEDIT/CMDOWN)
   // แทรกกลางเมื่อไหร่ ข้อความที่ทุกคนแก้ไว้จะเลื่อนไปผิดบล็อกทั้งแถบ
   // ord บอกว่าให้ไปโผล่ตรงไหนตอนแสดงผล — อันนี้ยืนแทนบล็อก 1 ของฝั่ง KOC
-  { t:"1. ขอคอนเฟิร์มการร่วมงาน (ไม่มีเรทชำระ)", pay:false, ord:0, b:
+  { t:"1. ขอคอนเฟิร์มการร่วมงาน (ไม่มีเรทชำระ)", to:"Waiting Confirm", pay:false, ord:0, b:
 `สวัสดีครับ🙏😊 แอดมินจาก Alta Global Commerce นะครับ ขออนุญาต Confirm✅ การร่วมงาน
 
 สำหรับแบรนด์: {{brandname}} ({{sku}})
@@ -7556,6 +7556,30 @@ function showOwnBlock(proj, handle, id){
 const sentKey = (i, clip) => clip > 1 ? `${i}:${clip}` : String(i);
 const isSent = (proj, handle, i, clip) =>
   !!cmdOwnRead(proj, handle).sent[sentKey(i, clip)];
+// ─── กดส่ง Command แล้วสถานะเดินตาม ───
+// กล่องที่บอกว่างานขยับขั้น (ตั้ง to: ไว้ในต้นแบบ) ติ๊ก "ส่งแล้ว" = ขยับสถานะให้เอง
+// กติกา: เดินหน้าอย่างเดียว (ส่งกล่องเก่าซ้ำไม่ดึงคนที่ไปไกลแล้วถอยกลับ) · คนยกเลิกไม่แตะ
+// กล่องที่แยกรายคลิป ต้องส่งครบทุกคลิปก่อน ไม่งั้นสถานะจะบอกเกินจริง
+// เอาติ๊กออกไม่ถอยสถานะเอง — ติ๊กผิดใช้ Ctrl+Z หรือปุ่มเรียกคืนในแจ้งเตือน
+// กล่องที่เพิ่มเองไม่มีต้นแบบ = ไม่ผูกกับขั้นไหน · Map ยังลาก/เลือกขั้นเองได้เหมือนเดิม
+function cmdAdvance(proj, handle, b){
+  const to = b && (b.to || (b.base && b.base.to));
+  if (!to) return false;
+  const r = (COORD[proj] || []).find(x => normId(x.handle) === normId(handle));
+  if (!r || isCancelled(r)) return false;
+  if (b.clip){
+    const n = clipCount(r);
+    for (let c = 1; c <= n; c++) if (!isSent(proj, handle, b.id, c)) return false;
+  }
+  const want = stageAt(to);
+  if (want < 0 || mapStage(r.status) >= want) return false;
+  setField(r, "status", to);
+  renderCoord();
+  if (!$("#mapView").hidden) renderMap();
+  histToast(`${normId(handle)} → ${STAGES[want].th}`, false, doUndo, "ย้อนกลับ");
+  return true;
+}
+
 function toggleSent(proj, handle, i, clip){
   const own = cmdOwn(proj, handle), k = sentKey(i, clip);
   if (own.sent[k]) delete own.sent[k]; else own.sent[k] = Date.now();
@@ -8326,6 +8350,8 @@ function openCmd(proj, handle){
       // หัวข้อบอกชื่อ SKU ของชุดนั้นด้วย — "ชุด 2" เฉยๆ ยังต้องเปิดตารางไปดูว่าตัวไหน
       { t: bl.t + (n ? ` — ชุด ${n}${skuOf(r, n) ? ` · ${skuOf(r, n)}` : ""}` : ""),
         mine: bl.mine, id, custom: bl.custom, clip:n, law: !!bl.law,
+        // ขั้นที่กล่องนี้พาไปเมื่อกดส่ง — มาจากต้นแบบเท่านั้น กล่องที่เพิ่มเองไม่มี
+        to: (bl.base && bl.base.to) || null,
         sent: isSent(proj, handle, id, n) },
       fillBlock(bl.b, vals, n))));
   });
@@ -8544,6 +8570,7 @@ function openCmd(proj, handle){
     }
     toggleSent(proj, handle, b.id, b.clip);
     b.sent = !b.sent;
+    if (b.sent) cmdAdvance(proj, handle, b);
     btn.closest(".cmdblk").classList.toggle("sent", b.sent);
     btn.textContent = b.sent ? "✓ ส่งแล้ว" : "ส่งแล้ว";
     const n = norm.filter(x => x.sent).length;
@@ -9362,6 +9389,7 @@ function wireMapDrag(){
   const endDrag = () => {
     from = null;
     document.body.classList.remove("mapdrag");
+    document.querySelectorAll("#mapBody .mapbranch.dragopen").forEach(x => x.classList.remove("dragopen"));
     $("#mapDock").hidden = true;
     clearOver();
     stopEdge();
@@ -9371,6 +9399,12 @@ function wireMapDrag(){
   const stopEdge = () => { clearInterval(edgeT); edgeT = null; edgeV = 0; };
   $("#mapView").ondragover = e => {
     if (!from) return;
+    // ลากผ่านช่วงไหน กางขั้นที่ยังว่างของช่วงนั้นให้วางได้ — ช่วงอื่นหุบไว้ หน้าจะได้ไม่ยาวจนลากไม่ถึง
+    const br = e.target.closest && e.target.closest("#mapBody .mapbranch");
+    if (br && !br.classList.contains("dragopen")){
+      document.querySelectorAll("#mapBody .mapbranch.dragopen").forEach(x => x.classList.remove("dragopen"));
+      br.classList.add("dragopen");
+    }
     const y = e.clientY, h = innerHeight, zone = 90;
     edgeV = y < zone ? -Math.ceil((zone - y) / 6) : y > h - zone ? Math.ceil((y - (h - zone)) / 6) : 0;
     if (edgeV && !edgeT) edgeT = setInterval(() => $("#mapView").scrollBy(0, edgeV * 4), 16);
