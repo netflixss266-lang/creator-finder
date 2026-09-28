@@ -931,6 +931,11 @@ body[data-crew] .crewhide{display:none !important}
   border-radius:8px;padding:6px 10px;font-size:.8rem;cursor:pointer}
 .livewarn .lw .act button:hover{border-color:var(--accent);color:var(--ink)}
 .livewarn .lw .act button.x:hover{border-color:#E50914;color:#ff8a8f}
+.lwsnd{display:flex;flex-wrap:wrap;gap:7px}
+.lwsnd button{background:var(--surface2);border:1px solid var(--line);color:var(--mute);
+  border-radius:999px;padding:6px 13px;font-size:.8rem;cursor:pointer}
+.lwsnd button:hover{border-color:var(--accent);color:var(--ink)}
+.lwsnd button.on{border-color:var(--accent);color:var(--ink);background:rgba(229,9,20,.12);font-weight:600}
 @keyframes lwp{0%,100%{opacity:1}50%{opacity:.25}}
 @keyframes lwin{from{transform:translateY(-8px);opacity:0}to{transform:none;opacity:1}}
 .histtoast{position:fixed;left:50%;bottom:22px;transform:translate(-50%,14px);z-index:88;
@@ -3017,6 +3022,13 @@ tr.subrow td.w-status select{width:14.6em}
         <b>โหลดใหม่</b> ทิ้งของที่แก้ไว้แต่ยังไม่ได้ซิงก์ แล้วเอาของจากฐานข้อมูลมาแทน ·
         <b>คืนค่าที่แก้ในเครื่อง</b> ล้างทุกอย่างที่แก้ไว้แต่ยังไม่ได้ซิงก์
       </div>
+    </section>
+
+    <section class="sect">
+      <h3>แจ้งเตือนก่อนไลฟ์</h3>
+      <p class="sect-sub">เด้งก่อนไลฟ์ <b>30 · 20 · 10 · 5 นาที</b> เฉพาะโปรเจกต์ไลฟ์ (แผนผังแบบปฏิทินวันที่) ·
+        ค้างจนกว่าจะกดปิด<br>เลือกเสียงตอนเด้ง — กดแล้วเล่นให้ฟังเลย · จำแยกเครื่อง</p>
+      <div class="lwsnd" id="lwSound"></div>
     </section>
 
     <!-- ย้อนกลับได้ถึงไหน = ตั้งเป็น "กี่การเปลี่ยนแปลง" ไม่ใช่ "กี่วัน"
@@ -10202,15 +10214,16 @@ function slotLiveStatus(d, tm){
   return null;
 }
 
-// ═══ แจ้งเตือนก่อนไลฟ์ 30 / 20 / 10 นาที ═══
+// ═══ แจ้งเตือนก่อนไลฟ์ 30 / 20 / 10 / 5 นาที ═══
 // ดูเฉพาะโปรเจกต์ไลฟ์ (แผนผังตั้งเป็นปฏิทินวันที่) · ไม่นับคนที่ยกเลิกงาน · รอบที่ไม่ได้ลงเวลาไม่แจ้ง (ไม่รู้ว่าเริ่มกี่โมง)
 // คนที่เริ่มเวลาเดียวกันในโปรเจกต์เดียวกัน รวมเป็นกล่องเดียว — 5 คนเริ่ม 20.00 ไม่ต้องเด้ง 5 กล่อง
-// แต่ละรอบเตือน 3 จังหวะ: ถึงขั้นใหม่ = เด้งขึ้นใหม่เสมอ แม้ขั้นก่อนจะกดปิดไปแล้ว
+// แต่ละรอบเตือน 4 จังหวะ: ถึงขั้นใหม่ = เด้งขึ้นใหม่เสมอ แม้ขั้นก่อนจะกดปิดไปแล้ว
 // ค้างจนกว่าจะกดปิด (รวมถึงหลังถึงเวลาไลฟ์แล้ว) — จำไว้ในเครื่อง รีเฟรชหน้าก็ยังอยู่
-const LIVE_WARN = [30, 20, 10];
+const LIVE_WARN = [30, 20, 10, 5];
 const LS_LIVEWARN = "cf_livewarn_v1";
 let LIVEWARN = {};              // { "โปรเจกต์|เวลาเริ่ม(ms)": { stage, closed, start } }
 function loadLiveWarn(){
+  try { const v = lsGet(LS_LIVESOUND); if (LW_SOUNDS[v]) LW_SOUND = v; } catch(e){}   // หลังล็อกอิน NS อาจเปลี่ยน
   try { LIVEWARN = JSON.parse(lsGet(LS_LIVEWARN) || "{}") || {}; } catch(e){ LIVEWARN = {}; }
 }
 function saveLiveWarn(){ try { lsSet(LS_LIVEWARN, JSON.stringify(LIVEWARN)); } catch(e){} }
@@ -10244,7 +10257,7 @@ function checkLiveWarn(){
   groups.forEach(g => {
     const mins = (g.start - now) / 60000;
     if (mins <= 0) return;                                   // เริ่มไปแล้ว ไม่เด้งใหม่
-    const stage = LIVE_WARN.filter(t => mins <= t).pop();   // ขั้นล่าสุดที่ถึงแล้ว (30 → 20 → 10)
+    const stage = LIVE_WARN.filter(t => mins <= t).pop();   // ขั้นล่าสุดที่ถึงแล้ว (30 → 20 → 10 → 5)
     if (stage == null) return;
     const rec = LIVEWARN[g.key];
     if (rec && rec.stage === stage) return;
@@ -10299,22 +10312,66 @@ function renderLiveWarn(groups){
   document.title = first
     ? `🔴 ไลฟ์ใน ${Math.ceil((first[1].start - now) / 60000)} นาที · ${LW_TITLE}` : LW_TITLE;
 }
-// เสียงสั้นๆ ตอนเด้งขั้นใหม่ — เบราว์เซอร์ไม่ยอมเล่นเสียงก่อนผู้ใช้แตะหน้าเว็บ ถ้าเล่นไม่ได้ก็เงียบไป ไม่พัง
+// เสียงตอนเด้งขั้นใหม่ — เลือกได้ในหน้าตั้งค่า จำแยกเครื่อง (แต่ละคนชอบไม่เหมือนกัน)
+// สังเคราะห์สดด้วย Web Audio ไม่ต้องโหลดไฟล์เสียง · เล่นไม่ได้ก็เงียบไป ไม่พัง
+// โน้ต = [เริ่มที่วินาที, ความถี่, ยาว, ความถี่ปลาย(ไถเสียง)]
+const LW_SOUNDS = {
+  ding:    { th:"ติ๊งต่อง",      type:"sine",     notes:[[0,880,.16],[.18,1175,.16]] },
+  door:    { th:"กริ่งประตู",    type:"sine",     notes:[[0,659,.7],[.42,523,1]] },
+  bell:    { th:"ระฆัง",         type:"sine",     bell:true, notes:[[0,1046,1.8]] },
+  marimba: { th:"มาริมบา",       type:"triangle", notes:[[0,523,.3],[.12,659,.3],[.24,784,.3],[.36,1046,.5]] },
+  chime:   { th:"ไล่เสียงลง",    type:"sine",     notes:[[0,1568,.5],[.15,1319,.5],[.3,1047,.5],[.45,784,.8]] },
+  beep:    { th:"บี๊บ 3 ครั้ง",  type:"square",   vol:.07, hold:true, notes:[[0,1000,.12],[.2,1000,.12],[.4,1000,.12]] },
+  siren:   { th:"ไซเรนสั้น",     type:"sawtooth", vol:.06, hold:true, notes:[[0,620,.45,1240],[.5,620,.45,1240]] },
+  off:     { th:"ปิดเสียง",      notes:[] }
+};
+const LS_LIVESOUND = "cf_livesound_v1";
+let LW_SOUND = "ding";
+try { const v = lsGet(LS_LIVESOUND); if (LW_SOUNDS[v]) LW_SOUND = v; } catch(e){}
 let LW_AUDIO = null;
-function liveDing(){
+function lwAudio(){
+  LW_AUDIO = LW_AUDIO || new (window.AudioContext || window.webkitAudioContext)();
+  if (LW_AUDIO.state === "suspended") LW_AUDIO.resume();
+  return LW_AUDIO;
+}
+// เบราว์เซอร์ไม่ยอมเล่นเสียงจนกว่าจะแตะหน้าเว็บสักครั้ง — แตะครั้งแรกเมื่อไหร่ ปลดล็อกเสียงไว้ก่อนเลย
+// ไม่งั้นเปิดเว็บทิ้งไว้แล้วไม่ได้คลิกอะไร ถึงเวลาเตือนจะเงียบ
+document.addEventListener("pointerdown", () => { try { lwAudio(); } catch(e){} }, { once:true, capture:true });
+function lwPlay(id){
+  const snd = LW_SOUNDS[id] || LW_SOUNDS.ding;
+  if (!snd.notes.length) return;
   try {
-    LW_AUDIO = LW_AUDIO || new (window.AudioContext || window.webkitAudioContext)();
-    const t = LW_AUDIO.currentTime;
-    [0, .18].forEach((d, i) => {
-      const o = LW_AUDIO.createOscillator(), g = LW_AUDIO.createGain();
-      o.frequency.value = i ? 1175 : 880;
-      g.gain.setValueAtTime(.0001, t + d);
-      g.gain.exponentialRampToValueAtTime(.18, t + d + .02);
-      g.gain.exponentialRampToValueAtTime(.0001, t + d + .16);
-      o.connect(g).connect(LW_AUDIO.destination);
-      o.start(t + d); o.stop(t + d + .18);
-    });
+    const ac = lwAudio(), t0 = ac.currentTime + .03;
+    // ระฆังจริงมีเสียงแทรกที่ไม่ลงตัว (ไม่ใช่ 2× 3×) ถึงจะฟังเป็นโลหะ
+    const parts = snd.bell ? [[1, 1], [2.76, .4], [5.4, .18]] : [[1, 1]];
+    snd.notes.forEach(([d, f, len, f2]) => parts.forEach(([mul, amp]) => {
+      const o = ac.createOscillator(), g = ac.createGain(), t = t0 + d;
+      const peak = (snd.vol || .18) * amp;
+      o.type = snd.type || "sine";
+      o.frequency.setValueAtTime(f * mul, t);
+      if (f2) o.frequency.linearRampToValueAtTime(f2 * mul, t + len);
+      g.gain.setValueAtTime(.0001, t);
+      g.gain.exponentialRampToValueAtTime(peak, t + .015);
+      if (snd.hold) g.gain.setValueAtTime(peak, t + len - .03);
+      g.gain.exponentialRampToValueAtTime(.0001, t + len);
+      o.connect(g).connect(ac.destination);
+      o.start(t); o.stop(t + len + .02);
+    }));
   } catch(e){}
+}
+function liveDing(){ lwPlay(LW_SOUND); }
+function renderLiveSound(){
+  const box = $("#lwSound");
+  if (!box) return;
+  box.innerHTML = Object.entries(LW_SOUNDS).map(([k, v]) =>
+    `<button type="button" data-snd="${k}" class="${k === LW_SOUND ? "on" : ""}">${k === "off" ? "🔇" : "▶"} ${esc(v.th)}</button>`).join("");
+  // กด = เลือก + เล่นให้ฟังทันที ไม่ต้องมีปุ่มลองฟังแยก
+  box.querySelectorAll("[data-snd]").forEach(b => b.onclick = () => {
+    LW_SOUND = b.dataset.snd;
+    try { lsSet(LS_LIVESOUND, LW_SOUND); } catch(e){}
+    renderLiveSound();
+    lwPlay(LW_SOUND);
+  });
 }
 let LW_TIMER = null;
 async function startLiveWarn(){
@@ -12094,6 +12151,7 @@ function openSettings(){
   renderSkuGuide();
   renderAccent();
   renderHist();
+  renderLiveSound();
   $("#addMsg").className = "addmsg";
   $("#settings").hidden = false;
 }
