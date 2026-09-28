@@ -767,6 +767,16 @@ tr.dropover td{border-top:2px solid var(--accent)}
 .skugrow button{flex:none;background:none;border:1px solid var(--line);color:var(--mute);
   border-radius:6px;padding:.35em .6em;font-size:.9rem}
 .skugrow button:hover{border-color:var(--lo);color:var(--lo)}
+.skugrow button.eye{display:inline-flex;align-items:center;padding:.3em .45em}
+.skugrow button.eye svg{width:16px;height:16px}
+.skugrow button.eye:hover{border-color:var(--accent);color:var(--ink)}
+.skugrow.hid{opacity:.5}
+.skugrow.hid:hover{opacity:.85}
+.skugrow .n.done{color:var(--mute);background:rgba(255,255,255,.07)}
+.sghidbar{display:flex;align-items:center;gap:8px;margin-top:10px;padding:8px 11px;width:100%;
+  background:none;border:1px dashed var(--line);border-radius:8px;color:var(--mute);font-size:.8rem;
+  cursor:pointer;text-align:left}
+.sghidbar:hover{border-color:var(--accent);color:var(--ink)}
 .skuadd-row{display:flex;gap:8px;flex-wrap:wrap;margin-top:11px}
 .skuadd-row input:first-child{flex:0 1 13em;min-width:10em}
 .skuadd-row input{flex:1;min-width:12em;font-size:.84rem}
@@ -12345,6 +12355,22 @@ function renderSgPick(){
   if (sumEl) sumEl.textContent = SG_PICK.size
     ? `เลือกไว้ ${SG_PICK.size} SKU — กด “เพิ่ม” ด้านล่างเพื่อผูกทุกอันกับลิงก์เดียวกันทีเดียว` : "";
 }
+// ── ซ่อนใบที่ไม่ใช้แล้ว ──
+// อัตโนมัติ: ใบที่ SKU ของมันมีแต่ในโปรเจกต์ที่ปิดงานแล้ว (โปรเจกต์ที่ยังทำอยู่ไม่มีใครได้ และไม่อยู่ในคลัง SKU ของโปรเจกต์ที่ยังทำอยู่)
+//   ใบที่ยังไม่มีใครได้เลยไม่ซ่อน — มักเป็นใบที่เพิ่งตั้งรอโปรเจกต์ใหม่
+// กดรูปตาเอง: ซ่อน/เลิกซ่อนได้ทุกใบ ชนะเกณฑ์อัตโนมัติ
+// ซ่อน = แค่ไม่โชว์ในรายการ ใบยังทำงานใน Command ตามปกติ · จำในเครื่องนี้ ไม่กระทบคนอื่นในทีม
+const LS_SGHIDE = "cf_sghide_v1";
+let SGHIDE = null;              // { guide: { ชื่อใบ: "hide" | "show" }, ... }
+let SG_SHOWHID = false;
+function sgHideState(){
+  if (!SGHIDE){ try { SGHIDE = JSON.parse(lsGet(LS_SGHIDE) || "{}") || {}; } catch(e){ SGHIDE = {}; } }
+  return SGHIDE;
+}
+function saveSgHide(){ try { lsSet(LS_SGHIDE, JSON.stringify(SGHIDE)); } catch(e){} }
+const SG_EYE = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7S1 12 1 12z"/><circle cx="12" cy="12" r="3"/></svg>`;
+const SG_EYEOFF = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17.9 17.9A10.4 10.4 0 0 1 12 19C5 19 1 12 1 12a18.4 18.4 0 0 1 5.1-5.9M9.9 5.2A9.1 9.1 0 0 1 12 5c7 0 11 7 11 7a18.5 18.5 0 0 1-2.2 3.2M14.1 14.1a3 3 0 1 1-4.2-4.2"/><path d="M1 1l22 22"/></svg>`;
+
 function renderSkuGuide(){
   const box = $("#skuGuideList");
   if (!box) return;
@@ -12377,23 +12403,46 @@ function renderSkuGuide(){
   $("#skuGuideUrl").placeholder = meta.ph;
 
   const all = PROJECTS.flatMap(p => (COORD[p] || []));
-  const hits = key => all.filter(r => skuParts(r.sku).some(x =>
-    x === key || x.toLowerCase().startsWith(String(key).trim().toLowerCase()))).length;
+  const isDone = p => !!(projMeta(p) || {}).done;
+  const actRows = PROJECTS.filter(p => !isDone(p)).flatMap(p => (COORD[p] || []));
+  const actLib = PROJECTS.filter(p => !isDone(p)).flatMap(p => PROJ_SKU[p] || []);
+  const doneRows = PROJECTS.filter(isDone).flatMap(p => (COORD[p] || []));
+  const hitSku = (key, x) => x === key || x.toLowerCase().startsWith(String(key).trim().toLowerCase());
+  const hitsIn = (rows, key) => rows.filter(r => skuParts(r.sku).some(x => hitSku(key, x))).length;
+  const HS = sgHideState()[kind] || (SGHIDE[kind] = {});
   const keys = Object.keys(MAP).sort();
-  box.innerHTML = keys.length
-    ? keys.map(k => {
-        const n = hits(k);
+  const info = keys.map(k => {
+    const n = hitsIn(actRows, k), nd = hitsIn(doneRows, k);
+    const doneOnly = !n && nd > 0 && !actLib.some(x => hitSku(k, x));
+    const shown = HS[k] === "show" || (HS[k] !== "hide" && !doneOnly);
+    return { k, n, nd, doneOnly, shown };
+  });
+  const vis = info.filter(x => x.shown), hid = info.filter(x => !x.shown);
+  const row = x => {
+        const k = x.k, n = x.n;
         // โชว์ SKU ที่ใบนี้คุมอยู่จริงๆ — ตั้งกว้างเกินไปจะเห็นตั้งแต่ตอนตั้ง ไม่ต้องรอให้ส่งผิดก่อน
         const under = skusUnderKey(kind, k);
-        return `<div class="skugrow">
+        return `<div class="skugrow${x.shown ? "" : " hid"}">
           <b>${esc(k)}</b>
-          <span class="n${n ? "" : " none"}">${n ? n + " คน" : "ยังไม่มีใครได้"}</span>
+          ${n ? `<span class="n">${n} คน</span>`
+            : x.doneOnly ? `<span class="n done">โปรเจกต์ปิดแล้ว · ${x.nd} คน</span>`
+            : `<span class="n none">ยังไม่มีใครได้</span>`}
           <input data-sg="${esc(k)}" value="${esc(MAP[k])}" spellcheck="false">
+          <button type="button" class="eye" data-sgeye="${esc(k)}" title="${x.shown
+            ? "ซ่อนใบนี้ (ยังใช้ใน Command ตามปกติ)" : "เลิกซ่อน"}">${x.shown ? SG_EYE : SG_EYEOFF}</button>
           <button type="button" data-sgdel="${esc(k)}" title="เอาออก">✕</button>
           <div class="sgunder">${under.length
             ? `คุม ${under.length} SKU: ` + under.map(s => `<span>${esc(s)}</span>`).join("")
             : `<span class="none">ยังไม่ตรงกับ SKU ไหนเลย — เช็คชื่ออีกที</span>`}</div>
-        </div>`; }).join("")
+        </div>`; };
+  const nAuto = hid.filter(x => x.doneOnly && HS[x.k] !== "hide").length;
+  box.innerHTML = keys.length
+    ? (vis.map(row).join("") || `<p class="hint">ทุกใบซ่อนอยู่</p>`) + (hid.length
+      ? `<button type="button" class="sghidbar" id="sgHidToggle">${SG_SHOWHID ? SG_EYEOFF.replace("<svg", '<svg width="15" height="15"') : SG_EYE.replace("<svg", '<svg width="15" height="15"')}
+          ${SG_SHOWHID ? "พับใบที่ซ่อนไว้" : `ซ่อนอยู่ ${hid.length} ใบ`}
+          <span style="color:var(--dim)">(${[nAuto ? `โปรเจกต์ปิดแล้ว ${nAuto}` : "", hid.length - nAuto ? `ซ่อนเอง ${hid.length - nAuto}` : ""]
+            .filter(Boolean).join(" · ")})</span></button>` + (SG_SHOWHID ? hid.map(row).join("") : "")
+      : "")
     : `<p class="hint">ยังไม่ได้ตั้งไว้ — ทุกคนจะได้${esc(meta.th)}ชุดเดียวกันจาก “ลิงก์ที่ใช้ร่วมกัน”</p>`;
 
   // ตัวเลือกให้พิมพ์ง่าย: SKU ที่ใช้จริงในทุกโปรเจกต์ + ชื่อไลน์ที่ตัดมาจากหน้า SKU
@@ -12407,8 +12456,19 @@ function renderSkuGuide(){
     if (v) MAP[inp.dataset.sg] = v; else delete MAP[inp.dataset.sg];
     saveSkuBind(kind); renderSkuGuide();
   });
+  box.querySelectorAll("[data-sgeye]").forEach(b => b.onclick = () => {
+    const x = info.find(i => i.k === b.dataset.sgeye);
+    if (!x) return;
+    // เก็บเฉพาะที่ต่างจากเกณฑ์อัตโนมัติ — โปรเจกต์กลับมาทำต่อ ใบก็กลับมาโชว์เอง
+    if (x.shown){ if (x.doneOnly) delete HS[x.k]; else HS[x.k] = "hide"; }
+    else        { if (x.doneOnly) HS[x.k] = "show"; else delete HS[x.k]; }
+    saveSgHide(); renderSkuGuide();
+  });
+  const ht = $("#sgHidToggle");
+  if (ht) ht.onclick = () => { SG_SHOWHID = !SG_SHOWHID; renderSkuGuide(); };
   box.querySelectorAll("[data-sgdel]").forEach(b => b.onclick = () => {
     delete MAP[b.dataset.sgdel];
+    if (HS[b.dataset.sgdel]){ delete HS[b.dataset.sgdel]; saveSgHide(); }
     saveSkuBind(kind); renderSkuGuide();
   });
 
