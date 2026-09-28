@@ -7505,8 +7505,8 @@ function cmdOwn(proj, handle){
 function cmdOwnRead(proj, handle){
   const o = CMDOWN[cmdKey(proj, handle)];
   return o ? { blocks:o.blocks || {}, links:o.links || {}, sent:o.sent || {},
-               add:o.add || [], hide:o.hide || [] }
-           : { blocks:{}, links:{}, sent:{}, add:[], hide:[] };
+               add:o.add || [], hide:o.hide || [], moved:o.moved || {} }
+           : { blocks:{}, links:{}, sent:{}, add:[], hide:[], moved:{} };
 }
 // ลบทิ้งถ้าไม่เหลืออะไรที่ต่างจากต้นแบบ จะได้ไม่มีขยะค้าง
 function pruneCmdOwn(proj, handle){
@@ -7514,8 +7514,9 @@ function pruneCmdOwn(proj, handle){
   if (!o) return;
   if (o.add && !o.add.length) delete o.add;
   if (o.hide && !o.hide.length) delete o.hide;
+  if (o.moved && !Object.keys(o.moved).length) delete o.moved;
   if (!Object.keys(o.blocks || {}).length && !Object.keys(o.links || {}).length
-      && !Object.keys(o.sent || {}).length
+      && !Object.keys(o.sent || {}).length && !Object.keys(o.moved || {}).length
       && !(o.add || []).length && !(o.hide || []).length)
     delete CMDOWN[k];
 }
@@ -7573,11 +7574,63 @@ function cmdAdvance(proj, handle, b){
   }
   const want = stageAt(to);
   if (want < 0 || mapStage(r.status) >= want) return false;
+  // จดไว้ว่ากล่องนี้พาจากขั้นไหนมาขั้นไหน — เอาติ๊กออกเมื่อไหร่จะได้ถอยกลับไปที่เดิมได้ถูก
+  const own = cmdOwn(proj, handle);
+  (own.moved || (own.moved = {}))[b.id] = { from: r.status || "", to, at: Date.now() };
+  saveCmdOwn();
   setField(r, "status", to);
   renderCoord();
   if (!$("#mapView").hidden) renderMap();
   histToast(`${normId(handle)} → ${STAGES[want].th}`, false, doUndo, "ย้อนกลับ");
   return true;
+}
+// ชื่อไทยของขั้น — ใช้ในแจ้งเตือน
+const stTh = v => (STAGES.find(x => x.v === v) || {}).th || (v ? v : "ยังไม่มีสถานะ");
+
+// ─── เอาติ๊กออกแล้วสถานะถอยตาม ───
+// ถอยได้เฉพาะกล่องที่เคยพาขยับจริง และสถานะยังเป็นขั้นที่กล่องนั้นพามาอยู่ตอนนี้
+// ถ้าขยับต่อไปแล้ว (กล่องถัดไป/ลากใน Map/แก้ในตาราง) ไม่ไปแตะ — ถอยตอนนั้นคือทับงานที่เดินหน้าไปแล้ว
+// กล่องแยกรายคลิป: เอาชุดไหนออกก็ถอย เพราะตอนขยับคือตอนที่ครบทุกชุด ตอนนี้ไม่ครบแล้ว
+function cmdRetreat(proj, handle, b){
+  const rec = ((cmdOwnRead(proj, handle).moved) || {})[b.id];
+  if (!rec) return false;
+  const own = cmdOwn(proj, handle);
+  delete own.moved[b.id];
+  const r = (COORD[proj] || []).find(x => normId(x.handle) === normId(handle));
+  if (!r || (r.status || "") !== rec.to){
+    // ขยับต่อไปแล้ว ไม่ถอยตอนนี้ — แต่ต่อโซ่ให้กล่องถัดไปจำจุดเริ่มแทน
+    // ไม่งั้นเอาติ๊กออกครบทุกกล่องแล้ว สถานะไปค้างกลางทาง แทนที่จะกลับไปที่เดิม
+    const nx = Object.values(own.moved || {}).find(x => x.from === rec.to);
+    if (nx) nx.from = rec.from;
+    pruneCmdOwn(proj, handle); saveCmdOwn();
+    return false;
+  }
+  pruneCmdOwn(proj, handle); saveCmdOwn();
+  setField(r, "status", rec.from);
+  renderCoord();
+  if (!$("#mapView").hidden) renderMap();
+  histToast(`${normId(handle)} → ถอยกลับเป็น ${stTh(rec.from)}`, false, doUndo, "ย้อนกลับ");
+  return true;
+}
+// ล้างเครื่องหมายส่งทั้งหมด = ย้อนทุกขั้นที่กล่องพามา ไล่จากล่าสุดกลับไป
+// หยุดตรงที่สถานะไม่ตรงกับที่จดไว้ (มีคนเปลี่ยนเองระหว่างทาง) — ส่วนนั้นเป็นงานของคน ไม่ใช่ของปุ่ม
+function cmdRetreatAll(proj, handle){
+  const recs = Object.values((cmdOwnRead(proj, handle).moved) || {}).sort((a, b) => b.at - a.at);
+  const r = (COORD[proj] || []).find(x => normId(x.handle) === normId(handle));
+  let n = 0;
+  if (r && !isCancelled(r)) for (const rec of recs){
+    if ((r.status || "") !== rec.to) break;
+    setField(r, "status", rec.from); n++;
+  }
+  const own = cmdOwn(proj, handle);
+  delete own.moved;
+  pruneCmdOwn(proj, handle); saveCmdOwn();
+  if (n){
+    renderCoord();
+    if (!$("#mapView").hidden) renderMap();
+    histToast(`${normId(handle)} → ถอยกลับเป็น ${stTh(r.status || "")}`, false, doUndo, "ย้อนกลับ");
+  }
+  return n;
 }
 
 function toggleSent(proj, handle, i, clip){
@@ -8570,7 +8623,7 @@ function openCmd(proj, handle){
     }
     toggleSent(proj, handle, b.id, b.clip);
     b.sent = !b.sent;
-    if (b.sent) cmdAdvance(proj, handle, b);
+    if (b.sent) cmdAdvance(proj, handle, b); else cmdRetreat(proj, handle, b);
     btn.closest(".cmdblk").classList.toggle("sent", b.sent);
     btn.textContent = b.sent ? "✓ ส่งแล้ว" : "ส่งแล้ว";
     const n = norm.filter(x => x.sent).length;
@@ -8588,6 +8641,7 @@ function openCmd(proj, handle){
     const o = cmdOwn(proj, handle);
     const keep = o.sent[sentKey(LAW_BLOCK_ID, 0)];
     o.sent = keep ? { [sentKey(LAW_BLOCK_ID, 0)]: keep } : {};
+    cmdRetreatAll(proj, handle);            // สถานะที่กล่องพาขยับไว้ ถอยกลับด้วย
     pruneCmdOwn(proj, handle); saveCmdOwn(); openCmd(proj, handle);
   };
 
