@@ -1577,6 +1577,22 @@ body.locked{overflow:hidden}
 .mappop .flist label i{color:var(--pc)}
 /* ระหว่างลาก: กางขั้นที่ยังไม่มีใครออกมาให้เป็นที่วางด้วย */
 .mapstage.zero{display:none}
+/* แผงวางลอยตอนลาก — ติดขอบขวาจอ ไม่เลื่อนตามเนื้อหา */
+.mapdock{position:fixed;top:72px;right:14px;bottom:14px;width:236px;z-index:60;
+  background:var(--surface);border:1px solid var(--line);border-radius:12px;
+  box-shadow:0 12px 36px rgba(0,0,0,.45);padding:10px 10px 12px;overflow-y:auto}
+.mapdock .dk-t{font-size:.76rem;color:var(--dim);margin:0 2px 8px}
+.mapdock .dk-p{margin-bottom:9px}
+.mapdock .dk-h{font-size:.74rem;font-weight:700;color:var(--pc);letter-spacing:.02em;
+  margin:0 2px 4px;display:flex;align-items:center;gap:6px}
+.mapdock .dk-h::before{content:"";width:7px;height:7px;border-radius:50%;background:var(--pc)}
+.mapdock .dk-s{display:flex;justify-content:space-between;align-items:center;gap:8px;
+  font-size:.8rem;color:var(--ink);padding:6px 9px;margin-bottom:3px;border-radius:7px;
+  border:1px dashed var(--line);background:rgba(255,255,255,.02)}
+.mapdock .dk-s i{font-style:normal;font-family:'IBM Plex Mono',monospace;font-size:.74rem;color:var(--dim)}
+.mapdock .dk-s.cur{opacity:.4;border-style:solid}
+.mapdock .dk-s.over{background:rgba(var(--accent-rgb),.2);border-color:var(--accent);border-style:solid}
+@media (max-width:760px){.mapdock{display:none}}
 body.mapdrag .mapstage.zero{display:block;opacity:.75}
 body.mapdrag .mapstage.zero .lab{border:1px dashed var(--line);border-radius:7px;
   padding:6px 10px;color:var(--dim)}
@@ -2719,6 +2735,8 @@ tr.subrow td.w-status select{width:14.6em}
     </div>
     <div class="mapbody" id="mapBody"></div>
   </div>
+  <!-- แผงวางลอย — โผล่เฉพาะตอนกำลังลาก ทุกขั้นอยู่ในจอเดียว ไม่ต้องเลื่อนหาขั้นที่อยู่ใต้จอ -->
+  <aside class="mapdock" id="mapDock" hidden></aside>
 </div>
 
 <!-- ═══ Format ขอเรท — ข้อความทักครั้งแรก แยกต้นแบบตามโปรเจกต์ ═══ -->
@@ -9312,10 +9330,52 @@ function openTable(proj){
 // ─── ลากคนไปวางที่ขั้นอื่น ───
 // ระหว่างลากจะกางขั้นที่ยังไม่มีใครออกมาให้เห็นด้วย ไม่งั้นจะวางลงขั้นว่างไม่ได้เลย
 // (ปกติซ่อนไว้ เพราะช่วง "ทำคลิป" มี 8 ขั้น ขึ้นครบตลอดเวลาแล้วอ่านยาก)
+// แผงวางลอย: รายการขั้นทั้งหมดแบบย่อ จัดตามช่วงงาน — นับคนต่อขั้นจากโปรเจกต์ของคนที่ลากอยู่
+// ขั้นที่คนนั้นอยู่ตอนนี้หรี่ไว้ (วางลงที่เดิมไม่มีผลอะไร)
+function renderMapDock(proj, who){
+  const dock = $("#mapDock");
+  const rows = mapRows(proj);
+  const me = rows.find(r => normId(r.handle) === normId(who));
+  const cur = me ? (STAGES.some(x => x.v === me.status) ? me.status
+                    : (STATUS_MIGRATE[me.status] || me.status || "")) : null;
+  const count = v => rows.filter(r => {
+    const st = STAGES.some(x => x.v === r.status) ? r.status : (STATUS_MIGRATE[r.status] || r.status || "");
+    return st === v;
+  }).length;
+  const item = (v, th) => `<div class="dk-s${cur === v ? " cur" : ""}" data-drop="${esc(v)}"
+      title="วางเพื่อย้ายไป “${esc(th)}”">${esc(th)}<i>${count(v)}</i></div>`;
+  dock.innerHTML = `<div class="dk-t">วาง <b>${esc(normId(who))}</b> ลงขั้นไหนก็ได้</div>` +
+    MAP_PHASES.map(ph => `<div class="dk-p" style="--pc:${ph.c}">
+      <div class="dk-h">${esc(ph.th)}</div>${
+      STAGES.slice(ph.from, ph.to + 1).map(x => item(x.v, x.th)).join("")}</div>`).join("") +
+    `<div class="dk-p" style="--pc:${MAP_NONE.c}"><div class="dk-h">${esc(MAP_NONE.th)}</div>${
+      item("", "ไม่มีสถานะ")}</div>
+     <div class="dk-p" style="--pc:${MAP_CANCEL.c}"><div class="dk-h">${esc(MAP_CANCEL.th)}</div>${
+      item(ST_CANCEL, "ยกเลิกงาน")}</div>`;
+  dock.hidden = false;
+}
+
 function wireMapDrag(){
   let from = null;
-  const clearOver = () => document.querySelectorAll("#mapBody .over")
+  const clearOver = () => document.querySelectorAll("#mapBody .over, #mapDock .over")
     .forEach(e => e.classList.remove("over"));
+  const endDrag = () => {
+    from = null;
+    document.body.classList.remove("mapdrag");
+    $("#mapDock").hidden = true;
+    clearOver();
+    stopEdge();
+  };
+  // เลื่อนเองตอนลากชิดขอบบน/ล่าง — ตัวเลื่อนของเบราว์เซอร์ช้าและต้องชิดขอบเป๊ะ
+  let edgeT = null, edgeV = 0;
+  const stopEdge = () => { clearInterval(edgeT); edgeT = null; edgeV = 0; };
+  $("#mapView").ondragover = e => {
+    if (!from) return;
+    const y = e.clientY, h = innerHeight, zone = 90;
+    edgeV = y < zone ? -Math.ceil((zone - y) / 6) : y > h - zone ? Math.ceil((y - (h - zone)) / 6) : 0;
+    if (edgeV && !edgeT) edgeT = setInterval(() => $("#mapView").scrollBy(0, edgeV * 4), 16);
+    if (!edgeV) stopEdge();
+  };
 
   document.querySelectorAll("#mapBody .mapleaf[draggable]").forEach(el => {
     el.ondragstart = e => {
@@ -9325,16 +9385,16 @@ function wireMapDrag(){
       try { e.dataTransfer.setData("text/plain", el.dataset.mapwho); } catch(err){}
       document.body.classList.add("mapdrag");
       el.classList.add("dragging");
+      renderMapDock(from.proj, from.who);
+      wireZones($("#mapDock"));
     };
     el.ondragend = () => {
-      from = null;
-      document.body.classList.remove("mapdrag");
       el.classList.remove("dragging");
-      clearOver();
+      endDrag();
     };
   });
 
-  document.querySelectorAll("#mapBody [data-drop]").forEach(zone => {
+  const wireZones = root => root.querySelectorAll("[data-drop]").forEach(zone => {
     zone.ondragover = e => {
       if (!from) return;
       e.preventDefault();
@@ -9347,11 +9407,11 @@ function wireMapDrag(){
       zone.classList.remove("over");
       if (!from) return;
       const f = from;
-      from = null;
-      document.body.classList.remove("mapdrag");
+      endDrag();
       mapSetStatus(f.proj, f.who, zone.dataset.drop);
     };
   });
+  wireZones($("#mapBody"));
 }
 
 // แถบสัดส่วน + % คืบหน้า + คำอธิบายสี ใช้ร่วมกันทุกแผ่น
