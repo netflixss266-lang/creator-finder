@@ -931,6 +931,13 @@ body[data-crew] .crewhide{display:none !important}
   border-radius:8px;padding:6px 10px;font-size:.8rem;cursor:pointer}
 .livewarn .lw .act button:hover{border-color:var(--accent);color:var(--ink)}
 .livewarn .lw .act button.x:hover{border-color:#E50914;color:#ff8a8f}
+.livewarn .lw.day{background:#0e1520;border-color:rgba(84,160,255,.45);border-left-color:#54A0FF}
+.livewarn .lw.day .dot{background:#54A0FF;animation:none}
+.livewarn .lw.day ul{max-height:240px}
+.livewarn .lw.day li{padding:4px 0;border-top:1px solid rgba(255,255,255,.06)}
+.livewarn .lw.day li:first-child{border-top:0}
+.livewarn .lw.day li .w{font-size:.76rem;color:var(--mute);margin-top:1px}
+.livewarn .lw.day li.past{opacity:.45}
 .lwsnd{display:flex;flex-wrap:wrap;gap:7px}
 .lwsnd button{background:var(--surface2);border:1px solid var(--line);color:var(--mute);
   border-radius:999px;padding:6px 13px;font-size:.8rem;cursor:pointer}
@@ -3027,7 +3034,7 @@ tr.subrow td.w-status select{width:14.6em}
     <section class="sect">
       <h3>แจ้งเตือนก่อนไลฟ์</h3>
       <p class="sect-sub">เด้งก่อนไลฟ์ <b>30 · 20 · 10 · 5 นาที</b> เฉพาะโปรเจกต์ไลฟ์ (แผนผังแบบปฏิทินวันที่) ·
-        ค้างจนกว่าจะกดปิด<br>เลือกเสียงตอนเด้ง — กดแล้วเล่นให้ฟังเลย · จำแยกเครื่อง</p>
+        ค้างจนกว่าจะกดปิด<br>วันที่มีไลฟ์ เด้งสรุปรายการไลฟ์ของวันตอน <b>10 โมงเช้า</b><br>เลือกเสียงตอนเด้ง — กดแล้วเล่นให้ฟังเลย · จำแยกเครื่อง</p>
       <div class="lwsnd" id="lwSound"></div>
     </section>
 
@@ -10221,7 +10228,9 @@ function slotLiveStatus(d, tm){
 // ค้างจนกว่าจะกดปิด (รวมถึงหลังถึงเวลาไลฟ์แล้ว) — จำไว้ในเครื่อง รีเฟรชหน้าก็ยังอยู่
 const LIVE_WARN = [30, 20, 10, 5];
 const LS_LIVEWARN = "cf_livewarn_v1";
-let LIVEWARN = {};              // { "โปรเจกต์|เวลาเริ่ม(ms)": { stage, closed, start } }
+let LIVEWARN = {};              // { "โปรเจกต์|เวลาเริ่ม(ms)": { stage, closed, start } } · { "day|2026-09-28": { daily, closed, start } }
+// สรุปไลฟ์ของวัน — เด้งตอน 10 โมงเช้า เฉพาะวันที่มีไลฟ์ · เปิดเว็บหลัง 10 โมงก็เด้งทันที · ปิดแล้วไม่เด้งซ้ำทั้งวัน
+const LIVE_DAY_HOUR = 10;
 function loadLiveWarn(){
   try { const v = lsGet(LS_LIVESOUND); if (LW_SOUNDS[v]) LW_SOUND = v; } catch(e){}   // หลังล็อกอิน NS อาจเปลี่ยน
   try { LIVEWARN = JSON.parse(lsGet(LS_LIVEWARN) || "{}") || {}; } catch(e){ LIVEWARN = {}; }
@@ -10248,6 +10257,23 @@ function liveGroups(){
   }));
   return out;
 }
+function todayLives(now){
+  const today = dayKey(new Date(now));
+  const out = new Map();
+  PROJECTS.filter(p => mapFmt(p) === "cal").forEach(p => (COORD[p] || []).forEach(r => {
+    if (isCancelled(r)) return;
+    rowSlots(r).forEach(sl => {
+      if (dayKey(sl.d) !== today) return;
+      const rng = slotRangeMins(sl.time);
+      const m = rng ? rng.start : null;
+      const k = `${m == null ? "x" : m}|${p}`;
+      if (!out.has(k)) out.set(k, { proj:p, m, who:[] });
+      out.get(k).who.push(normId(r.handle));
+    });
+  }));
+  return [...out.values()].sort((a, b) => (a.m == null ? 1e4 : a.m) - (b.m == null ? 1e4 : b.m) || a.proj.localeCompare(b.proj));
+}
+const lwHM = m => `${String(Math.floor(m / 60)).padStart(2, "0")}.${String(m % 60).padStart(2, "0")}`;
 const LW_TITLE = document.title;
 function checkLiveWarn(){
   if (!SESSION) return;
@@ -10264,9 +10290,17 @@ function checkLiveWarn(){
     LIVEWARN[g.key] = { stage, closed:false, start: g.start.getTime() };
     changed = fresh = true;
   });
-  // เก็บกวาด: รอบที่เริ่มไปเกิน 12 ชม. แล้วไม่ต้องจำ
+  // สรุปไลฟ์ของวัน ตอน 10 โมง
+  const ten = new Date(now); ten.setHours(LIVE_DAY_HOUR, 0, 0, 0);
+  const dk = `day|${dayKey(ten)}`;
+  if (now >= ten.getTime() && !LIVEWARN[dk] && todayLives(now).length){
+    LIVEWARN[dk] = { daily:true, closed:false, start: ten.getTime() };
+    changed = fresh = true;
+  }
+  // เก็บกวาด: รอบที่เริ่มไปเกิน 12 ชม. แล้วไม่ต้องจำ · สรุปวันจำไว้ 24 ชม. (ไม่งั้นลบตอน 4 ทุ่มแล้วเด้งซ้ำ)
   Object.keys(LIVEWARN).forEach(k => {
-    if (now - (LIVEWARN[k].start || 0) > 12 * 3600e3){ delete LIVEWARN[k]; changed = true; }
+    const keep = LIVEWARN[k].daily ? 24 * 3600e3 : 12 * 3600e3;
+    if (now - (LIVEWARN[k].start || 0) > keep){ delete LIVEWARN[k]; changed = true; }
   });
   if (changed) saveLiveWarn();
   renderLiveWarn(groups);
@@ -10280,6 +10314,23 @@ function renderLiveWarn(groups){
   const open = Object.entries(LIVEWARN).filter(([, v]) => !v.closed)
     .sort((a, b) => a[1].start - b[1].start);
   box.innerHTML = open.map(([k, v]) => {
+    if (v.daily){
+      // อ่านสดจากตารางทุกครั้ง — ใครเลื่อน/ยกเลิกระหว่างวัน การ์ดก็ตามทันที
+      const list = todayLives(now);
+      const nowM = new Date(now).getHours() * 60 + new Date(now).getMinutes();
+      const d = new Date(v.start);
+      const people = list.reduce((a, x) => a + x.who.length, 0);
+      const projs = [...new Set(list.map(x => x.proj))];
+      return `<div class="lw day">
+        <div class="t"><span class="dot"></span>📅 วันนี้มีไลฟ์ ${people} คน · ${TH_DOW[d.getDay()]} ${d.getDate()}/${d.getMonth() + 1}</div>
+        <div class="p">${list.length} รอบ · ${projs.length > 1 ? `${projs.length} โปรเจกต์` : esc(projs[0] || "")}</div>
+        <ul>${list.map(x => `<li class="${x.m != null && x.m < nowM ? "past" : ""}"><b>${x.m == null ? "ไม่ระบุเวลา" : lwHM(x.m) + " น."}</b>
+          ${projs.length > 1 ? `<span>${esc(x.proj)}</span>` : ""}<div class="w">${x.who.map(esc).join(", ")}</div></li>`).join("")
+          || "<li>ไม่มีไลฟ์เหลือวันนี้แล้ว</li>"}</ul>
+        <div class="act">${list[0] ? `<button type="button" data-lwopen="${esc(list[0].proj)}">เปิดปฏิทิน</button>` : ""}
+          <button type="button" class="x" data-lwclose="${esc(k)}">ปิดแจ้งเตือน</button></div>
+      </div>`;
+    }
     const g = groups.get(k);
     const proj = k.slice(0, k.lastIndexOf("|"));
     const left = Math.ceil((v.start - now) / 60000);
@@ -10308,7 +10359,7 @@ function renderLiveWarn(groups){
     if (document.body.dataset.view === "coord" && PROJECTS.includes(p)){ MAP_MODE = "flow"; openMap(p); }
   });
   // ชื่อแท็บบอกด้วย — สลับไปแท็บอื่นอยู่ก็ยังเห็น
-  const first = open.find(([, v]) => v.start > now);
+  const first = open.find(([, v]) => !v.daily && v.start > now);
   document.title = first
     ? `🔴 ไลฟ์ใน ${Math.ceil((first[1].start - now) / 60000)} นาที · ${LW_TITLE}` : LW_TITLE;
 }
@@ -10326,7 +10377,7 @@ const LW_SOUNDS = {
   off:     { th:"ปิดเสียง",      notes:[] }
 };
 const LS_LIVESOUND = "cf_livesound_v1";
-let LW_SOUND = "ding";
+let LW_SOUND = "siren";
 try { const v = lsGet(LS_LIVESOUND); if (LW_SOUNDS[v]) LW_SOUND = v; } catch(e){}
 let LW_AUDIO = null;
 function lwAudio(){
