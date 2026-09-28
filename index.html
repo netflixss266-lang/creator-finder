@@ -4953,6 +4953,7 @@ async function rtPull(){
       renderProjTabs(); renderCoord();
       if (!$("#mapView").hidden) renderMap();
       if (DETAIL) renderDetail();
+      if (!$("#settings").hidden) renderSkuGuide();   // เปิดหน้าตั้งค่าค้างไว้ก็เห็น SKU ใหม่จากเครื่องอื่นทันที
       updateSyncBar();
     }
   } catch(e){}
@@ -7495,7 +7496,7 @@ function bindForSku(kind, sku, n){
 // ตั้งกว้างเกินไป (คู่มือของ Moomin ไปคุมเฉดที่ไม่ใช่ Moomin ด้วย) จะเห็นทันทีตั้งแต่ตอนตั้ง
 function skusUnderKey(kind, key){
   const all = [...new Set(PROJECTS.flatMap(p => (COORD[p] || []).flatMap(r => skuParts(r.sku))))];
-  const pool = [...new Set(all.concat(skuListFor(PROJ) || []))];
+  const pool = [...new Set(all.concat(projLibSkus(PROJECTS)))];
   const MAP = SKUBIND[kind] || {};
   return pool.filter(s => bindKeyForOne(MAP, s) === key).sort();
 }
@@ -12316,8 +12317,13 @@ function sgScope(){
   if (SG_KIND !== "all") list = list.filter(r => (r.kind || "") === SG_KIND);
   return list;
 }
+// SKU ในคลังของโปรเจกต์ (ที่เพิ่มไว้ใน SKU picker) — ยังไม่ได้แจกให้ใครก็ต้องตั้งคู่มือรอไว้ได้
+// เดิมหน้านี้ดูแค่ SKU ที่อยู่ในแถวครีเอเตอร์ = SKU ใหม่ไม่ขึ้นจนกว่าจะแจกให้ใครสักคน
+const projLibSkus = projs => [...new Set(projs.flatMap(p => (PROJ_SKU[p] || []).concat(skuListFor(p) || [])))];
 function sgOptionValues(){
-  const used = [...new Set(sgScope().flatMap(r => skuParts(r.sku)))];
+  // ตัวกรอง KOL/KOC ใช้กับคลังไม่ได้ (SKU ในคลังยังไม่ผูกกับใคร) — เอาคลังมารวมเฉพาะตอนดู "ทั้งหมด"
+  const lib = SG_KIND === "all" ? projLibSkus(SG_PROJ ? [SG_PROJ] : PROJECTS) : [];
+  const used = [...new Set(sgScope().flatMap(r => skuParts(r.sku)).concat(lib))];
   const lines = [...new Set(used.map(s => s.split(/\s*-\s*/)[0].trim()).filter(Boolean))];
   return skuSort([...new Set(lines.concat(used))]);
 }
@@ -12446,7 +12452,7 @@ function renderSkuGuide(){
     : `<p class="hint">ยังไม่ได้ตั้งไว้ — ทุกคนจะได้${esc(meta.th)}ชุดเดียวกันจาก “ลิงก์ที่ใช้ร่วมกัน”</p>`;
 
   // ตัวเลือกให้พิมพ์ง่าย: SKU ที่ใช้จริงในทุกโปรเจกต์ + ชื่อไลน์ที่ตัดมาจากหน้า SKU
-  const used = [...new Set(all.flatMap(r => skuParts(r.sku)))];
+  const used = [...new Set(all.flatMap(r => skuParts(r.sku)).concat(projLibSkus(PROJECTS)))];
   const lines = [...new Set(used.map(s => s.split(/\s*-\s*/)[0].trim()).filter(Boolean))];
   $("#skuGuideOpts").innerHTML = skuSort([...new Set(lines.concat(used))])
     .map(v => `<option value="${esc(v)}">`).join("");
