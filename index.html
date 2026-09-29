@@ -7931,7 +7931,10 @@ const LS_CMDEDIT_OLD = "cf_cmdedit_v1";     // อ่านอย่างเด
 const LS_CMDEDIT = "cf_cmdedit_v2";         // { โปรเจกต์: { id: {t,b} } }
 const LS_CMDADD  = "cf_cmdadd_v1";          // { โปรเจกต์: [ {id,t,b,ord,clip,kind} ] }
 const LS_CMDHIDE = "cf_cmdhide_v1";         // { โปรเจกต์: [id, …] }
-const LS_CMDKIND = "cf_cmdkind_v1";         // { โปรเจกต์: { KOL: { id: {t,b} }, KOC: {…} } }
+const LS_CMDKIND = "cf_cmdkind_v1";
+// ต้นแบบของทุกโปรเจกต์ (ถัง "*") — แท็บ "ทุกโปรเจกต์" ในหน้าแก้ข้อความ
+// ยังไม่มีกุญแจนี้ = ยกของเดิมจาก cf_cmdedit_v1 มาเป็นจุดเริ่ม · ไฟล์เดิมยังไม่ถูกเขียนทับเหมือนเดิม
+const LS_CMDGLOBAL = "cf_cmdglobal_v1";     // { id: {t,b} }         // { โปรเจกต์: { KOL: { id: {t,b} }, KOC: {…} } }
 const ALLP = "*";
 let CMDEDIT = {};        // รวมถัง "*" ไว้ในนี้ด้วย
 // ต้นแบบแยกกลุ่ม KOL / KOC ภายในโปรเจกต์ — ชั้นระหว่าง "ของคนนี้" กับ "ทุกคนในโปรเจกต์"
@@ -7943,8 +7946,6 @@ let CMDHIDE = {};
 let CMD_EDITING = false;
 
 const cmdEditBucket = proj => (CMDEDIT[proj] || (CMDEDIT[proj] = {}));
-// ที่แก้ไว้ของบล็อกนี้ในโปรเจกต์นี้ — ไม่มีก็ตกไปที่ของเดิมที่ใช้ร่วมกัน
-const cmdEditOne = (proj, id) => (CMDEDIT[proj] || {})[id] || (CMDEDIT[ALLP] || {})[id] || null;
 const cmdKindOne = (proj, kind, id) => kind ? (((CMDKIND[proj] || {})[kind] || {})[id] || null) : null;
 function cmdKindBucket(proj, kind){
   const p = CMDKIND[proj] || (CMDKIND[proj] = {});
@@ -7962,8 +7963,11 @@ function loadCmdEdit(){
   try { CMDADD  = JSON.parse(lsGet(LS_CMDADD)  || "{}") || {}; } catch(e){}
   try { CMDHIDE = JSON.parse(lsGet(LS_CMDHIDE) || "{}") || {}; } catch(e){}
   try { CMDKIND = JSON.parse(lsGet(LS_CMDKIND) || "{}") || {}; } catch(e){}
-  // ของเดิมชั้นเดียว — ยกมาเป็นถัง "*" ทุกครั้งที่โหลด ไม่แก้ไฟล์เดิม
-  try { CMDEDIT[ALLP] = JSON.parse(lsGet(LS_CMDEDIT_OLD) || "{}") || {}; } catch(e){}
+  // ถัง "*" — ของที่แก้ในแท็บทุกโปรเจกต์ · ยังไม่เคยแก้ก็ใช้ของเดิมชั้นเดียว (ไม่แก้ไฟล์เดิม)
+  let g = null;
+  try { g = JSON.parse(lsGet(LS_CMDGLOBAL) || "null"); } catch(e){}
+  if (!g || typeof g !== "object"){ try { g = JSON.parse(lsGet(LS_CMDEDIT_OLD) || "{}") || {}; } catch(e){ g = {}; } }
+  CMDEDIT[ALLP] = g;
   repairFeedbackBlocks();
   let n = 0;
   for (const proj in CMDEDIT)
@@ -8001,7 +8005,7 @@ function repairFeedbackBlocks(){
   return fixed;
 }
 function saveCmdEdit(){
-  // ถัง "*" คือของเดิมที่อ่านมา ไม่เขียนกลับ — เก็บเฉพาะของรายโปรเจกต์
+  // ถัง "*" ไปอยู่อีกกุญแจ (LS_CMDGLOBAL) — ในนี้เก็บเฉพาะของรายโปรเจกต์
   const out = {};
   for (const k in CMDEDIT) if (k !== ALLP && Object.keys(CMDEDIT[k]).length) out[k] = CMDEDIT[k];
   try {
@@ -8013,6 +8017,7 @@ function saveCmdEdit(){
       if (!Object.keys(CMDKIND[p]).length) delete CMDKIND[p];
     }
     lsSet(LS_CMDKIND, JSON.stringify(CMDKIND));
+    lsSet(LS_CMDGLOBAL, JSON.stringify(CMDEDIT[ALLP] || {}));
   } catch(e){}
 }
 
@@ -8026,13 +8031,15 @@ function saveCmdEdit(){
 function cmdBlocksAll(proj, kind){
   const hid = cmdHideFor(proj);
   const mk = (id, def, ord, custom) => {
-    const ed = cmdEditOne(proj, id);
-    const pt = (ed && ed.t) || def.t, pb = (ed && ed.b != null) ? ed.b : def.b;
+    const ed = (CMDEDIT[proj] || {})[id] || null;              // ของโปรเจกต์นี้
+    const ge = custom ? null : ((CMDEDIT[ALLP] || {})[id] || null);   // ของทุกโปรเจกต์
+    const gt = (ge && ge.t) || def.t, gb = (ge && ge.b != null) ? ge.b : def.b;
+    const pt = (ed && ed.t) || gt, pb = (ed && ed.b != null) ? ed.b : gb;
     const ke = cmdKindOne(proj, kind, id);
     // ของกลุ่มไหนแก้แยกไว้บ้าง — โชว์ป้ายในแท็บทุกคน จะได้รู้ว่าแก้ตรงนั้นแล้วบางกลุ่มไม่เปลี่ยนตาม
     const split = ["KOL", "KOC"].filter(k => cmdKindOne(proj, k, id));
     return { id, t:(ke && ke.t) || pt, b:(ke && ke.b != null) ? ke.b : pb, pt, pb,
-             kindEdited: !!ke, split,
+             kindEdited: !!ke, split, gt, gb, globalEdited: !!ge,
              clip: !!def.clip, kind: def.kind || "", law: !!def.law, live: !!def.live,
              // null = ได้ทุกคน · ต้องส่งต่อจากต้นแบบ ไม่งั้นตัวกรอง "มีเรทชำระไหม" จะไม่เห็นค่านี้เลย
              pay: def.pay == null ? null : !!def.pay,
@@ -8206,10 +8213,19 @@ let CMD_STEP = null;
 function renderCmdEditor(proj, handle){
   const mine = CMD_SCOPE === "mine";
   const ks = CMD_SCOPE === "KOL" || CMD_SCOPE === "KOC" ? CMD_SCOPE : "";   // แท็บกลุ่ม
+  const gs = CMD_SCOPE === "global";                                         // แท็บทุกโปรเจกต์
+  const lite = ks || gs;          // แท็บที่แก้ได้แค่ข้อความ — เพิ่ม/ซ่อนบล็อกทำที่แท็บโปรเจกต์
   const myKind = cmdRowKind(proj, handle);
+  // โปรเจกต์ที่แก้บล็อกนี้แยกไว้เอง — แก้ในแท็บทุกโปรเจกต์แล้วโปรเจกต์พวกนี้ไม่เปลี่ยนตาม
+  const projSplit = id => Object.keys(CMDEDIT).filter(p => p !== ALLP && (CMDEDIT[p] || {})[id]);
   // โหมดต้นแบบเห็นบล็อกที่ซ่อนไว้ด้วย จะได้กดคืนได้ · โหมดรายคนเห็นเฉพาะที่ใช้จริง
   // แท็บกลุ่มเห็นเฉพาะบล็อกที่ใช้อยู่ (ซ่อน/คืนบล็อกทำที่แท็บทุกคน)
-  const list = mine ? cmdBlocksFor(proj, handle) : ks ? cmdBlocks(proj, ks) : cmdBlocksAll(proj);
+  // แท็บทุกโปรเจกต์: เฉพาะบล็อกในต้นแบบ (บล็อกที่เพิ่มเองเป็นของโปรเจกต์นั้น) · ข้อความชั้นทุกโปรเจกต์
+  const list = mine ? cmdBlocksFor(proj, handle) : ks ? cmdBlocks(proj, ks)
+    : gs ? cmdBlocksAll(proj).filter(b => !b.custom)
+        .map(b => Object.assign({}, b, { t: b.gt, b: b.gb, hidden: false }))
+    : cmdBlocksAll(proj);
+  const nGlobal = Object.keys(CMDEDIT[ALLP] || {}).length;
   // บล็อกต้นแบบที่ถูกซ่อนเฉพาะคนนี้ — cmdBlocksFor คัดออกไปแล้ว เก็บไว้ทำปุ่มคืนท้ายหน้า
   const hideSet = new Set(cmdOwnRead(proj, handle).hide || []);
   const hiddenForMine = mine ? cmdBlocks(proj).filter(b => hideSet.has(b.id)) : [];
@@ -8228,11 +8244,17 @@ function renderCmdEditor(proj, handle){
          ${["KOL", "KOC"].map(k => `<button data-scope="${k}" aria-selected="${ks === k}"
            title="แก้ข้อความให้ ${k} ทุกคนใน ${esc(proj)}${k === myKind ? ` — ${esc(normId(handle))} อยู่กลุ่มนี้` : ""}"
            >${k} ทุกคน${k === myKind ? " ·คนนี้" : ""}${cmdKindCount(proj, k) ? `<span class="n">${cmdKindCount(proj, k)}</span>` : ""}</button>`).join("")}
-         <button data-scope="all" aria-selected="${!mine && !ks}">ทุกคนใน ${esc(proj)}${
+         <button data-scope="all" aria-selected="${!mine && !lite}">ทุกคนใน ${esc(proj)}${
            nProj ? `<span class="n">${nProj}</span>` : ""}</button>
+         <button data-scope="global" aria-selected="${gs}" title="แก้ต้นแบบของทุกโปรเจกต์">ทุกโปรเจกต์${
+           nGlobal ? `<span class="n">${nGlobal}</span>` : ""}</button>
        </div>
        ${mine
          ? `แก้แล้ว<b> ใช้กับ ${esc(normId(handle))} คนเดียว</b> คนอื่นยังได้ข้อความต้นแบบเหมือนเดิม`
+         : gs
+         ? `แก้แล้ว<b> ใช้กับทุกโปรเจกต์</b> รวมโปรเจกต์ที่เปิดใหม่ทีหลัง
+            <span style="color:var(--dim)">(ยกเว้นโปรเจกต์ / กลุ่ม KOL-KOC / คนที่แก้บล็อกนั้นแยกไว้แล้ว — ดูป้าย "แก้แยก")
+            · เพิ่ม/ซ่อนบล็อกทำที่แท็บของแต่ละโปรเจกต์</span>`
          : ks
          ? `แก้แล้ว<b> ใช้กับ ${ks} ทุกคนใน ${esc(proj)}</b> ${ks === "KOL" ? "KOC" : "KOL"} ไม่เปลี่ยนตาม
             <span style="color:var(--dim)">(ยกเว้นคนที่มีข้อความของตัวเองอยู่แล้ว)
@@ -8243,9 +8265,9 @@ function renderCmdEditor(proj, handle){
        ตัวแปรที่ใส่ได้: ${Object.keys(CMD_GAP).map(k => `<code>{{${k}}}</code>`).join(" ")}
        <button class="cmdbtn" id="cmdDone">เสร็จแล้ว</button>
        <button class="cmdbtn" id="cmdResetAll">${mine ? "คืนให้เหมือนต้นแบบทั้งหมด"
-         : ks ? `คืนของ ${ks} ทั้งหมด` : "คืนค่าต้นแบบทั้งหมด"}</button>
+         : ks ? `คืนของ ${ks} ทั้งหมด` : gs ? "คืนต้นแบบทุกโปรเจกต์ทั้งหมด" : "คืนค่าต้นแบบทั้งหมด"}</button>
      </div>` +
-    list.map((b, i) => `<div class="cmdblk${(mine ? b.mine : ks ? b.kindEdited : b.edited) ? " edited" : ""}${
+    list.map((b, i) => `<div class="cmdblk${(mine ? b.mine : ks ? b.kindEdited : gs ? b.globalEdited : b.edited) ? " edited" : ""}${
       b.hidden ? " hiddenblk" : ""}">
       <header><span class="no">${i+1}</span>
         ${b.pay != null ? `<span class="kindtag">${
@@ -8254,14 +8276,16 @@ function renderCmdEditor(proj, handle){
         ${b.custom ? `<span class="kindtag add">${
           b.onlyMine ? "เฉพาะคนนี้" : "เพิ่มเอง"}</span>` : ""}
         ${b.hidden ? `<span class="kindtag off">ซ่อนอยู่</span>` : ""}
-        ${!mine && !ks && b.split && b.split.length
+        ${gs && projSplit(b.id).length
+          ? `<span class="kindtag add" title="แก้แยกไว้ใน: ${esc(projSplit(b.id).join(", "))} — แก้ตรงนี้แล้วโปรเจกต์พวกนี้ไม่เปลี่ยนตาม">แก้แยก ${projSplit(b.id).length} โปรเจกต์</span>` : ""}
+        ${!mine && !lite && b.split && b.split.length
           ? `<span class="kindtag add" title="กลุ่มนี้มีข้อความของตัวเอง — แก้ตรงนี้แล้วกลุ่มนี้ไม่เปลี่ยนตาม">${b.split.join("/")} แก้แยก</span>` : ""}
         <input class="cmdt" data-id="${esc(b.id)}" value="${esc(b.t)}"${b.hidden ? " disabled" : ""}>
         ${/* บล็อกที่มีเฉพาะคนนี้ไม่มีต้นแบบให้คืนกลับ มีแต่ลบทิ้ง ปุ่ม ↺ จึงไม่ขึ้น */ ""}
-        ${(mine ? (b.mine && !b.onlyMine) : ks ? b.kindEdited : b.edited)
+        ${(mine ? (b.mine && !b.onlyMine) : ks ? b.kindEdited : gs ? b.globalEdited : b.edited)
           ? `<button data-reset="${esc(b.id)}" title="${mine ? "คืนบล็อกนี้ให้เหมือนต้นแบบ"
-              : ks ? "คืนให้เหมือนต้นแบบของทุกคนในโปรเจกต์" : "คืนค่าบล็อกนี้"}">↺</button>` : ""}
-        ${ks ? "" : mine
+              : ks ? "คืนให้เหมือนต้นแบบของทุกคนในโปรเจกต์" : gs ? "คืนเป็นต้นแบบในระบบ" : "คืนให้เหมือนต้นแบบทุกโปรเจกต์"}">↺</button>` : ""}
+        ${lite ? "" : mine
           ? `<button data-mdrop="${esc(b.id)}" title="${b.onlyMine
               ? "ลบบล็อกนี้ทิ้ง — มีเฉพาะ " + esc(normId(handle)) + " อยู่แล้ว"
               : "ไม่ส่งบล็อกนี้ให้ " + esc(normId(handle)) + " — คนอื่นยังได้เหมือนเดิม"}">🗑</button>`
@@ -8273,11 +8297,11 @@ function renderCmdEditor(proj, handle){
       ${b.hidden ? "" :
         `<textarea class="cmdb" data-id="${esc(b.id)}"
            rows="${Math.min(16, b.b.split("\n").length + 1)}">${esc(b.b)}</textarea>`}
-      ${ks ? "" : `<button class="addhere" data-${mine ? "madd" : "add"}="${b.ord}"
+      ${lite ? "" : `<button class="addhere" data-${mine ? "madd" : "add"}="${b.ord}"
         title="แทรกบล็อกใหม่ต่อจากอันนี้${mine ? " — มีเฉพาะ " + esc(normId(handle)) : ""}"
         >＋ เพิ่มบล็อกตรงนี้</button>`}
     </div>`).join("") +
-    (ks ? "" : `<div class="cmdmeta" style="text-align:center">
+    (lite ? "" : `<div class="cmdmeta" style="text-align:center">
        <button class="cmdbtn" data-${mine ? "madd" : "add"}="${Number.MAX_SAFE_INTEGER}"
          >＋ เพิ่มบล็อกท้ายสุด${mine ? ` (เฉพาะ ${esc(normId(handle))})` : ""}</button></div>`) +
     // บล็อกต้นแบบที่ซ่อนไว้เฉพาะคนนี้หลุดออกจากลิสต์ข้างบนไปแล้ว ต้องมีที่ให้กดคืน ไม่งั้นหายถาวร
@@ -8288,13 +8312,27 @@ function renderCmdEditor(proj, handle){
       : "");
 
   const saveAll = (id, key, val) => {
-    const base = (cmdBlocksAll(proj).find(b => b.id === id) || {}).base;
-    if (!base) return false;
-    const cur = Object.assign({ t: base.t, b: base.b }, (CMDEDIT[proj] || {})[id] || {});
+    const blk = cmdBlocksAll(proj).find(b => b.id === id);
+    if (!blk) return false;
+    const cur = Object.assign({}, (CMDEDIT[proj] || {})[id] || {});
     cur[key] = val;
-    // เหมือนต้นแบบเป๊ะแล้วก็ถอดออก จะได้ไหลตามต้นแบบต่อไปเวลาโค้ดอัปเดต
-    if (cur.t === base.t && cur.b === base.b) delete cmdEditBucket(proj)[id];
+    // เก็บเฉพาะช่องที่ต่างจากชั้นล่าง (ทุกโปรเจกต์/โค้ด) — แก้แค่หัวข้อ เนื้อความยังไหลตามแท็บทุกโปรเจกต์ต่อ
+    if (cur.t === blk.gt) delete cur.t;
+    if (cur.b === blk.gb) delete cur.b;
+    if (cur.t == null && cur.b == null) delete cmdEditBucket(proj)[id];
     else cmdEditBucket(proj)[id] = cur;
+    saveCmdEdit();
+    return true;
+  };
+  // ทุกโปรเจกต์ — เทียบกับต้นแบบในโค้ด
+  const saveGlobal = (id, key, val) => {
+    const def = CMD_BLOCKS[Number(id)];
+    if (!def || !/^\d+$/.test(id)) return false;
+    const bucket = CMDEDIT[ALLP] || (CMDEDIT[ALLP] = {});
+    const cur = Object.assign({ t: def.t, b: def.b }, bucket[id] || {});
+    cur[key] = val;
+    if (cur.t === def.t && cur.b === def.b) delete bucket[id];
+    else bucket[id] = cur;
     saveCmdEdit();
     return true;
   };
@@ -8303,9 +8341,12 @@ function renderCmdEditor(proj, handle){
     const blk = cmdBlocksAll(proj).find(b => b.id === id);
     if (!blk) return false;
     const bucket = cmdKindBucket(proj, ks);
-    const cur = Object.assign({ t: blk.pt, b: blk.pb }, bucket[id] || {});
+    const cur = Object.assign({}, bucket[id] || {});
     cur[key] = val;
-    if (cur.t === blk.pt && cur.b === blk.pb) delete bucket[id];
+    // เก็บเฉพาะช่องที่ต่างจากระดับโปรเจกต์ — ช่องที่ไม่ได้แตะยังไหลตามชั้นบนต่อ
+    if (cur.t === blk.pt) delete cur.t;
+    if (cur.b === blk.pb) delete cur.b;
+    if (cur.t == null && cur.b == null) delete bucket[id];
     else bucket[id] = cur;
     saveCmdEdit();
     return true;
@@ -8319,7 +8360,7 @@ function renderCmdEditor(proj, handle){
       const lost = need.filter(v => !val.includes(v));
       if (lost.length && !confirm(
         `ข้อความนี้ไม่มี ${lost.join(" ")} แล้ว\n\n` +
-        `ต้นแบบใช้กับ${ks ? ` ${ks}` : "ครีเอเตอร์"}ทุกคนใน ${proj} — ถ้าตัวแปรหาย ทุกคนจะได้ข้อความเดียวกันหมด\n` +
+        `ต้นแบบใช้กับ${gs ? "ครีเอเตอร์ทุกโปรเจกต์" : `${ks ? ` ${ks}` : "ครีเอเตอร์"}ทุกคนใน ${proj}`} — ถ้าตัวแปรหาย ทุกคนจะได้ข้อความเดียวกันหมด\n` +
         `และไม่มีที่ให้เติมฟีดแบคของแต่ละคนอีก\n\n` +
         `ถ้าจะใส่ฟีดแบคให้คนใดคนหนึ่ง ให้กด "เฉพาะ ${normId(handle)}" ด้านบน\n` +
         `หรือปุ่ม ✎ Feedback แทน\n\nยืนยันว่าจะแก้ต้นแบบจริงๆ?`)){
@@ -8327,7 +8368,8 @@ function renderCmdEditor(proj, handle){
         return false;
       }
     }
-    return mine ? setCmdOwnBlock(proj, handle, id, key, val) : ks ? saveKind(id, key, val) : saveAll(id, key, val);
+    return mine ? setCmdOwnBlock(proj, handle, id, key, val) : ks ? saveKind(id, key, val)
+      : gs ? saveGlobal(id, key, val) : saveAll(id, key, val);
   };
 
   document.querySelectorAll("#cmdBody .cmdt").forEach(el =>
@@ -8338,6 +8380,7 @@ function renderCmdEditor(proj, handle){
     const id = b.dataset.reset;
     if (mine){ delete cmdOwn(proj, handle).blocks[id]; pruneCmdOwn(proj, handle); saveCmdOwn(); }
     else if (ks){ delete cmdKindBucket(proj, ks)[id]; saveCmdEdit(); }
+    else if (gs){ delete (CMDEDIT[ALLP] || {})[id]; saveCmdEdit(); }
     else { if (CMDEDIT[proj]) delete CMDEDIT[proj][id]; saveCmdEdit(); }
     renderCmdEditor(proj, handle);
   });
@@ -8388,6 +8431,12 @@ function renderCmdEditor(proj, handle){
         `จะหายทั้งหมด เอากลับไม่ได้`)) return;
       delete CMDOWN[cmdKey(proj, handle)];
       saveCmdOwn();
+    } else if (gs){
+      if (!confirm(`คืนต้นแบบของทุกโปรเจกต์ให้เป็นข้อความในระบบทั้งหมด?\n\n` +
+        `ที่แก้ไว้ในแท็บทุกโปรเจกต์ ${nGlobal} บล็อกจะหาย เอากลับไม่ได้\n` +
+        `(ที่แก้แยกรายโปรเจกต์ / กลุ่ม / รายคน ยังอยู่)`)) return;
+      CMDEDIT[ALLP] = {};
+      saveCmdEdit();
     } else if (ks){
       if (!confirm(`คืนข้อความของ ${ks} ใน ${proj} ให้เหมือนต้นแบบของทุกคนในโปรเจกต์?\n\n` +
         `ที่แก้แยกให้ ${ks} ไว้ ${cmdKindCount(proj, ks)} บล็อกจะหาย เอากลับไม่ได้`)) return;
@@ -15072,7 +15121,7 @@ function parseSlashLine(line, pending){
     if (mc){
       const i = Number(mc[1]) - 1;
       if (i < 0 || i >= CMD_BLOCKS.length) return bad(`ไม่มี Command บล็อกที่ ${mc[1]}`);
-      if (!cmdEditOne(PROJ, String(i)))
+      if (!(CMDEDIT[PROJ] || {})[String(i)])
         return bad(`Command บล็อก ${mc[1]} ของ ${PROJ} เป็นต้นแบบอยู่แล้ว ไม่ได้ถูกแก้`);
       return [{ line, ok:true, admin:"resetcmd", block:i, changes:{},
         note:`คืนข้อความต้นแบบบล็อก ${mc[1]} (${CMD_BLOCKS[i].t.replace(/^\d+\.\s*/,"")})` }];
