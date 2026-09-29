@@ -1605,6 +1605,20 @@ body.locked{overflow:hidden}
 @media(prefers-reduced-motion:reduce){
   .mapleafwrap.found{animation:none;box-shadow:0 0 0 3px rgba(255,207,77,.9)}
 }
+/* ค้นเจอในตาราง (Ctrl+F) — ทองแบบเดียวกับใบบนแผนผัง แต่ทั้งแถว
+   ⚠️ ทาทับด้วย box-shadow ด้านใน ไม่ใช่เปลี่ยนสีพื้น — คอลัมน์ซ้ายเป็น sticky ต้องมีพื้นทึบไว้บังของที่เลื่อนผ่าน
+   ถ้าเปลี่ยนพื้นเป็นทองโปร่ง ตอนเลื่อนแนวนอนตัวหนังสือข้างหลังจะโผล่ทะลุ
+   เส้นทองบน-ล่างเป็นเงาชั้นบนสุด ให้เห็นขอบแถวชัดแม้ช่องจะมีสีสถานะอยู่แล้ว */
+.ctable tr.found > td{animation:rowfound 2.4s ease-out 1}
+@keyframes rowfound{
+  0%{box-shadow:inset 0 2px 0 rgba(255,207,77,0),inset 0 -2px 0 rgba(255,207,77,0),inset 0 0 0 999px rgba(255,207,77,0)}
+  18%{box-shadow:inset 0 2px 0 #FFCF4D,inset 0 -2px 0 #FFCF4D,inset 0 0 0 999px rgba(255,207,77,.3)}
+  70%{box-shadow:inset 0 2px 0 #FFCF4D,inset 0 -2px 0 #FFCF4D,inset 0 0 0 999px rgba(255,207,77,.16)}
+  100%{box-shadow:inset 0 2px 0 rgba(255,207,77,0),inset 0 -2px 0 rgba(255,207,77,0),inset 0 0 0 999px rgba(255,207,77,0)}
+}
+@media(prefers-reduced-motion:reduce){
+  .ctable tr.found > td{animation:none;box-shadow:inset 0 2px 0 #FFCF4D,inset 0 -2px 0 #FFCF4D,inset 0 0 0 999px rgba(255,207,77,.16)}
+}
 /* ปิดงานแล้ว — เหลือไว้ให้เห็นว่ามีคนนี้อยู่ แต่ไม่ต้องดึงสายตาอีก */
 .mapleaf.done{opacity:.62}
 .mapleaf.done .h{color:var(--hi)}
@@ -13939,6 +13953,37 @@ function jumpToMapLeaf(ref){
   return true;
 }
 
+// ── โหมดตาราง: อยู่หน้า Coordinator และไม่ได้กางแผนผัง ──
+// คนกำลังมองตาราง — เลื่อนไปที่แถวของคนนั้นแล้วเรืองแสงทอง (แบบเดียวกับใบบนแผนผัง) ไม่เปิดลิ้นชักทับ
+const qfTableMode = () => document.body.dataset.view === "coord" && $("#mapView").hidden;
+function jumpToTableRow(ref){
+  const i = (COORD[ref.proj] || []).findIndex(r => normId(r.handle) === ref.handle);
+  if (i < 0) return false;
+  const r = COORD[ref.proj][i];
+  if (ref.proj !== PROJ){ PROJ = ref.proj; renderProjTabs(); fillProjSelect(); }
+  // ปุ่ม KOL/KOC ซ่อนคนนี้อยู่ก็ปลดให้ (เหมือนตัวกรองกลุ่มบนแผนผัง)
+  if (KINDSEG !== "all" && (r.kind || "") !== KINDSEG) KINDSEG = "all";
+  renderCoord();
+  // ตัวกรองคอลัมน์ซ่อนแถวนี้อยู่ = ไม่ไปรื้อตัวกรองที่ตั้งไว้ คืน false ให้ไปเปิดหน้ารายละเอียดแทน
+  const tr = document.querySelector(`#coordBody tr[data-row="${i}"]`);
+  if (!tr) return false;
+  closeQFind();
+  // ตารางเลื่อนในกล่องของตัวเอง (.cwrap) — scrollIntoView แบบนุ่มเลื่อนสองชั้นพร้อมกันแล้วไปไม่ถึงกลาง
+  // เลื่อนกล่องตารางเองให้แถวอยู่กลาง แล้วค่อยพาทั้งกล่องเข้ามาในจอถ้ามันหลุดขอบ
+  const cw = tr.closest(".cwrap");
+  if (cw){
+    const cr = cw.getBoundingClientRect(), rr = tr.getBoundingClientRect();
+    cw.scrollTop += (rr.top - cr.top) - (cw.clientHeight - rr.height) / 2;
+    if (cr.top < 0 || cr.bottom > innerHeight) cw.scrollIntoView({ block:"nearest" });
+  } else tr.scrollIntoView({ block:"center" });
+  // เอาของเก่าออกก่อนแล้วบังคับให้ browser คิดใหม่ ไม่งั้นค้นคนเดิมซ้ำจะไม่กะพริบอีก
+  document.querySelectorAll("#coordBody tr.found").forEach(x => x.classList.remove("found"));
+  void tr.offsetWidth;
+  tr.classList.add("found");
+  setTimeout(() => tr.classList.remove("found"), 2500);
+  return true;
+}
+
 // ── โหมด pool: ใช้ตอนอยู่หน้าหาครีเอเตอร์ ──
 // หน้านั้นทำงานกับคนใน pool (จากชีต/Supabase) ไม่ใช่คนที่รับงานไปแล้วใน Coordinator
 // ค้นด้วยชุดข้อมูลผิดก็เท่ากับหาไม่เจอทั้งที่คนนั้นอยู่ตรงหน้า — เลยสลับชุดข้อมูลตามหน้าที่เปิดอยู่
@@ -14140,6 +14185,7 @@ function renderQFind(){
   const q = $("#qFindIn").value.trim();
   const pool = qfPoolMode();
   const onMap = qfMapMode();
+  const onTable = qfTableMode();
   QF_INFO = null;
   QF = q ? (pool ? poolSugItems(q) : creatorSugItems(q)) : [];
   if (QF_AT >= QF.length) QF_AT = 0;
@@ -14151,6 +14197,10 @@ function renderQFind(){
         ? `พิมพ์ชื่อครีเอเตอร์ — ค้นทุกโปรเจกต์พร้อมกัน<br>
            ↑↓ เลือก · Enter เด้งไปที่ใบของคนนั้นบนแผนผัง · Esc ปิด<br>
            <span style="color:var(--dim)">สลับแผ่นให้เองถ้าคนนั้นอยู่คนละโปรเจกต์</span>`
+        : onTable
+        ? `พิมพ์ชื่อครีเอเตอร์ — ค้นทุกโปรเจกต์พร้อมกัน<br>
+           ↑↓ เลือก · Enter เลื่อนไปที่แถวของคนนั้นในตาราง (เรืองแสง) · Esc ปิด<br>
+           <span style="color:var(--dim)">สลับแท็บโปรเจกต์ให้เองถ้าคนนั้นอยู่คนละโปรเจกต์</span>`
         : pool
         ? `พิมพ์ชื่อครีเอเตอร์ — ค้นทั้ง pool ${POOL.length} คน<br>
            ↑↓ เลือก · Enter เลื่อนไปที่การ์ดคนนั้น · Esc ปิด<br>
@@ -14177,6 +14227,9 @@ async function pickQFind(ref){
   if (!ref) return;
   if (ref.kind === "pool"){ QF_INFO = ref.handle; return renderQFInfo(); }
   if (qfMapMode() && jumpToMapLeaf(ref)) return;
+  const onTable = qfTableMode();
+  if (onTable && jumpToTableRow(ref)) return;
+  if (onTable) histToast("แถวนี้ถูกตัวกรองคอลัมน์ซ่อนอยู่ — เปิดรายละเอียดให้แทน", true);
   closeQFind();
   closeOverlays();
   if (document.body.dataset.view !== "coord"){
