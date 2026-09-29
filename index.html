@@ -3055,6 +3055,7 @@ tr.subrow td.w-status select{width:14.6em}
       <p class="sect-sub">
         <b>Ctrl+Z</b> ย้อนการเปลี่ยนแปลงล่าสุด · <b>Ctrl+Shift+Z</b> เรียกคืน — กดได้จากทุกหน้า<br>
         <b>M</b> เปิด/ปิดแผนผังของโปรเจกต์ที่เปิดอยู่ — ใช้ในหน้า Coordinator (ตอนไม่ได้พิมพ์อยู่ในช่อง)<br>
+        <b>T</b> ไปที่ตาราง — ปิดแผนผัง หรือจากหน้าอื่นไปตาราง Coordinator (ตอนไม่ได้พิมพ์อยู่ในช่อง)<br>
         ที่นี่เลือกย้อนกลับไปจุดไหนก็ได้ <b>แยกตามโปรเจกต์</b> — นับเป็นรายการเปลี่ยนแปลง ไม่ใช่เวลา<br>
         <span style="color:var(--dim)">เก็บไว้ในเครื่องนี้เท่านั้น ไม่ได้ขึ้นฐานข้อมูล —
           คนอื่นในทีมย้อนของที่เราแก้ไม่ได้ และเราก็ย้อนของที่เขาแก้ไม่ได้เหมือนกัน</span>
@@ -9614,7 +9615,7 @@ function renderMap(){
     `<button role="tab" data-mm="${id}" aria-selected="${MAP_MODE === id}">${
       id === "flow" ? esc((MAP_FMTS.find(f => f[0] === fmt) || MAP_FMTS[0])[1]) : label}</button>`) : [])
     .concat([`<button class="totable" data-totable="1"
-      title="ปิดแผนผัง ไปที่ตาราง${MAP_PROJ ? " ของ " + esc(MAP_PROJ) : ""}">▦ ตาราง</button>`]).join("");
+      title="ปิดแผนผัง ไปที่ตาราง${MAP_PROJ ? " ของ " + esc(MAP_PROJ) : ""} (กด T)">▦ ตาราง</button>`]).join("");
   // ตัวเลือกรูปแบบอยู่แยกจากแท็บมุมมอง — คนละคำถามกัน (มุมมอง = ดูเรื่องอะไร · รูปแบบ = จัดหน้ายังไง)
   $("#mapFmt").innerHTML = MAP_PROJ && MAP_MODE === "flow"
     ? `<span class="lab">รูปแบบ</span>` + MAP_FMTS.map(([id, label]) =>
@@ -14254,6 +14255,27 @@ document.addEventListener("keydown", e => {
   e.preventDefault();
   if (!$("#mapView").hidden) openTable(MAP_PROJ);
   else if (PROJECTS.length) openMap(PROJ);
+});
+// ── T ไปที่ตาราง ──
+// อยู่ในแผนผัง = ปิดแผนผังกลับตารางของแผ่นที่ดูอยู่ (ปุ่ม ▦ ตาราง) · อยู่หน้าอื่น = ไปตาราง Coordinator
+// อยู่ที่ตารางอยู่แล้วไม่ทำอะไร · กติกาเดียวกับ M: ไม่แย่งตอนพิมพ์ ไม่ทำงานตอนมีหน้าต่างอื่นเปิดทับ
+// ⚠️ e.code ด้วย — แป้นไทยส่ง e.key เป็น "ะ"
+document.addEventListener("keydown", async e => {
+  if (e.ctrlKey || e.metaKey || e.altKey || e.shiftKey || e.repeat) return;
+  if (e.code !== "KeyT" && e.key !== "t" && e.key !== "T" && e.key !== "ะ") return;
+  const a = document.activeElement;
+  if (a && (a.tagName === "INPUT" || a.tagName === "TEXTAREA" ||
+            a.tagName === "SELECT" || a.isContentEditable)) return;
+  if (!$("#lockView").hidden || !$("#coachView").hidden) return;
+  const cover = ["#fmtPanel", "#projPanel", "#addPanel", "#settings"].some(s => $(s) && !$(s).hidden)
+    || ["#detailPanel", "#cmdPanel"].some(s => $(s) && $(s).classList.contains("on"))
+    || !!document.querySelector(".fpop") || !$("#qFind").hidden;
+  if (cover) return;
+  const onCoord = document.body.dataset.view === "coord";
+  if (onCoord && $("#mapView").hidden) return;
+  e.preventDefault();
+  if (!onCoord) await setView("coord");
+  if (document.body.dataset.view === "coord" && !$("#mapView").hidden) openTable(MAP_PROJ);
 });
 $("#qFindX").onclick = closeQFind;
 $("#qFindIn").addEventListener("input", renderQFind);
