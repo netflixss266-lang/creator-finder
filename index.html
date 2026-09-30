@@ -1939,6 +1939,14 @@ main{padding:22px 24px;overflow-y:auto;max-height:calc(100vh - 62px)}
 .tag.rate{font-family:'IBM Plex Mono',monospace;color:#fff;
   border-color:rgba(var(--accent-rgb),.45);background:rgba(var(--accent-rgb),.14);font-weight:600}
 .tag.norate{color:var(--dim);font-style:italic}
+.dpool{display:flex;flex-wrap:wrap;gap:6px;margin:2px 0 12px}
+/* ป้ายจากตาราง Coordinator — ฟ้า = เคยร่วมงาน · ทอง = กำลังทำอยู่ตอนนี้ · แดง = เคยมีปัญหา */
+.tag.work{font-family:inherit;color:#8fc1ff;border-color:rgba(84,160,255,.45);background:rgba(84,160,255,.08)}
+button.tag.work{cursor:pointer}
+button.tag.work:hover{border-color:#8fc1ff}
+.tag.work.now{color:#FFCF4D;border-color:rgba(255,207,77,.55);background:rgba(255,207,77,.09)}
+.tag.work.bad{color:#ff9aa0;border-color:rgba(229,9,20,.45);background:rgba(229,9,20,.08)}
+.tag.work.rr{font-family:'IBM Plex Mono',monospace;color:var(--hi);border-color:rgba(var(--hi-rgb),.35);background:none}
 /* แลกของ — ไม่มีค่าตัวเป็นเงิน ใช้สีเขียวเหมือนในชีต */
 .tag.rate.barter{color:var(--hi);border-color:rgba(var(--hi-rgb),.3);
   background:rgba(var(--hi-rgb),.08);font-family:'IBM Plex Sans Thai',sans-serif}
@@ -2538,6 +2546,15 @@ tr.subrow td.w-status select{width:14.6em}
       <summary><span class="fl">ประเภทดีล</span><span class="fv" id="dealSum">ทั้งหมด</span></summary>
       <div class="fbody">
         <div class="tabs sub" id="dealTabs" role="tablist"></div>
+      </div>
+    </details>
+
+    <!-- เชื่อมกับตาราง Coordinator — ขึ้นเมื่อมีงานในตารางแล้ว -->
+    <details class="fold" data-fold="work" id="workFold" hidden>
+      <summary><span class="fl">ประวัติร่วมงาน</span><span class="fv" id="workSum">ทั้งหมด</span></summary>
+      <div class="fbody">
+        <div class="tabs sub" id="workTabs" role="tablist"></div>
+        <div class="hint">อ่านจากตาราง Coordinator ทุกโปรเจกต์ · <b>ไม่มีงานค้าง</b> = ไม่ได้กำลังทำงานให้เราอยู่ตอนนี้</div>
       </div>
     </details>
 
@@ -3369,6 +3386,107 @@ const LIVES = [
 ];
 let LIVEF = "all";
 
+// ═══ เชื่อม Coordinator ↔ pool ═══
+// หน้าหาครีเอเตอร์กับหน้า Coordinator เป็นคนกลุ่มเดียวกัน แต่เดิมไม่รู้จักกันเลย —
+// หาคนใหม่แล้วไม่รู้ว่าคนนี้กำลังทำงานให้อยู่ / เคยยกเลิก / เคยโดนหนังสือเตือน / ตกลงเรทจริงเท่าไหร่
+// อ่านอย่างเดียวจากตาราง Coordinator ที่โหลดไว้แล้ว ไม่เขียนอะไรกลับลงฐานครีเอเตอร์
+//   now  = งานที่ยังเดินอยู่ (โปรเจกต์ยังไม่ปิด · ไม่ยกเลิก · ยังไม่ส่งเรื่องจ่าย)
+//   done = งานที่จบแล้ว หรืออยู่ในโปรเจกต์ที่ปิดแล้ว · cancel = ยกเลิก
+//   rate = เรทที่ตกลงจริง — งานที่กำลังทำอยู่มาก่อน ไม่มีค่อยใช้งานที่จบแล้ว (อันหลังสุดตามลำดับโปรเจกต์)
+let WORKIDX = null;
+function buildWorkIdx(){
+  const m = new Map();
+  PROJECTS.forEach(p => {
+    const closed = !!(projMeta(p) || {}).done;
+    (COORD[p] || []).forEach(r => {
+      const h = normId(r.handle);
+      if (!h) return;
+      let w = m.get(h);
+      if (!w) m.set(h, w = { now:[], done:[], cancel:[], rate:null, rateProj:"", warn:0 });
+      const item = { proj:p, status:r.status || "", rate:Number(r.rate) || 0, kind:r.kind || "", sku:r.sku || "" };
+      if (isCancelled(r)) w.cancel.push(item);
+      else {
+        const live = !(closed || mapDone(r));
+        (live ? w.now : w.done).push(item);
+        if (item.rate > 0 && (live || !w.rateLive)){
+          w.rate = item.rate; w.rateProj = p; w.rateLive = live;
+        }
+      }
+    });
+  });
+  m.forEach((w, h) => { try { w.warn = lawWarnHistory(h).length; } catch(e){} });
+  return WORKIDX = m;
+}
+const WORK_NONE = { now:[], done:[], cancel:[], rate:null, rateProj:"", warn:0 };
+const workOf = id => (WORKIDX || buildWorkIdx()).get(normId(id)) || WORK_NONE;
+const workEver = w => w.now.length + w.done.length > 0;
+const WORKS = [
+  { id:"all",    label:"ทั้งหมด",          test: () => true },
+  { id:"new",    label:"ยังไม่เคยร่วมงาน", test: p => { const w = workOf(p.id); return !workEver(w) && !w.cancel.length; } },
+  { id:"worked", label:"เคยร่วมงาน",       test: p => workEver(workOf(p.id)) },
+  { id:"free",   label:"ไม่มีงานค้าง",      test: p => !workOf(p.id).now.length },
+];
+let WORKF = "all";
+function renderWorkTabs(){
+  buildWorkIdx();
+  const has = WORKIDX.size > 0;
+  $("#workFold").hidden = !has;
+  if (!has){ WORKF = "all"; return; }
+  $("#workTabs").innerHTML = WORKS.map(d => `<button role="tab" data-work="${d.id}"
+    aria-selected="${d.id === WORKF}">${esc(d.label)}<span class="n">${
+      d.id === "all" ? POOL.length : POOL.filter(d.test).length}</span></button>`).join("");
+  $("#workSum").textContent = (WORKS.find(d => d.id === WORKF) || WORKS[0]).label;
+  document.querySelectorAll("#workTabs button").forEach(b => b.onclick = () => {
+    if (b.dataset.work === WORKF) return;
+    WORKF = b.dataset.work;
+    renderWorkTabs();
+    runLive();
+  });
+}
+// ป้ายบนการ์ด — กดแล้วไปที่แถวของคนนั้นในตาราง Coordinator (เรืองแสงให้เห็น)
+function workTags(p){
+  const w = workOf(p.id);
+  if (w === WORK_NONE) return "";
+  const line = x => `${x.proj} — ${stTh(x.status)}${x.rate ? ` — ${x.rate.toLocaleString("en-US")} บาท` : ""}`;
+  const tip = [
+    w.now.length ? "กำลังทำ:\n" + w.now.map(line).join("\n") : "",
+    w.done.length ? "จบแล้ว:\n" + w.done.map(line).join("\n") : "",
+    w.cancel.length ? "ยกเลิก:\n" + w.cancel.map(x => x.proj).join("\n") : "",
+  ].filter(Boolean).join("\n\n") + "\n\nกดเพื่อไปที่แถวในตาราง Coordinator";
+  const go = x => `data-workgo="${esc(x.proj)}" data-workid="${esc(normId(p.id))}"`;
+  const out = [];
+  if (w.now.length)
+    out.push(`<button type="button" class="tag work now" ${go(w.now[0])} title="${esc(tip)}">● ${
+      w.now.length > 1 ? `กำลังทำ ${w.now.length} งาน`
+        : `กำลังทำ ${esc(w.now[0].proj)} · ${esc(stTh(w.now[0].status))}`}</button>`);
+  if (w.done.length)
+    out.push(`<button type="button" class="tag work" ${go(w.done[w.done.length - 1])} title="${esc(tip)}">เคยร่วมงาน ${
+      w.done.length}${w.now.length ? " (จบแล้ว)" : ""}</button>`);
+  if (w.cancel.length)
+    out.push(`<button type="button" class="tag work bad" ${go(w.cancel[w.cancel.length - 1])} title="${esc(tip)}">เคยยกเลิก ${
+      w.cancel.length}</button>`);
+  if (w.warn)
+    out.push(`<span class="tag work bad" title="เคยได้รับหนังสือแจ้งเตือนตามสัญญา ${w.warn} ครั้ง">⚖ เคยโดนเตือน</span>`);
+  // เรทที่ตกลงจริง — โชว์เมื่อฐานยังไม่รู้เรท หรือเลขไม่ตรงกับที่ตกลงกันจริง
+  if (w.rate && (p.rate == null || Number(p.rate) !== w.rate))
+    out.push(`<span class="tag work rr" title="เรทที่ตกลงจริงล่าสุดในตาราง Coordinator (${esc(w.rateProj)})${
+      p.rate != null ? ` — ในฐานครีเอเตอร์เขียนไว้ ${Number(p.rate).toLocaleString("en-US")}` : " — ฐานครีเอเตอร์ยังไม่รู้เรท"}"
+      >เรทจริง ${w.rate.toLocaleString("en-US")} · ${esc(w.rateProj)}</span>`);
+  return out.join("");
+}
+async function workGo(proj, id){
+  if (document.body.dataset.view !== "coord"){
+    await setView("coord");
+    if (document.body.dataset.view !== "coord") return;   // ประตูรหัส Coordinator โดนกดยกเลิก
+  }
+  if (!$("#mapView").hidden) openTable(proj);
+  const ref = { proj, handle: id };
+  if (!jumpToTableRow(ref)){
+    const i = (COORD[proj] || []).findIndex(r => normId(r.handle) === id);
+    if (i >= 0) openDetail(proj, i);
+  }
+}
+
 // ─── รายชื่อที่ตัดออก (เคยติดต่อ/เคยใช้ไปแล้ว) ───
 const LS_EX = "cf_exclude_v1";
 let EXCLUDE = new Set();
@@ -4021,6 +4139,8 @@ async function run(opt){
   const catOnly = LIKE_CAT_ON && LIKE_CATS.size && CATS.some(c => LIKE_CATS.has(c));
   const dealTest = (DEALS.find(d => d.id === DEAL) || DEALS[0]).test;
   const liveTest = (LIVES.find(d => d.id === LIVEF) || LIVES[0]).test;
+  buildWorkIdx();          // ตาราง Coordinator อาจเพิ่งเปลี่ยน — นับใหม่ทุกครั้งที่กรอง
+  const workTest = (WORKS.find(d => d.id === WORKF) || WORKS[0]).test;
 
   let filtered = POOL.filter(p => {
     // ติด Blacklist ซ่อนก่อนตัวกรองอื่นทั้งหมด — นับแยกไว้บอกในแถบสรุป ไม่หายเงียบๆ
@@ -4031,6 +4151,7 @@ async function run(opt){
     if (catOnly && !catsOf(p).some(c => LIKE_CATS.has(c))){ HIDDEN_LIKECAT++; return false; }
     if (!dealTest(p)) return false;
     if (!liveTest(p)) return false;
+    if (!workTest(p)) return false;
     if (onCats.length){
       const cs = catsOf(p);
       // ล้วน = ทุกหมวดของคนนั้นต้องอยู่ในที่เลือกไว้ · คนที่ไม่มีหมวดเลยถือว่าไม่ผ่าน (ตัดสินไม่ได้)
@@ -4187,6 +4308,8 @@ function render(){
   $("#results").innerHTML = `<div class="grid">${RESULTS.map(cardHTML).join("")}</div>`;
   document.querySelectorAll(".pick").forEach(b =>
     b.onclick = () => toggleCart(b.dataset.id, b));
+  document.querySelectorAll("#results [data-workgo]").forEach(b =>
+    b.onclick = () => workGo(b.dataset.workgo, b.dataset.workid));
   // กดเปิดลิงก์ = แท็บใหม่เปิดอยู่ข้างหลัง ไม่สลับจอไป จะได้ไล่ดูรวดเดียวจบ
   // แล้วจำว่าเปิดคนนี้แล้ว ข้ามการค้นหาและข้ามวัน
   document.querySelectorAll(".open").forEach(a => a.addEventListener("click", e => {
@@ -4970,6 +5093,7 @@ async function rtPull(){
       renderProjTabs(); renderCoord();
       if (!$("#mapView").hidden) renderMap();
       if (DETAIL) renderDetail();
+      if (document.body.dataset.view === "find" && POOL.length){ renderWorkTabs(); run({ rank:false }); }
       if (!$("#settings").hidden) renderSkuGuide();   // เปิดหน้าตั้งค่าค้างไว้ก็เห็น SKU ใหม่จากเครื่องอื่นทันที
       updateSyncBar();
     }
@@ -6033,6 +6157,18 @@ function renderDetail(){
       <a href="https://www.tiktok.com/@${esc(r.handle)}" target="_blank"
          rel="noopener noreferrer">TikTok ↗</a>
     </div>
+    ${(() => {
+      // ข้อมูลจากฐานครีเอเตอร์ (pool) — ไม่ต้องสลับไปหน้าค้นหาเพื่อดูยอดผู้ติดตาม/หมวด/เรทที่เคยแจ้ง
+      const pp = POOL.find(x => normId(x.id) === normId(r.handle));
+      if (!pp) return "";
+      const pr = fmtRate(pp);
+      return `<div class="dpool" title="จากฐานครีเอเตอร์ (หน้าค้นหาครีเอเตอร์)">
+        ${pp.blacklist ? `<span class="tag bl">🚫 Blacklist${pp.blacklist !== "Blacklist" ? ` · ${esc(String(pp.blacklist).slice(0, 60))}` : ""}</span>` : ""}
+        <span class="tag fol">${fmtFol(pp.fol)} followers</span>
+        ${catsOf(pp).map(c => `<span class="tag">${esc(c)}</span>`).join("")}
+        ${pr ? `<span class="tag rate${pp.barter ? " barter" : ""}" title="เรทที่บันทึกในฐานครีเอเตอร์">ฐาน: ${pr}</span>`
+             : `<span class="tag norate">ฐานยังไม่รู้เรท</span>`}
+      </div>`; })()}
     ${warns.length ? `<div class="cmdwarned">⚖ <b>เคยได้รับหนังสือแจ้งเตือนตามสัญญา ${
       warns.length > 1 ? `${warns.length} ครั้ง` : ""}</b>
       <span>${warns.map(w =>
@@ -10692,6 +10828,8 @@ async function startLiveWarn(){
   loadLiveWarn();
   // ต้องเตือนได้ทุกหน้า — ยังไม่เคยเข้าหน้า Coordinator ข้อมูลงานจะยังไม่ถูกโหลด ต้องโหลดเงียบๆ เอง
   try { await loadCoordData(); } catch(e){}
+  // ข้อมูลงานมาถึงทีหลัง pool — การ์ดที่วาดไปแล้วยังไม่มีป้ายประวัติร่วมงาน
+  if (document.body.dataset.view === "find" && POOL.length){ renderWorkTabs(); run({ rank:false }); }
   checkLiveWarn();
   clearInterval(LW_TIMER);
   LW_TIMER = setInterval(checkLiveWarn, 20000);
@@ -12006,6 +12144,8 @@ async function setView(v){
   window.scrollTo(0, 0);
   // pool มักโหลดเสร็จก่อนจะเข้าหน้านี้ ตอนนั้น runLive() ยังไม่ทำงานเพราะยังไม่ได้อยู่หน้า find
   if (v === "find" && !RESULTS.length) runLive();
+  // กลับมาจาก Coordinator — สถานะงานอาจเปลี่ยนไปแล้ว ป้ายบนการ์ดต้องตาม (ไม่จัดอันดับใหม่)
+  else if (v === "find" && POOL.length){ renderWorkTabs(); run({ rank:false }); }
   if (v === "coord" && !COORD_READY){
     COORD_READY = true;
     $("#coordBody").innerHTML = `<div class="loading"><span class="spin"></span>กำลังโหลดจากชีต...</div>`;
@@ -12070,6 +12210,7 @@ function cardHTML(p){
       ${rate ? `<span class="tag rate${p.barter?" barter":""}">${rate}</span>`
              : `<span class="tag norate">ยังไม่รู้เรท</span>`}
       ${v!=null ? `<span class="tag cpf${cpfClass(v)}" title="ต้นทุนต่อ 1,000 followers">${fmtCpf(v)}</span>` : ""}
+      ${workTags(p)}
     </div>
     ${p.reason?`<div class="reason">${esc(p.reason)}</div>`:""}
     <div class="card-actions">
@@ -12353,6 +12494,7 @@ function renderDealTabs(){
   });
   syncRateField();
   renderLiveTabs();
+  renderWorkTabs();
 }
 
 function renderLiveTabs(){
