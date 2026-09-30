@@ -948,6 +948,21 @@ body[data-crew] .crewhide{display:none !important}
 .livewarn .lw.day li:first-child{border-top:0}
 .livewarn .lw.day li .w{font-size:.76rem;color:var(--mute);margin-top:1px}
 .livewarn .lw.day li.past{opacity:.45}
+.poolsync{position:fixed;left:16px;bottom:16px;z-index:390;width:min(360px,calc(100vw - 32px));
+  background:#0e1520;border:1px solid rgba(84,160,255,.45);border-left:4px solid #54A0FF;border-radius:12px;
+  padding:12px 14px;color:var(--ink);box-shadow:0 14px 40px rgba(0,0,0,.55)}
+.poolsync .t{font-weight:700;font-size:.92rem}
+.poolsync .p{font-size:.78rem;color:var(--mute);margin:3px 0 7px}
+.poolsync ul{margin:0;padding:0;list-style:none;font-size:.82rem;max-height:190px;overflow:auto}
+.poolsync li{display:flex;justify-content:space-between;gap:10px;padding:3px 0;border-top:1px solid rgba(255,255,255,.06)}
+.poolsync li:first-child{border-top:0}
+.poolsync li span{color:var(--mute);font-size:.76rem;text-align:right;flex:none}
+.poolsync .act{display:flex;gap:8px;margin-top:10px}
+.poolsync .act button{flex:1;background:none;border:1px solid var(--line);color:var(--mute);
+  border-radius:8px;padding:6px 10px;font-size:.8rem;cursor:pointer}
+.poolsync .act button.go{border-color:#54A0FF;color:#cfe4ff;font-weight:600}
+.poolsync .act button:hover{border-color:var(--accent);color:var(--ink)}
+.poolsync .act button:disabled{opacity:.5;cursor:wait}
 .lwsnd{display:flex;flex-wrap:wrap;gap:7px}
 .lwsnd button{background:var(--surface2);border:1px solid var(--line);color:var(--mute);
   border-radius:999px;padding:6px 13px;font-size:.8rem;cursor:pointer}
@@ -2368,6 +2383,8 @@ tr.subrow td.w-status select{width:14.6em}
 <div class="histtoast" id="histToast"></div>
 <!-- แจ้งเตือนก่อนไลฟ์ — ลอยทับทุกหน้า ค้างจนกว่าจะกดปิดเอง -->
 <div class="livewarn" id="liveWarn" aria-live="assertive"></div>
+<!-- อัปเดตฐานครีเอเตอร์จากตาราง Coordinator — ขึ้นเมื่อมีหลายรายการ ให้ดูก่อนกดยืนยัน -->
+<div class="poolsync" id="poolSync" hidden></div>
 
 <div class="qfind" id="qFind" hidden>
   <div class="qfind-bar">
@@ -3073,6 +3090,18 @@ tr.subrow td.w-status select{width:14.6em}
     </section>
 
     <section class="sect">
+      <h3>ฐานครีเอเตอร์ ← ตาราง Coordinator</h3>
+      <p class="sect-sub">หลังซิงก์งาน ระบบเทียบตารางกับฐานครีเอเตอร์ แล้ว <b>เพิ่มคนใหม่</b> · <b>อัปเดตเรทที่ตกลงจริง</b> ·
+        <b>เปลี่ยนชื่อตามที่แก้ในตาราง</b><br>
+        ไม่เกิน 10 รายการทำให้เอง มากกว่านั้นขึ้นแถบให้ดูรายการก่อนกดยืนยัน ·
+        ไม่ลบใคร · ไม่แตะคนติด Blacklist · ไม่เพิ่มคนที่มีแต่งานยกเลิก</p>
+      <label class="chk"><input type="checkbox" id="poolSyncOn"> อัปเดตฐานครีเอเตอร์ให้อัตโนมัติหลังซิงก์</label>
+      <div class="dd-act" style="margin-top:8px">
+        <button type="button" class="export" id="poolSyncNow">เทียบแล้วอัปเดตตอนนี้</button>
+      </div>
+    </section>
+
+    <section class="sect">
       <h3>แจ้งเตือนก่อนไลฟ์</h3>
       <p class="sect-sub">เด้งก่อนไลฟ์ <b>30 · 20 · 10 · 5 นาที</b> เฉพาะโปรเจกต์ไลฟ์ (แผนผังแบบปฏิทินวันที่) ·
         ค้างจนกว่าจะกดปิด<br>วันที่มีไลฟ์ เด้งสรุปรายการไลฟ์ของวันตอน <b>10 โมงเช้า</b><br>เลือกเสียงตอนเด้ง — กดแล้วเล่นให้ฟังเลย · จำแยกเครื่อง</p>
@@ -3399,11 +3428,13 @@ function buildWorkIdx(){
   PROJECTS.forEach(p => {
     const closed = !!(projMeta(p) || {}).done;
     (COORD[p] || []).forEach(r => {
-      const h = normId(r.handle);
+      const id = normId(r.handle);
+      const h = id.toLowerCase();        // TikTok ไม่สนตัวพิมพ์ — "Abc" กับ "abc" คือคนเดียวกัน
       if (!h) return;
       let w = m.get(h);
-      if (!w) m.set(h, w = { now:[], done:[], cancel:[], rate:null, rateProj:"", warn:0 });
-      const item = { proj:p, status:r.status || "", rate:Number(r.rate) || 0, kind:r.kind || "", sku:r.sku || "" };
+      if (!w) m.set(h, w = { handle:id, now:[], done:[], cancel:[], rate:null, rateProj:"", warn:0, last:null });
+      const item = { proj:p, status:r.status || "", rate:Number(r.rate) || 0, kind:r.kind || "", sku:r.sku || "",
+                     link:r.link || "", commission:r.commission || "" };
       if (isCancelled(r)) w.cancel.push(item);
       else {
         const live = !(closed || mapDone(r));
@@ -3411,14 +3442,15 @@ function buildWorkIdx(){
         if (item.rate > 0 && (live || !w.rateLive)){
           w.rate = item.rate; w.rateProj = p; w.rateLive = live;
         }
+        if (live || !w.lastLive){ w.last = item; w.lastLive = live; w.handle = id; }
       }
     });
   });
-  m.forEach((w, h) => { try { w.warn = lawWarnHistory(h).length; } catch(e){} });
+  m.forEach(w => { try { w.warn = lawWarnHistory(w.handle).length; } catch(e){} });
   return WORKIDX = m;
 }
 const WORK_NONE = { now:[], done:[], cancel:[], rate:null, rateProj:"", warn:0 };
-const workOf = id => (WORKIDX || buildWorkIdx()).get(normId(id)) || WORK_NONE;
+const workOf = id => (WORKIDX || buildWorkIdx()).get(normId(id).toLowerCase()) || WORK_NONE;
 const workEver = w => w.now.length + w.done.length > 0;
 const WORKS = [
   { id:"all",    label:"ทั้งหมด",          test: () => true },
@@ -3485,6 +3517,178 @@ async function workGo(proj, id){
     const i = (COORD[proj] || []).findIndex(r => normId(r.handle) === id);
     if (i >= 0) openDetail(proj, i);
   }
+}
+
+// ═══ Coordinator → ฐานครีเอเตอร์ (เขียนกลับ) ═══
+// ตาราง Coordinator คือที่ที่รู้ความจริงล่าสุดของคนที่ทำงานกันอยู่ — ดันกลับเข้าฐานครีเอเตอร์ 3 เรื่อง:
+//   เพิ่ม   = คนที่อยู่ในตารางแต่ยังไม่มีในฐาน (ไม่นับคนที่มีแต่งานยกเลิก)
+//   เรท    = เรทที่ตกลงจริง ≠ เรทในฐาน · ฐานยังไม่รู้เรทแต่งานเป็นแบบไม่มีค่าตัว → "Barter"
+//   ชื่อ   = แก้ชื่อในตารางแล้ว ชื่อเดิมในฐานเปลี่ยนตาม (ไม่ใช่เพิ่มเป็นคนใหม่แล้วทิ้งชื่อเก่าค้าง)
+// กติกากันพัง:
+//   · ไม่ลบใครออกจากฐาน · ไม่แตะคนติด Blacklist · ไม่แตะยอดผู้ติดตาม/หมวด
+//   · เรทเดิมที่เราเคยดันไปแล้วไม่ดันซ้ำ — คนอื่นในทีมแก้ทับทีหลังได้ ไม่ตีกันไปมา
+//   · ครั้งละไม่เกิน POOLSYNC_AUTO_MAX รายการทำเองเงียบๆ · มากกว่านั้นขึ้นแถบให้ดูรายการแล้วกดยืนยัน
+//   · จดทุกการเปลี่ยนแปลง (ค่าเดิม → ค่าใหม่) ไว้ใน cf_poolsync_log_v1 เผื่อต้องไล่ย้อน
+const LS_POOLSYNC_ON  = "cf_poolsync_on_v1";      // "0" = ปิด
+const LS_POOLSYNC_LOG = "cf_poolsync_log_v1";     // [{ at, type, handle, from, to }]
+const LS_POOLSYNC_SENT = "cf_poolsync_sent_v1";   // { handle: เรทที่เราดันไปล่าสุด }
+const LS_POOLRENAME   = "cf_poolrename_v1";       // [{ from, to }] ชื่อที่แก้ในตาราง รอไปแก้ในฐาน
+const POOLSYNC_AUTO_MAX = 10;
+let POOLSYNC_BUSY = false, POOLSYNC_SNOOZE = "", POOLSYNC_T = null, POOLSYNC_SRC = null, POOLSYNC_SRC_AT = 0;
+const poolSyncOn = () => lsGet(LS_POOLSYNC_ON) !== "0";
+const poolJson = (k, d) => { try { return JSON.parse(lsGet(k) || "null") || d; } catch(e){ return d; } };
+// แก้ชื่อในตาราง — จดคู่ เก่า→ใหม่ ไว้ · แก้ต่อเป็นทอด (a→b→c) ยุบเหลือ a→c
+function poolRenameNote(from, to){
+  from = normId(from); to = normId(to);
+  if (!from || !to || from.toLowerCase() === to.toLowerCase()) return;
+  const q = poolJson(LS_POOLRENAME, []);
+  const prev = q.find(x => x.to.toLowerCase() === from.toLowerCase());
+  if (prev) prev.to = to; else q.push({ from, to });
+  try { lsSet(LS_POOLRENAME, JSON.stringify(q.filter(x => x.from.toLowerCase() !== x.to.toLowerCase()).slice(-100))); } catch(e){}
+}
+async function poolSyncSource(){
+  if (POOL_ALL.length) return POOL_ALL;
+  // editor ไม่ได้เปิดหน้าค้นหา ฐานจึงไม่ได้ถูกโหลด — อ่านเองแล้วจำไว้ 10 นาที
+  if (POOLSYNC_SRC && Date.now() - POOLSYNC_SRC_AT < 600e3) return POOLSYNC_SRC;
+  POOLSYNC_SRC = await fetchPoolSB(); POOLSYNC_SRC_AT = Date.now();
+  return POOLSYNC_SRC;
+}
+async function poolSyncPlan(){
+  if (!SESSION || !PROJECTS.length) return null;
+  let src;
+  try { src = await poolSyncSource(); } catch(e){ return null; }
+  if (!src.length) return null;              // อ่านฐานไม่ได้/ว่าง อย่าเดาว่าทุกคนเป็นคนใหม่
+  buildWorkIdx();
+  const have = new Map(src.map(p => [normId(p.id).toLowerCase(), p]));
+  const sent = poolJson(LS_POOLSYNC_SENT, {});
+  const plan = { src, adds:[], rates:[], renames:[] };
+  // ชื่อที่แก้ — ใช้ได้เมื่อ: ชื่อใหม่ยังอยู่ในตาราง · ชื่อเก่าไม่เหลือในตาราง · ฐานมีชื่อเก่าและยังไม่มีชื่อใหม่
+  const renamed = new Set();
+  poolJson(LS_POOLRENAME, []).forEach(x => {
+    const f = x.from.toLowerCase(), t = x.to.toLowerCase();
+    const p = have.get(f);
+    if (!p || have.has(t) || WORKIDX.has(f) || !WORKIDX.has(t) || p.blacklist) return;
+    plan.renames.push({ p, from: p.id, to: WORKIDX.get(t).handle });
+    renamed.add(t);
+  });
+  WORKIDX.forEach((w, h) => {
+    if (!workEver(w)) return;                 // มีแต่งานยกเลิก — ไม่เพิ่ม ไม่แตะ
+    const free = !w.rate && w.last && (w.last.kind === "KOC" || String(w.last.commission || "").trim());
+    const p = have.get(h);
+    if (!p){
+      if (renamed.has(h)) return;             // กำลังจะเปลี่ยนชื่อแถวเดิมมาเป็นชื่อนี้
+      plan.adds.push({ kind:"", id: w.handle, cat:"", follower:"",
+        link: (w.last && w.last.link) || `https://www.tiktok.com/@${w.handle}`,
+        rate: w.rate ? String(w.rate) : free ? "Barter" : "" });
+      return;
+    }
+    if (p.blacklist) return;
+    if (w.rate){
+      if (Number(p.rate) === w.rate) return;
+      // เราดันเลขนี้ไปแล้วรอบก่อน แต่ฐานไม่ตรง = มีคนแก้ทับทีหลัง ปล่อยไว้ตามนั้น
+      if (!p.unknown && sent[h] === w.rate) return;
+      plan.rates.push({ p, from: qfRateText(p), to: p.barter ? `${w.rate}/Barter` : String(w.rate), n: w.rate });
+    } else if (p.unknown && free){
+      plan.rates.push({ p, from: qfRateText(p), to: "Barter", n: 0 });
+    }
+  });
+  plan.total = plan.adds.length + plan.rates.length + plan.renames.length;
+  plan.sig = [plan.adds.map(x => x.id), plan.rates.map(x => x.p.id + ">" + x.to), plan.renames.map(x => x.from + ">" + x.to)].join("|");
+  return plan;
+}
+async function poolSyncApply(plan){
+  if (POOLSYNC_BUSY) return;
+  POOLSYNC_BUSY = true;
+  const log = poolJson(LS_POOLSYNC_LOG, []), sent = poolJson(LS_POOLSYNC_SENT, {});
+  const at = new Date().toISOString(), failed = [];
+  let nA = 0, nR = 0, nN = 0;
+  const live = plan.src === POOL_ALL;
+  for (const x of plan.renames){
+    try {
+      const patch = { handle: x.to };
+      if (!x.p.link || x.p.link.toLowerCase().includes("@" + x.from.toLowerCase())) patch.link = `https://www.tiktok.com/@${x.to}`;
+      await sbUpdateCreator(x.from, "", patch);
+      x.p.id = x.to; if (patch.link) x.p.link = patch.link;
+      log.push({ at, type:"rename", handle: x.to, from: x.from, to: x.to }); nN++;
+    } catch(e){ failed.push(`${x.from} → ${x.to}`); }
+  }
+  for (let i = 0; i < plan.adds.length; i += SB_ADD_CHUNK){
+    const chunk = plan.adds.slice(i, i + SB_ADD_CHUNK);
+    try {
+      await sbAddCreators(chunk);
+      chunk.forEach(it => {
+        const np = sbRowToPool({ handle: it.id, link: it.link, rate: it.rate, follower: "", cat: "",
+                                 created_at: at });
+        plan.src.push(np);
+        if (live && POOL !== POOL_ALL) POOL.push(np);
+        if (Number(it.rate)) sent[it.id.toLowerCase()] = Number(it.rate);
+        log.push({ at, type:"add", handle: it.id, from: "", to: it.rate });
+      });
+      nA += chunk.length;
+    } catch(e){ failed.push(`เพิ่ม ${chunk.length} คน (${(e && e.message) || "error"})`); }
+  }
+  for (const x of plan.rates){
+    try {
+      await sbUpdateCreator(x.p.id, "", { rate: x.to });
+      log.push({ at, type:"rate", handle: x.p.id, from: x.from, to: x.to });
+      x.p.rawRate = x.to; Object.assign(x.p, rateInfo(x.to));
+      if (x.n) sent[normId(x.p.id).toLowerCase()] = x.n;
+      nR++;
+    } catch(e){ failed.push(`เรท ${x.p.id}`); }
+  }
+  try {
+    lsSet(LS_POOLSYNC_LOG, JSON.stringify(log.slice(-400)));
+    lsSet(LS_POOLSYNC_SENT, JSON.stringify(sent));
+    // ชื่อที่จัดการแล้ว/ใช้ไม่ได้แล้ว ล้างออกจากคิว — เหลือไว้เฉพาะที่ยังล้มอยู่
+    lsSet(LS_POOLRENAME, JSON.stringify(poolJson(LS_POOLRENAME, []).filter(q =>
+      failed.some(f => f.startsWith(q.from + " →")))));
+  } catch(e){}
+  POOLSYNC_BUSY = false;
+  // ล้มแล้วไม่ยิงซ้ำทุกรอบซิงก์ (เช่นสิทธิ์ไม่พอ) — รอจนรายการเปลี่ยน หรือกดเองในหน้าตั้งค่า
+  if (failed.length) POOLSYNC_SNOOZE = plan.sig;
+  $("#poolSync").hidden = true;
+  if (nA + nR + nN || failed.length)
+    histToast(`ฐานครีเอเตอร์: ${[nA ? `เพิ่ม ${nA} คน` : "", nR ? `อัปเดตเรท ${nR} คน` : "", nN ? `เปลี่ยนชื่อ ${nN} คน` : ""]
+      .filter(Boolean).join(" · ") || "ไม่มีอะไรเปลี่ยน"}${failed.length ? ` — ไม่สำเร็จ ${failed.length}: ${failed.slice(0, 3).join(", ")}` : ""}`,
+      !!failed.length);
+  if (live && document.body.dataset.view === "find"){ renderDealTabs(); run({ rank:false }); }
+  if (DETAIL) renderDetail();
+}
+function poolSyncBar(plan){
+  const box = $("#poolSync");
+  const money = v => /^\d+$/.test(String(v)) ? Number(v).toLocaleString("en-US") : (v || "ยังไม่รู้");
+  const lines = []
+    .concat(plan.renames.map(x => `<li><b>${esc(x.from)}</b> → <b>${esc(x.to)}</b><span>เปลี่ยนชื่อ</span></li>`))
+    .concat(plan.adds.map(x => `<li><b>+ ${esc(x.id)}</b><span>คนใหม่${x.rate ? " · เรท " + esc(money(x.rate)) : ""}</span></li>`))
+    .concat(plan.rates.map(x => `<li><b>${esc(x.p.id)}</b><span>เรท ${esc(money(x.from))} → ${esc(money(x.to))}</span></li>`));
+  box.innerHTML = `<div class="t">อัปเดตฐานครีเอเตอร์จากตาราง Coordinator</div>
+    <div class="p">${[plan.adds.length ? `เพิ่มใหม่ ${plan.adds.length} คน` : "", plan.rates.length ? `อัปเดตเรท ${plan.rates.length} คน` : "",
+      plan.renames.length ? `เปลี่ยนชื่อ ${plan.renames.length} คน` : ""].filter(Boolean).join(" · ")}</div>
+    <ul>${lines.join("")}</ul>
+    <div class="act"><button type="button" class="go" id="poolSyncGo">อัปเดตฐานเลย</button>
+      <button type="button" id="poolSyncLater">ไว้ก่อน</button></div>`;
+  box.hidden = false;
+  $("#poolSyncGo").onclick = async () => {
+    $("#poolSyncGo").disabled = true; $("#poolSyncGo").textContent = "กำลังอัปเดต...";
+    await poolSyncApply(plan);
+  };
+  // ไว้ก่อน = ไม่ถามซ้ำจนกว่ารายการจะเปลี่ยน (หรือกดปุ่มในหน้าตั้งค่าเอง)
+  $("#poolSyncLater").onclick = () => { POOLSYNC_SNOOZE = plan.sig; box.hidden = true; };
+}
+// manual = กดจากหน้าตั้งค่า: ขึ้นแถบให้ดูเสมอ ไม่ทำเงียบ และไม่สนที่กด "ไว้ก่อน" ไว้
+async function poolSyncRun(manual){
+  if (POOLSYNC_BUSY || (!manual && !poolSyncOn())) return;
+  if ((PROFILE || {}).role === "viewer") return manual ? histToast("บัญชี viewer แก้ฐานครีเอเตอร์ไม่ได้", true) : null;
+  const plan = await poolSyncPlan();
+  if (!plan) return manual ? histToast("ยังอ่านฐานครีเอเตอร์ไม่ได้ — ลองใหม่อีกครั้ง", true) : null;
+  if (!plan.total){ $("#poolSync").hidden = true; return manual ? histToast("ฐานครีเอเตอร์ตรงกับตาราง Coordinator แล้ว", false) : null; }
+  if (!manual && plan.sig === POOLSYNC_SNOOZE) return;
+  if (!manual && plan.total <= POOLSYNC_AUTO_MAX) return poolSyncApply(plan);
+  poolSyncBar(plan);
+}
+function poolSyncSoon(){
+  clearTimeout(POOLSYNC_T);
+  POOLSYNC_T = setTimeout(() => poolSyncRun(false).catch(() => {}), 1500);
 }
 
 // ─── รายชื่อที่ตัดออก (เคยติดต่อ/เคยใช้ไปแล้ว) ───
@@ -4999,6 +5203,8 @@ async function syncCoord(manual){
   SYNC_AT = Date.now();
   if (!failed.length) clearDirty();
   updateSyncBar(failed);
+  // งานขึ้นฐานข้อมูลครบแล้ว — คนใหม่/เรทจริง/ชื่อที่แก้ ค่อยตามเข้าฐานครีเอเตอร์
+  if (!failed.length) poolSyncSoon();
   // ส่งของเราขึ้นไปแล้ว ของใหม่จากอีกเครื่องที่ค้างไว้ค่อยดึงลงมาได้โดยไม่ทับใคร
   if (RT_WAITING && !DIRTY && !failed.length){ RT_WAITING = false; RT_HIT.coord = true; rtPull(); }
   if (manual && !NEED_FORCE.length)
@@ -6909,6 +7115,7 @@ function setFieldRaw(r, f, raw){
     const clean = normId(raw);
     if (!clean) return false;
     delete EDITS[before];
+    poolRenameNote(r.handle, clean);
     r.handle = clean;
     r.link = `https://www.tiktok.com/@${clean}`;
   } else if (f === "sku"){
@@ -10830,6 +11037,8 @@ async function startLiveWarn(){
   try { await loadCoordData(); } catch(e){}
   // ข้อมูลงานมาถึงทีหลัง pool — การ์ดที่วาดไปแล้วยังไม่มีป้ายประวัติร่วมงาน
   if (document.body.dataset.view === "find" && POOL.length){ renderWorkTabs(); run({ rank:false }); }
+  // เผื่อรอบก่อนปิดเว็บไปก่อนจะตามเข้าฐานครีเอเตอร์ — รอ pool โหลดสักครู่ค่อยเทียบ
+  setTimeout(poolSyncSoon, 8000);
   checkLiveWarn();
   clearInterval(LW_TIMER);
   LW_TIMER = setInterval(checkLiveWarn, 20000);
@@ -12608,6 +12817,9 @@ function openSettings(){
   renderAccent();
   renderHist();
   renderLiveSound();
+  $("#poolSyncOn").checked = poolSyncOn();
+  $("#poolSyncOn").onchange = e => { try { lsSet(LS_POOLSYNC_ON, e.target.checked ? "1" : "0"); } catch(x){} };
+  $("#poolSyncNow").onclick = () => { closeSettings(); poolSyncRun(true); };
   $("#addMsg").className = "addmsg";
   $("#settings").hidden = false;
 }
