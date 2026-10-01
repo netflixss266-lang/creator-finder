@@ -4613,6 +4613,21 @@ function syncProjects(){
 const activeProjects = () => PROJ_LIST.filter(p => !p.done).map(p => p.name);
 const doneProjects   = () => PROJ_LIST.filter(p => p.done).map(p => p.name);
 const projMeta = name => PROJ_LIST.find(p => p.name === name);
+// แท็บโปรเจกต์ที่โชว์ — ใช้ชุดเดียวกันทั้งตาราง Coordinator และแผนผัง
+// งานที่ปิดแล้วพับเก็บหมด ยกเว้นอันที่กำลังเปิดดูอยู่อันเดียว (เดิมเปิดงานปิดแล้วหนึ่งอัน = กางทุกอันออกมาหมด
+// ดูเหมือนบางอันไม่ได้ถูกซ่อน) · กด "เสร็จแล้ว N" ค่อยกางทั้งหมด
+function projTabList(cur){
+  const done = doneProjects();
+  return activeProjects().concat(SHOW_DONE ? done : done.filter(p => p === cur));
+}
+// ปุ่มพับ/กางงานที่ปิดแล้ว — ต่อท้ายแท็บ
+function doneTabBtn(cur){
+  const done = doneProjects();
+  if (!done.length) return "";
+  if (SHOW_DONE) return `<button class="ghosttab" data-showdone="0">ซ่อนที่เสร็จแล้ว</button>`;
+  const hid = done.filter(p => p !== cur).length;
+  return hid ? `<button class="ghosttab" data-showdone="1" title="โปรเจกต์ที่ปิดงานแล้ว — กดเพื่อกางดู">เสร็จแล้ว ${hid}</button>` : "";
+}
 // ชื่อแบรนด์ที่ {{brandname}} ใช้ — ไม่มีก็ตกกลับไปที่ชื่อโปรเจกต์ ดีกว่าปล่อยว่างในข้อความที่ส่งจริง
 const brandOf = name => ((projMeta(name) || {}).brand || "").trim() || guessBrand(name);
 
@@ -5550,19 +5565,15 @@ async function loadCoordData(force){
 let SHOW_DONE = false;   // กางงานที่ปิดแล้วอยู่ไหม
 
 function renderProjTabs(){
-  const done = doneProjects();
   // งานที่ปิดแล้วยังเปิดดูได้ แต่ไม่ต้องมาเบียดแท็บของงานที่ยังทำอยู่ทุกวัน
-  const show = activeProjects().concat(SHOW_DONE || done.includes(PROJ) ? done : []);
+  const show = projTabList(PROJ);
   const tab = p => `<button role="tab" data-p="${esc(p)}" aria-selected="${p === PROJ}"
       class="${projMeta(p) && projMeta(p).done ? "isdone" : ""}"
       title="${needsScript(p) ? "โปรเจกต์ที่เพิ่มเอง — ต้องเติมชื่อนี้ใน Apps Script ก่อนถึงจะซิงก์ได้" : ""}"
     >${projMeta(p) && projMeta(p).done ? "✓ " : ""}${esc(p)}${
       needsScript(p) ? `<span class="warnmark" title="ยังซิงก์ไม่ได้">!</span>` : ""}<span
       class="n">${(COORD[p] || []).length}</span></button>`;
-  $("#projTabs").innerHTML = show.map(tab).join("") +
-    (done.length && !SHOW_DONE && !done.includes(PROJ)
-      ? `<button class="ghosttab" data-showdone="1">เสร็จแล้ว ${done.length}</button>` : "") +
-    (SHOW_DONE ? `<button class="ghosttab" data-showdone="0">ซ่อนที่เสร็จแล้ว</button>` : "") +
+  $("#projTabs").innerHTML = show.map(tab).join("") + doneTabBtn(PROJ) +
     `<button class="ghosttab" data-manageproj="1" title="เพิ่ม / ปิดงาน / ลบโปรเจกต์">⚙</button>`;
 
   document.querySelectorAll("#projTabs [data-p]").forEach(b => b.onclick = () => {
@@ -5570,6 +5581,7 @@ function renderProjTabs(){
   });
   document.querySelectorAll("#projTabs [data-showdone]").forEach(b => b.onclick = () => {
     SHOW_DONE = b.dataset.showdone === "1"; renderProjTabs();
+    if (!$("#mapView").hidden) renderMap();
   });
   const mg = $("#projTabs [data-manageproj]");
   if (mg) mg.onclick = openProjManager;
@@ -9956,10 +9968,14 @@ function openMap(proj){
 
 function renderMap(){
   loadLaw();
-  $("#mapTabs").innerHTML = [["", "ทุกโปรเจกต์"]].concat(PROJECTS.map(p => [p, p]))
+  $("#mapTabs").innerHTML = [["", "ทุกโปรเจกต์"]].concat(projTabList(MAP_PROJ).map(p => [p, p]))
     .map(([id, label]) => `<button role="tab" data-mp="${esc(id)}"
-      aria-selected="${(MAP_PROJ || "") === id}">${esc(label)}${
-      id ? `<span class="n">${mapRows(id).length}</span>` : ""}</button>`).join("");
+      aria-selected="${(MAP_PROJ || "") === id}"${id && (projMeta(id) || {}).done ? ` class="isdone"` : ""}>${
+      id && (projMeta(id) || {}).done ? "✓ " : ""}${esc(label)}${
+      id ? `<span class="n">${mapRows(id).length}</span>` : ""}</button>`).join("") + doneTabBtn(MAP_PROJ);
+  $("#mapTabs").querySelectorAll("[data-showdone]").forEach(b => b.onclick = () => {
+    SHOW_DONE = b.dataset.showdone === "1"; renderMap(); renderProjTabs();
+  });
   // นับจากขอบเขตที่กำลังดูอยู่ — แผ่นรวมนับทุกโปรเจกต์ แผ่นเดียวนับเฉพาะโปรเจกต์นั้น
   const scope = MAP_PROJ ? (COORD[MAP_PROJ] || []) : PROJECTS.flatMap(p => COORD[p] || []);
   $("#mapKind").innerHTML = [["all","ทั้งหมด"],["KOL","KOL"],["KOC","KOC"]].map(([id, label]) =>
