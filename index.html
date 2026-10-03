@@ -277,7 +277,11 @@ body.mapdrag .mapleaf{cursor:grabbing}
 .qo2head{display:flex;align-items:center;gap:10px;cursor:pointer}
 .qo2head .t{font-weight:700;font-size:.92rem}
 .qo2head .hint{font-size:.76rem;color:var(--dim)}
-.qo2head .fold{margin-left:auto;font-size:.78rem;color:var(--mute)}
+.qo2fold{margin-left:auto;background:none;border:1px solid var(--line);color:var(--ink);border-radius:999px;
+  padding:3px 12px;font-size:.76rem;cursor:pointer;white-space:nowrap}
+.qo2fold:hover{border-color:var(--accent);color:var(--accent)}
+.qo2.folded{padding:7px 12px}
+.qo2.folded .hint{display:none}
 .qo2g{display:flex;flex-wrap:wrap;align-items:center;gap:5px;margin-top:8px}
 .qo2gl{font-size:.72rem;color:var(--dim);min-width:92px}
 .qo2c{background:none;border:1px solid var(--line);color:var(--ink);border-radius:999px;padding:3px 11px;
@@ -12834,20 +12838,41 @@ function qo2ValueField(c){
     opt(STAGES.map(x => [x.th, x.th]).concat([["ยกเลิก", "ยกเลิกงาน"]]))}`;
   if (sp.val === "pay") return `<label class="h">${esc(sp.th)}</label>${opt(PAYTYPES.filter(p => p.id).map(p => [p.label, p.label]))}`;
   if (sp.val === "kind") return `<label class="h">${esc(sp.th)}</label>${opt([["KOL", "KOL"], ["KOC", "KOC"]])}`;
-  if (sp.val === "num") return `<label class="h">${esc(sp.th)}</label>
-    <input id="qo2Val" inputmode="decimal" placeholder="${c === "rate" ? "เช่น 12000 · +500 = บวกจากเรทเดิม" : "ตัวเลข"}">`;
-  return `<label class="h">${esc(sp.th || "ค่า")} — วางได้เลย</label>
-    <textarea id="qo2Val" rows="2" placeholder="${esc(String(sp.ex || "").replace(/^\/\S+\s+\S+\s*:\s*/, "เช่น "))}"></textarea>`;
+  if (c === "video") return `<label class="h">${esc(sp.th)}</label>${opt([1, 2, 3, 4, 5, 6].map(n => [n, n + " คลิป"]))}`;
+  // ที่เหลือ: ตัวเลือกจากข้อมูลที่มีอยู่แล้วในโปรเจกต์ + "พิมพ์ / วางค่าใหม่" เป็นตัวเลือกสุดท้าย
+  const have = qo2Existing(c);
+  const typed = sp.val === "num"
+    ? `<input id="qo2Val" inputmode="decimal" placeholder="${c === "rate" ? "เช่น 12000 · +500 = บวกจากเรทเดิม" : "ตัวเลข"}"${have.length ? " hidden" : ""}>`
+    : `<textarea id="qo2Val" rows="2" placeholder="${esc(String(sp.ex || "").replace(/^\/\S+\s+\S+\s*:\s*/, "เช่น "))}"${have.length ? " hidden" : ""}></textarea>`;
+  if (!have.length) return `<label class="h">${esc(sp.th || "ค่า")} — ยังไม่มีในโปรเจกต์นี้ พิมพ์/วางได้เลย</label>${typed}`;
+  const short = v => v.length > 60 ? v.slice(0, 60) + "…" : v;
+  return `<label class="h">${esc(sp.th || "ค่า")} — เลือกจากที่มีอยู่ (${have.length}) หรือพิมพ์ใหม่</label>
+    <select id="qo2Sel"><option value="">— เลือก —</option>${
+      have.map(([v, n]) => `<option value="${esc(v)}">${esc(short(v))}${n > 1 ? ` · ${n} คน` : ""}</option>`).join("")}
+      <option value="__new">✎ พิมพ์ / วางค่าใหม่</option></select>${typed}`;
+}
+// ค่าที่มีอยู่แล้วของคำสั่งนั้นในโปรเจกต์ที่เปิดอยู่ — เรียงจากที่ใช้บ่อยสุด [[ค่า, จำนวนคน], …]
+function qo2Existing(c){
+  const sp = qo2Spec(c) || {};
+  const rows = COORD[PROJ] || [];
+  const cnt = new Map();
+  const add = v => { v = String(v == null ? "" : v).trim(); if (v) cnt.set(v, (cnt.get(v) || 0) + 1); };
+  if (c === "sku"){ (PROJ_SKU[PROJ] || []).forEach(v => cnt.set(v, cnt.get(v) || 0)); rows.forEach(r => skuParts(r.sku).forEach(add)); }
+  else if (c === "brief") rows.forEach(r => briefParts(r.brief).forEach(add));
+  else if (sp.doc) rows.forEach(r => add(((cmdOwnRead(PROJ, r.handle) || {}).links || {})[sp.doc]));
+  else if (sp.f) rows.forEach(r => add(r[sp.f]));
+  return [...cnt.entries()].sort((a, b) => b[1] - a[1] || String(a[0]).localeCompare(String(b[0]), "th")).slice(0, 40);
 }
 function renderQO2(){
   const box = $("#qo2");
   if (!box || !TEAM_MODE) return;
   box.hidden = false;
+  box.classList.toggle("folded", QO2_FOLD);
   const sp = QO2_CMD && qo2Spec(QO2_CMD);
   box.innerHTML = `<div class="qo2head" id="qo2Head" title="กดเพื่อ${QO2_FOLD ? "กาง" : "ย่อ"}">
       <span class="cmdbar-ic">⌘</span><span class="t">คำสั่งด่วน</span>
       <span class="hint">เลือกคำสั่ง → เลือก/วางชื่อ → วางข้อมูล → ตรวจก่อนใช้</span>
-      <span class="fold">${QO2_FOLD ? "▾ กาง" : "▴ ย่อ"}</span></div>` +
+      <button type="button" class="qo2fold">${QO2_FOLD ? "▾ กางคำสั่งด่วน" : "▴ พับเก็บ"}</button></div>` +
     (QO2_FOLD ? "" : qo2Groups().map(([g, list]) => `<div class="qo2g"><span class="qo2gl">${esc(g)}</span>${
       list.map(x => `<button class="qo2c${QO2_CMD === x.c ? " on" : ""}" data-qc="${esc(x.c)}"
         title="${esc(x.ex || "")}">${esc(x.th)}</button>`).join("")}</div>`).join("") +
@@ -12891,6 +12916,12 @@ const qo2NamesOf = () => [...new Set(String(($("#qo2Names") || {}).value || "")
   .split(/[\s,]+/).map(qo2Handle).filter(Boolean))];
 function wireQO2Form(c){
   $("#qo2X").onclick = () => { QO2_CMD = null; renderQO2(); };
+  const sel = $("#qo2Sel");
+  if (sel) sel.onchange = () => {
+    const v = $("#qo2Val");
+    if (sel.value === "__new"){ v.value = ""; v.hidden = false; v.focus(); }
+    else { v.value = sel.value; v.hidden = true; }
+  };
   const list = $("#qo2List");
   const drawList = () => {
     if (!list) return;
@@ -12924,7 +12955,7 @@ function wireQO2Form(c){
       if (!all && !names.length){ $("#qo2Names").focus(); return; }
       let v = val.replace(/\s*\n\s*/g, " ");              // ตัวอ่านทำงานทีละบรรทัด — ค่าหลายบรรทัดรวมเป็นบรรทัดเดียว
       if (c === "add") v = [val, ($("#qo2Val2") || {}).value || ""].join(" ").trim();
-      if (c !== "del" && !v && c !== "add"){ ($("#qo2Val") || {}).focus && $("#qo2Val").focus(); return; }
+      if (c !== "del" && !v && c !== "add"){ ($("#qo2Sel") || $("#qo2Val")).focus(); return; }
       text = `/${c} ${all ? "*" : names.join(" ")}` + (c === "del" ? "" : ` : ${v}`);
     }
     vlog("quick", { p: PROJ, d: { c } });
