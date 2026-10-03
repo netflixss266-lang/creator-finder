@@ -194,6 +194,109 @@ body[data-view="home"] .srcchip{display:none}
 .lockmsg{font-size:.82rem;margin-top:11px;min-height:1.2em}
 .lockmsg.err{color:var(--lo)}
 .lockmsg.busy{color:var(--mute)}
+/* โหมดทีม */
+.lockmsg.code{color:var(--ink);font-size:.95rem;line-height:1.5}
+.tm{font-size:.8em;margin-right:4px}
+.pspace{font-size:.72rem;color:var(--mute);border:1px solid var(--line);border-radius:999px;padding:1px 8px;flex:none}
+.pspace.team{color:var(--accent);border-color:var(--accent)}
+.actbar{display:flex;gap:8px;align-items:center;margin-bottom:10px;flex-wrap:wrap}
+.act{padding:9px 0;border-bottom:1px solid var(--line);font-size:.85rem}
+.act .aw{color:var(--dim);font-size:.78rem;margin-right:6px}
+.act .ach{margin:3px 0 0 14px;color:var(--mute);word-break:break-word}
+.act .ach b{color:var(--ink);font-weight:600;margin-right:4px}
+#actBody{max-height:65vh;overflow:auto}
+.memseg{margin:6px 0 2px;flex-wrap:wrap}
+.memseg .mtag{font-size:.72em;color:var(--accent);margin-left:5px;font-weight:500}
+.asg{flex:none;width:auto;max-width:96px;height:22px;font-size:.7rem;background:transparent;color:var(--mute);
+  border:1px solid var(--line);border-radius:6px;padding:0 2px;cursor:pointer;text-overflow:ellipsis}
+.memseg button{flex:none!important;padding-left:12px;padding-right:12px}
+/* select ทั่วเว็บมี padding กว้าง — ในแถวตารางต้องบีบให้เห็นชื่อ */
+#coordBody .asg{width:86px;padding:0 18px 0 6px!important;background-position:right 4px center;background-size:9px}
+.asg:hover{border-color:var(--accent);color:var(--ink)}
+.asg.mine{color:var(--accent);border-color:rgba(var(--accent-rgb),.5)}
+.vsum{display:flex;flex-wrap:wrap;gap:6px;margin:0 0 10px}
+.vsum span{font-size:.75rem;border:1px solid var(--line);border-radius:999px;padding:2px 9px;color:var(--mute)}
+.vsum b{color:var(--ink)}
+.mrow{display:flex;gap:8px;align-items:center;flex-wrap:wrap;padding:5px 0;border-bottom:1px solid var(--line);font-size:.85rem}
+.mrow .mn{min-width:120px;font-weight:600}
+.mrow input{flex:1;min-width:140px}
+.lchip{font-size:.72rem;color:var(--accent);border:1px solid rgba(var(--accent-rgb),.5);border-radius:999px;padding:1px 8px}
+/* ลูกทีมที่ไม่ใช่เจ้าของ: ตั้งค่าเหลือแค่ 4 ส่วน */
+body[data-memberset] #settings .setbody > .sect:not(.mkeep){display:none!important}
+/* สีประจำตัวคนในทีม */
+.av{display:inline-flex;align-items:center;justify-content:center;flex:none;width:18px;height:18px;border-radius:50%;
+  background:var(--mc);color:#111;font-size:.62rem;font-weight:700;line-height:1;vertical-align:middle}
+.av + .av{margin-left:-4px;box-shadow:0 0 0 2px var(--surface,#111)}
+.pav{display:inline-flex;margin-left:6px;vertical-align:middle}
+/* แท็บ/ปุ่มกรองมีสไตล์ span ของตัวเอง — บังคับวงชื่อให้เป็นวงสีเล็กเสมอ */
+.online .av{background:var(--mc)!important;color:#111!important;border:0!important;padding:0!important;border-radius:50%!important}
+.tabs .av, .memseg .av, .pav .av, #coordBody .av, #detailBody .av, #mapBody .av{width:16px!important;height:16px!important;min-width:0!important;padding:0!important;
+  margin:0!important;border:0!important;border-radius:50%!important;background:var(--mc)!important;color:#111!important;
+  font-size:.56rem!important;display:inline-flex!important;flex-direction:row!important}
+.memseg button{display:inline-flex!important;flex-direction:row!important;align-items:center;gap:5px}
+.pav{gap:0}
+.pav .av{width:15px;height:15px;font-size:.55rem}
+.online{display:flex;align-items:center;gap:2px;margin-left:auto}
+.online .olab{font-size:.7rem;color:var(--dim);margin-right:6px}
+.online .av{width:22px;height:22px;font-size:.7rem;cursor:default}
+.pnm{font-size:.72rem;cursor:help;margin:0 2px}
+/* การ์ดของคนอื่นในโปรเจกต์ทีม — จางลงนิด ของตัวเองเด่น */
+.mapleaf.notmine{opacity:.6}
+.mapleaf.notmine:hover{opacity:1}
+.mapleaf .h .av{width:15px;height:15px;font-size:.55rem;margin-right:4px}
+/* มีคนอื่นกำลังลากการ์ดใบนี้ / กำลังจะวางลงช่องนี้ */
+.mapleaf.rdrag{outline:2px dashed var(--rc);outline-offset:2px;position:relative}
+.mapleaf.rdrag::after{content:attr(data-rname);position:absolute;left:0;top:-19px;font-size:.66rem;font-weight:600;
+  background:var(--rc);color:#111;padding:1px 7px;border-radius:6px;white-space:nowrap;z-index:3}
+[data-drop].rover{box-shadow:inset 0 0 0 2px var(--rc)!important}
+.rghost{display:inline-block;margin:4px;font-size:.72rem;font-weight:600;color:#111;background:var(--rc);
+  border-radius:6px;padding:2px 8px;animation:rgpulse .8s ease-in-out infinite alternate}
+@keyframes rgpulse{from{opacity:.55}to{opacity:1}}
+/* ช่องที่คนอื่นกำลังแก้ */
+.rlock{outline:2px solid var(--rc)!important;outline-offset:-2px;cursor:not-allowed!important}
+tr.rlockrow > td:first-child{box-shadow:inset 3px 0 var(--rc)}
+.rview{margin-left:4px}
+/* ★ งานของฉัน */
+body[data-mine] .coordbar, body[data-mine] #memSeg, body[data-mine] #creatorCard{display:none!important}
+.minetable tr.mgrp td{background:rgba(var(--accent-rgb),.06);font-size:.85rem;padding:8px 10px}
+.minetable tr.mgrp .n{color:var(--dim);margin:0 8px 0 4px}
+.minetable td{vertical-align:middle}
+.minetable select, .minetable input{padding:4px 8px;font-size:.8rem}
+/* โหมดทีม: เอาออก — ช่องค้นหาประวัติเหนือตาราง · รหัส Coordinator · ช่องพิมพ์คำสั่ง (แทนด้วยการ์ดคำสั่ง) */
+html[data-team] #coordFind, html[data-team] #creatorCard, html[data-team] #coordPinSect,
+html[data-team] .cmdbar-wrap, html[data-team] .cmdbar-foot, html[data-team] #cmdHelp,
+html[data-team] #pickBox{display:none!important}
+/* ลากการ์ดใน Map ด้วย pointer events — ป้ายลอยตามเมาส์ */
+.mapghost{position:fixed;left:0;top:0;z-index:9999;pointer-events:none;background:var(--accent);
+  color:var(--accent-ink);font-size:.8rem;font-weight:600;padding:5px 11px;border-radius:8px;
+  box-shadow:0 8px 22px rgba(0,0,0,.45);white-space:nowrap}
+body.mapdrag{user-select:none;cursor:grabbing}
+body.mapdrag .mapleaf{cursor:grabbing}
+/* ═══ คำสั่งด่วนแบบการ์ด ═══ */
+.qo2{border:1px solid var(--line);border-radius:12px;padding:10px 12px;margin:0 0 10px;background:var(--surface)}
+.qo2head{display:flex;align-items:center;gap:10px;cursor:pointer}
+.qo2head .t{font-weight:700;font-size:.92rem}
+.qo2head .hint{font-size:.76rem;color:var(--dim)}
+.qo2head .fold{margin-left:auto;font-size:.78rem;color:var(--mute)}
+.qo2g{display:flex;flex-wrap:wrap;align-items:center;gap:5px;margin-top:8px}
+.qo2gl{font-size:.72rem;color:var(--dim);min-width:92px}
+.qo2c{background:none;border:1px solid var(--line);color:var(--ink);border-radius:999px;padding:3px 11px;
+  font-size:.78rem;cursor:pointer}
+.qo2c:hover{border-color:var(--accent);color:var(--accent)}
+.qo2c.on{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
+.qo2form{margin-top:10px;border-top:1px dashed var(--line);padding-top:10px;display:grid;
+  grid-template-columns:minmax(220px,1.2fr) minmax(200px,1fr) auto;gap:12px;align-items:start}
+@media (max-width:820px){ .qo2form{grid-template-columns:1fr} }
+.qo2form label.h{display:block;font-size:.74rem;color:var(--mute);margin-bottom:4px}
+.qo2form textarea, .qo2form input, .qo2form select{width:100%;font-size:.84rem;padding:7px 10px}
+.qo2list{display:flex;flex-wrap:wrap;gap:4px;margin-top:6px;max-height:92px;overflow:auto}
+.qo2list button{background:none;border:1px solid var(--line);color:var(--mute);border-radius:6px;
+  padding:1px 7px;font-size:.72rem;cursor:pointer}
+.qo2list button.on{border-color:var(--accent);color:var(--accent)}
+.qo2row{display:flex;gap:8px;align-items:center;margin-top:6px;font-size:.78rem;color:var(--mute)}
+.qo2row input{width:auto}
+.qo2go{display:flex;flex-direction:column;gap:6px;min-width:150px}
+.qo2go .hint{font-size:.72rem;color:var(--dim);max-width:180px}
 
 /* ── หน้าแรก — billboard แบบ Netflix แล้วต่อด้วยสองไทล์ ── */
 #homeView{min-height:calc(100vh - 52px);display:flex;flex-direction:column;
@@ -1741,6 +1844,10 @@ body.mapdrag [data-drop]{border-radius:8px;transition:background .1s}
   .overlay.full .maphead{padding:12px 14px}
   .overlay.full .maphead h2{font-size:1.2rem}
 }
+.voicebtn{flex:none;margin-left:auto;background:none;border:1px solid var(--line);color:var(--ink);
+  border-radius:999px;padding:4px 12px;font-size:.8rem;cursor:pointer;white-space:nowrap}
+.voicebtn:hover{border-color:var(--accent);color:var(--accent)}
+.voicebtn b{color:var(--accent);font-weight:600}
 .x{background:none;border:0;color:var(--dim);font-size:1rem;padding:4px 8px;border-radius:6px}
 .x:hover{color:var(--ink);background:var(--surface2)}
 .sect{margin-top:20px;padding-top:18px;border-top:1px solid var(--line)}
@@ -2367,10 +2474,18 @@ tr.subrow td.w-status select{width:14.6em}
     <!-- ใช้ตอนตั้งรหัสใหม่จากลิงก์ในเมลเท่านั้น — พิมพ์ซ้ำกันพิมพ์ผิดแล้วล็อกตัวเองออก -->
     <input id="lockPw2" type="password" autocomplete="new-password" placeholder="พิมพ์รหัสใหม่อีกครั้ง"
            class="lockemail" hidden>
+    <!-- โหมดทีม: ขั้นถัดจากล็อกอิน เฉพาะบัญชีที่ยังไม่มีทีม -->
+    <input id="lockTeam" type="text" autocomplete="organization" maxlength="60" placeholder="ชื่อทีม"
+           class="lockemail" hidden>
+    <input id="lockTeamCode" type="text" inputmode="numeric" maxlength="6" autocomplete="off"
+           placeholder="รหัสทีม 6 หลัก (ถ้าเข้าทีมเดิม)" class="lockemail" hidden>
+    <input id="lockTeamLabel" type="text" maxlength="60" autocomplete="off"
+           placeholder="ป้ายของคุณในทีม (ไม่บังคับ) เช่น Sourcing, KOC" class="lockemail" hidden>
     <button class="run" type="submit" id="lockGo">เข้าใช้งาน</button>
     <button type="button" class="lockswap" id="lockForgot" hidden>ลืมรหัสผ่าน — ส่งลิงก์ตั้งใหม่เข้าอีเมล</button>
     <button type="button" class="lockswap" id="lockSwap" hidden>ยังไม่มีบัญชี — สมัครที่นี่</button>
     <button type="button" class="lockcancel" id="lockCancel" hidden>ไม่รู้รหัส — กลับหน้าแรก</button>
+    <button type="button" class="lockswap" id="lockSkip" hidden>ข้ามไปก่อน — ใช้แบบส่วนตัว เข้าทีมทีหลังได้ที่ ⚙ ตั้งค่า</button>
     <div class="lockmsg" id="lockMsg"></div>
   </form>
 </div>
@@ -2656,6 +2771,8 @@ tr.subrow td.w-status select{width:14.6em}
          ไม่งั้นพอกางตัวช่วยหรือมีผลตรวจยาวๆ มันจะบังตารางทั้งจอ
          ต้องเป็นลูกตรงของ #coordView — sticky เดินออกนอกกล่องแม่ไม่ได้
          ถ้าห่อไว้ในกล่องที่สูงเท่าตัวมันเอง มันจะไม่มีที่ให้เลื่อนเลย -->
+    <!-- โหมดทีม: คำสั่งด่วนแบบการ์ด — เลือกคำสั่ง แล้ววางข้อมูลที่คำสั่งนั้นต้องการ (ไม่ต้องพิมพ์คำสั่งเอง) -->
+    <div class="qo2" id="qo2" hidden></div>
     <div class="cmdbar-stick">
       <!-- ตัวช่วยเติมคำสั่งลอยอยู่ใต้ช่องพิมพ์ ต้องมีกล่อง relative ครอบไว้ -->
       <div class="cmdbar-wrap">
@@ -2710,6 +2827,10 @@ tr.subrow td.w-status select{width:14.6em}
              <code>/rate cenakims : +500</code> — บวกจากเรทเดิม<br>
              <code>/status cenakims tangkwaqs : รอ Draft 2</code> — หลายคนพร้อมกัน<br>
              <code>/status * : Already Posted</code> — ทุกคนในโปรเจกต์</p>
+          <p><b>เลขพัสดุทีละหลายคน</b> — บรรทัดแรกพิมพ์ <code>เลขพัสดุ</code> แล้ววางลิสต์จากลูกค้าต่อได้เลย<br>
+             <code>nana.review&nbsp;&nbsp;TH0124578963A</code><br>
+             <code>mintmint_ - SPXTH0412345678</code><br>
+             <span style="color:var(--dim)">ชื่อกับเลขสลับข้างได้ · คนเดียว 2 กล่อง = 2 บรรทัด · ใช้ใน Command เป็น <code>{{tracking}}</code></span></p>
         </div>
 
         <div class="hcol">
@@ -2795,6 +2916,7 @@ tr.subrow td.w-status select{width:14.6em}
     <!-- ข้อความทักครั้งแรกเพื่อขอเรท — ยังไม่มีคนในตาราง เลยเป็นของโปรเจกต์ ไม่ใช่ของรายคน -->
     <button class="mapbtn" id="fmtBtn" title="ข้อความขอเรทสำหรับทักครีเอเตอร์ครั้งแรก">✉ Format ขอเรท</button>
     <div class="coord-sum" id="coordSum"></div>
+    <div class="online" id="onlineBar"></div>
   </div>
   <div class="syncbar" id="syncBar"></div>
 
@@ -2806,6 +2928,8 @@ tr.subrow td.w-status select{width:14.6em}
     <button class="mapbtn" id="custColBtn"
       title="เพิ่ม/แก้คอลัมน์ของโปรเจกต์นี้เอง">＋ คอลัมน์</button>
   </div>
+  <!-- โหมดทีม: กรองตามผู้ดูแลแถว (เฉพาะโปรเจกต์ทีม) -->
+  <div class="tabs sub memseg" id="memSeg" role="tablist" hidden></div>
   <div id="creatorCard"></div>
 
 
@@ -2822,6 +2946,9 @@ tr.subrow td.w-status select{width:14.6em}
       <div class="tabs sub" id="mapTabs" role="tablist"></div>
       <!-- KOL กับ KOC เดินคนละกระบวนการแล้ว (11 บล็อก vs 15) ดูรวมกันบางทีก็ไม่ตอบอะไร -->
       <div class="tabs sub mapkind" id="mapKind" role="tablist"></div>
+      <!-- โหมดทีม: กรองตามผู้ดูแล — ชุดเดียวกับเหนือตาราง -->
+      <div class="tabs sub memseg" id="mapMem" role="tablist" hidden></div>
+      <div class="online" id="mapOnline"></div>
       <div class="mapmodes" id="mapModes" role="tablist"></div>
       <!-- รูปแบบของแผ่น "ขั้นตอนงาน" — ตั้งแยกรายโปรเจกต์ จำไว้ในเครื่อง -->
       <div class="mapfmt" id="mapFmt" role="tablist"></div>
@@ -2856,6 +2983,19 @@ tr.subrow td.w-status select{width:14.6em}
   </div>
 </div>
 
+<!-- ═══ ประวัติการแก้ไข (โหมดทีม) — trigger ฝั่งฐานข้อมูลเป็นคนจด หน้าเว็บแค่อ่าน ═══ -->
+<div class="overlay" id="actPanel" hidden>
+  <div class="modal" role="dialog" aria-modal="true" aria-labelledby="actTitle">
+    <div class="modal-head">
+      <h2 id="actTitle">ประวัติการแก้ไข</h2>
+      <button class="x" id="closeAct" aria-label="ปิด">✕</button>
+    </div>
+    <div class="actbar"><select id="actScope"></select><select id="actWho" hidden></select>
+      <button type="button" class="export ghost" id="actRefresh">โหลดใหม่</button></div>
+    <div id="actBody"></div>
+  </div>
+</div>
+
 <!-- ═══ รายละเอียดครีเอเตอร์ — ทุกช่องอยู่ในแนวตั้ง ไม่ต้องเลื่อนตารางไปขวา ═══ -->
 <div class="drawer" id="detailPanel">
   <div class="scrim" id="detailScrim"></div>
@@ -2876,6 +3016,8 @@ tr.subrow td.w-status select{width:14.6em}
       <!-- เดินดู Command ทีละคนได้จากตรงนี้ ไม่ต้องปิดหน้าแล้วไปกดในตารางใหม่ทุกครั้ง -->
       <div class="cmdnav" id="cmdNav"></div>
       <h2 id="cmdTitle">Command</h2>
+      <!-- หางเสียงของทุกกล่อง: ชาย (ครับ) / หญิง (ค่ะ) — จำแยกรายบัญชี -->
+      <button type="button" class="voicebtn" id="voiceBtn"></button>
       <button class="x" id="closeCmd" aria-label="ปิด">✕</button>
     </div>
     <!-- บอกล่วงหน้าว่ากด ←/→ แล้วจะไปเจอใคร ไม่ต้องกดแล้วเดาว่าใช่คนที่ต้องการไหม -->
@@ -3072,6 +3214,10 @@ tr.subrow td.w-status select{width:14.6em}
          ที่เหนือตารางเหลือแต่ของที่ใช้ทุกวัน — แท็บโปรเจกต์กับ Map -->
     <!-- ไม่ crewhide แล้ว — งานเก็บที่ฐานข้อมูล ทุก role ต้องโหลดใหม่/ส่งออกได้
          เหลือเฉพาะปุ่มที่เกี่ยวกับ Google Sheet ที่ยังเป็นของ admin -->
+    <section class="sect" id="teamSect" hidden>
+      <h3>ทีม</h3>
+      <div id="teamBody"></div>
+    </section>
     <section class="sect">
       <h3>ข้อมูล Coordinate</h3>
       <p class="sect-sub">โหลด/ส่งออกงานของหน้า Coordinator — สั่งจากช่องคำสั่งก็ได้:
@@ -3101,7 +3247,7 @@ tr.subrow td.w-status select{width:14.6em}
       </div>
     </section>
 
-    <section class="sect">
+    <section class="sect mkeep">
       <h3>แจ้งเตือนก่อนไลฟ์</h3>
       <p class="sect-sub">เด้งก่อนไลฟ์ <b>30 · 20 · 10 · 5 นาที</b> เฉพาะโปรเจกต์ไลฟ์ (แผนผังแบบปฏิทินวันที่) ·
         ค้างจนกว่าจะกดปิด<br>วันที่มีไลฟ์ เด้งสรุปรายการไลฟ์ของวันตอน <b>10 โมงเช้า</b><br>เลือกเสียงตอนเด้ง — กดแล้วเล่นให้ฟังเลย · จำแยกเครื่อง</p>
@@ -3286,7 +3432,7 @@ tr.subrow td.w-status select{width:14.6em}
       <div id="usersList"></div>
     </details>
 
-    <section class="sect">
+    <section class="sect mkeep">
       <h3>คู่มือเริ่มต้นใช้งาน</h3>
       <p class="sect-sub">พาไปชี้ปุ่มจริงบนหน้าจอทีละจุด — เปิดซ้ำได้ตลอด</p>
       <button type="button" class="export" id="tourAgain">เปิดคู่มือ</button>
@@ -3307,7 +3453,7 @@ tr.subrow td.w-status select{width:14.6em}
       <div class="addmsg" id="coordPinMsg"></div>
     </details>
 
-    <details class="sect" id="accentSect">
+    <details class="sect mkeep" id="accentSect">
       <summary><h3>สีหลักของเว็บ</h3></summary>
       <p class="sect-sub">
         กดวงสีเพื่อเลือกเองได้เลย หรือกดสีสำเร็จรูปด้านล่าง — เปลี่ยนแล้วเห็นผลทันทีทั้งเว็บ
@@ -3329,13 +3475,14 @@ tr.subrow td.w-status select{width:14.6em}
       <div class="addmsg" id="accentWarn"></div>
     </details>
 
-    <details class="sect">
+    <details class="sect mkeep">
       <summary><h3>ความเป็นส่วนตัว</h3></summary>
       <p class="sect-sub">
         เว็บนี้เก็บของไว้ในเบราว์เซอร์เครื่องนี้เท่านั้น ไม่มีเซิร์ฟเวอร์ของเรา:
         รายการชีต · ลิสต์แนวที่ชอบ · ลิสต์ที่เคยใช้ · คนที่เปิดดูแล้ว · ตะกร้า · เกณฑ์ · token
         <br>ทั้งหมดนี้มีชื่อและลิงก์ของคนจริง ถ้าจะส่งเครื่องต่อให้คนอื่นควรล้างก่อน
       </p>
+      <p class="sect-sub" id="privTeam" hidden></p>
       <button class="run" id="wipeAll">ล้างข้อมูลทั้งหมดในเครื่องนี้</button>
       <div class="addmsg" id="wipeMsg"></div>
     </details>
@@ -3344,6 +3491,22 @@ tr.subrow td.w-status select{width:14.6em}
 </div>
 
 <script>
+// ═══ โหมดทีม ═══ เปิดทั้งสองเว็บแล้ว (2026-10-03): ALTA (ของจริง) + netflixss (sandbox ไว้ลองก่อน)
+// ฐานข้อมูลต้องรัน kol-tools/team-mode.sql → -2 → -3 แล้ว (รันครบทั้งสองโปรเจกต์)
+// เปิด = งานแยกเป็น "ของทีม" (ทุกคนในทีมเห็น/แก้) กับ "ส่วนตัว" · ซิงก์ส่งเฉพาะช่องที่แก้ ไม่เขียนทับทั้งชุด
+// ปิด = พฤติกรรมเดิมทุกอย่าง (งานเป็นของแต่ละบัญชี ซิงก์แบบเขียนทับทั้งชุด)
+const TEAM_MODE = true;
+let TEAM = null;        // { id, name, code, lead_id, members:[{id,name,email}] } · null = ยังไม่มีทีม
+let BASE = null;        // { โปรเจกต์: Map(คีย์แถว → แถวตามที่ฐานมีตอนโหลด) } · null = ยังโหลดไม่สำเร็จ
+let BASE_PROJ = null;   // Map(ชื่อโปรเจกต์ → แถว projects ตอนโหลด)
+let VQ = [], VQ_T = null, VQ_SIG = "", VQ_AT = 0;   // คิวประวัติการเปิดดูที่รอส่ง (ดู vlog)
+// เรียลไทม์ของทีม: ใครออนไลน์อยู่ไหน (PRES) · ใครกำลังลากการ์ดใน Map (RDRAG) · ช่องที่เรากำลังแก้ (EDITING)
+let PRES = {}, PRES_JOINED = false, PRES_LAST = "", TEAM_TOPIC = "", RDRAG = {}, EDITING = null;
+let MINE_VIEW = false;   // แท็บ ★ งานของฉัน — ครีเอเตอร์ที่ตัวเองดูแลจากทุกโปรเจกต์
+let PNOTES = {};         // โน้ตส่วนตัว { "โปรเจกต์|ชื่อ": ข้อความ } — เห็นคนเดียว
+let MD = null;           // กำลังลากการ์ดใน Map (ดู mapDragArm)
+// CSS ใช้ธงนี้ซ่อนของที่โหมดทีมไม่ใช้ (ช่องค้นหาประวัติ · รหัส Coordinator · ช่องพิมพ์คำสั่ง)
+if (TEAM_MODE) document.documentElement.dataset.team = "1";
 // ═══ พื้นที่ทำงานของแต่ละบัญชี ═══
 // ทุกอย่างที่หน้านี้จำไว้ (โปรเจกต์ · ที่แก้ค้าง · Command · ตะกร้า · ตั้งค่า) อยู่ใน localStorage
 // ของเบราว์เซอร์ ไม่ได้อยู่บนเซิร์ฟเวอร์ — เครื่องเดียวหลายบัญชีเลยเคยปนกันหมด
@@ -4329,6 +4492,9 @@ async function run(opt){
   // ดีลแลกของไม่มีค่าตัวเป็นเงิน ช่องงบเลยถูกซ่อนไว้ — ค่าที่ค้างอยู่ก็ไม่เอามากรอง
   const rateFilterOn = DEAL !== "barter" && (rMin > 0 || rMax < Infinity);
   RATE_SKIPPED = DEAL === "barter" && !!(rMinRaw || rMaxRaw);
+  // วาดผลใหม่เฉยๆ (rank:false) ไม่ใช่การค้นหาของคน — บันทึกเฉพาะตอนกดค้นจริง
+  if (useRank) vlog("search", { d: { cats: [...(onCats || [])].slice(0, 12),
+    fol: [$("#folMin").value || "", $("#folMax").value || ""], rate: [rMinRaw, rMaxRaw], deal: DEAL, want } });
 
   POOL.forEach(p => { p.score = null; p.reason = ""; });
 
@@ -4595,7 +4761,8 @@ function loadProjects(){
     if (Array.isArray(saved) && saved.length && saved.every(p => p && typeof p.name === "string"))
       PROJ_LIST = saved.map(p => ({ name: p.name, done: !!p.done,
         // ของที่บันทึกไว้ก่อนมีช่องแบรนด์ เดาให้ครั้งแรก แล้วแก้เองได้
-        brand: typeof p.brand === "string" ? p.brand : guessBrand(p.name) }));
+        brand: typeof p.brand === "string" ? p.brand : guessBrand(p.name),
+        ...(TEAM_MODE ? { team: !!p.team } : {}) }));
   } catch(e){}
   syncProjects();
 }
@@ -4674,7 +4841,7 @@ function renameProject(from, to){
 // สองอย่างนี้คนละเรื่องกัน: อันนี้คือชื่อที่ COORD_PROJECTS ในสคริปต์รู้จัก ต้องเขียนไว้ตรงๆ
 const SCRIPT_KNOWN = ["Red Chamber Phase 1", "Red Chamber Phase 2",
                       "OBSBOT-KOL", "OBSBOT-KOC", "TikTok Live", "COSRX", "Midea",
-                      "Red Chamber KOC", "GJD Earphone"];
+                      "Red Chamber KOC", "GJD Earphone", "Off & Relax"];
 // ลิสต์ข้างบนเป็นแค่ค่าเดาตั้งต้น — คำตอบจริงจากสคริปต์ตอนซิงก์ชนะเสมอ (จำไว้ในเครื่อง)
 const LS_SCRIPTPROJ = "cf_scriptproj_v1";     // { โปรเจกต์: true รับแล้ว | false ไม่รู้จัก }
 let SCRIPT_SAW = {};
@@ -5210,13 +5377,16 @@ async function syncCoord(manual){
   SYNCING = true; updateSyncBar();
   NEED_FORCE = [];
   // 1) ฐานข้อมูลก่อนเสมอ — เป็นที่เก็บจริงของงานตอนนี้
-  const failed = await syncCoordSB();
+  const failed = TEAM_MODE ? await syncCoordTeam() : await syncCoordSB();
   // 2) ชีตต่อให้ถ้าเป็น admin ที่ตั้ง Apps Script ไว้ — ล้มก็ไม่กระทบของที่ขึ้นฐานข้อมูลแล้ว
   if (canSync()) failed.push(...await syncCoordSheet());
   FORCE_PROJ.clear();          // อนุญาตครั้งเดียวต่อการกดยืนยันหนึ่งครั้ง
   SYNCING = false;
   SYNC_AT = Date.now();
-  if (!failed.length) clearDirty();
+  if (!failed.length){
+    clearDirty();
+    if (TEAM_MODE){ EDITS = {}; saveEdits(); }   // ขึ้นฐานแล้ว ฐานคือของจริง ไม่ต้องจำทับไว้ในเครื่องอีก
+  }
   updateSyncBar(failed);
   // งานขึ้นฐานข้อมูลครบแล้ว — คนใหม่/เรทจริง/ชื่อที่แก้ ค่อยตามเข้าฐานครีเอเตอร์
   if (!failed.length) poolSyncSoon();
@@ -5272,33 +5442,53 @@ function rtStart(){
       config: { postgres_changes: RT_TABLES.map(t => ({ event:"*", schema:"public", table:t })) },
       access_token: SESSION.access_token });
     RT_HB = setInterval(() => rtSend("phoenix", "heartbeat", {}), 25000);
+    if (TEAM_MODE && TEAM) rtJoinTeam();
   };
   ws.onmessage = ev => {
     let m; try { m = JSON.parse(ev.data); } catch(e){ return; }
+    if (TEAM_TOPIC && m.topic === TEAM_TOPIC) return rtTeamMsg(m);
     if (m.event === "postgres_changes"){
-      const t = ((m.payload || {}).data || {}).table;
-      if (t) rtChanged(t);
+      const d = (m.payload || {}).data || {};
+      if (d.table) rtChanged(d.table, d.record, d);
     }
   };
   ws.onclose = () => {
     clearInterval(RT_HB); RT_HB = null; RT = null;
+    PRES_JOINED = false; PRES_LAST = ""; PRES = {}; RDRAG = {};
     // ต่อใหม่แบบถอยห่างขึ้นเรื่อยๆ สูงสุด 30 วิ — เน็ตสะดุดแล้วกลับมาเองโดยไม่ต้องรีเฟรชหน้า
     if (RT_WANT) setTimeout(() => { if (RT_WANT) rtStart(); }, Math.min(30000, 2000 * ++RT_TRIES));
   };
   ws.onerror = () => { try { ws.close(); } catch(e){} };
 }
 // ต่ออายุสิทธิ์ให้ช่องที่เปิดค้างไว้ ไม่งั้นพอ token หมดอายุ (1 ชม.) จะเงียบไปเฉยๆ
-function rtAuth(){ if (SESSION) rtSend("realtime:cf", "access_token", { access_token: SESSION.access_token }); }
+function rtAuth(){
+  if (!SESSION) return;
+  rtSend("realtime:cf", "access_token", { access_token: SESSION.access_token });
+  if (TEAM_TOPIC) rtSend(TEAM_TOPIC, "access_token", { access_token: SESSION.access_token });
+}
 
-function rtChanged(table){
+function rtChanged(table, rec, d){
   // เสียงสะท้อนจากการซิงก์ของตัวเอง — ไม่ต้องไปอ่านใหม่ให้เสียเที่ยว
-  if (SYNCING || Date.now() - SYNC_AT < 4000) return;
+  // โหมดทีม: แถวบอกว่าใครแก้ (updated_by) — ของคนอื่นที่เข้ามาช่วงเดียวกับเราซิงก์ต้องไม่ถูกทิ้ง
+  if (TEAM_MODE && rec && rec.updated_by === sbUid()) return;
+  // แถวงานของคนอื่น: เอาแถวที่ส่งมากับสัญญาณใส่ตรงจุดเลย ไม่ต้องโหลดทั้งหมดใหม่
+  if (TEAM_MODE && table === "coord" && d && rtApplyCoord(d)) return;
+  if (TEAM_MODE && rec && rec.updated_by){}
+  else if (SYNCING || Date.now() - SYNC_AT < 4000) return;
   RT_HIT[table] = true;
   clearTimeout(RT_T);
   RT_T = setTimeout(rtPull, 1500);     // รวมการเปลี่ยนแปลงรัวๆ เป็นรอบเดียว
 }
 async function rtPull(){
   const hit = RT_HIT; RT_HIT = {};
+  if (TEAM_MODE){
+    // กำลังซิงก์ / กำลังพิมพ์ในช่องอยู่ = เลื่อนไปก่อน (วาดใหม่ตอนนี้ ตัวที่พิมพ์ค้างหาย)
+    const ae = document.activeElement;
+    const typing = ae && /^(INPUT|TEXTAREA|SELECT)$/.test(ae.tagName) && ae.closest("#coordBody, #detailPanel");
+    if (SYNCING || typing){
+      Object.assign(RT_HIT, hit); clearTimeout(RT_T); RT_T = setTimeout(rtPull, 2500); return;
+    }
+  }
   if (SYNCING) return;
   try {
     if (hit.pool && POOL_URL === "supabase"){
@@ -5308,7 +5498,12 @@ async function rtPull(){
     if (hit.coord || hit.projects){
       // ของในเครื่องยังไม่ได้ซิงก์ ห้ามโหลดทับ — ทับแล้วของที่พิมพ์ค้างไว้หายทันที
       // บอกให้รู้แทน แล้วให้คนเลือกเองว่าจะซิงก์ก่อนหรือทิ้งของตัวเอง
-      if (DIRTY){ RT_WAITING = true; updateSyncBar(); return; }
+      if (DIRTY){
+        RT_WAITING = true; updateSyncBar();
+        // โหมดทีมส่งเฉพาะช่องที่แก้ ส่งของเราก่อนไม่ทับใคร — ซิงก์เสร็จแล้วมันดึงของใหม่ลงมาให้เอง
+        if (TEAM_MODE && !NEED_FORCE.length) syncCoord(false);
+        return;
+      }
       RT_WAITING = false;
       await loadCoordData(true);
       renderProjTabs(); renderCoord();
@@ -5444,7 +5639,9 @@ function shapeCoord(list){
   PROJECTS.forEach(p => COORD[p] = []);
   list.forEach(r => {
     if (!r || !r.handle) return;
-    const p = PROJECTS.includes(r.project) ? r.project : PROJECTS[0];
+    // โหมดทีม: ไม่ยัดแถวที่ไม่มีโปรเจกต์ลงแท็บแรก — แก้แล้วจะไปเขียนผิดโปรเจกต์ในฐานข้อมูล
+    // (แถวยังอยู่ในฐาน เพิ่มชื่อโปรเจกต์กลับมาก็เห็นเหมือนเดิม)
+    const p = PROJECTS.includes(r.project) ? r.project : (TEAM_MODE ? null : PROJECTS[0]);
     if (!p) return;
     COORD[p].push(Object.assign({}, r, { project: p }, EDITS[ekey({...r, project:p})] || {}));
   });
@@ -5480,6 +5677,13 @@ function coordFromCSV(text){
 async function loadCoordData(force){
   if (COORD_SRC && !force) return;
   loadEdits();
+  if (TEAM_MODE){
+    // ฐานข้อมูลคือของจริงของทั้งทีม — ที่แก้ในเครื่องที่ส่งขึ้นไปแล้วห้ามมาทับของใหม่ที่คนอื่นแก้
+    // เก็บไว้เฉพาะตอนยังค้างส่ง (DIRTY) เท่านั้น
+    if (!DIRTY){ EDITS = {}; saveEdits(); }
+    BASE = null; BASE_PROJ = null;      // ยังไม่รู้ว่าฐานมีอะไร = ห้ามซิงก์จนกว่าจะโหลดสำเร็จ
+    await loadPNotes();
+  }
   shapeCoord(SEED_COORD);
   COORD_SRC = "ชุดที่ฝังมากับหน้าเว็บ";
   // 1) รายการโปรเจกต์จากฐานข้อมูล — ต้องมาก่อน shapeCoord เพราะแถวลงตามชื่อโปรเจกต์
@@ -5487,7 +5691,8 @@ async function loadCoordData(force){
     const ps = await sbFetchProjects();
     if (ps.length){
       PROJ_LIST = ps.map(x => ({ name: x.name, done: !!x.done,
-        brand: typeof x.brand === "string" ? x.brand : guessBrand(x.name) }));
+        brand: typeof x.brand === "string" ? x.brand : guessBrand(x.name),
+        ...(TEAM_MODE ? { team: !!(TEAM && x.owner === TEAM.id) } : {}) }));
       // คลัง SKU จากฐานข้อมูลชนะของในเครื่อง แต่ของในเครื่องที่ยังไม่ได้ขึ้นไปต้องไม่หาย — รวมกัน
       ps.forEach(x => {
         if (typeof x.skus !== "string") return;
@@ -5498,12 +5703,14 @@ async function loadCoordData(force){
       saveProjSku(true);
       syncProjects(); saveProjects(true);
     }
+    if (TEAM_MODE) setProjBase(ps);
   } catch(e){}
   // 2) แถวงานจากฐานข้อมูล
   try {
     const list = await sbFetchCoord();
+    if (TEAM_MODE && BASE_PROJ) setCoordBase([]);
     if (list.length){
-      shapeCoord(list.map(o => ({
+      const mapped = list.map(o => ({
         handle: normId(o.handle), project: o.project, kind: o.kind || "",
         code: o.code || "", status: o.status || "",
         videos: o.videos == null ? null : Number(o.videos),
@@ -5513,8 +5720,13 @@ async function loadCoordData(force){
         postdate: o.postdate || "", deadline: o.deadline || "",
         brief: o.brief || "", note: o.note || "",
         commission: o.commission || "", script: o.script || "", rate_all: [],
-      })));
-      COORD_SRC = `ฐานข้อมูล — พื้นที่ของบัญชีคุณ (${list.length} แถว)`;
+        tracking: o.tracking || "",
+        ...(TEAM_MODE ? { assignee: o.assignee || null, _id: o.id } : {}),
+      }));
+      if (TEAM_MODE && BASE_PROJ) setCoordBase(mapped);
+      shapeCoord(mapped);
+      COORD_SRC = TEAM_MODE && TEAM ? `ฐานข้อมูล — งานทีม ${TEAM.name} + งานส่วนตัว (${list.length} แถว)`
+                                    : `ฐานข้อมูล — พื้นที่ของบัญชีคุณ (${list.length} แถว)`;
       return;
     }
     // ฐานข้อมูลยังว่าง — ยังไม่เคยมีใครซิงก์ขึ้นไป
@@ -5567,17 +5779,30 @@ let SHOW_DONE = false;   // กางงานที่ปิดแล้วอ�
 function renderProjTabs(){
   // งานที่ปิดแล้วยังเปิดดูได้ แต่ไม่ต้องมาเบียดแท็บของงานที่ยังทำอยู่ทุกวัน
   const show = projTabList(PROJ);
-  const tab = p => `<button role="tab" data-p="${esc(p)}" aria-selected="${p === PROJ}"
+  const tab = p => `<button role="tab" data-p="${esc(p)}" aria-selected="${p === PROJ && !MINE_VIEW}"
       class="${projMeta(p) && projMeta(p).done ? "isdone" : ""}"
       title="${needsScript(p) ? "โปรเจกต์ที่เพิ่มเอง — ต้องเติมชื่อนี้ใน Apps Script ก่อนถึงจะซิงก์ได้" : ""}"
-    >${projMeta(p) && projMeta(p).done ? "✓ " : ""}${esc(p)}${
+    >${projMeta(p) && projMeta(p).done ? "✓ " : ""}${isTeamProj(p)
+      ? `<span class="tm" title="งานทีม — ทุกคนในทีมเห็นและแก้ได้">👥</span>` : ""}${esc(p)}${
       needsScript(p) ? `<span class="warnmark" title="ยังซิงก์ไม่ได้">!</span>` : ""}<span
       class="n">${(COORD[p] || []).length}</span></button>`;
-  $("#projTabs").innerHTML = show.map(tab).join("") + doneTabBtn(PROJ) +
+  $("#projTabs").innerHTML = (TEAM_MODE && TEAM
+      ? `<button role="tab" data-mine="1" aria-selected="${MINE_VIEW}"
+           title="ครีเอเตอร์ที่คุณดูแลจากทุกโปรเจกต์ — พื้นที่ส่วนตัว แก้ตรงนี้คือแก้แถวเดียวกับของทีม">★ งานของฉัน<span
+           class="n">${myRows().length}</span></button>` : "") +
+    show.map(tab).join("") + doneTabBtn(PROJ) +
+    (TEAM_MODE ? `<button class="ghosttab" data-acts="1" title="ประวัติการแก้ไข — ใครแก้อะไรเมื่อไหร่">🕘</button>` : "") +
     `<button class="ghosttab" data-manageproj="1" title="เพิ่ม / ปิดงาน / ลบโปรเจกต์">⚙</button>`;
+  const ac = $("#projTabs [data-acts]");
+  if (ac) ac.onclick = openActivity;
 
   document.querySelectorAll("#projTabs [data-p]").forEach(b => b.onclick = () => {
-    PROJ = b.dataset.p; renderProjTabs(); renderCoord();
+    PROJ = b.dataset.p; MINE_VIEW = false; renderProjTabs(); renderCoord();
+    vlog("project", { p: PROJ });
+  });
+  document.querySelectorAll("#projTabs [data-mine]").forEach(b => b.onclick = () => {
+    MINE_VIEW = true; renderProjTabs(); renderCoord();
+    vlog("project", { p: "★ งานของฉัน" });
   });
   document.querySelectorAll("#projTabs [data-showdone]").forEach(b => b.onclick = () => {
     SHOW_DONE = b.dataset.showdone === "1"; renderProjTabs();
@@ -5733,7 +5958,7 @@ function renderFormat(){
   const vals = { brandname: brandOf(proj), videos: FMT_VID || "1", sku: fmtSkuText(proj),
                  commission: FMT_COMM !== "" ? FMT_COMM + "%" : "" };
   const raw = formatOf(proj, K.k);
-  const filled = raw.replace(/\{\{([\w฀-๿]+)\}\}/g, (_, k) =>
+  const filled = voiceText(raw).replace(/\{\{([\w฀-๿]+)\}\}/g, (_, k) =>
     vals[k] != null && vals[k] !== "" ? vals[k] : `…..ยังไม่มี${FMT_GAP[k] || k}…..`);
   const mine = fmtStore(K.k)[proj] != null;
   // ช่องกรอกโผล่ตามตัวแปรที่ต้นแบบใช้จริง ไม่ใช่ตามแบบ — แก้ต้นแบบเอา {{videos}} ออก ช่องจำนวนวิดีโอก็หายเอง
@@ -5858,7 +6083,7 @@ function renderFormat(){
       $("#fmtSku").addEventListener("input", () => {
         saveFmtSku(proj, $("#fmtSku").value);
         const v2 = Object.assign({}, vals, { sku: fmtSkuText(proj) });
-        $("#fmtPrev").textContent = raw.replace(/\{\{([\w฀-๿]+)\}\}/g, (_, k) =>
+        $("#fmtPrev").textContent = voiceText(raw).replace(/\{\{([\w฀-๿]+)\}\}/g, (_, k) =>
           v2[k] != null && v2[k] !== "" ? v2[k] : `…..ยังไม่มี${FMT_GAP[k] || k}…..`);
         const rs = $("#fmtSkuReset");
         if (rs) rs.hidden = FMT_SKU_BY[proj] == null;
@@ -5903,6 +6128,7 @@ function renderFormat(){
   };
 }
 function openFormat(){
+  vlog("format", { p: PROJ });
   loadFormats();
   FMT_EDIT = false;
   FMT_COMM = FMT_COMM_BY[PROJ] || "";           // เลขที่ตั้งไว้ของโปรเจกต์นี้ ไม่ต้องกรอกใหม่ทุกครั้ง
@@ -5915,11 +6141,16 @@ function openFormat(){
 
 // ─── จัดการโปรเจกต์ ───
 function openProjManager(){
+  vlog("projects");
   const body = $("#projBody");
   body.innerHTML = PROJ_LIST.map((p, i) => `<div class="prow${p.done ? " done" : ""}">
       <span class="nm">${esc(p.name)}${needsScript(p.name)
         ? `<span class="warnmark" title="ยังไม่มีในสคริปต์">!</span>` : ""}</span>
+      ${TEAM_MODE && TEAM ? `<span class="pspace${p.team ? " team" : ""}">${p.team ? "👥 ทีม" : "ส่วนตัว"}</span>` : ""}
       <span class="cnt">${(COORD[p.name] || []).length} คน</span>
+      ${TEAM_MODE && TEAM ? `<button class="cmdbtn" data-move="${i}" title="${p.team
+        ? "ย้ายกลับเป็นงานส่วนตัว — คนอื่นในทีมจะไม่เห็นอีก" : "ย้ายไปเป็นงานทีม — ทุกคนในทีมเห็นและแก้ได้"}">${
+        p.team ? "→ ส่วนตัว" : "→ ทีม"}</button>` : ""}
       <button class="cmdbtn" data-ren="${i}" title="เปลี่ยนชื่อโปรเจกต์">✎ ชื่อ</button>
       <button class="cmdbtn" data-toggle="${i}">${p.done ? "กลับมาทำต่อ" : "ปิดงาน"}</button>
       <button class="cmdbtn" data-up="${i}"${i ? "" : " disabled"}>↑</button>
@@ -5931,6 +6162,8 @@ function openProjManager(){
        <input id="newProjName" placeholder="${canSync()
          ? "ชื่อโปรเจกต์ใหม่ — ต้องตรงกับชื่อแท็บในชีต" : "ชื่อโปรเจกต์ใหม่"}">
        <input id="newProjBrand" placeholder="ชื่อแบรนด์ — บังคับกรอก">
+       ${TEAM_MODE && TEAM ? `<select id="newProjSpace" title="ใครเห็นโปรเจกต์นี้">
+         <option value="team">👥 ทีม ${esc(TEAM.name)}</option><option value="me">ส่วนตัว</option></select>` : ""}
        <button class="cmdbtn" id="addProj">เพิ่ม</button>
      </div>
      <p class="sect-sub" style="margin-top:14px">
@@ -5961,6 +6194,7 @@ function openProjManager(){
     const p = PROJ_LIST[+b.dataset.drop];
     const n = (COORD[p.name] || []).length;
     if (!confirm(`เอา "${p.name}" ออกจากรายการ?` +
+      (isTeamProj(p.name) ? `\n\n👥 เป็นงานทีม — จะหายจากหน้าของทุกคนในทีม` : "") +
       (n ? `\n\nมีครีเอเตอร์อยู่ ${n} คน — ข้อมูลจะหายจากหน้านี้` : "") +
       `\nแท็บในชีตไม่ถูกแตะ เพิ่มชื่อกลับมาใหม่ก็เห็นเหมือนเดิม`)) return;
     PROJ_LIST.splice(+b.dataset.drop, 1);
@@ -5973,7 +6207,21 @@ function openProjManager(){
     if (!$("#cmdPanel").classList.contains("on")) return;
     renderCoord();                       // ข้อความใน Command อ้างชื่อแบรนด์อยู่
   });
-  body.querySelectorAll("[data-ren]").forEach(b => b.onclick = () => {
+  body.querySelectorAll("[data-move]").forEach(b => b.onclick = async () => {
+    const p = PROJ_LIST[+b.dataset.move];
+    const toTeam = !p.team, n = (COORD[p.name] || []).length;
+    if (!confirm(toTeam
+      ? `ย้าย "${p.name}" ไปเป็นงานทีม “${TEAM.name}”?\n\nทุกคนในทีมจะเห็นและแก้ได้ทั้งหมด (${n} แถว)`
+      : `ย้าย "${p.name}" กลับเป็นงานส่วนตัว?\n\nคนอื่นในทีมจะไม่เห็นโปรเจกต์นี้อีก`)) return;
+    if (!(await teamSettle())) return;
+    try { await sbRpc("move_project", { p_name: p.name, p_to_team: toTeam }); }
+    catch(e){ return alert("ย้ายไม่สำเร็จ: " + e.message); }
+    // ฝั่งเซิร์ฟเวอร์ย้ายเจ้าของแถวไปแล้ว — ตามให้ตรงในเครื่อง ไม่ต้องโหลดใหม่ทั้งหน้า
+    p.team = toTeam;
+    baseMoveSpace(p.name);
+    saveProjects(true); renderProjTabs(); openProjManager();
+  });
+  body.querySelectorAll("[data-ren]").forEach(b => b.onclick = async () => {
     const p = PROJ_LIST[+b.dataset.ren];
     const to = (prompt(`เปลี่ยนชื่อ "${p.name}" เป็น\n\n` +
       `ชื่อนี้ต้องตรงกับชื่อแท็บในชีต ไม่งั้นซิงก์ไม่ขึ้น`, p.name) || "").trim();
@@ -5983,6 +6231,13 @@ function openProjManager(){
     if (!confirm(`เปลี่ยน "${p.name}" → "${to}"\n\n` +
       `ย้ายให้ครบในเว็บ: ${n} แถว · ที่แก้ค้างส่ง · Command รายคน · ต้นแบบของโปรเจกต์\n` +
       `แต่ชื่อแท็บในชีตไม่เปลี่ยนตาม — ต้องไปเปลี่ยนในชีตและใน COORD_PROJECTS ให้ตรงกันเอง`)) return;
+    if (TEAM_MODE){
+      // เปลี่ยนที่เซิร์ฟเวอร์ทีเดียวทั้งโปรเจกต์ — คนอื่นในทีมที่เปิดค้างไว้จะได้ชื่อใหม่ตามมา ไม่ใช่สองชุดซ้อนกัน
+      if (!(await teamSettle())) return;
+      try { await sbRpc("rename_project", { p_from: p.name, p_to: to }); }
+      catch(e){ return alert("เปลี่ยนชื่อไม่สำเร็จ: " + e.message); }
+      baseRename(p.name, to);
+    }
     renameProject(p.name, to);
     renderProjTabs(); renderCoord(); fillProjSelect(); openProjManager();
   });
@@ -5994,7 +6249,8 @@ function openProjManager(){
     // จะขึ้นช่องแดง "ยังไม่ได้ตั้งชื่อแบรนด์" ซึ่งกว่าจะรู้ตัวก็ตอนกำลังจะส่งข้อความแล้ว
     if (!brand){ alert("ใส่ชื่อแบรนด์ด้วย — Command ทุกบล็อกอ้างชื่อนี้"); $("#newProjBrand").focus(); return; }
     if (PROJECTS.includes(name)) return alert(`มี "${name}" อยู่แล้ว`);
-    PROJ_LIST.push({ name, done:false, brand });
+    PROJ_LIST.push(Object.assign({ name, done:false, brand }, TEAM_MODE
+      ? { team: !!(TEAM && $("#newProjSpace") && $("#newProjSpace").value === "team") } : {}));
     COORD[name] = [];
     saveProjects(); renderProjTabs(); fillProjSelect(); openProjManager();
   };
@@ -6310,6 +6566,181 @@ function renderColSeg(){
   });
 }
 
+// ═══ กรองตามผู้ดูแล (โหมดทีม) ═══
+// ทุกคน · ของฉัน · รายคน · รายป้าย · ยังไม่มีผู้ดูแล — โชว์เฉพาะโปรเจกต์ทีม (โปรเจกต์ส่วนตัวมีคนเดียวอยู่แล้ว)
+const LS_MEMSEG = "cf_memseg_v1";
+let MEMSEG = "all";
+try { MEMSEG = lsGet(LS_MEMSEG) || "all"; } catch(e){}
+function memberOf(id){ return (TEAM && id && TEAM.members.find(m => m.id === id)) || null; }
+function memName(id){
+  const m = memberOf(id);
+  return m ? (m.name || m.email) : id ? "คนนอกทีม" : "ยังไม่มีผู้ดูแล";
+}
+function memLabels(m){ return String((m && m.label) || "").split(/[,，]/).map(v => v.trim()).filter(Boolean); }
+// สีประจำตัว — เรียงตามลำดับสมาชิกที่เซิร์ฟเวอร์ส่งมา (เรียงชื่อ) ทุกเครื่องได้สีเดียวกัน
+const MEM_COLORS = ["#F59E0B", "#60A5FA", "#F472B6", "#34D399", "#A78BFA",
+                    "#FB7185", "#FACC15", "#22D3EE", "#C084FC", "#4ADE80"];
+function memColor(id){
+  const i = TEAM && id ? TEAM.members.findIndex(m => m.id === id) : -1;
+  return i < 0 ? "#777" : MEM_COLORS[i % MEM_COLORS.length];
+}
+// ตัวแรกของชื่อ — ข้ามสระหน้า (เ แ โ ใ ไ) ไม่งั้นทุกคนชื่อ "เ..." ได้ตัวเดียวกันหมด
+function memInitial(id, name){
+  const n = [...String(name || memName(id) || "?").trim()];
+  const c = n.find(ch => !/[เแโใไ]/.test(ch)) || n[0] || "?";
+  return c.toUpperCase();
+}
+function avatar(id, name){
+  return `<span class="av" style="--mc:${memColor(id)}" title="${esc(name || memName(id))}">${esc(memInitial(id, name))}</span>`;
+}
+// seg: all · me · none · u:<id> · l:<ป้าย>
+// strict = ใช้ข้ามโปรเจกต์ (Map) — แถวของโปรเจกต์ส่วนตัวนับเป็นของเราเสมอ
+// ไม่ strict = ตาราง (แถบกรองโผล่เฉพาะโปรเจกต์ทีม) — โปรเจกต์ส่วนตัวไม่กรองเลย
+function memMatch(r, seg, strict){
+  if (seg === "all") return true;
+  if (!isTeamProj(r.project))
+    return !strict || seg === "me" ||
+      (seg.startsWith("l:") && memLabels(memberOf(sbUid())).includes(seg.slice(2)));
+  const a = r.assignee;
+  if (seg === "me") return a === sbUid();
+  if (seg === "none") return !a;
+  if (seg.startsWith("u:")) return a === seg.slice(2);
+  if (seg.startsWith("l:")) return memLabels(memberOf(a)).includes(seg.slice(2));
+  return true;
+}
+function passMember(r, strict){ return !TEAM_MODE || !TEAM || memMatch(r, MEMSEG, strict); }
+function memSegFill(el, rows, strict, after){
+  const me = sbUid();
+  const cnt = seg => rows.filter(r => memMatch(r, seg, strict)).length;
+  const segs = [["all", "ทุกคน", rows.length], ["me", "ของฉัน", cnt("me"), [], me]];
+  TEAM.members.filter(m => m.id !== me).forEach(m =>
+    segs.push(["u:" + m.id, m.name || m.email, cnt("u:" + m.id), memLabels(m), m.id]));
+  [...new Set(TEAM.members.flatMap(memLabels))].forEach(l => segs.push(["l:" + l, "#" + l, cnt("l:" + l)]));
+  const none = cnt("none");
+  if (none || MEMSEG === "none") segs.push(["none", "ยังไม่มีผู้ดูแล", none]);
+  if (!segs.some(x => x[0] === MEMSEG)) MEMSEG = "all";
+  el.hidden = false;
+  el.innerHTML = segs.map(([id, label, c, tags, uid]) =>
+    `<button role="tab" data-m="${esc(id)}" aria-selected="${id === MEMSEG}"
+       title="${tags && tags.length ? "ป้าย: " + esc(tags.join(", ")) : ""}">${uid ? avatar(uid) + " " : ""}${esc(label)}${
+       tags && tags.length ? `<span class="mtag">${esc(tags[0])}</span>` : ""}<span class="n">${c}</span></button>`).join("");
+  el.querySelectorAll("button").forEach(b => b.onclick = () => {
+    MEMSEG = b.dataset.m;
+    try { lsSet(LS_MEMSEG, MEMSEG); } catch(e){}
+    vlog("filter", { p: PROJ, d: { by: MEMSEG.startsWith("u:") ? memName(MEMSEG.slice(2)) : MEMSEG } });
+    after();
+  });
+}
+function renderMemSeg(){
+  const el = $("#memSeg");
+  if (!el) return;
+  if (!TEAM_MODE || !TEAM || MINE_VIEW || !isTeamProj(PROJ)){ el.hidden = true; el.innerHTML = ""; return; }
+  memSegFill(el, COORD[PROJ] || [], false, () => { renderCoord(); if (!$("#mapView").hidden) renderMap(); });
+}
+function renderMapMem(){
+  const el = $("#mapMem");
+  if (!el) return;
+  const scope = MAP_PROJ ? (COORD[MAP_PROJ] || []) : PROJECTS.flatMap(p => COORD[p] || []);
+  if (!TEAM_MODE || !TEAM || !scope.some(r => isTeamProj(r.project))){ el.hidden = true; el.innerHTML = ""; return; }
+  memSegFill(el, scope, true, () => { renderMap(); renderCoord(); });
+}
+
+// ═══ โน้ตส่วนตัว ═══ เห็นคนเดียว (ตาราง private_notes — RLS owner = ตัวเอง) ไม่ปนกับโน้ตของทีม
+const pnKey = (p, h) => p + "|" + normId(h);
+async function loadPNotes(){
+  try {
+    const r = await sbAuthed(SB_URL + "/rest/v1/private_notes?select=project,handle,note");
+    if (!r.ok) return;
+    PNOTES = {};
+    (await r.json()).forEach(x => { PNOTES[pnKey(x.project, x.handle)] = x.note; });
+  } catch(e){}
+}
+async function savePNote(p, h, note){
+  note = String(note || "").trim();
+  const k = pnKey(p, h);
+  if (note) PNOTES[k] = note; else delete PNOTES[k];
+  try {
+    if (note) await sbSend(SB_URL + "/rest/v1/private_notes?on_conflict=owner,project,handle", "POST",
+      [{ project: p, handle: normId(h), note }], "บันทึกโน้ตส่วนตัวไม่ได้", "resolution=merge-duplicates,return=minimal");
+    else await sbSend(SB_URL + `/rest/v1/private_notes?project=${sbEq(p)}&handle=${sbEq(normId(h))}`, "DELETE", null,
+      "ลบโน้ตส่วนตัวไม่ได้");
+  } catch(e){ alert(e.message); }
+}
+function pnoteMark(r){
+  const n = TEAM_MODE && PNOTES[pnKey(r.project, r.handle)];
+  return n ? `<span class="pnm" title="โน้ตส่วนตัว (เห็นคนเดียว): ${esc(n)}">🔒</span>` : "";
+}
+
+// ═══ ★ งานของฉัน ═══
+// ครีเอเตอร์ที่ตัวเองดูแล จากทุกโปรเจกต์ที่ยังไม่ปิด — เป็นแค่ "มุมมอง" แก้ตรงนี้คือแก้แถวเดียวกับในตาราง
+function myRows(){
+  const me = sbUid();
+  return PROJECTS.filter(p => !(projMeta(p) || {}).done)
+    .flatMap(p => (COORD[p] || []).map((r, i) => ({ r, i, p })))
+    .filter(x => !isTeamProj(x.p) || x.r.assignee === me);
+}
+function renderMine(){
+  const list = myRows();
+  const projs = [...new Set(list.map(x => x.p))];
+  $("#coordSum").innerHTML = `★ งานของฉัน <b>${list.length}</b> คน · ${projs.length} โปรเจกต์`;
+  if (!list.length){
+    $("#coordBody").innerHTML = `<div class="empty"><h3>ยังไม่มีครีเอเตอร์ที่คุณดูแล</h3>
+      <div>ตั้ง “ผู้ดูแล” เป็นตัวเองได้จากช่องเล็กข้างชื่อในตารางของแต่ละโปรเจกต์ · แถวที่คุณเพิ่มเองเป็นของคุณอัตโนมัติ<br>
+      โปรเจกต์ส่วนตัวนับเป็นของคุณทั้งหมด</div></div>`;
+    return;
+  }
+  const opts = [{ v:"", th:"ยังไม่มีสถานะ" }].concat(STAGES, [{ v: ST_CANCEL, th:"ยกเลิกงาน" }]);
+  const stOf = r => !r.status || r.status === ST_CANCEL || STAGES.some(x => x.v === r.status)
+    ? (r.status || "") : (STATUS_MIGRATE[r.status] || r.status);
+  $("#coordBody").innerHTML = `<div class="cwrap"><table class="ctable minetable"><thead><tr>
+      <th>ครีเอเตอร์</th><th>สถานะ</th><th style="text-align:right">เรท</th><th>โพสต์ / กำหนดส่ง</th>
+      <th>🔒 โน้ตส่วนตัว — เห็นคนเดียว</th><th></th></tr></thead><tbody>${
+    projs.map(p => {
+      const mine = list.filter(x => x.p === p);
+      return `<tr class="mgrp"><td colspan="6">${isTeamProj(p) ? "👥 " : ""}<b>${esc(p)}</b><span class="n">${mine.length}</span>
+          <button class="cmdbtn" data-mtab="${esc(p)}">▦ ตารางทั้งทีม</button>
+          <button class="cmdbtn" data-mmap="${esc(p)}">◈ Map ของฉัน</button></td></tr>` +
+        mine.map(({ r, i }) => `<tr data-mp="${esc(p)}" data-mi="${i}">
+          <td class="who"><b>${esc(r.handle)}</b>${r.kind ? ` <span class="kk">${esc(r.kind)}</span>` : ""}</td>
+          <td><select data-mst>${opts.map(o => `<option value="${esc(o.v)}"${o.v === stOf(r) ? " selected" : ""}>${
+            esc(o.th)}</option>`).join("")}</select></td>
+          <td style="text-align:right">${r.rate != null ? mBaht(r.rate) : "–"}</td>
+          <td>${esc(r.postdate || "–")} / ${esc(r.deadline || "–")}</td>
+          <td><input data-mnote value="${esc(PNOTES[pnKey(p, r.handle)] || "")}" placeholder="ไม่มีใครเห็นนอกจากคุณ"></td>
+          <td style="white-space:nowrap"><button class="cmdbtn" data-mdet title="ดู/แก้ทุกช่อง">⤢</button>
+            <button class="cmdbtn" data-mcmd title="เปิด Command">✉</button></td></tr>`).join("");
+    }).join("")}</tbody></table></div>`;
+  const at = el => { const tr = el.closest("tr"); const p = tr.dataset.mp, i = +tr.dataset.mi;
+                     return { p, i, r: (COORD[p] || [])[i] }; };
+  const body = $("#coordBody");
+  body.querySelectorAll("[data-mst]").forEach(el => el.onchange = () => {
+    const { r } = at(el); if (!r) return;
+    setField(r, "status", el.value); renderProjTabs(); renderCoord();
+  });
+  body.querySelectorAll("[data-mnote]").forEach(el => el.onchange = () => {
+    const { p, r } = at(el); if (r) savePNote(p, r.handle, el.value);
+  });
+  body.querySelectorAll("[data-mdet]").forEach(el => el.onclick = () => { const { p, i } = at(el); openDetail(p, i); });
+  body.querySelectorAll("[data-mcmd]").forEach(el => el.onclick = () => { const { p, r } = at(el); if (r) openCmd(p, r.handle); });
+  body.querySelectorAll("[data-mtab]").forEach(el => el.onclick = () => {
+    MINE_VIEW = false; PROJ = el.dataset.mtab; renderProjTabs(); renderCoord(); vlog("project", { p: PROJ });
+  });
+  body.querySelectorAll("[data-mmap]").forEach(el => el.onclick = () => {
+    MEMSEG = "me"; try { lsSet(LS_MEMSEG, MEMSEG); } catch(e){}
+    openMap(el.dataset.mmap);
+  });
+}
+// ช่องเลือกผู้ดูแลในแถว — เปลี่ยนได้จากตารางเลย ไม่ต้องเปิดรายละเอียด
+function asgSelect(r, i){
+  if (!TEAM_MODE || !TEAM || !isTeamProj(r.project)) return "";
+  const me = sbUid();
+  // ตัวเลือกสั้นๆ — กล่องกว้างเท่าตัวเลือกที่ยาวสุด ยาวไปแล้วชื่อครีเอเตอร์ข้างๆ ถูกบีบ
+  const opts = [`<option value="">–</option>`].concat(TEAM.members.map(m =>
+    `<option value="${esc(m.id)}"${m.id === r.assignee ? " selected" : ""}>${esc(m.name || m.email)}</option>`));
+  if (r.assignee && !memberOf(r.assignee)) opts.push(`<option value="${esc(r.assignee)}" selected>คนนอกทีม</option>`);
+  return `${pnoteMark(r)}${r.assignee ? avatar(r.assignee) : ""}<select class="asg${r.assignee === me ? " mine" : ""}" data-asg="${i}" title="ผู้ดูแลแถวนี้ — ${esc(memName(r.assignee))}${r.assignee === me ? " (คุณ)" : ""}">${opts.join("")}</select>`;
+}
+
 function renderKindSeg(){
   const all = COORD[PROJ] || [];
   const n = k => all.filter(r => (r.kind || "") === k).length;
@@ -6332,6 +6763,7 @@ function openDetail(proj, i){
   const r = (COORD[proj] || [])[i];
   if (!r) return;
   DETAIL = { proj: r.project, handle: normId(r.handle) };
+  vlog("detail", { p: r.project, h: DETAIL.handle });
   $("#detailPanel").classList.add("on");
   renderDetail();
 }
@@ -6426,6 +6858,21 @@ function renderDetail(){
                placeholder="${kindOf(r) === "KOC" ? "เช่น 10%  ·  12% + ค่าตัว 2,000" : "ปล่อยว่างได้ถ้าเป็น KOL"}">
         <div class="hint">เก็บในเครื่องนี้เท่านั้น — ชีตยังไม่มีคอลัมน์นี้ จึงไม่ขึ้นชีตตอนซิงก์</div></div>
 
+      ${TEAM_MODE && TEAM && isTeamProj(r.project) ? `<div class="dfield wide2"><label>ผู้ดูแล</label>
+        <select data-d="assignee"><option value="">— ยังไม่มีผู้ดูแล —</option>${TEAM.members.map(m =>
+          `<option value="${esc(m.id)}"${m.id === r.assignee ? " selected" : ""}>${esc(m.name || m.email)}${
+            memLabels(m).length ? " · " + esc(memLabels(m).join(", ")) : ""}</option>`).join("")}</select>
+        <div class="hint">ใช้กรอง “ของใคร” เหนือตาราง · แถวใหม่ตั้งเป็นคนเพิ่มให้เอง</div></div>` : ""}
+      ${TEAM_MODE ? `<div class="dfield wide2"><label>🔒 โน้ตส่วนตัว — เห็นคนเดียว ไม่ขึ้นให้ทีม</label>
+        <textarea data-pnote rows="2" placeholder="เช่น ต่อรองเรทได้อีก · ตอบช้าช่วงเย็น">${
+          esc(PNOTES[pnKey(r.project, r.handle)] || "")}</textarea></div>` : ""}
+      <!-- เลขพัสดุ — ใส่ทีละหลายคนได้จากช่องคำสั่ง: บรรทัดแรก "เลขพัสดุ" แล้ววาง ชื่อ+เลข -->
+      <div class="dfield wide2"><label>เลขพัสดุ${trackCarrier(r.tracking) ? ` — ${esc(trackCarrier(r.tracking))}` : ""}</label>
+        <input class="mono" data-d="tracking" value="${esc(r.tracking || "")}"
+               placeholder="ยังไม่มี — หลายกล่องคั่นด้วย +">
+        <div class="hint">ใช้ใน Command เป็น {{tracking}} · ไม่ขึ้นชีต${
+          TRACK_COL === false ? " · ฐานข้อมูลยังไม่มีช่องนี้ (ต้องรัน SQL) ตอนนี้จึงเก็บแค่ในเครื่องนี้" : ""}</div></div>
+
       <div class="dfield wide2"><label>${cost ? "บริษัทจ่ายจริง" : "จ่ายจริง"} — คิดให้จากเรท × รูปแบบภาษี</label>
         <div class="ro">${auto == null ? `<span class="dash">ยังคิดไม่ได้</span>`
           : cost ? baht(cost) : baht(auto)}${
@@ -6478,6 +6925,8 @@ function renderDetail(){
     if (el.dataset.d === "handle") DETAIL.handle = normId(r.handle);
     renderProjTabs(); renderCoord(); renderDetail();
   });
+  const pn = body.querySelector("[data-pnote]");
+  if (pn) pn.onchange = () => { savePNote(r.project, r.handle, pn.value); renderCoord(); };
   const rateIn = body.querySelector('[data-f="rate"]');
   if (rateIn){
     rateIn.onfocus = () => rateIn.select();
@@ -6637,6 +7086,10 @@ function rateGrowth(hist){
 }
 
 $("#coordFind").addEventListener("input", e => renderCreatorCard(e.target.value.trim()));
+$("#coordFind").addEventListener("change", e => {
+  const h = normId(e.target.value.trim());
+  if (h) vlog("lookup", { h });
+});
 
 // ─── ตัวกรองหัวตาราง แบบ Excel ───
 // เก็บเป็นค่าที่ "ไม่เอา" ต่อคอลัมน์ เหมือน hiddenValues ของ Google Sheet
@@ -6867,7 +7320,9 @@ function migrateStatuses(){
 }
 
 function renderCoord(){
-  renderKindSeg(); renderColSeg();
+  renderKindSeg(); renderColSeg(); renderMemSeg();
+  if (TEAM_MODE && TEAM && MINE_VIEW){ document.body.dataset.mine = "1"; return renderMine(); }
+  delete document.body.dataset.mine;
   if (!PROJECTS.length){
     $("#coordSum").innerHTML = "";
     $("#coordBody").innerHTML = `<div class="empty"><h3>ยังไม่มีโปรเจกต์</h3>
@@ -6880,7 +7335,7 @@ function renderCoord(){
   }
   const all = COORD[PROJ] || [];
   const rows = (KINDSEG === "all" ? all : all.filter(r => (r.kind || "") === KINDSEG))
-                 .filter(passFilter);
+                 .filter(passFilter).filter(passMember);
   if (!all.length){
     $("#coordSum").innerHTML = "";
     $("#coordBody").innerHTML = `<div class="empty"><h3>${esc(PROJ)} ยังไม่มีข้อมูล</h3>
@@ -6958,6 +7413,15 @@ function renderCoord(){
 
   document.querySelectorAll("#coordBody [data-cmd]").forEach(b =>
     b.onclick = () => openCmd(PROJ, b.dataset.cmd));
+  document.querySelectorAll("#coordBody [data-asg]").forEach(sel => {
+    sel.onclick = e => e.stopPropagation();
+    sel.onchange = () => {
+      const r = (COORD[PROJ] || [])[+sel.dataset.asg];
+      if (!r) return;
+      setField(r, "assignee", sel.value || null);
+      renderCoord();
+    };
+  });
 
   document.querySelectorAll("#coordBody [data-sku]").forEach(b => b.onclick = e => {
     e.stopPropagation();
@@ -7118,7 +7582,7 @@ function setField(r, f, raw){
 }
 // ชื่อไทยของช่องที่ QO_LABEL ไม่มี — ใช้แค่ตั้งหัวเรื่องในประวัติ ไม่ได้ผูกกับตัวอ่านคำสั่ง
 const HIST_FIELD_TH = { handle:"ชื่อ", kind:"กลุ่ม", videos:"จำนวนวิดีโอ", deadline:"กำหนดส่ง",
-  brief:"บรีฟ", commission:"Commission", project:"โปรเจกต์" };
+  brief:"บรีฟ", commission:"Commission", project:"โปรเจกต์", tracking:"เลขพัสดุ", assignee:"ผู้ดูแล" };
 function setFieldRaw(r, f, raw){
   if (!r) return false;
   const before = ekey(r);
@@ -7275,7 +7739,7 @@ function coordRow(r, i){
       <input class="nm" data-i="${i}" data-f="handle" value="${esc(r.handle)}"
              title="แก้ชื่อได้ — ลิงก์จะตามไปเอง">
       ${dupN > 1 ? `<span class="duptag" title="ชื่อ ${esc(normId(r.handle))} งาน ${esc(r.code || "ว่าง")} ซ้ำกัน ${dupN} แถวในโปรเจกต์นี้ — ซิงก์ขึ้นฐานข้อมูลไม่ได้จนกว่าจะลบแถวที่ซ้ำ (หรือเปลี่ยนช่องงานให้ต่างกัน)">ซ้ำ ×${dupN}</span>` : ""}
-      <a class="go" href="https://www.tiktok.com/@${esc(r.handle)}" target="_blank"
+      ${asgSelect(r, i) || pnoteMark(r)}<a class="go" href="https://www.tiktok.com/@${esc(r.handle)}" target="_blank"
          rel="noopener noreferrer" title="เปิด TikTok">↗</a>
       <button class="icobtn" data-detail="${i}"
               title="ดู/แก้ทุกอย่างของ ${esc(r.handle)} — ไม่ต้องเลื่อนตารางไปขวา">⤢</button>
@@ -8147,6 +8611,7 @@ function cmdValues(r){
     videos: String(Number(r.videos) || clipCount(r)),
     // KOC ตกลงกันเป็นส่วนแบ่ง ไม่ใช่เรทเหมา — เก็บเป็นข้อความอิสระ ("10%" · "12% + ค่าตัว 2,000")
     commission: commPct(r.commission),
+    tracking: r.tracking || "",
     // ชื่อแบรนด์มาจากโปรเจกต์ ไม่ใช่จากแถว — โปรเจกต์ใหม่ต้องกรอกตอนสร้าง
     brandname: brandOf(r.project),
     // บล็อก 5 ส่ง {{brief}} เป็นคู่มือถ่ายทำ — ชีตไม่ได้กรอกบรีฟไว้ก็ตกมาใช้คู่มือของ SKU
@@ -8174,6 +8639,7 @@ const CMD_GAP = Object.assign(
   Object.fromEntries(DOCS.map(d => [d.k, "ยังไม่มี" + d.th])),
   { sku:"ยังไม่มี SKU", rate:"ยังไม่มีเรท", paytype:"ยังไม่เลือกรูปแบบภาษี",
     videos:"ยังไม่มีจำนวนวิดีโอ", commission:"ยังไม่มี Commission",
+    tracking:"ยังไม่มีเลขพัสดุ",
     brandname:"ยังไม่ได้ตั้งชื่อแบรนด์ของโปรเจกต์นี้",
     net:"คิดไม่ได้ ต้องมีเรท+รูปแบบภาษี", brief:"ยังไม่มีลิงก์บรีฟ",
     feedback:"ยังไม่มีฟีดแบค", feedback1:"ยังไม่มีฟีดแบค Draft 1",
@@ -8261,7 +8727,43 @@ function fbCount(proj, handle, clips){
 const DROP = "\uE000";
 const cutDropped = s => s.split("\n").filter(l => l.indexOf(DROP) < 0).join("\n");
 
+// ═══ หางเสียง ชาย/หญิง ═══
+// แปลงเฉพาะ "ต้นแบบ" ก่อนเติมค่า — ค่าที่เติม (ชื่อ · SKU · บรีฟ) เป็นข้อมูลจริง ห้ามแตะ
+// สองทาง: เลือกหญิง = ครับ→ค่ะ/คะ · เลือกชาย = ค่ะ/คะ/ค่า→ครับ (ต้นแบบที่คนในทีมเขียนเป็นเสียงหญิงไว้ก็กลับได้)
+// ⚠️ "ค่า" เป็นคำนามด้วย (ค่าตัว · ค่าส่ง · ค่า 2,000) — แปลงเฉพาะตอนตามด้วยจบบรรทัด/เว้นวรรค/อีโมจิ
+//    ไม่ใช่ตามด้วยตัวไทยหรือตัวเลข · "คะ" ก็เหมือนกัน (คะแนน)
+const LS_VOICE = "cf_voice_v1";
+let VOICE = "m";
+try { VOICE = lsGet(LS_VOICE) === "f" ? "f" : "m"; } catch(e){}
+// ลงท้ายคำถาม → "คะ" (เสียงสูง) ไม่ใช่ "ค่ะ"
+// เขียนเป็น regex ตรงๆ ไม่ประกอบจาก template string — \s ใน `...` กลายเป็นตัว s เฉยๆ (เคยพลาดมาแล้ว)
+const VOICE_Q_RE = /(นะ|ไหม|มั้ย|มั๊ย|หรือเปล่า|รึเปล่า|เปล่า|เหรอ|หรอ|ไหน|อะไร|เท่าไหร่|เท่าไร|ไง|หรือยัง|รึยัง)(\s*)ครับ/g;
+function voiceText(s){
+  s = String(s || "");
+  if (VOICE === "f") return s
+    .replace(/(🙇|🙋|💁|🙆|🙅|🤷|🤦)‍♂️/g, "$1‍♀️")
+    .replace(/(?:คร้า+บ+|ค้า+บ+|คร๊า+บ+|ครัช)/g, "ค่าา")
+    .replace(/ครับผม/g, "ค่ะ")
+    .replace(VOICE_Q_RE, "$1$2คะ")
+    .replace(/ครับ/g, "ค่ะ");
+  return s
+    .replace(/(🙇|🙋|💁|🙆|🙅|🤷|🤦)‍♀️/g, "$1‍♂️")
+    .replace(/(?:ค่า{2,}|คร่า+)(?![฀-๿])/g, "ค้าบบ")
+    .replace(/ค่ะ/g, "ครับ")
+    .replace(/คะ(?![฀-๿])/g, "ครับ")
+    .replace(/ค่า(?![฀-๿0-9฿]|\s*[0-9฿])/g, "ครับ");
+}
+function renderVoiceBtn(){
+  const b = $("#voiceBtn");
+  if (!b) return;
+  b.innerHTML = VOICE === "f" ? `♀ หญิง · <b>ค่ะ</b>` : `♂ ชาย · <b>ครับ</b>`;
+  b.title = `ตอนนี้ทุกกล่องลงท้ายแบบ${VOICE === "f" ? "หญิง (ค่ะ/คะ/ค่าา)" : "ชาย (ครับ/ค้าบบ)"} — กดเพื่อสลับ` +
+            ` · ใช้กับ Format ขอเรทด้วย · จำแยกรายบัญชี`;
+}
+let CMD_NOW = null;     // { proj, handle } ที่เปิด Command อยู่ — สลับหางเสียงแล้ววาดคนเดิมใหม่
+
 function fillBlock(body, vals, clip){
+  body = voiceText(body);
   let missing = 0;
   // แยกรายคลิป: เอกสาร · SKU · บรีฟ · ฟีดแบคแต่ละดราฟต์
   // ไม่แยก: เรท/รูปแบบภาษี/จ่ายจริง — ตกลงกันเป็นก้อนเดียวทั้งงาน ไม่ได้แยกตามคลิป
@@ -8963,11 +9465,14 @@ function cmdNavList(proj){
 }
 
 function openCmd(proj, handle){
+  vlog("cmd", { p: proj, h: normId(handle) });
   const r = (COORD[proj] || []).find(x => normId(x.handle) === normId(handle));
   if (!r) return;
   loadCmdLinks(); loadCmdEdit(); loadCmdOwn(); loadSkuGuide();
   migrateOwnDocsKind(proj, handle, r.kind);
   migrateOwnPayment(proj, handle);
+  CMD_NOW = { proj, handle };
+  renderVoiceBtn();
   $("#cmdPanel").classList.add("on");
 
   // ── ลูกศรไปคนก่อนหน้า / คนถัดไป ──
@@ -9957,9 +10462,11 @@ let MAP_KIND = "all";            // all | KOL | KOC — ใช้กับทุ
 const MAP_MODES = [["flow","ขั้นตอนงาน"],["gap","ข้อมูลที่ยังขาด"],["money","เงิน"]];
 // ทุกแผ่นอ่านแถวผ่านตัวนี้ตัวเดียว ตัวกรองกลุ่มจะได้มีผลเหมือนกันหมดโดยไม่ต้องไล่ใส่ทีละที่
 const mapRows = proj => (COORD[proj] || [])
-  .filter(r => MAP_KIND === "all" || kindOf(r) === MAP_KIND);
+  .filter(r => MAP_KIND === "all" || kindOf(r) === MAP_KIND)
+  .filter(r => passMember(r, true));
 
 function openMap(proj){
+  vlog("map", { p: proj === undefined ? PROJ : proj });
   loadCmdLinks(); loadSkuGuide();
   MAP_PROJ = proj === undefined ? PROJ : proj;
   $("#mapView").hidden = false;
@@ -9996,6 +10503,7 @@ function renderMap(){
           title="${id === "cal" ? "เรียงตามวันที่ — เหมาะกับงานไลฟ์ ที่คนละคนขึ้นคนละวัน\nเปิดแล้ว Command ของโปรเจกต์นี้จะมีบล็อก “แจ้งเตือนวันไลฟ์” เพิ่มให้ 1 ใบต่อ 1 รอบ"
                                 : "เรียงตามขั้นตอนงาน — แบบมาตรฐาน"}">${esc(label)}</button>`).join("")
     : "";
+  renderMapMem();
   $("#mapTitle").textContent = MAP_PROJ || "ทุกโปรเจกต์";
 
   $("#mapBody").innerHTML = !MAP_PROJ ? mapAllSheet()
@@ -10101,71 +10609,116 @@ function renderMapDock(proj, who){
   dock.hidden = false;
 }
 
+// ⚠️ ไม่ใช้ drag-and-drop ของเบราว์เซอร์แล้ว (2026-10-03)
+//   ระหว่างลากแบบนั้น Windows กินลูกกลิ้งเมาส์ทั้งหมด (เลื่อนหาขั้นที่อยู่ใต้จอไม่ได้)
+//   และตัวเลื่อนตอนชิดขอบเดิมไปเลื่อน #mapView ซึ่งไม่ใช่กล่องที่เลื่อนจริงในบางขนาดจอ
+// ตอนนี้ติดตามเมาส์เอง: กดค้างแล้วขยับเกิน 6px = เริ่มลาก · ไม่ขยับ = คลิกเปิด Command เหมือนเดิม
+//   ลูกกลิ้ง = เลื่อนแผนผังเสมอ (แม้เมาส์อยู่บนแผงวางลอย) · ชิดขอบบน/ล่าง 90px = เลื่อนเอง ยิ่งชิดยิ่งเร็ว
+//   Esc = ยกเลิก · จอสัมผัส: ยังใช้ปุ่ม ▾ เปลี่ยนสถานะ (ลากด้วยนิ้วชนกับการเลื่อนหน้า)
 function wireMapDrag(){
-  let from = null;
-  const clearOver = () => document.querySelectorAll("#mapBody .over, #mapDock .over")
-    .forEach(e => e.classList.remove("over"));
-  const endDrag = () => {
-    from = null;
-    document.body.classList.remove("mapdrag");
-    document.querySelectorAll("#mapBody .mapbranch.dragopen").forEach(x => x.classList.remove("dragopen"));
-    $("#mapDock").hidden = true;
-    clearOver();
-    stopEdge();
-  };
-  // เลื่อนเองตอนลากชิดขอบบน/ล่าง — ตัวเลื่อนของเบราว์เซอร์ช้าและต้องชิดขอบเป๊ะ
-  let edgeT = null, edgeV = 0;
-  const stopEdge = () => { clearInterval(edgeT); edgeT = null; edgeV = 0; };
-  $("#mapView").ondragover = e => {
-    if (!from) return;
-    // ลากผ่านช่วงไหน กางขั้นที่ยังว่างของช่วงนั้นให้วางได้ — ช่วงอื่นหุบไว้ หน้าจะได้ไม่ยาวจนลากไม่ถึง
-    const br = e.target.closest && e.target.closest("#mapBody .mapbranch");
-    if (br && !br.classList.contains("dragopen")){
-      document.querySelectorAll("#mapBody .mapbranch.dragopen").forEach(x => x.classList.remove("dragopen"));
-      br.classList.add("dragopen");
-    }
-    const y = e.clientY, h = innerHeight, zone = 90;
-    edgeV = y < zone ? -Math.ceil((zone - y) / 6) : y > h - zone ? Math.ceil((y - (h - zone)) / 6) : 0;
-    if (edgeV && !edgeT) edgeT = setInterval(() => $("#mapView").scrollBy(0, edgeV * 4), 16);
-    if (!edgeV) stopEdge();
-  };
-
+  $("#mapView").ondragover = null;
   document.querySelectorAll("#mapBody .mapleaf[draggable]").forEach(el => {
-    el.ondragstart = e => {
-      from = { proj: el.dataset.mapproj, who: el.dataset.mapwho };
-      e.dataTransfer.effectAllowed = "move";
-      // Firefox ไม่เริ่มลากเลยถ้าไม่ได้ตั้งข้อมูลอะไรไว้
-      try { e.dataTransfer.setData("text/plain", el.dataset.mapwho); } catch(err){}
-      document.body.classList.add("mapdrag");
-      el.classList.add("dragging");
-      renderMapDock(from.proj, from.who);
-      wireZones($("#mapDock"));
-    };
-    el.ondragend = () => {
-      el.classList.remove("dragging");
-      endDrag();
+    el.ondragstart = e => e.preventDefault();
+    el.onpointerdown = e => {
+      if (e.button !== 0 || e.pointerType === "touch") return;
+      MD = { el, proj: el.dataset.mapproj, who: el.dataset.mapwho, x0: e.clientX, y0: e.clientY,
+             lx: e.clientX, ly: e.clientY, on: false, zone: null };
     };
   });
-
-  const wireZones = root => root.querySelectorAll("[data-drop]").forEach(zone => {
-    zone.ondragover = e => {
-      if (!from) return;
-      e.preventDefault();
-      e.dataTransfer.dropEffect = "move";
-      zone.classList.add("over");
-    };
-    zone.ondragleave = () => zone.classList.remove("over");
-    zone.ondrop = e => {
-      e.preventDefault();
-      zone.classList.remove("over");
-      if (!from) return;
-      const f = from;
-      endDrag();
-      mapSetStatus(f.proj, f.who, zone.dataset.drop);
-    };
-  });
-  wireZones($("#mapBody"));
 }
+// กล่องที่เลื่อนจริง — ไล่ขึ้นจากแผนผังหาตัวแรกที่ overflow ได้
+function mapScroller(){
+  for (let n = $("#mapBody"); n && n !== document.body; n = n.parentElement){
+    const oy = getComputedStyle(n).overflowY;
+    if ((oy === "auto" || oy === "scroll") && n.scrollHeight > n.clientHeight + 2) return n;
+  }
+  return document.scrollingElement || document.documentElement;
+}
+function mapDragStart(){
+  const busy = TEAM_MODE && Object.values(RDRAG).find(d =>
+    d.proj === MD.proj && normId(d.who) === normId(MD.who));
+  if (busy){ alert(`${busy.name} กำลังย้าย ${MD.who} อยู่ — รอให้วางเสร็จก่อน`); MD = null; return false; }
+  MD.on = true;
+  MD.scroller = mapScroller();
+  dragCast("start", MD.proj, MD.who);
+  document.body.classList.add("mapdrag");
+  MD.el.classList.add("dragging");
+  renderMapDock(MD.proj, MD.who);
+  MD.ghost = document.createElement("div");
+  MD.ghost.className = "mapghost";
+  MD.ghost.textContent = "↕ " + normId(MD.who);
+  document.body.appendChild(MD.ghost);
+  MD.raf = requestAnimationFrame(mapDragTick);
+  return true;
+}
+function mapDragZoneAt(x, y){
+  const el = document.elementFromPoint(x, y);
+  if (!el) return null;
+  // ลากผ่านช่วงไหน กางขั้นที่ยังว่างของช่วงนั้นให้วางได้ — ช่วงอื่นหุบไว้ หน้าจะได้ไม่ยาวจนลากไม่ถึง
+  const br = el.closest("#mapBody .mapbranch");
+  if (br && !br.classList.contains("dragopen")){
+    document.querySelectorAll("#mapBody .mapbranch.dragopen").forEach(x => x.classList.remove("dragopen"));
+    br.classList.add("dragopen");
+  }
+  return el.closest("#mapBody [data-drop], #mapDock [data-drop]");
+}
+function mapDragMove(x, y){
+  MD.lx = x; MD.ly = y;
+  MD.ghost.style.transform = `translate(${x + 14}px, ${y + 12}px)`;
+  const z = mapDragZoneAt(x, y);
+  if (z === MD.zone) return;
+  if (MD.zone) MD.zone.classList.remove("over");
+  MD.zone = z;
+  if (z){ z.classList.add("over"); dragCast("over", MD.proj, MD.who, z.dataset.drop); }
+}
+function mapDragTick(){
+  if (!MD || !MD.on) return;
+  const y = MD.ly, h = innerHeight, edge = 90;
+  const d = y < edge ? y - edge : y > h - edge ? y - (h - edge) : 0;
+  if (d){
+    MD.scroller.scrollBy(0, Math.sign(d) * Math.min(42, Math.ceil(Math.abs(d) / 3)));
+    mapDragMove(MD.lx, MD.ly);           // ของใต้เมาส์เปลี่ยนไปตามที่เลื่อน
+  }
+  MD.raf = requestAnimationFrame(mapDragTick);
+}
+function mapDragEnd(drop){
+  if (!MD) return;
+  const m = MD; MD = null;
+  if (!m.on) return;                     // แค่คลิก — ปล่อยให้เปิด Command ตามปกติ
+  cancelAnimationFrame(m.raf);
+  if (m.ghost) m.ghost.remove();
+  m.el.classList.remove("dragging");
+  document.body.classList.remove("mapdrag");
+  document.querySelectorAll("#mapBody .mapbranch.dragopen").forEach(x => x.classList.remove("dragopen"));
+  document.querySelectorAll("#mapBody .over, #mapDock .over").forEach(x => x.classList.remove("over"));
+  $("#mapDock").hidden = true;
+  dragCast("end", m.proj, m.who);
+  // ปล่อยเมาส์บนการ์ดตัวเอง = เบราว์เซอร์จะยิงคลิกตามมา → ไม่ต้องเปิด Command
+  const eat = ev => { ev.stopPropagation(); ev.preventDefault(); };
+  m.el.addEventListener("click", eat, { capture: true, once: true });
+  setTimeout(() => m.el.removeEventListener("click", eat, { capture: true }), 400);
+  if (drop && m.zone) mapSetStatus(m.proj, m.who, m.zone.dataset.drop);
+}
+document.addEventListener("pointermove", e => {
+  if (!MD) return;
+  if (!MD.on){
+    if (Math.hypot(e.clientX - MD.x0, e.clientY - MD.y0) < 6) return;
+    if (!mapDragStart()) return;
+  }
+  e.preventDefault();
+  mapDragMove(e.clientX, e.clientY);
+});
+document.addEventListener("pointerup", () => mapDragEnd(true));
+document.addEventListener("pointercancel", () => mapDragEnd(false));
+document.addEventListener("keydown", e => {
+  if (e.key === "Escape" && MD && MD.on){ e.stopPropagation(); e.preventDefault(); mapDragEnd(false); }
+}, true);
+document.addEventListener("wheel", e => {
+  if (!MD || !MD.on) return;
+  e.preventDefault();
+  MD.scroller.scrollBy(0, e.deltaY);
+  mapDragMove(MD.lx, MD.ly);
+}, { passive: false });
 
 // แถบสัดส่วน + % คืบหน้า + คำอธิบายสี ใช้ร่วมกันทุกแผ่น
 // small = แบบย่อสำหรับการ์ดในแผ่นรวม (ไม่มีคำอธิบายสี ไม่งั้นการ์ดยาวเป็นเมตร)
@@ -10205,6 +10758,7 @@ function mapLeaf(r, proj, color, drag, sub){
   const done = !cancel && mapDone(r);
   return `<span class="mapleafwrap">
     <button class="mapleaf${flags.length ? " miss" : ""}${done ? " done" : ""}${
+      TEAM_MODE && TEAM && isTeamProj(proj) && r.assignee !== sbUid() && MEMSEG === "all" ? " notmine" : ""}${
       cancel ? " cancelled" : ""}"
       style="--pc:${cancel ? MAP_CANCEL.c : color}"${drag ? ` draggable="true"` : ""}
       data-mapwho="${esc(r.handle)}" data-mapproj="${esc(proj)}"
@@ -10212,7 +10766,8 @@ function mapLeaf(r, proj, color, drag, sub){
         done ? " — ส่งเรื่องจ่ายแล้ว ปิดงาน" : ""}${
         cancel ? " — ยกเลิกงานแล้ว ไม่นับในความคืบหน้าและยอดเงิน" : ""}\nกดเพื่อเปิด Command${
         drag ? " · ลากไปวางที่ขั้นอื่นเพื่อเปลี่ยนสถานะ" : " · กด ▾ เพื่อเปลี่ยนสถานะ"}">
-      <span class="h">${done ? "✓ " : ""}${cancel ? "✕ " : ""}${esc(r.handle)}</span>
+      <span class="h">${TEAM_MODE && TEAM && isTeamProj(proj) && r.assignee ? avatar(r.assignee) : ""}${
+        done ? "✓ " : ""}${cancel ? "✕ " : ""}${esc(r.handle)}</span>
       ${sub === "sku" ? `<span class="m sku" title="${esc(String(r.sku || "") || "ยังไม่ได้ใส่ SKU")}">${
         String(r.sku || "").trim()
           // ตัดชื่อไลน์ที่ซ้ำกันทุกตัวออก (skuShort) เหลือเฉดที่ต่างกันจริง — ใบแคบ ใส่ชื่อเต็มแล้วโดนตัดหมด
@@ -10236,6 +10791,7 @@ function mapSetStatus(proj, handle, to){
   const r = (COORD[proj] || []).find(x => normId(x.handle) === normId(handle));
   if (!r || (r.status || "") === to) return false;
   setField(r, "status", to);
+  if (TEAM_MODE && isTeamProj(proj)){ clearTimeout(AUTO_T); syncCoord(false); }
   renderCoord(); renderMap();
   return true;
 }
@@ -11444,6 +12000,7 @@ $("#lockBtn").onclick = async () => {
   $("#cart").classList.remove("on");
   $("#settings").hidden = true;
   $("#addPanel").hidden = true;
+  vlog("logout"); vflush(true);
   await sbLogout();             // ออกจากระบบจริง ล้าง session
   await requireLogin();
   applyRole();                  // คนที่กลับเข้ามาอาจสิทธิ์ไม่เท่าคนที่เพิ่งออกไป
@@ -11452,6 +12009,21 @@ $("#lockBtn").onclick = async () => {
 };
 
 $("#closeCmd").onclick = () => $("#cmdPanel").classList.remove("on");
+$("#voiceBtn").onclick = () => {
+  VOICE = VOICE === "f" ? "m" : "f";
+  try { lsSet(LS_VOICE, VOICE); } catch(e){}
+  renderVoiceBtn();
+  vlog("voice", { d: { v: VOICE } });
+  // วาดคนเดิมใหม่ — กล่องที่เปิดค้าง (ลิงก์/หนังสือแจ้งเตือน/ฟีดแบค) ให้เปิดค้างไว้เหมือนเดิม
+  if (CMD_NOW && $("#cmdPanel").classList.contains("on") && !CMD_EDITING){
+    const box = { linkBox:"cmdLinkBtn", lawBox:"cmdLawBtn", fbBox:"cmdFbBtn" };
+    const openId = Object.keys(box).find(id => { const el = $("#" + id); return el && !el.hidden; });
+    openCmd(CMD_NOW.proj, CMD_NOW.handle);
+    if (openId) $("#" + box[openId]).click();
+  }
+  if (!$("#fmtPanel").hidden) renderFormat();
+};
+renderVoiceBtn();
 $("#cmdScrim").onclick = () => $("#cmdPanel").classList.remove("on");
 
 // ← → เดินดู Command ทีละคน — แต่ต้องไม่แย่งลูกศรไปจากช่องพิมพ์
@@ -11513,20 +12085,58 @@ async function sbLogin(email, password){
   sbStore(j);
   return j;
 }
-async function sbRefresh(){
-  if (!SESSION || !SESSION.refresh_token) return false;
-  const r = await fetch(SB_URL + "/auth/v1/token?grant_type=refresh_token",
-    { method:"POST", headers: sbHeaders(false), body: JSON.stringify({ refresh_token: SESSION.refresh_token }) });
-  if (!r.ok){ saveSession(null); return false; }
-  const j = await r.json().catch(() => null);
-  if (!j || !j.access_token){ saveSession(null); return false; }
-  sbStore(j);
-  rtAuth();                 // ช่องเรียลไทม์ถือ token เดิมอยู่ ต่ออายุให้ด้วย ไม่งั้นเงียบไปตอนหมดอายุ
-  return true;
+// ⚠️ เดิมต่ออายุไม่สำเร็จด้วยเหตุอะไรก็ตาม = ทิ้ง session = เด้งไปหน้าล็อกอิน
+//   เน็ตสะดุดแวบเดียว · เปิดสองแท็บแล้วต่ออายุพร้อมกัน (refresh token ใช้ได้ครั้งเดียว แท็บที่สองโดนปฏิเสธ)
+// ตอนนี้: ทิ้ง session เฉพาะตอนเซิร์ฟเวอร์ยืนยันว่า token ใช้ไม่ได้จริง (400/401) เท่านั้น
+//   คืนค่า true = ได้ token ใหม่ · false = ต้องล็อกอินใหม่จริงๆ · "net" = สะดุดชั่วคราว ยังไม่ทิ้ง
+//   ต่ออายุทีละแท็บ (navigator.locks) และดูก่อนว่าแท็บอื่นต่อไปให้แล้วหรือยัง
+let SB_REFRESHING = null;
+function sbAdoptStored(){
+  try {
+    const s = JSON.parse(localStorage.getItem(LS_SESSION) || "null");
+    if (s && s.access_token && (!SESSION || s.access_token !== SESSION.access_token) &&
+        Date.now() < (s.expires_at || 0) - 60000){
+      SESSION = s; rtAuth(); return true;
+    }
+  } catch(e){}
+  return false;
 }
+async function sbRefresh(){
+  if (SB_REFRESHING) return SB_REFRESHING;
+  const run = async () => {
+    if (sbAdoptStored()) return true;                 // อีกแท็บต่ออายุไปแล้ว ใช้ของใหม่เลย
+    if (!SESSION || !SESSION.refresh_token) return false;
+    let r;
+    try {
+      r = await fetch(SB_URL + "/auth/v1/token?grant_type=refresh_token",
+        { method:"POST", headers: sbHeaders(false), body: JSON.stringify({ refresh_token: SESSION.refresh_token }) });
+    } catch(e){ return "net"; }
+    if (!r.ok){
+      if (r.status !== 400 && r.status !== 401) return "net";   // 5xx / 429 = ชั่วคราว
+      if (sbAdoptStored()) return true;              // แท็บอื่นใช้ token นี้ต่ออายุไปก่อนพอดี
+      saveSession(null); return false;
+    }
+    const j = await r.json().catch(() => null);
+    if (!j || !j.access_token) return "net";
+    sbStore(j);
+    rtAuth();                 // ช่องเรียลไทม์ถือ token เดิมอยู่ ต่ออายุให้ด้วย ไม่งั้นเงียบไปตอนหมดอายุ
+    return true;
+  };
+  SB_REFRESHING = (navigator.locks ? navigator.locks.request("cf-sb-refresh", run) : run())
+    .finally(() => { SB_REFRESHING = null; });
+  return SB_REFRESHING;
+}
+// ต่ออายุล่วงหน้าตอนหน้าเว็บเปิดค้าง / กลับมาที่แท็บ — ไม่ต้องรอจนมีคำขอแล้วเจอ 401
+function sbKeepAlive(){
+  if (SESSION && SESSION.refresh_token && Date.now() > (SESSION.expires_at || 0) - 10 * 60000) sbRefresh();
+}
+setInterval(sbKeepAlive, 4 * 60000);
+document.addEventListener("visibilitychange", () => { if (document.visibilityState === "visible") sbKeepAlive(); });
+// แท็บอื่นต่ออายุแล้ว → ใช้ token ใหม่ตามเลย (ไม่งั้นแท็บนี้จะเอา token เก่าไปต่ออายุซ้ำแล้วโดนปฏิเสธ)
+addEventListener("storage", e => { if (e.key === LS_SESSION && e.newValue) sbAdoptStored(); });
 async function sbValidSession(){
   if (!SESSION || !SESSION.access_token) return false;
-  if (Date.now() > (SESSION.expires_at || 0) - 60000) return await sbRefresh();   // ใกล้หมดอายุ → ต่ออายุ
+  if (Date.now() > (SESSION.expires_at || 0) - 60000) return !!(await sbRefresh());   // ใกล้หมดอายุ → ต่ออายุ ("net" = ยังถือว่าอยู่)
   return true;
 }
 async function sbLogout(){
@@ -11543,16 +12153,789 @@ async function sbTouchSeen(){
   try { await sbAuthed(SB_URL + "/rest/v1/rpc/touch_last_seen", { method:"POST", body:"{}" }); }
   catch(e){}
 }
+let SB_NET_FAIL = false;   // โหลดโปรไฟล์ไม่ได้เพราะเน็ต/เซิร์ฟเวอร์ (ไม่ใช่เพราะบัญชีไม่มีสิทธิ์)
 async function sbProfile(){
+  SB_NET_FAIL = false;
   if (!SESSION || !SESSION.user) return null;
   const uid = SESSION.user.id;
-  const r = await fetch(SB_URL + "/rest/v1/app_users?id=eq." + encodeURIComponent(uid) +
+  const get = () => fetch(SB_URL + "/rest/v1/app_users?id=eq." + encodeURIComponent(uid) +
     "&select=display_name,role,is_active", { headers: sbHeaders(true) });
-  if (!r.ok) return null;
+  let r;
+  try { r = await get(); } catch(e){ SB_NET_FAIL = true; return null; }
+  if (r.status === 401 && (await sbRefresh()) === true){
+    try { r = await get(); } catch(e){ SB_NET_FAIL = true; return null; }
+  }
+  if (!r.ok){ if (r.status >= 500 || r.status === 429) SB_NET_FAIL = true; return null; }
   const rows = await r.json().catch(() => []);
   PROFILE = rows[0] || null;
   return PROFILE;
 }
+
+// ═══ ทีม (TEAM_MODE) ═══
+// บัญชีอยู่ได้ทีมเดียว (app_users.team_id) · งานทีม = แถวที่ owner เป็น id ของทีม (ดู kol-tools/team-mode.sql)
+// TEAM ประกาศไว้บนสุดของสคริปต์ (ใกล้ TEAM_MODE) — แท็บโปรเจกต์อาจถูกวาดก่อนถึงบรรทัดนี้
+const LS_TEAMSKIP = "cf_team_skip_v1";
+async function sbRpc(fn, args){
+  const r = await sbAuthed(SB_URL + "/rest/v1/rpc/" + fn,
+    { method:"POST", body: JSON.stringify(args || {}) });
+  const j = await r.json().catch(() => null);
+  if (!r.ok) throw new Error((j && (j.message || j.hint)) || `${fn} ไม่สำเร็จ (${r.status})`);
+  return j;
+}
+function isTeamProj(name){ return !!(TEAM_MODE && TEAM && (projMeta(name) || {}).team); }
+function spaceOf(name){ return isTeamProj(name) ? TEAM.id : sbUid(); }
+
+// ล็อกอินผ่านแล้ว — ยังไม่มีทีมก็ถามชื่อทีมต่อ (ข้ามได้ จำไว้ไม่ถามอีก เข้าทีมทีหลังที่ ⚙ ตั้งค่า)
+async function teamGate(){
+  let bad = false;
+  try { TEAM = await sbRpc("my_team"); } catch(e){ TEAM = null; bad = true; }
+  if (TEAM || bad) return;            // อ่านไม่ได้ = อย่าถาม เดี๋ยวกลายเป็นสร้างทีมซ้ำ
+  let skip = false;
+  try { skip = !!lsGet(LS_TEAMSKIP); } catch(e){}
+  if (!skip) await askTeam();
+}
+const TEAM_LOCK_HIDE = ["#lockPin", "#lockEmail", "#lockName", "#lockCoord", "#lockPwRow", "#lockPw2",
+                        "#lockForgot", "#lockSwap", "#lockCancel"];
+// ผลจาก join_team → ข้อความที่คนอ่านแล้วรู้ว่าต้องทำอะไรต่อ
+function teamJoinNote(j){
+  const ren = (j.renamed || []).length
+    ? `\nโปรเจกต์ส่วนตัวที่ชื่อชนกับของทีมถูกเติม “(ส่วนตัว)” ท้ายชื่อ: ${j.renamed.join(", ")}` : "";
+  return j.created
+    ? `สร้างทีม “${j.team.name}” แล้ว\nรหัสชวนเข้าทีม: ${j.team.code}\n` +
+      `ส่งชื่อทีม + รหัสนี้ให้คนในทีมใช้ตอนเข้าครั้งแรก (ดูอีกทีได้ที่ ⚙ ตั้งค่า → ทีม)${ren}`
+    : ren ? `เข้าทีม “${j.team.name}” แล้ว${ren}` : "";
+}
+function askTeam(){
+  TEAM_LOCK_HIDE.forEach(s => { $(s).hidden = true; });
+  $("#lockTitle").textContent = "ทีมของคุณ";
+  $("#lockHint").textContent = "พิมพ์ชื่อทีม — ชื่อใหม่ = สร้างทีมและได้รหัส 6 หลักไว้ชวนคนอื่น · " +
+    "ทีมที่มีอยู่แล้วต้องใส่รหัสจากคนในทีม";
+  ["#lockTeam", "#lockTeamCode", "#lockTeamLabel", "#lockSkip"].forEach(s => { $(s).hidden = false; });
+  $("#lockTeam").value = ""; $("#lockTeamCode").value = ""; $("#lockTeamLabel").value = "";
+  $("#lockGo").textContent = "เข้าทีม / สร้างทีม";
+  $("#lockGo").disabled = false;
+  $("#lockMsg").className = "lockmsg"; $("#lockMsg").textContent = "";
+  $("#lockView").hidden = false;
+  setTimeout(() => $("#lockTeam").focus(), 50);
+
+  return new Promise(resolve => {
+    let shown = false;           // โชว์รหัสทีมแล้ว รอคนจดก่อนกดเข้า
+    const msg = (t, c) => { $("#lockMsg").className = "lockmsg " + (c || ""); $("#lockMsg").textContent = t; };
+    const finish = () => {
+      ["#lockTeam", "#lockTeamCode", "#lockTeamLabel", "#lockSkip"].forEach(s => { $(s).hidden = true; });
+      $("#lockMsg").textContent = "";
+      $("#lockView").hidden = true;
+      resolve();
+    };
+    $("#lockSkip").onclick = () => { try { lsSet(LS_TEAMSKIP, "1"); } catch(e){} finish(); };
+    $("#lockForm").onsubmit = async e => {
+      e.preventDefault();
+      if (shown) return finish();
+      const name = $("#lockTeam").value.trim();
+      if (!name){ $("#lockTeam").focus(); return msg("ใส่ชื่อทีมก่อน", "err"); }
+      $("#lockGo").disabled = true; msg("กำลังเข้าทีม...", "busy");
+      try {
+        const j = await sbRpc("join_team", { p_name: name, p_code: $("#lockTeamCode").value.trim(),
+                                             p_label: $("#lockTeamLabel").value.trim() });
+        $("#lockGo").disabled = false;
+        if (!j || !j.ok){
+          msg((j && j.error) || "เข้าทีมไม่สำเร็จ", "err");
+          if (j && j.need_code) $("#lockTeamCode").focus();
+          return;
+        }
+        TEAM = j.team;
+        const note = teamJoinNote(j);
+        if (!note) return finish();
+        shown = true;
+        ["#lockTeam", "#lockTeamCode", "#lockTeamLabel", "#lockSkip"].forEach(s => { $(s).hidden = true; });
+        $("#lockTitle").textContent = j.created ? "สร้างทีมแล้ว" : "เข้าทีมแล้ว";
+        $("#lockHint").textContent = "";
+        $("#lockMsg").className = "lockmsg code";
+        $("#lockMsg").innerText = note;
+        $("#lockGo").textContent = "เข้าใช้งาน";
+      } catch(err){
+        $("#lockGo").disabled = false;
+        msg((err && err.message) || "เข้าทีมไม่สำเร็จ", "err");
+      }
+    };
+  });
+}
+
+// ก่อนสั่งงานทั้งโปรเจกต์ที่เซิร์ฟเวอร์ (ย้าย/เปลี่ยนชื่อ/เข้า-ออกทีม) ของที่แก้ค้างต้องขึ้นไปก่อน
+async function teamSettle(){
+  for (let i = 0; SYNCING && i < 75; i++) await new Promise(r => setTimeout(r, 200));
+  if (DIRTY) await syncCoord(false);
+  if (DIRTY || SYNCING || NEED_FORCE.length){
+    alert("ยังมีที่แก้ค้างส่งไม่สำเร็จ — ดูแถบสถานะเหนือตาราง แก้ให้ซิงก์ผ่านก่อนแล้วค่อยทำใหม่");
+    return false;
+  }
+  return true;
+}
+
+function renderTeamSect(){
+  $("#teamSect").hidden = false;
+  const b = $("#teamBody");
+  if (!TEAM){
+    b.innerHTML = `<p class="sect-sub">ยังไม่ได้อยู่ในทีม — งานทุกอย่างเห็นแค่คุณคนเดียว</p>
+      <div class="dd-act" style="flex-wrap:wrap">
+        <input id="tmName" maxlength="60" placeholder="ชื่อทีม">
+        <input id="tmCode" maxlength="6" inputmode="numeric" placeholder="รหัส 6 หลัก (ถ้าเข้าทีมที่มีอยู่)">
+        <input id="tmLabel" maxlength="60" placeholder="ป้ายของคุณ (ไม่บังคับ)">
+        <button type="button" class="export" id="tmJoin">เข้าทีม / สร้างทีม</button>
+      </div>
+      <div class="hint" id="tmMsg" style="margin-top:6px"></div>`;
+    $("#tmJoin").onclick = async () => {
+      const name = $("#tmName").value.trim();
+      if (!name) return $("#tmName").focus();
+      if (!(await teamSettle())) return;
+      try {
+        const j = await sbRpc("join_team", { p_name: name, p_code: $("#tmCode").value.trim(),
+                                             p_label: $("#tmLabel").value.trim() });
+        if (!j || !j.ok){ $("#tmMsg").textContent = (j && j.error) || "เข้าทีมไม่สำเร็จ"; return; }
+        const note = teamJoinNote(j);
+        if (note) alert(note);
+        location.reload();             // โปรเจกต์ของทีมต้องโหลดใหม่ทั้งชุด
+      } catch(e){ $("#tmMsg").textContent = e.message; }
+    };
+    return;
+  }
+  const me = sbUid(), lead = TEAM.lead_id === me, admin = (PROFILE || {}).role === "admin";
+  b.innerHTML = `<p class="sect-sub"><b>${esc(TEAM.name)}</b> · สมาชิก ${TEAM.members.length} คน</p>
+    <div class="dd-act" style="flex-wrap:wrap;align-items:center">
+      <span>รหัสชวนเข้าทีม</span>
+      <code style="font-size:1.15em;letter-spacing:.15em">${esc(TEAM.code || "")}</code>
+      <button type="button" class="export ghost" id="tmCopy">คัดลอก</button>
+      ${lead || admin ? `<button type="button" class="export ghost" id="tmRegen">สุ่มรหัสใหม่</button>` : ""}
+      <button type="button" class="export ghost" id="tmLeave">ออกจากทีม</button>
+    </div>
+    <div style="margin-top:10px">${TEAM.members.map(m => `<div class="mrow">
+      <span class="mn">${esc(m.name || m.email)}${m.id === TEAM.lead_id ? " · หัวทีม" : ""}${m.id === me ? " (คุณ)" : ""}</span>
+      ${lead || admin || m.id === me
+        ? `<input data-mlabel="${esc(m.id)}" maxlength="60" value="${esc(m.label || "")}"
+             placeholder="ป้าย เช่น Sourcing, KOC — คั่นด้วยจุลภาค">`
+        : memLabels(m).map(l => `<span class="lchip">${esc(l)}</span>`).join("") || `<span class="hint">ไม่มีป้าย</span>`}
+    </div>`).join("")}</div>
+    <div class="hint" id="tmLabelMsg" style="margin-top:4px">ป้ายใช้กรองงานเหนือตาราง Coordinator (#ป้าย) ·
+      หัวทีม/admin แก้ป้ายของทุกคนได้</div>
+    <div class="hint">คนใหม่: ล็อกอินครั้งแรก → พิมพ์ชื่อทีม “${esc(TEAM.name)}” + รหัสนี้ ·
+      สุ่มรหัสใหม่แล้วรหัสเก่าใช้ไม่ได้ แต่คนที่อยู่ในทีมแล้วไม่โดนเตะ</div>`;
+  b.querySelectorAll("[data-mlabel]").forEach(inp => inp.onchange = async () => {
+    try {
+      await sbRpc("set_member_label", { p_user: inp.dataset.mlabel, p_label: inp.value.trim() });
+      TEAM = await sbRpc("my_team");
+      $("#tmLabelMsg").textContent = "บันทึกป้ายแล้ว";
+      if (document.body.dataset.view === "coord") renderCoord();
+    } catch(e){ $("#tmLabelMsg").textContent = "บันทึกป้ายไม่ได้: " + e.message; }
+  });
+  $("#tmCopy").onclick = () => {
+    const t = `ทีม ${TEAM.name} · รหัส ${TEAM.code}`;
+    (navigator.clipboard ? navigator.clipboard.writeText(t) : Promise.reject()).then(
+      () => { $("#tmCopy").textContent = "คัดลอกแล้ว"; }, () => prompt("คัดลอกข้อความนี้", t));
+  };
+  if ($("#tmRegen")) $("#tmRegen").onclick = async () => {
+    if (!confirm("สุ่มรหัสทีมใหม่? รหัสเก่าจะใช้เข้าทีมไม่ได้อีก (คนที่อยู่ในทีมแล้วไม่กระทบ)")) return;
+    try { TEAM.code = await sbRpc("regen_team_code"); renderTeamSect(); }
+    catch(e){ alert(e.message); }
+  };
+  $("#tmLeave").onclick = async () => {
+    if (!confirm(`ออกจากทีม “${TEAM.name}”?\n\nงานทีมยังอยู่กับทีม แต่คุณจะไม่เห็นอีก · งานส่วนตัวไม่กระทบ`)) return;
+    if (!(await teamSettle())) return;
+    try { await sbRpc("leave_team"); } catch(e){ return alert(e.message); }
+    try { lsSet(LS_TEAMSKIP, "1"); } catch(e){}     // ไม่ต้องถามชื่อทีมอีกตอนล็อกอินครั้งหน้า
+    location.reload();
+  };
+}
+
+// ─── ประวัติการแก้ไข ───
+const ACT_VERB = { insert:"เพิ่ม", update:"แก้", delete:"ลบ", rename:"เปลี่ยนชื่อ", move:"ย้าย",
+                   create:"สร้างทีม", join:"เข้าทีม", leave:"ออกจากทีม", code:"สุ่มรหัสทีมใหม่",
+                   label:"แก้ป้าย" };
+const ACT_TBL = { coord:"งาน", projects:"โปรเจกต์", pool:"คลังครีเอเตอร์" };
+const ACT_FIELD_TH = { status:"สถานะ", rate:"เรท", net3:"จ่ายจริง", paytype:"การจ่าย", sku:"SKU",
+  postdate:"วันโพสต์", note:"โน้ต", code:"งาน", link:"ลิงก์", script:"สคริปต์", name:"ชื่อ",
+  brand:"แบรนด์", done:"ปิดงาน", skus:"คลัง SKU", follower:"ผู้ติดตาม", cat:"หมวด", tier:"Tier",
+  blacklist:"Blacklist", space:"พื้นที่", rows:"จำนวนแถว", team:"ทีม", items_sold:"ยอดขาย",
+  sell_tier:"Sell tier", live:"ไลฟ์", assignee:"ผู้ดูแล", label:"ป้าย", user:"ของ" };
+let ACT_USERS = null;
+function actVal(k, v){
+  if (v == null || v === "") return "–";
+  if (k === "status" && ST_TH[v]) v = ST_TH[v];
+  if (k === "done") v = v ? "ปิดแล้ว" : "ยังทำอยู่";
+  if (k === "assignee" || k === "user") v = (ACT_USERS || {})[v] || "บัญชีที่ถูกลบ";
+  const s = typeof v === "string" ? v : JSON.stringify(v);
+  return esc(s.length > 80 ? s.slice(0, 80) + "…" : s);
+}
+function actRow(a){
+  const who = (ACT_USERS || {})[a.actor] || (a.actor ? "บัญชีที่ถูกลบ" : "admin (SQL)");
+  const when = new Date(a.at).toLocaleString("th-TH",
+    { day:"numeric", month:"short", hour:"2-digit", minute:"2-digit" });
+  const label = k => HIST_FIELD_TH[k] || ACT_FIELD_TH[k] || k;
+  const what = (a.handle ? " @" + a.handle + (a.code ? ` (${a.code})` : "") : "") +
+               (a.project ? (a.tbl === "projects" ? " " : " ใน ") + a.project : "");
+  const ch = a.changes || {}, keys = Object.keys(ch);
+  let lines = "";
+  if (["update", "rename", "move", "label"].includes(a.action))
+    lines = keys.map(k => `<div class="ach"><b>${esc(label(k))}</b>${actVal(k, ch[k][0])} → ${actVal(k, ch[k][1])}</div>`).join("");
+  else if (keys.length && a.tbl !== "team"){
+    const side = a.action === "delete" ? 0 : 1;
+    lines = `<div class="ach">${keys.slice(0, 6).map(k =>
+      `${esc(label(k))}: ${actVal(k, ch[k][side])}`).join(" · ")}${keys.length > 6 ? " …" : ""}</div>`;
+  }
+  const tname = a.tbl === "team" && ch.team ? " " + (ch.team[1] || ch.team[0] || "") : "";
+  return `<div class="act"><span class="aw">${esc(when)}</span><b>${esc(who)}</b>
+    ${ACT_VERB[a.action] || esc(a.action)}${ACT_TBL[a.tbl] ? ACT_TBL[a.tbl] : ""}${esc(what + tname)}${lines}</div>`;
+}
+async function openActivity(){
+  const opts = [["proj", `โปรเจกต์นี้ — ${PROJ || "-"}`], ["all", "ทุกโปรเจกต์ที่ฉันเห็น"],
+                ["pool", "คลังครีเอเตอร์"], ["team", "ทีม (เข้า/ออก)"]];
+  if ((PROFILE || {}).role === "admin") opts.push(["everyone", "ทุกคนทุกทีม (admin)"]);
+  opts.push(["views", "การเปิดดู (view history)"]);
+  $("#actScope").innerHTML = opts.map(([v, t]) => `<option value="${v}">${esc(t)}</option>`).join("");
+  $("#actScope").onchange = renderActivity;
+  // ดูการเปิดดูของคนอื่นได้เฉพาะหัวทีม/admin (ฐานข้อมูลกันไว้อีกชั้น) — คนอื่นเห็นแค่ของตัวเอง
+  const who = $("#actWho");
+  const canAll = isTeamOwner();
+  const people = [[sbUid(), "ของฉัน"]].concat(canAll && TEAM
+    ? TEAM.members.filter(m => m.id !== sbUid()).map(m => [m.id, m.name || m.email]) : []);
+  who.innerHTML = (canAll ? `<option value="">ทุกคนที่ดูได้</option>` : "") +
+    people.map(([v, t]) => `<option value="${esc(v)}">${esc(t)}</option>`).join("");
+  who.onchange = renderActivity;
+  $("#actRefresh").onclick = renderActivity;
+  $("#actPanel").hidden = false;
+  await renderActivity();
+}
+async function renderActivity(){
+  const body = $("#actBody");
+  $("#actWho").hidden = $("#actScope").value !== "views";
+  vlog("history", { d: { s: $("#actScope").value } });
+  body.innerHTML = `<div class="loading"><span class="spin"></span>กำลังโหลดประวัติ...</div>`;
+  try {
+    if (!ACT_USERS){
+      const r = await sbAuthed(SB_URL + "/rest/v1/app_users?select=id,display_name,email");
+      ACT_USERS = {};
+      (r.ok ? await r.json() : []).forEach(u => { ACT_USERS[u.id] = u.display_name || u.email; });
+    }
+    const sc = $("#actScope").value;
+    if (sc === "views") return await renderViews(body);
+    const mine = "space=in.(" + [sbUid(), TEAM && TEAM.id].filter(Boolean).join(",") + ")";
+    let q = "/rest/v1/activity?select=at,actor,space,tbl,action,project,handle,code,changes&order=at.desc&limit=300";
+    if (sc === "proj") q += "&tbl=in.(coord,projects)&" + mine + "&project=eq." + encodeURIComponent(PROJ || "");
+    else if (sc === "all") q += "&tbl=in.(coord,projects)&" + mine;
+    else if (sc === "pool") q += "&tbl=eq.pool";
+    else if (sc === "team") q += "&tbl=eq.team&" + mine;
+    const r = await sbAuthed(SB_URL + q);
+    if (!r.ok) throw new Error(`อ่านประวัติไม่ได้ (${r.status})`);
+    const list = await r.json();
+    body.innerHTML = list.length ? list.map(actRow).join("") +
+      (list.length >= 300 ? `<p class="sect-sub">แสดง 300 รายการล่าสุด</p>` : "")
+      : `<p class="sect-sub">ยังไม่มีประวัติ</p>`;
+  } catch(e){ body.innerHTML = `<p class="sect-sub">${esc(e.message)}</p>`; }
+}
+
+// ═══ ประวัติการเปิดดู (view history) ═══
+// เก็บทุกจุดที่คนเปิดดู/ค้นหา/กด แต่ไม่ยิงทีละครั้ง — รวมเป็นชุดส่งทุก 15 วิ (หรือครบ 40 รายการ)
+// ปิดแท็บ/สลับแท็บ → ส่งที่ค้างทันทีด้วย keepalive (เบราว์เซอร์ส่งให้ต่อแม้หน้าปิดไปแล้ว)
+// ของที่ส่งไม่ได้ (เน็ตหลุด) เก็บไว้ส่งรอบหน้า ไม่เกิน 400 รายการ
+// VQ (คิวรอส่ง) ประกาศไว้บนสุดของสคริปต์ใกล้ TEAM_MODE — vlog ถูกเรียกได้ตั้งแต่ก่อนถึงบรรทัดนี้
+function vlog(k, o){
+  if (!TEAM_MODE || !SESSION || !SESSION.user) return;
+  o = o || {};
+  const e = { at: new Date().toISOString(), k, p: o.p || null, h: o.h || null, d: o.d || null };
+  // กดซ้ำเรื่องเดิมรัวๆ ภายใน 3 วิ นับครั้งเดียว
+  const sig = [k, e.p, e.h, JSON.stringify(e.d)].join("|"), now = Date.now();
+  if (sig === VQ_SIG && now - VQ_AT < 3000) return;
+  VQ_SIG = sig; VQ_AT = now;
+  VQ.push(e);
+  presTrack();
+  if (VQ.length >= 40) vflush();
+  else if (!VQ_T) VQ_T = setTimeout(vflush, 15000);
+}
+function vflush(leaving){
+  clearTimeout(VQ_T); VQ_T = null;
+  if (!VQ.length || !SESSION || !SESSION.access_token) return;
+  const batch = VQ.splice(0, 200);
+  const back = () => { if (!leaving) VQ = batch.concat(VQ).slice(-400); };
+  fetch(SB_URL + "/rest/v1/rpc/log_views", { method:"POST", headers: sbHeaders(true),
+      body: JSON.stringify({ p: batch }), keepalive: !!leaving })
+    .then(r => { if (!r.ok && r.status !== 404) back(); }).catch(back);
+}
+if (TEAM_MODE){
+  document.addEventListener("visibilitychange", () => {
+    if (document.visibilityState === "hidden"){ vlog("away"); vflush(true); }
+    else vlog("back");
+  });
+  addEventListener("pagehide", () => vflush(true));
+  // ลิงก์ TikTok ทุกจุดในเว็บ (ตาราง · การ์ด · ผลค้นหา · Command)
+  document.addEventListener("click", e => {
+    const a = e.target.closest && e.target.closest('a[href*="tiktok.com/@"]');
+    if (!a) return;
+    const m = a.href.match(/tiktok\.com\/@([^/?#]+)/);
+    vlog("link", { p: document.body.dataset.view === "coord" ? PROJ : null,
+                   h: m ? decodeURIComponent(m[1]) : null });
+  }, true);
+  // คัดลอก: ทั้งปุ่มคัดลอกในเว็บ (clipboard API) และ Ctrl+C เอง — เก็บแค่ความยาว + ต้นข้อความสั้นๆ
+  document.addEventListener("copy", () => {
+    const t = String(getSelection() || "");
+    if (t) vlog("copy", { p: PROJ || null, d: { n: t.length, s: t.slice(0, 40), by: "เลือกเอง" } });
+  });
+  if (navigator.clipboard && navigator.clipboard.writeText){
+    const wt = navigator.clipboard.writeText.bind(navigator.clipboard);
+    navigator.clipboard.writeText = t => {
+      vlog("copy", { p: PROJ || null, d: { n: String(t || "").length, s: String(t || "").slice(0, 40) } });
+      return wt(t);
+    };
+  }
+}
+const VIEW_VERB = { open:"เปิดเว็บ", logout:"ออกจากระบบ", view:"ไปหน้า", project:"เปิดโปรเจกต์",
+  detail:"เปิดรายละเอียด", cmd:"เปิด Command", format:"เปิด Format ขอเรท", map:"เปิด Map",
+  settings:"เปิดตั้งค่า", history:"ดูประวัติ", cart:"เปิดตะกร้า", projects:"เปิดจัดการโปรเจกต์",
+  search:"ค้นหาครีเอเตอร์", lookup:"ค้นประวัติครีเอเตอร์", link:"กดลิงก์ TikTok", copy:"คัดลอก",
+  export:"Export CSV", filter:"กรองตามผู้ดูแล", voice:"สลับหางเสียง", quick:"ใช้คำสั่งด่วน", away:"สลับออกจากแท็บ", back:"กลับมาที่แท็บ" };
+const VIEW_PAGE = { home:"หน้าแรก", find:"ค้นหาครีเอเตอร์", coord:"Coordinator" };
+function viewDetail(v){
+  const d = v.detail || {};
+  if (v.kind === "view") return VIEW_PAGE[d.v] || d.v || "";
+  if (v.kind === "search"){
+    const bits = [];
+    if (d.cats && d.cats.length) bits.push("หมวด " + d.cats.join(", "));
+    if (d.fol && (d.fol[0] || d.fol[1])) bits.push(`ผู้ติดตาม ${d.fol[0] || 0}–${d.fol[1] || "∞"}`);
+    if (d.rate && (d.rate[0] || d.rate[1])) bits.push(`เรท ${d.rate[0] || 0}–${d.rate[1] || "∞"}`);
+    if (d.deal) bits.push(d.deal === "barter" ? "แลกของ" : d.deal);
+    if (d.want) bits.push(`ขอ ${d.want} คน`);
+    return bits.join(" · ");
+  }
+  if (v.kind === "copy") return `${d.n || 0} ตัวอักษร${d.by ? " (" + d.by + ")" : ""}${d.s ? ` “${d.s}${d.n > 40 ? "…" : ""}”` : ""}`;
+  if (v.kind === "filter") return d.by === "all" ? "ทุกคน" : d.by === "me" ? "ของฉัน" : d.by === "none" ? "ยังไม่มีผู้ดูแล"
+    : String(d.by || "").replace(/^l:/, "#");
+  if (v.kind === "history") return ({ proj:"โปรเจกต์นี้", all:"ทุกโปรเจกต์", pool:"คลังครีเอเตอร์",
+    team:"ทีม", everyone:"ทุกคน", views:"การเปิดดู" })[d.s] || "";
+  return "";
+}
+async function renderViews(body){
+  const who = $("#actWho").value;
+  let q = "/rest/v1/view_log?select=at,actor,kind,project,handle,detail&order=at.desc&limit=500";
+  if (who) q += "&actor=eq." + encodeURIComponent(who);
+  const r = await sbAuthed(SB_URL + q);
+  if (!r.ok) throw new Error(`อ่านประวัติการเปิดดูไม่ได้ (${r.status})`);
+  const list = await r.json();
+  if (!list.length){ body.innerHTML = `<p class="sect-sub">ยังไม่มีประวัติการเปิดดู</p>`; return; }
+  // สรุปบนสุด: ทำอะไรไปกี่ครั้ง + ครีเอเตอร์ที่ถูกเปิดดูบ่อย
+  const byKind = {}, byHandle = {};
+  list.forEach(v => {
+    byKind[v.kind] = (byKind[v.kind] || 0) + 1;
+    if (v.handle && (v.kind === "detail" || v.kind === "link" || v.kind === "cmd"))
+      byHandle[v.handle] = (byHandle[v.handle] || 0) + 1;
+  });
+  const top = Object.entries(byHandle).sort((a, b) => b[1] - a[1]).slice(0, 5);
+  const sum = `<div class="vsum">${Object.entries(byKind).sort((a, b) => b[1] - a[1])
+      .filter(([k]) => k !== "away" && k !== "back")
+      .map(([k, n]) => `<span>${esc(VIEW_VERB[k] || k)} <b>${n}</b></span>`).join("")}</div>` +
+    (top.length ? `<div class="vsum">${top.map(([h, n]) => `<span>@${esc(h)} <b>${n}</b></span>`).join("")}</div>` : "");
+  body.innerHTML = sum + list.map(v => {
+    const when = new Date(v.at).toLocaleString("th-TH",
+      { day:"numeric", month:"short", hour:"2-digit", minute:"2-digit", second:"2-digit" });
+    const what = (v.handle ? " @" + v.handle : "") + (v.project ? (v.handle ? " ใน " : " ") + v.project : "");
+    const det = viewDetail(v);
+    return `<div class="act"><span class="aw">${esc(when)}</span><b>${esc((ACT_USERS || {})[v.actor] || "")}</b>
+      ${esc(VIEW_VERB[v.kind] || v.kind)}${esc(what)}${det ? ` <span class="aw">— ${esc(det)}</span>` : ""}</div>`;
+  }).join("") + (list.length >= 500 ? `<p class="sect-sub">แสดง 500 รายการล่าสุด</p>` : "");
+}
+
+// ═══ เรียลไทม์ของทีม ═══
+// 1) แถวงานที่คนอื่นแก้ → ใส่ตรงจุดจากข้อมูลที่มากับสัญญาณ (ไม่โหลดใหม่ทั้งหมด ไม่ล้างที่กำลังพิมพ์)
+// 2) Presence: ใครออนไลน์ · อยู่โปรเจกต์ไหน · เปิดดูใคร · กำลังแก้ช่องไหน (ล็อกช่องนั้นให้คนอื่น)
+// 3) Broadcast: กำลังลากการ์ดใบไหนใน Map ไปช่องไหน
+// ข้อ 2-3 ไม่ลงฐานข้อมูล หายไปเองเมื่อปิดเว็บ — ช่องนี้เปิดสาธารณะ (ต้องรู้ id ทีมถึงเข้าได้)
+function sbRowToCoord(o){
+  return { handle: normId(o.handle), project: o.project, kind: o.kind || "",
+    code: o.code || "", status: o.status || "",
+    videos: o.videos == null ? null : Number(o.videos), rate: o.rate == null ? null : Number(o.rate),
+    net3: o.net3 == null ? null : Number(o.net3), paytype: o.paytype || "", sku: o.sku || "",
+    postdate: o.postdate || "", deadline: o.deadline || "", brief: o.brief || "", note: o.note || "",
+    commission: o.commission || "", script: o.script || "", rate_all: [], tracking: o.tracking || "",
+    assignee: o.assignee || null, _id: o.id };
+}
+// คืน true = จัดการแล้ว · false = ไม่แน่ใจ ให้โหลดใหม่ทั้งหมดแทน (ปลอดภัยกว่าเดา)
+function rtApplyCoord(d){
+  if (!BASE) return false;
+  if (d.type === "DELETE"){
+    const id = (d.old_record || {}).id;
+    if (!id) return false;
+    for (const p of PROJECTS){
+      const list = COORD[p] || [];
+      const i = list.findIndex(r => r._id === id);
+      if (i < 0) continue;
+      const r = list[i];
+      list.splice(i, 1);
+      if (BASE[p]) BASE[p].delete(coordKey(r));
+      delete EDITS[ekey(r)];
+      rtRealignOrd(p);
+      rtRedraw();
+      return true;
+    }
+    // ไม่เจอ = แถวที่เราลบเอง (หายจากเครื่องไปแล้ว) หรือแถวที่ยังไม่รู้ id → อย่างหลังต้องโหลดใหม่
+    return SYNCING || Date.now() - SYNC_AT < 6000;
+  }
+  const rec = d.record;
+  if (!rec || !rec.project || !PROJECTS.includes(rec.project) || rec.owner !== spaceOf(rec.project)) return false;
+  const p = rec.project, row = sbRowToCoord(rec);
+  const list = COORD[p] || (COORD[p] = []);
+  let i = list.findIndex(r => r._id && r._id === rec.id);
+  if (i < 0) i = list.findIndex(r => coordKey(r) === coordKey(row));
+  if (i < 0 && d.type === "UPDATE") return false;      // เปลี่ยนชื่อแถวที่เรายังไม่รู้ id — โหลดใหม่ดีกว่า
+  const base = BASE[p] || (BASE[p] = new Map());
+  if (i < 0){ list.push(row); i = list.length - 1; }
+  else {
+    const cur = list[i], oldKey = coordKey(cur);
+    const mine = EDITS[ekey(cur)] || {};             // ช่องที่เครื่องนี้แก้ค้าง ยังไม่ได้ส่ง — ของเราชนะ
+    Object.keys(row).forEach(f => { if (!(f in mine)) cur[f] = row[f]; });
+    if (oldKey !== coordKey(cur)) base.delete(oldKey);
+  }
+  // BASE = ค่าในฐานตอนนี้ · ord ใช้ตำแหน่งในเครื่อง ไม่งั้นรอบหน้าจะ PATCH ลำดับกลับไปมา
+  base.set(coordKey(row), coordRowToSB(Object.assign({}, row), i));
+  rtRealignOrd(p);
+  rtRedraw();
+  return true;
+}
+// แถวถูกเพิ่ม/ลบจากที่อื่น ตำแหน่งในเครื่องเลื่อน — ให้ ord ใน BASE ตามตำแหน่งจริง
+// ไม่งั้นรอบซิงก์หน้าจะส่ง "ลำดับ" ของทุกแถวที่เลื่อนกลับไปทั้งที่ไม่มีใครจัดลำดับ
+// เครื่องนี้มีที่แก้ค้าง (อาจเป็นการลากจัดลำดับเอง) = ไม่แตะ ปล่อยให้ส่งตามปกติ
+function rtRealignOrd(p){
+  if (DIRTY || !BASE || !BASE[p]) return;
+  (COORD[p] || []).forEach((r, j) => { const b = BASE[p].get(coordKey(r)); if (b) b.ord = j; });
+}
+// วาดใหม่แบบรวบ — กำลังพิมพ์ในตาราง/รายละเอียดอยู่ = รอจนออกจากช่องก่อน
+let RT_REDRAW_T = null;
+function rtRedraw(){
+  clearTimeout(RT_REDRAW_T);
+  RT_REDRAW_T = setTimeout(() => {
+    const ae = document.activeElement;
+    if (ae && /^(INPUT|TEXTAREA|SELECT)$/.test(ae.tagName) && ae.closest("#coordBody, #detailPanel"))
+      return rtRedraw();
+    renderProjTabs();
+    if (document.body.dataset.view === "coord") renderCoord();
+    if (!$("#mapView").hidden && !document.body.classList.contains("mapdrag")) renderMap();
+    if (DETAIL) renderDetail();
+    updateSyncBar();
+  }, 200);
+}
+
+function rtJoinTeam(){
+  TEAM_TOPIC = "realtime:cfteam-" + TEAM.id;
+  PRES_JOINED = false; PRES_LAST = "";
+  rtSend(TEAM_TOPIC, "phx_join", {
+    config: { broadcast: { self: false, ack: false }, presence: { key: sbUid() }, postgres_changes: [] },
+    access_token: SESSION.access_token });
+}
+function rtTeamMsg(m){
+  const ev = m.event, pl = m.payload || {};
+  if (ev === "phx_reply"){
+    if (!PRES_JOINED && pl.status === "ok"){ PRES_JOINED = true; presTrack(true); }
+    return;
+  }
+  if (ev === "presence_state"){
+    PRES = {};
+    Object.entries(pl).forEach(([k, v]) => presPut(k, v && v.metas));
+    return presRender();
+  }
+  if (ev === "presence_diff"){
+    Object.keys(pl.leaves || {}).forEach(k => { delete PRES[k]; });
+    Object.entries(pl.joins || {}).forEach(([k, v]) => presPut(k, v && v.metas));
+    // คนที่ออกไปแล้วระหว่างลาก — ไม่ต้องค้างกรอบไว้
+    Object.keys(RDRAG).forEach(u => { if (!PRES[u]) delete RDRAG[u]; });
+    paintRemoteDrag();
+    return presRender();
+  }
+  if (ev === "broadcast" && pl.event === "drag") remoteDrag(pl.payload || {});
+}
+function presPut(k, metas){
+  if (k === sbUid() || !metas || !metas.length) return;
+  PRES[k] = metas[metas.length - 1];
+}
+function presState(){
+  const map = !$("#mapView").hidden;
+  return { name: (PROFILE || {}).display_name || "", view: document.body.dataset.view || "", map,
+    proj: map ? (MAP_PROJ || "") : (MINE_VIEW ? "★" : PROJ),
+    h: DETAIL ? DETAIL.handle
+      : CMD_NOW && $("#cmdPanel").classList.contains("on") ? normId(CMD_NOW.handle) : "",
+    ed: EDITING };
+}
+// ส่งเฉพาะตอนสถานะเปลี่ยนจริง — เรียกถี่ได้ ไม่ยิงซ้ำ
+let PRES_T = null;
+function presTrack(now){
+  if (!TEAM_MODE || !TEAM) return;
+  clearTimeout(PRES_T);
+  PRES_T = setTimeout(() => {
+    if (!RT || !PRES_JOINED) return;
+    const st = presState(), sig = JSON.stringify(st);
+    if (sig === PRES_LAST) return;
+    PRES_LAST = sig;
+    rtSend(TEAM_TOPIC, "presence", { type: "presence", event: "track", payload: st });
+  }, now ? 0 : 250);
+}
+function presWhere(m){
+  const field = f => ACT_FIELD_TH[f] || HIST_FIELD_TH[f] || f;
+  const where = m.map ? "Map " + (m.proj || "ทุกโปรเจกต์")
+    : m.view === "coord" ? (m.proj === "★" ? "งานของตัวเอง" : m.proj || "")
+    : VIEW_PAGE[m.view] || m.view || "";
+  return [where, m.h ? "ดู @" + m.h : "", m.ed ? `กำลังแก้${field(m.ed.f)} @${m.ed.h}` : ""]
+    .filter(Boolean).join(" · ");
+}
+function presRender(){
+  const ppl = Object.entries(PRES);
+  const html = ppl.map(([u, m]) => `<span class="av" style="--mc:${memColor(u)}"
+      title="${esc((m.name || memName(u)) + " — " + presWhere(m))}">${esc(memInitial(u, m.name))}</span>`).join("");
+  ["#onlineBar", "#mapOnline"].forEach(sel => {
+    const el = $(sel);
+    if (el) el.innerHTML = html ? `<span class="olab">ออนไลน์</span>${html}` : "";
+  });
+  tabAvatars();
+  applyLocks();
+}
+// วงชื่อบนแท็บโปรเจกต์ (ตาราง/Map) — เติมทีหลังโดยไม่วาดแท็บใหม่ทั้งแถว
+function tabAvatars(){
+  const put = (btn, inMap) => {
+    btn.querySelectorAll(".pav").forEach(x => x.remove());
+    const p = btn.dataset.p != null ? btn.dataset.p : btn.dataset.mp;
+    const who = Object.entries(PRES).filter(([, m]) => !!m.map === inMap && (m.proj || "") === (p || ""));
+    if (who.length) btn.insertAdjacentHTML("beforeend",
+      `<span class="pav" title="${esc(who.map(([u, m]) => m.name || memName(u)).join(", "))} อยู่ที่นี่">${
+        who.map(([u, m]) => avatar(u, m.name)).join("")}</span>`);
+  };
+  document.querySelectorAll("#projTabs [data-p]").forEach(b => put(b, false));
+  document.querySelectorAll("#mapTabs [data-mp]").forEach(b => put(b, true));
+}
+// ── ล็อกช่องที่คนอื่นกำลังแก้ (ตาราง + รายละเอียด) · ป้ายว่าใครเปิดดูแถวไหนอยู่ ──
+function applyLocks(){
+  if (!TEAM_MODE) return;
+  document.querySelectorAll(".rlock").forEach(el => {
+    el.classList.remove("rlock");
+    if (el.tagName === "SELECT") el.disabled = false; else el.readOnly = false;
+    el.title = el.dataset.t0 || "";
+  });
+  document.querySelectorAll(".rlockrow").forEach(el => el.classList.remove("rlockrow"));
+  document.querySelectorAll(".rview").forEach(el => el.remove());
+  const rowAt = (p, h, c) => (COORD[p] || []).findIndex(r => normId(r.handle) === h && (c == null || (r.code || "") === c));
+  Object.entries(PRES).forEach(([u, m]) => {
+    if (!MINE_VIEW && m.h && m.proj === PROJ){
+      const i = rowAt(PROJ, m.h);
+      const cell = i >= 0 && document.querySelector(`#coordBody tr[data-row="${i}"] .wrapper`);
+      if (cell) cell.insertAdjacentHTML("beforeend",
+        `<span class="rview" title="${esc(m.name || memName(u))} กำลังเปิดดูคนนี้">${avatar(u, m.name)}</span>`);
+    }
+    const ed = m.ed;
+    if (!ed) return;
+    const lock = el => {
+      if (!el || el === document.activeElement) return;
+      el.classList.add("rlock");
+      el.style.setProperty("--rc", memColor(u));
+      el.dataset.t0 = el.title || "";
+      el.title = `${m.name || memName(u)} กำลังแก้ช่องนี้ — รอให้เขาแก้เสร็จก่อน`;
+      if (el.tagName === "SELECT") el.disabled = true; else el.readOnly = true;
+    };
+    if (!MINE_VIEW && ed.p === PROJ){
+      const i = rowAt(PROJ, ed.h, ed.c);
+      if (i >= 0){
+        document.querySelectorAll(`#coordBody [data-i="${i}"][data-f="${ed.f}"]`).forEach(lock);
+        const tr = document.querySelector(`#coordBody tr[data-row="${i}"]`);
+        if (tr){ tr.classList.add("rlockrow"); tr.style.setProperty("--rc", memColor(u)); }
+      }
+    }
+    if (DETAIL && ed.p === DETAIL.proj && ed.h === DETAIL.handle)
+      document.querySelectorAll(`#detailBody [data-d="${ed.f}"]`).forEach(lock);
+  });
+}
+// ช่องที่เรากำลังแก้ — บอกทีมให้ล็อกช่องเดียวกันไว้
+function editTarget(el){
+  if (!el || !el.closest || !TEAM) return null;
+  if (el.closest("#coordBody") && el.dataset.i != null && el.dataset.f && !MINE_VIEW){
+    const r = (COORD[PROJ] || [])[+el.dataset.i];
+    return r && isTeamProj(PROJ) ? { p: PROJ, h: normId(r.handle), c: r.code || "", f: el.dataset.f } : null;
+  }
+  if (el.closest("#detailBody") && el.dataset.d && DETAIL){
+    const r = detailRow();
+    return r && isTeamProj(r.project) ? { p: r.project, h: normId(r.handle), c: r.code || "", f: el.dataset.d } : null;
+  }
+  return null;
+}
+// ── ลากใน Map ──
+let DRAG_LAST = "";
+function dragCast(s, proj, who, to){
+  if (!TEAM_MODE || !TEAM || !RT || !PRES_JOINED || !isTeamProj(proj)) return;
+  const sig = [s, proj, who, to].join("|");
+  if (sig === DRAG_LAST) return;                    // dragover ยิงทุกเฟรม — ส่งเฉพาะตอนเปลี่ยนช่อง
+  DRAG_LAST = s === "end" ? "" : sig;
+  rtSend(TEAM_TOPIC, "broadcast", { type: "broadcast", event: "drag",
+    payload: { s, u: sbUid(), name: (PROFILE || {}).display_name || "", proj, who: normId(who), to: to == null ? null : to } });
+}
+function remoteDrag(p){
+  if (!p.u || p.u === sbUid()) return;
+  if (p.s === "end") delete RDRAG[p.u];
+  else RDRAG[p.u] = Object.assign(RDRAG[p.u] || {}, p, { at: Date.now() });
+  paintRemoteDrag();
+}
+function paintRemoteDrag(){
+  document.querySelectorAll(".rdrag, .rover").forEach(el => el.classList.remove("rdrag", "rover"));
+  document.querySelectorAll(".rghost").forEach(x => x.remove());
+  if ($("#mapView").hidden) return;
+  Object.entries(RDRAG).forEach(([u, d]) => {
+    if (Date.now() - d.at > 10000){ delete RDRAG[u]; return; }   // หลุดกลางทาง — ไม่ค้างกรอบไว้ตลอด
+    const c = memColor(u), name = d.name || memName(u);
+    const leaf = [...document.querySelectorAll("#mapBody .mapleaf")]
+      .find(el => el.dataset.mapproj === d.proj && normId(el.dataset.mapwho) === d.who);
+    if (leaf){ leaf.classList.add("rdrag"); leaf.style.setProperty("--rc", c); leaf.dataset.rname = `${name} กำลังย้าย`; }
+    if (d.to == null) return;
+    const zone = [...document.querySelectorAll("#mapBody [data-drop]")].find(z => z.dataset.drop === d.to);
+    if (!zone) return;
+    zone.classList.add("rover");
+    zone.style.setProperty("--rc", c);
+    const g = document.createElement("div");
+    g.className = "rghost";
+    g.style.setProperty("--rc", c);
+    g.textContent = `@${d.who} ← ${name}`;
+    zone.appendChild(g);
+  });
+}
+if (TEAM_MODE){
+  document.addEventListener("focusin", e => { const t = editTarget(e.target); if (t){ EDITING = t; presTrack(); } });
+  document.addEventListener("focusout", e => { if (EDITING && editTarget(e.target)){ EDITING = null; presTrack(); } });
+  // ปิดแผง/ลิ้นชักมีหลายสิบทาง — เช็กทุก 2 วิว่าสิ่งที่ดูอยู่เปลี่ยนไหม (ส่งเฉพาะตอนเปลี่ยน)
+  setInterval(() => { presTrack(); if (Object.keys(RDRAG).length) paintRemoteDrag(); }, 2000);
+}
+
+// ═══ คำสั่งด่วนแบบการ์ด (โหมดทีม) ═══
+// แทนการพิมพ์คำสั่ง: เลือกคำสั่ง → เลือก/วางชื่อ → วางข้อมูลที่คำสั่งนั้นต้องการ → ตรวจ
+// ไม่ได้เขียนตัวอ่านใหม่ — การ์ดประกอบเป็นข้อความคำสั่งแล้วส่งให้ตัวอ่านเดิม (parseCmdText)
+// หน้าตรวจ/ปุ่ม "ใช้ N คำสั่งนี้" ก็ของเดิม → ทุกคำสั่งยังมีหน้าตรวจก่อนเสมอ ไม่มีอะไรทำงานทันที
+const LS_QO2FOLD = "cf_qo2fold_v1";
+let QO2_CMD = null;
+let QO2_FOLD = false;
+try { QO2_FOLD = lsGet(LS_QO2FOLD) === "1"; } catch(e){}
+const QO2_ACT = [
+  { c:"add",   th:"＋ เพิ่มคนใหม่" }, { c:"del", th:"ลบออกจากโปรเจกต์" }, { c:"move", th:"ย้ายโปรเจกต์" },
+  { c:"clear", th:"ล้างค่า" }, { c:"track", th:"📦 เลขพัสดุทีละหลายคน" }, { c:"bulk", th:"⇥ วางจากชีตหลายคน" } ];
+function qo2Groups(){
+  return [["ข้อมูลในตาราง", SLASH_ROW], ["เอกสาร / ลิงก์", SLASH_DOC], ["Feedback", SLASH_FB], ["จัดการรายชื่อ", QO2_ACT]];
+}
+function qo2Spec(c){ return SLASH_BY[c] || QO2_ACT.find(a => a.c === c) || null; }
+// ช่อง "ค่า" ตามชนิดของคำสั่ง — ตัวเลือกส่งเป็นคำที่ตัวอ่านเดิมรู้จักอยู่แล้ว
+function qo2ValueField(c){
+  const sp = qo2Spec(c) || {};
+  const opt = list => `<select id="qo2Val">${list.map(([v, t]) => `<option value="${esc(v)}">${esc(t)}</option>`).join("")}</select>`;
+  const others = PROJECTS.filter(p => p !== PROJ);
+  if (c === "add") return `<label class="h">เข้าโปรเจกต์</label>${opt(PROJECTS.map(p => [p, p]))}
+    <label class="h" style="margin-top:6px">กลุ่ม</label>${opt([["", "— ไม่ระบุ —"], ["KOL", "KOL"], ["KOC", "KOC"]].map(x => x))
+      .replace('id="qo2Val"', 'id="qo2Val2"')}`;
+  if (c === "move") return `<label class="h">ย้ายไปโปรเจกต์</label>${others.length ? opt(others.map(p => [p, p]))
+    : `<div class="hint">ยังไม่มีโปรเจกต์อื่น</div>`}`;
+  if (c === "del") return `<div class="hint">ลบชื่อที่เลือกออกจาก ${esc(PROJ)} — มีหน้าตรวจก่อนลบเสมอ</div>`;
+  if (c === "clear") return `<label class="h">ล้างช่องไหน</label>${opt(SLASH_FIELD.map(x => [x.c, x.th]))}`;
+  if (sp.val === "stage") return `<label class="h">${esc(sp.th)}</label>${
+    opt(STAGES.map(x => [x.th, x.th]).concat([["ยกเลิก", "ยกเลิกงาน"]]))}`;
+  if (sp.val === "pay") return `<label class="h">${esc(sp.th)}</label>${opt(PAYTYPES.filter(p => p.id).map(p => [p.label, p.label]))}`;
+  if (sp.val === "kind") return `<label class="h">${esc(sp.th)}</label>${opt([["KOL", "KOL"], ["KOC", "KOC"]])}`;
+  if (sp.val === "num") return `<label class="h">${esc(sp.th)}</label>
+    <input id="qo2Val" inputmode="decimal" placeholder="${c === "rate" ? "เช่น 12000 · +500 = บวกจากเรทเดิม" : "ตัวเลข"}">`;
+  return `<label class="h">${esc(sp.th || "ค่า")} — วางได้เลย</label>
+    <textarea id="qo2Val" rows="2" placeholder="${esc(String(sp.ex || "").replace(/^\/\S+\s+\S+\s*:\s*/, "เช่น "))}"></textarea>`;
+}
+function renderQO2(){
+  const box = $("#qo2");
+  if (!box || !TEAM_MODE) return;
+  box.hidden = false;
+  const sp = QO2_CMD && qo2Spec(QO2_CMD);
+  box.innerHTML = `<div class="qo2head" id="qo2Head" title="กดเพื่อ${QO2_FOLD ? "กาง" : "ย่อ"}">
+      <span class="cmdbar-ic">⌘</span><span class="t">คำสั่งด่วน</span>
+      <span class="hint">เลือกคำสั่ง → เลือก/วางชื่อ → วางข้อมูล → ตรวจก่อนใช้</span>
+      <span class="fold">${QO2_FOLD ? "▾ กาง" : "▴ ย่อ"}</span></div>` +
+    (QO2_FOLD ? "" : qo2Groups().map(([g, list]) => `<div class="qo2g"><span class="qo2gl">${esc(g)}</span>${
+      list.map(x => `<button class="qo2c${QO2_CMD === x.c ? " on" : ""}" data-qc="${esc(x.c)}"
+        title="${esc(x.ex || "")}">${esc(x.th)}</button>`).join("")}</div>`).join("") +
+    (sp ? qo2FormHTML(QO2_CMD) : ""));
+  $("#qo2Head").onclick = () => {
+    QO2_FOLD = !QO2_FOLD;
+    try { lsSet(LS_QO2FOLD, QO2_FOLD ? "1" : "0"); } catch(e){}
+    renderQO2(); scheduleStick && scheduleStick();
+  };
+  box.querySelectorAll("[data-qc]").forEach(b => b.onclick = () => {
+    if (b.dataset.qc === "bulk"){ $("#bulkToggle").click(); return; }   // กล่องวางจากชีตเดิม — ทำงานครบอยู่แล้ว
+    QO2_CMD = QO2_CMD === b.dataset.qc ? null : b.dataset.qc;
+    renderQO2();
+    const f = $("#qo2Names") || $("#qo2Val");
+    if (f) f.focus();
+  });
+  if (sp) wireQO2Form(QO2_CMD);
+}
+function qo2FormHTML(c){
+  if (c === "track") return `<div class="qo2form" style="grid-template-columns:1fr auto">
+      <div><label class="h">วางลิสต์จากลูกค้าได้เลย — บรรทัดละคน “ชื่อ + เลขพัสดุ” (สลับข้างได้ · คนเดียวหลายกล่อง = หลายบรรทัด)</label>
+        <textarea id="qo2Val" rows="4" placeholder="nana.review    TH0124578963A&#10;mintmint_ - SPXTH0412345678"></textarea></div>
+      <div class="qo2go"><button class="run" id="qo2Go">ตรวจก่อนใช้ ▶</button>
+        <button class="cmdbtn" id="qo2X">ยกเลิก</button></div></div>`;
+  const rows = COORD[PROJ] || [];
+  return `<div class="qo2form">
+    <div><label class="h">ใคร — วางรายชื่อ (บรรทัดละคน / เว้นวรรค / ลิงก์ TikTok ก็ได้) หรือกดเลือกด้านล่าง</label>
+      <textarea id="qo2Names" rows="2" placeholder="${c === "add" ? "ชื่อคนใหม่ที่จะเพิ่ม" : "ชื่อในโปรเจกต์ " + esc(PROJ)}"></textarea>
+      ${c === "add" ? "" : `<div class="qo2row"><input id="qo2Find" placeholder="กรองชื่อ" style="max-width:160px">
+        <label><input type="checkbox" id="qo2All"> ทุกคนใน ${esc(PROJ)} (${rows.length})</label></div>
+      <div class="qo2list" id="qo2List"></div>`}</div>
+    <div>${qo2ValueField(c)}</div>
+    <div class="qo2go"><button class="run" id="qo2Go">ตรวจก่อนใช้ ▶</button>
+      <button class="cmdbtn" id="qo2X">ยกเลิก</button>
+      <span class="hint">ยังไม่มีอะไรเปลี่ยน จนกว่าจะกด “ใช้ … คำสั่งนี้” ในผลตรวจ</span></div></div>`;
+}
+// วางลิงก์ TikTok มาก็ได้ — ดึงชื่อหลัง @ ออกมา (normId อย่างเดียวไม่รู้จักลิงก์)
+const qo2Handle = t => { const m = String(t).match(/tiktok\.com\/@([^/?#\s]+)/i);
+                         return normId(m ? decodeURIComponent(m[1]) : t); };
+const qo2NamesOf = () => [...new Set(String(($("#qo2Names") || {}).value || "")
+  .split(/[\s,]+/).map(qo2Handle).filter(Boolean))];
+function wireQO2Form(c){
+  $("#qo2X").onclick = () => { QO2_CMD = null; renderQO2(); };
+  const list = $("#qo2List");
+  const drawList = () => {
+    if (!list) return;
+    const q = normId(($("#qo2Find") || {}).value || "");
+    const picked = new Set(qo2NamesOf());
+    const rows = (COORD[PROJ] || []).filter(r => !q || normId(r.handle).includes(q)).slice(0, 80);
+    list.innerHTML = rows.map(r => `<button data-qn="${esc(normId(r.handle))}"${
+      picked.has(normId(r.handle)) ? ` class="on"` : ""}>${esc(r.handle)}</button>`).join("") ||
+      `<span class="hint">ไม่พบชื่อ</span>`;
+    list.querySelectorAll("[data-qn]").forEach(b => b.onclick = () => {
+      const now = qo2NamesOf(), h = b.dataset.qn;
+      $("#qo2Names").value = (now.includes(h) ? now.filter(x => x !== h) : now.concat(h)).join("\n");
+      drawList();
+    });
+  };
+  if (list){
+    drawList();
+    $("#qo2Find").oninput = drawList;
+    $("#qo2Names").oninput = drawList;
+    $("#qo2All").onchange = e => { $("#qo2Names").disabled = e.target.checked; };
+  }
+  $("#qo2Go").onclick = () => {
+    const val = $("#qo2Val") ? String($("#qo2Val").value || "").trim() : "";
+    let text;
+    if (c === "track"){
+      if (!val) return $("#qo2Val").focus();
+      text = "เลขพัสดุ\n" + val;
+    } else {
+      const all = $("#qo2All") && $("#qo2All").checked;
+      const names = qo2NamesOf();
+      if (!all && !names.length){ $("#qo2Names").focus(); return; }
+      let v = val.replace(/\s*\n\s*/g, " ");              // ตัวอ่านทำงานทีละบรรทัด — ค่าหลายบรรทัดรวมเป็นบรรทัดเดียว
+      if (c === "add") v = [val, ($("#qo2Val2") || {}).value || ""].join(" ").trim();
+      if (c !== "del" && !v && c !== "add"){ ($("#qo2Val") || {}).focus && $("#qo2Val").focus(); return; }
+      text = `/${c} ${all ? "*" : names.join(" ")}` + (c === "del" ? "" : ` : ${v}`);
+    }
+    vlog("quick", { p: PROJ, d: { c } });
+    $("#qoText").value = text;
+    $("#qoParse").click();
+    setTimeout(() => { const pv = $("#qoPreview"); if (pv && pv.firstChild) pv.scrollIntoView({ block:"nearest", behavior:"smooth" }); }, 120);
+  };
+}
+
+// เจ้าของ = admin/manager หรือหัวทีม — ที่เหลือคือลูกทีม (ตั้งค่าเหลือ 4 ส่วน · ดูการเปิดดูได้แค่ของตัวเอง)
+function isTeamOwner(){ return !isCrew() || !!(TEAM && TEAM.lead_id === sbUid()); }
 
 /* ═══ Creator Pool อ่าน/เขียนผ่าน Supabase (เฟส 2) ═══
    POOL_SOURCE = "supabase" → อ่านจากตาราง pool (หลัง login), ไม่แตะ Google Sheet
@@ -11635,10 +13018,12 @@ async function sbAuthed(url, opts){
     { headers: Object.assign({}, sbHeaders(true), o.headers) }));
   let r = await go();
   if (r.status !== 401 || !(await sbAuthProblem(r))) return r;
-  if (await sbRefresh()){                       // ต่ออายุด้วย refresh token ก่อน
+  const ok = await sbRefresh();                 // ต่ออายุด้วย refresh token ก่อน
+  if (ok === true){
     r = await go();
     if (r.status !== 401 || !(await sbAuthProblem(r))) return r;
   }
+  if (ok === "net") return r;                   // เน็ต/เซิร์ฟเวอร์สะดุด — คืนผลไป ไม่เตะออกจากระบบ
   await sbLogout(); await requireLogin();       // ต่อไม่ได้จริงๆ ค่อยขอล็อกอินใหม่
   return await go();
 }
@@ -11761,7 +13146,7 @@ const sbUid = () => (SESSION && SESSION.user && SESSION.user.id) || null;
 // ส่ง owner ไปด้วยเพราะ on_conflict อ้างถึงคอลัมน์นี้ — ปลอมไม่ได้ ทั้ง RLS และ trigger
 // ฝั่งเซิร์ฟเวอร์ตอก auth.uid() ทับให้อยู่แล้ว
 const coordRowToSB = (r, i) => ({
-  owner: sbUid(),
+  owner: TEAM_MODE ? spaceOf(r.project) : sbUid(),
   project: r.project, handle: normId(r.handle), code: r.code || "",
   kind: r.kind || "", link: r.link || "", status: r.status || "",
   videos: nOrNull(r.videos), rate: nOrNull(r.rate),
@@ -11771,6 +13156,10 @@ const coordRowToSB = (r, i) => ({
   brief: r.brief || "", note: r.note || "",
   commission: r.commission || "", script: r.script || "",
   ord: i,
+  // เลขพัสดุส่งเฉพาะตอนฐานข้อมูลมีคอลัมน์แล้ว — ส่งคอลัมน์ที่ไม่มีไป PostgREST ตอบ 400 ทั้งก้อน = ซิงก์พังทั้งหน้า
+  ...(TRACK_COL === true ? { tracking: r.tracking || "" } : {}),
+  // ผู้ดูแลแถว (โหมดทีม) — ว่าง = ฐานข้อมูลใส่คนเพิ่มให้ตอน insert
+  ...(TEAM_MODE ? { assignee: r.assignee || null } : {}),
 });
 
 // 404 = ยังไม่ได้สร้างตาราง (ยังไม่ได้รัน coord_sync.sql) — บอกให้ตรงจุด
@@ -11790,15 +13179,29 @@ async function skuColProbe(){
   return SKU_COL === true;
 }
 async function sbFetchProjects(){
-  const cols = (await skuColProbe()) ? SB_PROJ_COLS + ",skus" : SB_PROJ_COLS;
+  const cols = ((await skuColProbe()) ? SB_PROJ_COLS + ",skus" : SB_PROJ_COLS) + (TEAM_MODE ? ",owner" : "");
   const r = await sbAuthed(SB_URL + "/rest/v1/projects?select=" + cols + "&order=ord.asc");
   if (!r.ok) throw sbTableErr(r, "อ่านรายการโปรเจกต์ไม่ได้");
   return await r.json();
 }
+// เลขพัสดุเก็บที่คอลัมน์ coord.tracking — ยังไม่ได้รัน SQL ก็ใช้งานได้ แค่ค้างอยู่ในเครื่องนี้ (EDITS)
+// แบบเดียวกับ skuColProbe: null = ยังไม่รู้ · false = ไม่มีคอลัมน์แน่ๆ
+let TRACK_COL = null;
+async function trackColProbe(){
+  if (TRACK_COL !== null) return TRACK_COL;
+  try {
+    const r = await sbAuthed(SB_URL + "/rest/v1/coord?select=tracking&limit=1");
+    if (r.ok) TRACK_COL = true;
+    else if (r.status === 400) TRACK_COL = false;
+  } catch(e){}
+  return TRACK_COL === true;
+}
 async function sbFetchCoord(){
   // ตารางนี้โตตามจำนวนคน×โปรเจกต์ ตอนนี้ยังไม่ถึงพัน แต่โดนเพดานเดียวกับ pool แน่ๆ ถ้าปล่อยไว้
   // แล้วอาการจะร้ายกว่า เพราะเว็บซิงก์แบบ "เขียนทับทั้งชุด" — อ่านมาไม่ครบแล้วเขียนกลับ = ของหายจริง
-  return await sbFetchAll("/rest/v1/coord?select=" + SB_COORD_COLS +
+  const cols = ((await trackColProbe()) ? SB_COORD_COLS + ",tracking" : SB_COORD_COLS) +
+               (TEAM_MODE ? ",assignee,id" : "");
+  return await sbFetchAll("/rest/v1/coord?select=" + cols +
                           "&order=project.asc&order=ord.asc", "อ่านงาน Coordinate ไม่ได้");
 }
 
@@ -11856,6 +13259,152 @@ async function sbSaveProjects(){
     await sbAuthed(SB_URL + "/rest/v1/projects?name=eq." + encodeURIComponent(c.name),
       { method:"DELETE", headers:{ Prefer:"return=minimal" } });
   }
+}
+
+// ═══ โหมดทีม: ซิงก์ส่งเฉพาะสิ่งที่เครื่องนี้แก้ ═══
+// แบบเดิม (syncCoordSB) เขียนทุกแถวขึ้นไปแล้วลบแถวที่ "ไม่มีในเครื่องนี้" — คนเดียวใช้ได้
+// หลายคนแก้โปรเจกต์เดียวกัน = ใครซิงก์ทีหลังเขียนค่าเก่าทับของคนอื่น และลบแถวที่คนอื่นเพิ่งเพิ่ม
+// ตรงนี้จำไว้ว่าตอนโหลดฐานมีอะไร (BASE) แล้วส่งแค่ส่วนต่าง:
+//   แถวใหม่ → insert · ช่องที่เปลี่ยน → PATCH เฉพาะช่องนั้น · แถวที่เครื่องนี้ลบเอง → DELETE
+//   แถวที่คนอื่นเพิ่ม/แก้ระหว่างนั้นไม่ถูกแตะเลย
+// BASE / BASE_PROJ ประกาศไว้บนสุดของสคริปต์ (ใกล้ TEAM_MODE)
+const projRowToSB = (p, i, withSku) => Object.assign(
+  { owner: spaceOf(p.name), name: p.name, brand: p.brand || "", done: !!p.done, ord: i },
+  withSku ? { skus: (PROJ_SKU[p.name] || []).join("\n") } : {});
+function setProjBase(ps){
+  BASE_PROJ = new Map(ps.map(x => [x.name, Object.assign(
+    { owner: x.owner, name: x.name, brand: x.brand || "", done: !!x.done, ord: x.ord },
+    typeof x.skus === "string" ? { skus: x.skus } : {})]));
+}
+// ord = ลำดับในโปรเจกต์ตามที่โหลดมา — ตรงกับ index ที่ shapeCoord วางลง COORD
+function setCoordBase(rows){
+  BASE = {};
+  const at = {};
+  rows.forEach(r => {
+    const p = r.project;
+    if (!BASE[p]){ BASE[p] = new Map(); at[p] = 0; }
+    BASE[p].set(coordKey(r), coordRowToSB(r, at[p]++));
+  });
+}
+// ย้ายส่วนตัว ⇄ ทีม / เปลี่ยนชื่อ ทำที่เซิร์ฟเวอร์แล้ว — ตามแก้ BASE ให้ตรง ไม่งั้นรอบหน้าจะคิดว่าต้องลบ/เพิ่มใหม่ทั้งโปรเจกต์
+function baseMoveSpace(name){
+  const sp = spaceOf(name);
+  if (BASE && BASE[name]) BASE[name].forEach(o => { o.owner = sp; });
+  const b = BASE_PROJ && BASE_PROJ.get(name);
+  if (b) b.owner = sp;
+}
+function baseRename(from, to){
+  Object.keys(PNOTES).forEach(k => {
+    if (k.startsWith(from + "|")){ PNOTES[to + k.slice(from.length)] = PNOTES[k]; delete PNOTES[k]; }
+  });
+  if (BASE && BASE[from]){ BASE[to] = BASE[from]; delete BASE[from]; BASE[to].forEach(o => { o.project = to; }); }
+  const b = BASE_PROJ && BASE_PROJ.get(from);
+  if (b){ BASE_PROJ.delete(from); b.name = to; BASE_PROJ.set(to, b); }
+}
+function rowDiff(b, o){
+  let ch = null;
+  for (const k in o){
+    if (k === "owner") continue;               // ย้ายพื้นที่ทำผ่าน move_project เท่านั้น
+    const x = b[k] ?? null, y = o[k] ?? null;
+    if (x === y) continue;
+    if (typeof x === "number" && typeof y === "number" && Math.abs(x - y) < 1e-9) continue;
+    (ch = ch || {})[k] = o[k];
+  }
+  return ch;
+}
+const sbEq = v => "eq." + encodeURIComponent(v ?? "");
+const coordWhere = o => `owner=${sbEq(o.owner)}&project=${sbEq(o.project)}` +
+                        `&handle=${sbEq(o.handle)}&code=${sbEq(o.code)}`;
+async function sbSend(url, method, body, what, prefer){
+  const r = await sbAuthed(url, { method, headers:{ Prefer: prefer || "return=minimal" },
+                                  body: body == null ? undefined : JSON.stringify(body) });
+  if (r.ok) return;
+  const t = await r.text().catch(() => "");
+  let m = t; try { m = JSON.parse(t).message || t; } catch(e){}
+  throw new Error(`${what} (${r.status}) ${String(m).slice(0, 200)}`);
+}
+// ยิงพร้อมกันทีละไม่กี่คำขอ — จัดลำดับแถวใหม่ทีเดียวอาจเป็นร้อยคำขอ
+async function inParallel(list, fn){
+  let i = 0;
+  const run = async () => { while (i < list.length) await fn(list[i++]); };
+  await Promise.all(Array.from({ length: Math.min(6, list.length) }, run));
+}
+async function sbSaveProjectsTeam(){
+  const withSku = await skuColProbe();
+  const now = new Map(PROJ_LIST.map((p, i) => [p.name, projRowToSB(p, i, withSku)]));
+  const ins = [], pat = [], del = [];
+  now.forEach((o, n) => {
+    const b = BASE_PROJ.get(n);
+    if (!b) ins.push(o);
+    else { const ch = rowDiff(b, o); if (ch) pat.push([b, o, ch]); }
+  });
+  BASE_PROJ.forEach((b, n) => { if (!now.has(n)) del.push(b); });
+  if (ins.length){
+    await sbSend(SB_URL + "/rest/v1/projects?on_conflict=owner,name", "POST", ins,
+                 "เพิ่มโปรเจกต์ไม่ได้", "resolution=merge-duplicates,return=minimal");
+    ins.forEach(o => BASE_PROJ.set(o.name, o));
+  }
+  await inParallel(pat, async ([b, o, ch]) => {
+    await sbSend(SB_URL + `/rest/v1/projects?owner=${sbEq(b.owner)}&name=${sbEq(b.name)}`, "PATCH", ch,
+                 `บันทึกโปรเจกต์ ${o.name} ไม่ได้`);
+    BASE_PROJ.set(o.name, o);
+  });
+  await inParallel(del, async b => {
+    await sbSend(SB_URL + `/rest/v1/projects?owner=${sbEq(b.owner)}&name=${sbEq(b.name)}`, "DELETE", null,
+                 `ลบโปรเจกต์ ${b.name} ไม่ได้`);
+    BASE_PROJ.delete(b.name);
+  });
+}
+async function syncCoordTeam(){
+  // ไม่รู้ว่าฐานมีอะไร = แยกไม่ออกว่าอะไรคือ "แก้" อะไรคือ "ลบ" — ไม่ส่งอะไรเลยดีกว่าเดา
+  if (!BASE || !BASE_PROJ)
+    return ["ยังโหลดงานจากฐานข้อมูลไม่สำเร็จ — กด “โหลดใหม่จากฐานข้อมูล” ที่ ⚙ ตั้งค่า ก่อน (ของในเครื่องยังอยู่ครบ)"];
+  const failed = [];
+  // รายการโปรเจกต์ต้องขึ้นก่อน — ชื่อชนกับของทีม ฐานปฏิเสธ แล้วแถวงานจะไม่มีโปรเจกต์ให้อยู่
+  try { await sbSaveProjectsTeam(); }
+  catch(e){ return ["รายการโปรเจกต์: " + e.message]; }
+  for (const p of PROJECTS){
+    const rows = COORD[p] || [];
+    const dup = coordDupKeys(rows);
+    if (dup.length){
+      failed.push(`${p}: มีชื่อซ้ำกันในโปรเจกต์ — ${dup.map(d =>
+        `${d.handle} (งาน ${d.code || "ว่าง"}) ×${d.n}`).join(" · ")} · ลบแถวที่ซ้ำก่อนแล้วซิงก์ใหม่ ` +
+        `(ยังไม่ได้บันทึกโปรเจกต์นี้ขึ้นฐานข้อมูล ของในเครื่องยังอยู่ครบ)`);
+      continue;
+    }
+    const base = BASE[p] || (BASE[p] = new Map());
+    // แถวใหม่ที่ยังไม่มีผู้ดูแล = คนเพิ่ม (ฐานก็ตั้งแบบเดียวกัน แต่ใส่ในเครื่องด้วยจะได้กรอง "ของฉัน" เจอทันที)
+    rows.forEach(r => { if (!r.assignee && !base.has(coordKey(r))) r.assignee = sbUid(); });
+    const now = new Map(rows.map((r, i) => [coordKey(r), coordRowToSB(r, i)]));
+    const ins = [], pat = [], del = [];
+    now.forEach((o, k) => {
+      const b = base.get(k);
+      if (!b) ins.push(o);
+      else { const ch = rowDiff(b, o); if (ch) pat.push([b, o, ch]); }
+    });
+    base.forEach((b, k) => { if (!now.has(k)) del.push([k, b]); });
+    // ลบเยอะผิดปกติ = หยุดให้คนยืนยัน (แถบเดิม "ยืนยันว่าลบจริง") — ที่เพิ่ม/แก้ยังส่งตามปกติ
+    const hold = del.length > 2 && del.length / Math.max(base.size, 1) > 0.3 && !FORCE_PROJ.has(p);
+    if (hold) NEED_FORCE.push({ proj: p, had: base.size, now: base.size - del.length, where: "ฐานข้อมูล" });
+    try {
+      if (ins.length){
+        await sbUpsertCoord(ins);
+        ins.forEach(o => base.set(coordKey(o), o));
+      }
+      // แถวที่คนอื่นลบไปแล้ว PATCH ไม่เจออะไร = ไม่มีผล (การลบชนะ) — ดูได้ในประวัติว่าใครลบ
+      await inParallel(pat, async ([b, o, ch]) => {
+        await sbSend(SB_URL + "/rest/v1/coord?" + coordWhere(b), "PATCH", ch, `บันทึก ${o.handle} ไม่ได้`);
+        base.set(coordKey(o), o);
+      });
+      if (!hold) await inParallel(del, async ([k, b]) => {
+        await sbSend(SB_URL + "/rest/v1/coord?" + coordWhere(b), "DELETE", null, `ลบ ${b.handle} ไม่ได้`);
+        base.delete(k);
+      });
+    } catch(e){ failed.push(`${p}: ${e.message}`); }
+  }
+  // โปรเจกต์ที่เอาออกจากรายการ: แถวงานในฐานไม่ถูกแตะ (เหมือนโหมดเดิม) แค่เลิกติดตาม
+  Object.keys(BASE).forEach(p => { if (!PROJECTS.includes(p)) delete BASE[p]; });
+  return failed;
 }
 
 function sbCreatorRow(it){
@@ -11971,7 +13520,7 @@ function askLogin(){
   $("#lockPin").hidden = true;
   $("#lockEmail").hidden = false;
   $("#lockName").hidden = !signup;
-  $("#lockCoord").hidden = !signup;
+  $("#lockCoord").hidden = !signup || TEAM_MODE;
   $("#lockPwRow").hidden = false;
   $("#lockCancel").hidden = true;
   $("#lockSwap").hidden = false;
@@ -12073,6 +13622,7 @@ function askLogin(){
 
 // ─── ลืมรหัสผ่าน ───
 // ส่งเมล → กดลิงก์ → Supabase พากลับมาหน้านี้พร้อม #access_token=...&type=recovery
+// ลิงก์เชิญ (Dashboard → Invite user) ก็มาทางเดียวกันแต่เป็น type=invite — คนถูกเชิญยังไม่มีรหัส ต้องให้ตั้งก่อน
 // session ที่ได้จากลิงก์ใช้ได้แค่ตั้งรหัสใหม่แล้วเข้าใช้งานต่อ ต้องมี app_users ที่ active เหมือนล็อกอินปกติ
 // ปลายทางต้องอยู่ใน Redirect URLs ของ Supabase ไม่งั้นลิงก์ในเมลเด้งไป Site URL แทน
 let LOCK_NOTE = "";
@@ -12088,18 +13638,18 @@ async function sbRecover(email){
 // อ่านผลจากลิงก์ในเมลแล้วลบออกจากแถบที่อยู่ทันที — token ไม่ควรค้างให้ก๊อปลิงก์ไปส่งต่อ หรือโผล่ในประวัติ
 function recoveryFromHash(){
   const h = location.hash.replace(/^#/, "");
-  if (!/(^|&)(type=recovery|error=)/.test(h)) return null;
+  if (!/(^|&)(type=(recovery|invite)|error=)/.test(h)) return null;
   const q = new URLSearchParams(h);
   try { history.replaceState(null, "", location.pathname + location.search); } catch(e){}
   if (q.get("error")){
     const expired = /expired|invalid/i.test(q.get("error_code") + " " + q.get("error_description"));
     return { error: expired
-      ? "ลิงก์ตั้งรหัสใหม่หมดอายุหรือถูกใช้ไปแล้ว — กด “ลืมรหัสผ่าน” เพื่อขอลิงก์ใหม่"
-      : "ลิงก์ตั้งรหัสใหม่ใช้ไม่ได้ (" + (q.get("error_description") || q.get("error")) + ")" };
+      ? "ลิงก์ในอีเมลหมดอายุหรือถูกใช้ไปแล้ว — กด “ลืมรหัสผ่าน” เพื่อขอลิงก์ใหม่"
+      : "ลิงก์ในอีเมลใช้ไม่ได้ (" + (q.get("error_description") || q.get("error")) + ")" };
   }
   if (!q.get("access_token")) return null;
   return { access_token: q.get("access_token"), refresh_token: q.get("refresh_token") || "",
-           expires_in: +q.get("expires_in") || 3600 };
+           expires_in: +q.get("expires_in") || 3600, invite: q.get("type") === "invite" };
 }
 async function sbSetPassword(password){
   const r = await fetch(SB_URL + "/auth/v1/user",
@@ -12113,9 +13663,10 @@ async function sbSetPassword(password){
   }
   if (j && j.id && SESSION){ SESSION.user = j; saveSession(SESSION); }
 }
-function askNewPassword(){
-  $("#lockTitle").textContent = "ตั้งรหัสผ่านใหม่";
-  $("#lockHint").textContent = ((SESSION.user || {}).email || "") + " — ตั้งรหัสใหม่แล้วเข้าใช้งานได้เลย";
+function askNewPassword(invite){
+  $("#lockTitle").textContent = invite ? "ตั้งรหัสผ่าน" : "ตั้งรหัสผ่านใหม่";
+  $("#lockHint").textContent = ((SESSION.user || {}).email || "") +
+    (invite ? " — ตั้งรหัสสำหรับเข้าใช้งานครั้งต่อไป" : " — ตั้งรหัสใหม่แล้วเข้าใช้งานได้เลย");
   $("#lockPin").hidden = true;
   $("#lockEmail").hidden = true;
   $("#lockName").hidden = true;
@@ -12128,7 +13679,7 @@ function askNewPassword(){
   $("#lockPw").value = ""; $("#lockPw2").value = "";
   $("#lockPw").placeholder = "รหัสใหม่ (อย่างน้อย 10 ตัว)";
   $("#lockPw").autocomplete = "new-password";
-  $("#lockGo").textContent = "บันทึกรหัสใหม่และเข้าใช้งาน";
+  $("#lockGo").textContent = invite ? "บันทึกรหัสและเข้าใช้งาน" : "บันทึกรหัสใหม่และเข้าใช้งาน";
   $("#lockMsg").className = "lockmsg";
   $("#lockMsg").textContent = "";
   $("#lockView").hidden = false;
@@ -12173,7 +13724,13 @@ function askNewPassword(){
 }
 
 // ประตูหน้าเว็บ: มี session ที่ยังใช้ได้ + บัญชี active → เข้าเลย, ไม่งั้นขอ login
+// โหมดทีม: ผ่านแล้วถามชื่อทีมต่อ ถ้าบัญชียังไม่มีทีม
 async function requireLogin(){
+  const ok = await requireLogin0();
+  if (TEAM_MODE) await teamGate();
+  return ok;
+}
+async function requireLogin0(){
   const rec = recoveryFromHash();
   if (rec && rec.error) LOCK_NOTE = rec.error;
   if (rec && rec.access_token){
@@ -12183,7 +13740,7 @@ async function requireLogin(){
     try {
       const r = await fetch(SB_URL + "/auth/v1/user", { headers: sbHeaders(true) });
       const u = r.ok ? await r.json() : null;
-      if (u && u.id){ SESSION.user = u; saveSession(SESSION); return await askNewPassword(); }
+      if (u && u.id){ SESSION.user = u; saveSession(SESSION); return await askNewPassword(rec.invite); }
     } catch(e){}
     saveSession(null);
     LOCK_NOTE = "ลิงก์ตั้งรหัสใหม่หมดอายุหรือถูกใช้ไปแล้ว — กด “ลืมรหัสผ่าน” เพื่อขอลิงก์ใหม่";
@@ -12191,8 +13748,17 @@ async function requireLogin(){
   }
   loadSession();
   if (await sbValidSession()){
-    const p = await sbProfile();
+    let p = await sbProfile();
+    // เน็ตสะดุด = รอแล้วลองใหม่ ไม่ทิ้ง session (เดิมเด้งไปหน้าล็อกอินทุกครั้งที่เปิดเว็บตอนเน็ตไม่ดี)
+    for (let k = 0; !p && SB_NET_FAIL && k < 20; k++){
+      await new Promise(res => setTimeout(res, 3000));
+      p = await sbProfile();
+    }
     if (p && p.is_active){ sbTouchSeen(); return true; }
+    if (SB_NET_FAIL){
+      LOCK_NOTE = "ต่อเซิร์ฟเวอร์ไม่ได้ตอนนี้ — ยังไม่ได้ออกจากระบบ ลองรีเฟรชอีกครั้งเมื่อเน็ตกลับมา";
+      return await askLogin();
+    }
     await sbLogout();     // session ค้างแต่บัญชีถูกระงับ/ลบสิทธิ์ → ล้างแล้วขอใหม่
   }
   return await askLogin();
@@ -12359,8 +13925,10 @@ const LS_VIEW = "cf_view_v1";
 let COORD_READY = false;
 
 async function setView(v){
+  vlog("view", { d: { v } });
   if (v === "find" && isCrew()) v = "coord";   // ปุ่มถูกซ่อนไปแล้ว แต่ยังเข้าถึงได้ทางคำสั่ง/หน้าที่ค้างไว้
-  if (v === "coord" && !gatePassed("coord") && !(await askGate("coord"))) return;
+  // โหมดทีม: ล็อกอินแล้วเข้าได้เลย ไม่มีรหัสชั้นในอีก (ขอเลิกใช้ 2026-10-03)
+  if (v === "coord" && !TEAM_MODE && !gatePassed("coord") && !(await askGate("coord"))) return;
   document.body.dataset.view = v;
   document.querySelectorAll(".nav button").forEach(b =>
     b.setAttribute("aria-current", b.dataset.go === v ? "page" : "false"));
@@ -12647,7 +14215,7 @@ function renderCart(){
   $("#cartExport").disabled = !items.length;
 }
 
-function openCart(){ renderCart(); $("#cart").classList.add("on"); }
+function openCart(){ vlog("cart"); renderCart(); $("#cart").classList.add("on"); }
 function closeCart(){ $("#cart").classList.remove("on"); }
 
 // ─── Export ───
@@ -12828,6 +14396,17 @@ function setMsg(text, kind){
 }
 
 function openSettings(){
+  if (TEAM_MODE){
+    vlog("settings");
+    const limited = !!TEAM && !isTeamOwner();
+    if (limited){ document.body.dataset.memberset = "1"; $("#teamSect").hidden = true; }
+    else { delete document.body.dataset.memberset; renderTeamSect(); }
+    $("#privTeam").hidden = false;
+    $("#privTeam").innerHTML = `<b>ที่บันทึกลงฐานข้อมูล:</b> งานที่แก้ (ทุกคนในพื้นที่เดียวกันเห็น) และการใช้งาน —
+      หน้าที่เปิด · โปรเจกต์/ครีเอเตอร์ที่เปิดดู · คำค้นและตัวกรอง · ลิงก์ TikTok ที่กด · ข้อความที่คัดลอก (ความยาว + 40 ตัวแรก) ·
+      ตอนสลับออก/กลับมาที่แท็บ<br>การใช้งานของคุณ <b>คุณ หัวทีม และ admin</b> ดูได้ เก็บ 180 วัน ·
+      ปุ่มล้างข้างล่างล้างเฉพาะในเครื่องนี้ ไม่ลบประวัติในฐานข้อมูล`;
+  }
   renderSheetList();
   renderSkuGuide();
   renderAccent();
@@ -14202,6 +15781,8 @@ applyUI();
 $("#gearBtn").onclick = openSettings;
 $("#closeSet").onclick = closeSettings;
 $("#closeProj").onclick = () => { $("#projPanel").hidden = true; };
+$("#closeAct").onclick = () => { $("#actPanel").hidden = true; };
+$("#actPanel").onclick = e => { if (e.target.id === "actPanel") $("#actPanel").hidden = true; };
 $("#projPanel").onclick = e => { if (e.target.id === "projPanel") $("#projPanel").hidden = true; };
 $("#addSheet").onclick = addSheet;
 // เลือกจากรายการไว้ = ผูก SKU ทุกอันที่ติ๊กกับลิงก์เดียวกันในคลิกเดียว
@@ -14243,6 +15824,7 @@ document.addEventListener("keydown", e => {
   if (!$("#fmtPanel").hidden) $("#fmtPanel").hidden = true;
   else if ($("#lawPanel").classList.contains("on")) closeLaw();
   else if (!$("#projPanel").hidden) $("#projPanel").hidden = true;
+  else if (!$("#actPanel").hidden) $("#actPanel").hidden = true;
   else if ($("#detailPanel").classList.contains("on")) closeDetail();
   else if ($("#cmdPanel").classList.contains("on")) $("#cmdPanel").classList.remove("on");
   else if (!$("#mapView").hidden) openTable(MAP_PROJ);
@@ -14759,15 +16341,16 @@ $("#coordResetEdits").onclick = () => {
 };
 
 $("#coordExport").onclick = () => {
+  vlog("export", { p: PROJ });
   const rows = COORD[PROJ] || [];
   if (!rows.length) return;
   const cc = custCols(PROJ);
   const head = ["Project","Creator","Link","Kind","งาน","สถานะ","เรท","จ่ายจริง",
-                "SKU","โพสต์","บรีฟ","โน้ต","เรทที่ต้องยืนยัน"].concat(cc.map(c => c.th));
+                "SKU","โพสต์","บรีฟ","โน้ต","เรทที่ต้องยืนยัน","เลขพัสดุ"].concat(cc.map(c => c.th));
   const body = rows.map(r => [PROJ, r.handle, "https://www.tiktok.com/@" + r.handle,
     r.kind || "", r.code || "", ST_TH[r.status || ""] || "", r.rate ?? "", r.net3 ?? "",
     r.sku || "", r.postdate || r.deadline || "", r.brief || "", r.note || "",
-    (r.rate_all || []).length > 1 ? (r.rate_all || []).join(" / ") : ""]
+    (r.rate_all || []).length > 1 ? (r.rate_all || []).join(" / ") : "", r.tracking || ""]
     .concat(cc.map(c => r[c.k] || "")));
   const csv = [head, ...body].map(r =>
     r.map(c => `"${String(c).replace(/"/g,'""')}"`).join(",")).join("\n");
@@ -15292,7 +16875,144 @@ function parseQuickLine(line, extraNames){
 //   onfireboyth
 //   ชำระ3%
 // บรรทัดว่าง = จบกลุ่ม เริ่มกลุ่มใหม่ · บรรทัดที่มีทั้งชื่อและคำสั่งทำงานจบในตัวเหมือนเดิม
+// ═══ เลขพัสดุทีละหลายคน ═══
+// ลูกค้าส่งลิสต์ "ชื่อ + เลขพัสดุ" มาทีเดียว วางทั้งก้อนลงช่องคำสั่งได้เลย
+//   เลขพัสดุ
+//   @nana.review    TH0124578963A
+//   mintmint_ - SPXTH0412345678
+// บรรทัดหัว "เลขพัสดุ" ไม่บังคับ — ถ้าทุกบรรทัดเป็น "ชื่อที่มีในระบบ + เลขหน้าตาเหมือนพัสดุ" ล้วนๆ ก็รู้เอง
+// ชื่อกับเลขสลับข้างกันได้ คั่นด้วยแท็บ (ก๊อปสองคอลัมน์จาก Excel) / เว้นวรรค / ขีด / โคลอน
+const TRACK_HEAD_RE = new RegExp("^\\s*(?:อัปเดต|อัพเดท|อัพเดต|ใส่)?\\s*(?:เลข\\s*(?:พัสดุ|แทร็?ค(?:กิ้ง)?|จัดส่ง|ขนส่ง)" +
+  "|tracking(?:\\s*(?:no\\.?|numbers?))?)\\s*[:：]?\\s*", "i");
+// ชื่อขนส่งที่พิมพ์พ่วงมากับเลข — ไม่ใช่ชื่อคน ไม่ต้องเตือนว่าอ่านไม่ออก
+const TRACK_NOISE_RE = /^(?:flash|kerry|j&t|jt|spx|shopee|express|ems|ไปรษณีย์(?:ไทย)?|แฟลช|เคอรี่|ค่ะ|คะ|ครับ|นะคะ)$/i;
+function isTrackNo(t){
+  if (!/^[A-Z0-9][A-Z0-9-]{7,29}$/i.test(t)) return false;
+  if (t.replace(/\D/g, "").length < 6) return false;
+  if (/^user\d+$/i.test(t)) return false;          // ชื่อตั้งต้นของ TikTok (user12345678) ไม่ใช่เลขพัสดุ
+  if (/^0[689]\d{8}$/.test(t)) return false;        // เบอร์มือถือ
+  return true;
+}
+// เดาขนส่งจากรูปแบบเลข — ใส่เฉพาะแบบที่รูปแบบชัดจริง เดาไม่ได้คืนค่าว่าง ดีกว่าเดาผิด
+function trackCarrier(t){
+  const s = String(t || "").split("+")[0].trim().toUpperCase();
+  if (!s) return "";
+  if (/^SPXTH/.test(s)) return "Shopee Express";
+  if (/^[A-Z]{2}\d{9}TH$/.test(s)) return "ไปรษณีย์ไทย";
+  if (/^TH\d{9,}[A-Z0-9]*$/.test(s)) return "Flash Express";
+  if (/^KER/.test(s)) return "Kerry Express";
+  return "";
+}
+function trackSplit(line){
+  return line.replace(/\s+[-–—]+\s+/g, " ")
+    .split(/[\s,;|:：]+/).map(t => t.replace(/^@/, "").replace(/[.)]+$/, "")).filter(Boolean);
+}
+// ชื่อที่พิมพ์ผิดนิดหน่อย → เสนอชื่อที่ใกล้ที่สุด (ต่างกันไม่เกิน 2 ตัวอักษร)
+function nearHandle(s){
+  s = normId(s);
+  const lev = (a, b) => {
+    let prev = Array.from({ length: b.length + 1 }, (_, j) => j);
+    for (let i = 1; i <= a.length; i++){
+      const cur = [i];
+      for (let j = 1; j <= b.length; j++)
+        cur[j] = Math.min(prev[j] + 1, cur[j-1] + 1, prev[j-1] + (a[i-1] === b[j-1] ? 0 : 1));
+      prev = cur;
+    }
+    return prev[b.length];
+  };
+  let best = null, bd = 3;
+  handleIndex().forEach((_, h) => {
+    if (Math.abs(h.length - s.length) > 2) return;
+    const d = lev(s, h);
+    if (d < bd){ bd = d; best = h; }
+  });
+  return best;
+}
+// อ่านบรรทัดเดียว → { names, nums, left } (left = คำที่เหลือที่ไม่ใช่ชื่อ/เลข/ชื่อขนส่ง/ชื่อโปรเจกต์)
+function readTrackLine(line){
+  const names = readNames(line);
+  let rest = line;
+  // ขอบคำเดียวกับ readNames — ไม่งั้นชื่อสั้นๆ ไปกินตัวอักษรกลางเลขพัสดุ
+  names.forEach(n => { rest = rest.replace(
+    new RegExp(`(?<![A-Za-z0-9._])@?${esc4re(n.h)}(?![A-Za-z0-9._])`, "gi"), " "); });
+  // ตัดตามตำแหน่งที่เจอ ไม่ใช่ตามชื่อเต็ม — ทีมพิมพ์ตัวย่อ (rc2) ซึ่งไม่ใช่ชื่อโปรเจกต์ตรงตัว
+  findProjects(rest).sort((a, b) => b.at - a.at)
+    .forEach(p => { rest = rest.slice(0, p.at) + " " + rest.slice(p.at + p.len); });
+  const toks = trackSplit(rest);
+  return { names, nums: toks.filter(isTrackNo),
+           left: toks.filter(t => !isTrackNo(t) && !TRACK_NOISE_RE.test(t)) };
+}
+// คืน null = ไม่ใช่ลิสต์เลขพัสดุ ให้ตัวอ่านปกติทำต่อ
+function parseTrackingText(text){
+  let lines = String(text).split(/\r?\n/).map(l => l.trim()).filter(Boolean);
+  if (!lines.length) return null;
+  const head = lines[0].match(TRACK_HEAD_RE);
+  if (head){
+    const tail = lines[0].slice(head[0].length).trim();
+    lines = tail ? [tail].concat(lines.slice(1)) : lines.slice(1);
+    if (!lines.length) return [{ line: text.trim(), ok:false, changes:{},
+      why:"วางรายชื่อ + เลขพัสดุต่อจากบรรทัดนี้ได้เลย คนละบรรทัด เช่น  nana.review  TH0124578963A" }];
+  } else {
+    // ไม่มีหัว — รับเฉพาะตอนที่ทุกบรรทัดชัดเจนว่าเป็น "ชื่อ + เลข" ไม่มีคำอื่นปน
+    // (ไม่งั้นจะไปแย่งคำสั่งปกติอย่าง "nana โน้ต ..." ที่บังเอิญมีตัวเลขยาวๆ)
+    const all = lines.map(readTrackLine);
+    if (!all.every(x => x.names.length === 1 && x.nums.length && !x.left.length)) return null;
+  }
+
+  const out = [];
+  const idx = handleIndex();
+  const byRow = new Map();                 // แถว → { h, proj, nums[], lines[] }
+  lines.forEach(line => {
+    const { names, nums, left } = readTrackLine(line);
+    if (!names.length){
+      if (!nums.length) return out.push({ line, ok:false, changes:{}, why:"ไม่เจอทั้งชื่อและเลขพัสดุในบรรทัดนี้" });
+      const cand = left.find(t => /[a-z]/i.test(t) && /^[a-z0-9._]{2,24}$/i.test(t));
+      const near = cand && nearHandle(cand);
+      return out.push({ line, ok:false, changes:{},
+        why: cand ? `ไม่เจอ ${normId(cand)} ในระบบ` + (near ? ` — หมายถึง ${near} ไหม?` : "")
+                  : "ไม่เจอชื่อครีเอเตอร์ที่มีอยู่จริงในบรรทัดนี้" });
+    }
+    if (names.length > 1) return out.push({ line, ok:false, changes:{},
+      why:`บรรทัดเดียวมีหลายชื่อ (${names.map(n => n.h).join(", ")}) — แยกบรรทัดละคน จะได้ไม่จับคู่เลขผิดคน` });
+    if (!nums.length) return out.push({ line, ok:false, changes:{},
+      why:`${names[0].h} — ไม่เจอเลขพัสดุในบรรทัดนี้` });
+    const h = names[0].h;
+    let e = idx.get(h) || [];
+    const pj = findProjects(line).map(p => p.proj);
+    if (pj.length) e = e.filter(x => pj.includes(x.proj));
+    // อยู่หลายโปรเจกต์ → เอาโปรเจกต์ของแท็บที่เปิดอยู่ ถ้าแท็บนี้ไม่มีค่อยให้ระบุ
+    if (e.length > 1 && e.some(x => x.proj === PROJ)) e = e.filter(x => x.proj === PROJ);
+    if (!e.length) return out.push({ line, ok:false, changes:{}, why:`ไม่เจอ ${h} ใน ${pj.join(", ")}` });
+    if (e.length > 1) return out.push({ line, ok:false, changes:{},
+      why:`${h} อยู่ใน ${e.map(x => x.proj).join(" และ ")} — ใส่ชื่อโปรเจกต์ท้ายบรรทัดด้วย` });
+    const { row, proj } = e[0];
+    const g = byRow.get(row) || { h, proj, nums:[], lines:[] };
+    nums.forEach(n => { const u = n.toUpperCase(); if (!g.nums.includes(u)) g.nums.push(u); });
+    g.lines.push(line);
+    byRow.set(row, g);
+  });
+
+  // เลขเดียวกันไปโผล่สองคน = ก๊อปพลาดแน่ๆ หยุดทั้งคู่ไว้ก่อน ดีกว่าส่งข้อความเลขพัสดุผิดคนไป
+  const owners = new Map();
+  byRow.forEach(g => g.nums.forEach(n => owners.set(n, (owners.get(n) || []).concat(g.h))));
+  byRow.forEach((g, row) => {
+    const line = g.lines.join(" · ");
+    const clash = g.nums.find(n => owners.get(n).length > 1);
+    if (clash) return out.push({ line, ok:false, changes:{},
+      why:`${clash} ซ้ำกับ ${owners.get(clash).filter(x => x !== g.h).join(", ")} — เลขเดียวกันสองคน เช็คก่อน` });
+    const next = g.nums.join(" + ");
+    const prev = row.tracking || "";
+    if (next === prev) return out.push({ line, ok:false, changes:{},
+      why:`${g.h} — มีเลขนี้อยู่แล้ว ไม่ต้องเปลี่ยน` });
+    out.push({ line, ok:true, id:g.h, proj:g.proj, row,
+               changes:{ tracking: next, trackFrom: prev } });
+  });
+  return out;
+}
+
 function parseCmdText(text){
+  const trk = parseTrackingText(text);
+  if (trk) return trk;
   const out = [];
   let pending = [];      // ชื่อที่ยังไม่มีคำสั่ง
   let pendingLines = [];
@@ -15396,7 +17116,8 @@ function parseCmdText(text){
 function parseQuickOrder(line){ return parseQuickLine(line); }
 
 const QO_LABEL = { rate:"เรท", net3:"จ่ายจริง", status:"สถานะ", note:"โน้ต",
-                   code:"งาน", sku:"SKU", postdate:"วันโพสต์", paytype:"รูปแบบภาษี" };
+                   code:"งาน", sku:"SKU", postdate:"วันโพสต์", paytype:"รูปแบบภาษี",
+                   tracking:"เลขพัสดุ" };
 let QO = [];
 
 // ─── บรรทัดที่ขึ้นต้นว่า "เพิ่ม" = คนใหม่ ไม่ใช่การแก้ของเดิม ───
@@ -15952,9 +17673,14 @@ $("#qoParse").onclick = async () => {
         (q.moveTo ? [`<b style="color:var(--accent)">ย้ายไป ${esc(q.moveTo)}</b>`] : [])
         // net3 คิดจากเรท×ภาษีเสมอ ไม่ใช่สิ่งที่คนสั่ง เอาออกจากรายการที่โชว์
         .concat(Object.entries(q.changes)
-          .filter(([k]) => k !== "rateFrom" && k !== "net3").map(([k, v]) =>
+          .filter(([k]) => k !== "rateFrom" && k !== "net3" && k !== "trackFrom").map(([k, v]) =>
+          // เลขพัสดุทับของเดิมได้ — ต้องเห็นเลขเดิมคู่กันเสมอ
+          k === "tracking" && q.changes.trackFrom != null
+            ? `เลขพัสดุ: <b>${q.changes.trackFrom ? `<s style="color:var(--dim)">${esc(q.changes.trackFrom)}</s> → `
+                : `<span style="color:var(--dim)">(ว่าง)</span> → `}${esc(v)}</b>${
+                trackCarrier(v) ? ` <span style="color:var(--dim)">${esc(trackCarrier(v))}</span>` : ""}`
           // เรทแบบบวก/ลบ ต้องเห็นทั้งค่าเดิมและค่าใหม่ ไม่งั้นตรวจไม่ได้ว่าบวกถูกไหม
-          k === "rate" && q.changes.rateFrom != null
+          : k === "rate" && q.changes.rateFrom != null
             ? `เรท: <b>${Number(q.changes.rateFrom).toLocaleString("en-US")} → ${
                 Number(v).toLocaleString("en-US")}</b>`
             : `${esc(QO_LABEL[k] || k)}: <b>${
@@ -15988,6 +17714,7 @@ function applyQuickOrder(){
     const oldKey = ekey(q.row);
     const ch = Object.assign({}, q.changes);
     delete ch.rateFrom;                      // ใช้โชว์ในหน้าตรวจอย่างเดียว ไม่ใช่ค่าของแถว
+    delete ch.trackFrom;
     Object.assign(q.row, ch);
     if ("rate" in ch) q.row.rate_all = [];
     if (q.moveTo){
@@ -16872,7 +18599,7 @@ const COACH = [
     text: `เพิ่มคนใหม่หรือแก้ข้อมูลก็พิมพ์ที่นี่ช่องเดียว เช่น
       <b>«เพิ่ม @noonnyy 5000 ชำระ3%»</b> — วางหลายชื่อแล้วสั่งทีเดียวก็ได้<br>
       <b>ทุกคำสั่งมีหน้าตรวจก่อนเสมอ</b> ไม่มีอะไรทำงานทันทีที่พิมพ์`,
-    target: () => $("#qoText"),
+    target: () => TEAM_MODE ? $("#qo2") : $("#qoText"),
     onEnter: () => { if (!$("#projPanel").hidden) $("#projPanel").hidden = true; } },
 
   { kick: "ดูงานทั้งกอง", t: "◈ Map — เห็นทุกคนอยู่ขั้นไหนในหน้าเดียว",
@@ -16887,9 +18614,9 @@ const COACH = [
 
   { kick: "ค้นหาข้ามโปรเจกต์", t: "ช่องนี้เห็นทุกงานของคนคนเดียว",
     text: `พิมพ์ชื่อครีเอเตอร์ เห็นประวัติทุกโปรเจกต์ที่เขาเคยทำกับทีม ไม่ต้องสลับแท็บไปหาทีละที่`,
-    target: () => $("#coordFind") },
+    target: () => $("#coordFind"), skip: () => TEAM_MODE },
 
-  { kick: "ลืมรหัสไหม", t: "ตั้งรหัส Coordinator ใหม่ได้เอง",
+  { kick: "ลืมรหัสไหม", t: "ตั้งรหัส Coordinator ใหม่ได้เอง", skip: () => TEAM_MODE,
     text: `รหัส 6 หลักที่ตั้งไว้ตอนสมัคร ใช้ทุกครั้งที่เข้าหน้านี้ — ลืมเมื่อไหร่ก็ตั้งใหม่ได้ตรงนี้เลย
       ไม่ต้องขอใคร`,
     target: () => $("#coordPinSect"),
@@ -17081,9 +18808,18 @@ renderKindTabs();
 renderSheetSelect();
 foldSummaries();
 
+if (TEAM_MODE){
+  const after = (fn, post) => function(){ const out = fn.apply(this, arguments); try { post(); } catch(e){} return out; };
+  renderCoord = after(renderCoord, applyLocks);
+  renderDetail = after(renderDetail, applyLocks);
+  renderProjTabs = after(renderProjTabs, () => { tabAvatars(); if (!QO2_CMD || !$("#qo2Names")) renderQO2(); });
+  renderMap = after(renderMap, () => { tabAvatars(); paintRemoteDrag(); presRender(); });
+}
+
 // ต้อง login ก่อน แล้วค่อยโหลด pool จาก Supabase (ข้อมูลอยู่หลัง login)
 requireLogin().then(async () => {
   rtStart();                 // ฟังการเปลี่ยนแปลงจากเครื่องอื่นตั้งแต่เข้าเว็บ
+  vlog("open");
   startLiveWarn();           // แจ้งเตือนก่อนไลฟ์ ทำงานทุกหน้า
   applyRole();                  // ต้องรู้สิทธิ์ก่อนวาดอะไร ไม่งั้นปุ่มที่กดไม่ได้จะโผล่แวบนึง
   await selectSheet();          // โหลด Creator Pool จาก Supabase
