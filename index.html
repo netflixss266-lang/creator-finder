@@ -301,6 +301,33 @@ body.mapdrag .mapleaf{cursor:grabbing}
 .qo2row input{width:auto}
 .qo2go{display:flex;flex-direction:column;gap:6px;min-width:150px}
 .qo2go .hint{font-size:.72rem;color:var(--dim);max-width:180px}
+/* บรรทัดเดียว (2026-10-04) */
+.qo2{padding:6px 10px}
+.qo2bar{display:flex;align-items:center;gap:6px;flex-wrap:wrap}
+.qo2bar .t{font-weight:700;font-size:.86rem;margin-right:4px}
+.qo2bar .hint{font-size:.74rem;color:var(--dim)}
+.qo2 .qo2s{width:auto!important;max-width:230px;padding:5px 8px!important;font-size:.8rem!important;border-radius:8px}
+.qo2 .qo2new{width:190px!important;padding:5px 8px!important;font-size:.8rem!important}
+.qo2 .qo2track{width:340px!important;resize:vertical}
+.qo2ddbtn{background:var(--surface);border:1px solid var(--line);color:var(--ink);cursor:pointer}
+.qo2ddbtn b{color:var(--accent)}
+.qo2dd{position:relative}
+.qo2pan{position:absolute;top:calc(100% + 4px);left:0;z-index:60;width:300px;background:var(--surface);
+  border:1px solid var(--line);border-radius:10px;padding:8px;box-shadow:0 12px 30px rgba(0,0,0,.5)}
+.qo2quick{display:flex;gap:4px;margin-top:6px}
+.qo2quick button{background:none;border:1px solid var(--line);color:var(--mute);border-radius:6px;padding:2px 8px;font-size:.72rem;cursor:pointer}
+.qo2quick button:hover{border-color:var(--accent);color:var(--accent)}
+.qo2opts{max-height:240px;overflow:auto;display:flex;flex-direction:column;gap:1px;margin-top:6px}
+.qo2opts label{display:flex;gap:6px;align-items:center;font-size:.8rem;padding:3px 4px;border-radius:6px;cursor:pointer}
+.qo2opts label:hover{background:rgba(var(--accent-rgb),.08)}
+.qo2opts input{width:auto!important;margin:0}
+.qo2opts .d{margin-left:auto;color:var(--dim);font-size:.7rem}
+.qo2opts .av{width:15px!important;height:15px!important;background:var(--mc)!important;color:#111!important;border-radius:50%!important;
+  font-size:.52rem!important;display:inline-flex!important;padding:0!important;border:0!important}
+.qo2 .qo2run{width:auto!important;flex:none;margin:0!important;padding:5px 14px!important;font-size:.8rem!important}
+.qo2 .qo2fold{flex:none;margin-left:auto}
+.qo2msg{font-size:.75rem;color:var(--lo);margin-top:4px}
+.qo2msg:empty{display:none}
 
 /* ── หน้าแรก — billboard แบบ Netflix แล้วต่อด้วยสองไทล์ ── */
 #homeView{min-height:calc(100vh - 52px);display:flex;flex-direction:column;
@@ -12823,33 +12850,35 @@ function qo2Groups(){
 }
 function qo2Spec(c){ return SLASH_BY[c] || QO2_ACT.find(a => a.c === c) || null; }
 // ช่อง "ค่า" ตามชนิดของคำสั่ง — ตัวเลือกส่งเป็นคำที่ตัวอ่านเดิมรู้จักอยู่แล้ว
+// ─── คำสั่งด่วนแบบบรรทัดเดียว (2026-10-04) ───
+// ทุกช่องเป็นตัวเลือก ไม่ต้องพิมพ์ — กันชื่อสะกดผิด / คำสั่งผิดรูป
+// ยกเว้นของที่ยังไม่มีในระบบจริงๆ: ชื่อคนใหม่ (เพิ่มคนใหม่) · ลิสต์เลขพัสดุ · ค่าใหม่ (✎ ค่าใหม่…)
+let QO2_PICK = new Set(), QO2_PICK_PROJ = "";
+function qo2Opt(id, list, ph){
+  return `<select id="${id}" class="qo2s">${ph ? `<option value="">${esc(ph)}</option>` : ""}${
+    list.map(([v, t]) => `<option value="${esc(v)}">${esc(t)}</option>`).join("")}</select>`;
+}
 function qo2ValueField(c){
   const sp = qo2Spec(c) || {};
-  const opt = list => `<select id="qo2Val">${list.map(([v, t]) => `<option value="${esc(v)}">${esc(t)}</option>`).join("")}</select>`;
   const others = PROJECTS.filter(p => p !== PROJ);
-  if (c === "add") return `<label class="h">เข้าโปรเจกต์</label>${opt(PROJECTS.map(p => [p, p]))}
-    <label class="h" style="margin-top:6px">กลุ่ม</label>${opt([["", "— ไม่ระบุ —"], ["KOL", "KOL"], ["KOC", "KOC"]].map(x => x))
-      .replace('id="qo2Val"', 'id="qo2Val2"')}`;
-  if (c === "move") return `<label class="h">ย้ายไปโปรเจกต์</label>${others.length ? opt(others.map(p => [p, p]))
-    : `<div class="hint">ยังไม่มีโปรเจกต์อื่น</div>`}`;
-  if (c === "del") return `<div class="hint">ลบชื่อที่เลือกออกจาก ${esc(PROJ)} — มีหน้าตรวจก่อนลบเสมอ</div>`;
-  if (c === "clear") return `<label class="h">ล้างช่องไหน</label>${opt(SLASH_FIELD.map(x => [x.c, x.th]))}`;
-  if (sp.val === "stage") return `<label class="h">${esc(sp.th)}</label>${
-    opt(STAGES.map(x => [x.th, x.th]).concat([["ยกเลิก", "ยกเลิกงาน"]]))}`;
-  if (sp.val === "pay") return `<label class="h">${esc(sp.th)}</label>${opt(PAYTYPES.filter(p => p.id).map(p => [p.label, p.label]))}`;
-  if (sp.val === "kind") return `<label class="h">${esc(sp.th)}</label>${opt([["KOL", "KOL"], ["KOC", "KOC"]])}`;
-  if (c === "video") return `<label class="h">${esc(sp.th)}</label>${opt([1, 2, 3, 4, 5, 6].map(n => [n, n + " คลิป"]))}`;
-  // ที่เหลือ: ตัวเลือกจากข้อมูลที่มีอยู่แล้วในโปรเจกต์ + "พิมพ์ / วางค่าใหม่" เป็นตัวเลือกสุดท้าย
+  if (c === "add") return qo2Opt("qo2Val", PROJECTS.map(p => [p, "เข้า " + p])) +
+    qo2Opt("qo2Val2", [["", "กลุ่ม —"], ["KOL", "KOL"], ["KOC", "KOC"]]);
+  if (c === "move") return others.length ? qo2Opt("qo2Val", others.map(p => [p, "ไป " + p]), "ย้ายไปโปรเจกต์ —")
+    : `<span class="hint">ยังไม่มีโปรเจกต์อื่น</span>`;
+  if (c === "del") return "";
+  if (c === "clear") return qo2Opt("qo2Val", SLASH_FIELD.map(x => [x.c, x.th]), "ล้างช่องไหน —");
+  if (sp.val === "stage") return qo2Opt("qo2Val", STAGES.map(x => [x.th, x.th]).concat([["ยกเลิก", "ยกเลิกงาน"]]), "สถานะ —");
+  if (sp.val === "pay") return qo2Opt("qo2Val", PAYTYPES.filter(p => p.id).map(p => [p.label, p.label]), "รูปแบบภาษี —");
+  if (sp.val === "kind") return qo2Opt("qo2Val", [["KOL", "KOL"], ["KOC", "KOC"]], "กลุ่ม —");
+  if (c === "video") return qo2Opt("qo2Val", [1, 2, 3, 4, 5, 6].map(n => [n, n + " คลิป"]), "จำนวนคลิป —");
+  // ที่เหลือ: ค่าที่มีอยู่แล้วในโปรเจกต์ (ใช้บ่อยสุดขึ้นก่อน) + "ค่าใหม่" เป็นทางเลือกสุดท้าย
   const have = qo2Existing(c);
-  const typed = sp.val === "num"
-    ? `<input id="qo2Val" inputmode="decimal" placeholder="${c === "rate" ? "เช่น 12000 · +500 = บวกจากเรทเดิม" : "ตัวเลข"}"${have.length ? " hidden" : ""}>`
-    : `<textarea id="qo2Val" rows="2" placeholder="${esc(String(sp.ex || "").replace(/^\/\S+\s+\S+\s*:\s*/, "เช่น "))}"${have.length ? " hidden" : ""}></textarea>`;
-  if (!have.length) return `<label class="h">${esc(sp.th || "ค่า")} — ยังไม่มีในโปรเจกต์นี้ พิมพ์/วางได้เลย</label>${typed}`;
-  const short = v => v.length > 60 ? v.slice(0, 60) + "…" : v;
-  return `<label class="h">${esc(sp.th || "ค่า")} — เลือกจากที่มีอยู่ (${have.length}) หรือพิมพ์ใหม่</label>
-    <select id="qo2Sel"><option value="">— เลือก —</option>${
+  const short = v => v.length > 40 ? v.slice(0, 40) + "…" : v;
+  return `<select id="qo2Sel" class="qo2s" title="${esc(sp.th || "")}"><option value="">${esc(sp.th || "ค่า")} —</option>${
       have.map(([v, n]) => `<option value="${esc(v)}">${esc(short(v))}${n > 1 ? ` · ${n} คน` : ""}</option>`).join("")}
-      <option value="__new">✎ พิมพ์ / วางค่าใหม่</option></select>${typed}`;
+      <option value="__new">✎ ค่าใหม่…</option></select>
+    <input id="qo2Val" class="qo2new" hidden ${sp.val === "num" ? `inputmode="decimal"` : ""}
+      placeholder="${c === "rate" ? "เช่น 12000 · +500" : esc(String(sp.ex || "").replace(/^\/\S+\s+\S+\s*:\s*/, "").slice(0, 40))}">`;
 }
 // ค่าที่มีอยู่แล้วของคำสั่งนั้นในโปรเจกต์ที่เปิดอยู่ — เรียงจากที่ใช้บ่อยสุด [[ค่า, จำนวนคน], …]
 function qo2Existing(c){
@@ -12863,107 +12892,131 @@ function qo2Existing(c){
   else if (sp.f) rows.forEach(r => add(r[sp.f]));
   return [...cnt.entries()].sort((a, b) => b[1] - a[1] || String(a[0]).localeCompare(String(b[0]), "th")).slice(0, 40);
 }
+function qo2WhoHTML(c){
+  if (c === "add") return `<input id="qo2New" class="qo2new" placeholder="ชื่อคนใหม่ (หลายคนเว้นวรรค)">`;
+  const n = QO2_PICK.size;
+  return `<div class="qo2dd"><button type="button" class="qo2s qo2ddbtn" id="qo2DdBtn">${
+      n ? `ใคร: <b>${n}</b> คน` : "ใคร —"} ▾</button>
+    <div class="qo2pan" id="qo2Pan" hidden>
+      <input id="qo2Find" class="qo2new" placeholder="ค้นชื่อใน ${esc(PROJ)}…" style="width:100%!important">
+      <div class="qo2quick"><button type="button" data-qq="all">เลือกทั้งหมด</button>
+        ${isTeamProj(PROJ) ? `<button type="button" data-qq="mine">เฉพาะที่ฉันดูแล</button>` : ""}
+        <button type="button" data-qq="none">ล้าง</button></div>
+      <div class="qo2opts" id="qo2List"></div></div></div>`;
+}
 function renderQO2(){
   const box = $("#qo2");
   if (!box || !TEAM_MODE) return;
   box.hidden = false;
   box.classList.toggle("folded", QO2_FOLD);
-  const sp = QO2_CMD && qo2Spec(QO2_CMD);
-  box.innerHTML = `<div class="qo2head" id="qo2Head" title="กดเพื่อ${QO2_FOLD ? "กาง" : "ย่อ"}">
-      <span class="cmdbar-ic">⌘</span><span class="t">คำสั่งด่วน</span>
-      <span class="hint">เลือกคำสั่ง → เลือก/วางชื่อ → วางข้อมูล → ตรวจก่อนใช้</span>
-      <button type="button" class="qo2fold">${QO2_FOLD ? "▾ กางคำสั่งด่วน" : "▴ พับเก็บ"}</button></div>` +
-    (QO2_FOLD ? "" : qo2Groups().map(([g, list]) => `<div class="qo2g"><span class="qo2gl">${esc(g)}</span>${
-      list.map(x => `<button class="qo2c${QO2_CMD === x.c ? " on" : ""}" data-qc="${esc(x.c)}"
-        title="${esc(x.ex || "")}">${esc(x.th)}</button>`).join("")}</div>`).join("") +
-    (sp ? qo2FormHTML(QO2_CMD) : ""));
-  $("#qo2Head").onclick = () => {
+  if (QO2_PICK_PROJ !== PROJ){ QO2_PICK = new Set(); QO2_PICK_PROJ = PROJ; }
+  const c = QO2_CMD;
+  box.innerHTML = `<div class="qo2bar"><span class="cmdbar-ic">⌘</span><span class="t">คำสั่งด่วน</span>` +
+    (QO2_FOLD ? "" :
+      `<select id="qo2Cmd" class="qo2s"><option value="">— เลือกคำสั่ง —</option>${
+        qo2Groups().map(([g, list]) => `<optgroup label="${esc(g)}">${list.map(x =>
+          `<option value="${esc(x.c)}"${x.c === c ? " selected" : ""}>${esc(x.th)}</option>`).join("")}</optgroup>`).join("")}</select>` +
+      (!c ? `<span class="hint">เลือกคำสั่ง → เลือกคน → เลือกค่า → ตรวจ (มีหน้าตรวจก่อนใช้เสมอ)</span>`
+        : (c === "track"
+            ? `<textarea id="qo2Val" rows="1" class="qo2new qo2track" placeholder="วางลิสต์จากลูกค้า — บรรทัดละคน: ชื่อ + เลขพัสดุ"></textarea>`
+            : qo2WhoHTML(c) + qo2ValueField(c)) +
+          `<button class="run qo2run" id="qo2Go">ตรวจ ▶</button>`)) +
+    `<button type="button" class="qo2fold" id="qo2Fold" title="${QO2_FOLD ? "กางคำสั่งด่วน" : "พับเก็บ"}">${
+      QO2_FOLD ? "▾ กาง" : "▴"}</button></div><div class="qo2msg" id="qo2Msg"></div>`;
+  $("#qo2Fold").onclick = () => {
     QO2_FOLD = !QO2_FOLD;
     try { lsSet(LS_QO2FOLD, QO2_FOLD ? "1" : "0"); } catch(e){}
-    renderQO2(); scheduleStick && scheduleStick();
+    renderQO2(); scheduleStick();
   };
-  box.querySelectorAll("[data-qc]").forEach(b => b.onclick = () => {
-    if (b.dataset.qc === "bulk"){ $("#bulkToggle").click(); return; }   // กล่องวางจากชีตเดิม — ทำงานครบอยู่แล้ว
-    QO2_CMD = QO2_CMD === b.dataset.qc ? null : b.dataset.qc;
+  const cmd = $("#qo2Cmd");
+  if (cmd) cmd.onchange = () => {
+    if (cmd.value === "bulk"){ cmd.value = c || ""; $("#bulkToggle").click(); return; }   // กล่องวางจากชีตเดิม
+    QO2_CMD = cmd.value || null;
     renderQO2();
-    const f = $("#qo2Names") || $("#qo2Val");
-    if (f) f.focus();
-  });
-  if (sp) wireQO2Form(QO2_CMD);
+  };
+  if (c) wireQO2Form(c);
 }
-function qo2FormHTML(c){
-  if (c === "track") return `<div class="qo2form" style="grid-template-columns:1fr auto">
-      <div><label class="h">วางลิสต์จากลูกค้าได้เลย — บรรทัดละคน “ชื่อ + เลขพัสดุ” (สลับข้างได้ · คนเดียวหลายกล่อง = หลายบรรทัด)</label>
-        <textarea id="qo2Val" rows="4" placeholder="nana.review    TH0124578963A&#10;mintmint_ - SPXTH0412345678"></textarea></div>
-      <div class="qo2go"><button class="run" id="qo2Go">ตรวจก่อนใช้ ▶</button>
-        <button class="cmdbtn" id="qo2X">ยกเลิก</button></div></div>`;
-  const rows = COORD[PROJ] || [];
-  return `<div class="qo2form">
-    <div><label class="h">ใคร — วางรายชื่อ (บรรทัดละคน / เว้นวรรค / ลิงก์ TikTok ก็ได้) หรือกดเลือกด้านล่าง</label>
-      <textarea id="qo2Names" rows="2" placeholder="${c === "add" ? "ชื่อคนใหม่ที่จะเพิ่ม" : "ชื่อในโปรเจกต์ " + esc(PROJ)}"></textarea>
-      ${c === "add" ? "" : `<div class="qo2row"><input id="qo2Find" placeholder="กรองชื่อ" style="max-width:160px">
-        <label><input type="checkbox" id="qo2All"> ทุกคนใน ${esc(PROJ)} (${rows.length})</label></div>
-      <div class="qo2list" id="qo2List"></div>`}</div>
-    <div>${qo2ValueField(c)}</div>
-    <div class="qo2go"><button class="run" id="qo2Go">ตรวจก่อนใช้ ▶</button>
-      <button class="cmdbtn" id="qo2X">ยกเลิก</button>
-      <span class="hint">ยังไม่มีอะไรเปลี่ยน จนกว่าจะกด “ใช้ … คำสั่งนี้” ในผลตรวจ</span></div></div>`;
-}
-// วางลิงก์ TikTok มาก็ได้ — ดึงชื่อหลัง @ ออกมา (normId อย่างเดียวไม่รู้จักลิงก์)
+// วางลิงก์ TikTok มาก็ได้ (เฉพาะช่องชื่อคนใหม่) — ดึงชื่อหลัง @ ออกมา
 const qo2Handle = t => { const m = String(t).match(/tiktok\.com\/@([^/?#\s]+)/i);
                          return normId(m ? decodeURIComponent(m[1]) : t); };
-const qo2NamesOf = () => [...new Set(String(($("#qo2Names") || {}).value || "")
-  .split(/[\s,]+/).map(qo2Handle).filter(Boolean))];
 function wireQO2Form(c){
-  $("#qo2X").onclick = () => { QO2_CMD = null; renderQO2(); };
+  const msg = t => { $("#qo2Msg").textContent = t || ""; };
+  // ── ใคร ──
+  const btn = $("#qo2DdBtn"), pan = $("#qo2Pan"), list = $("#qo2List");
+  const label = () => { if (btn) btn.innerHTML = (QO2_PICK.size ? `ใคร: <b>${QO2_PICK.size}</b> คน` : "ใคร —") + " ▾"; };
+  const draw = () => {
+    const q = normId($("#qo2Find").value || "");
+    const rows = (COORD[PROJ] || []).filter(r => !q || normId(r.handle).includes(q));
+    list.innerHTML = rows.map(r => { const h = normId(r.handle);
+      return `<label><input type="checkbox" data-qn="${esc(h)}"${QO2_PICK.has(h) ? " checked" : ""}>${
+        isTeamProj(PROJ) && r.assignee ? avatar(r.assignee) : ""}<span>${esc(r.handle)}</span>
+        <span class="d">${esc(ST_TH[r.status || ""] || r.status || "")}</span></label>`; }).join("") ||
+      `<span class="hint">ไม่พบชื่อ</span>`;
+    list.querySelectorAll("[data-qn]").forEach(cb => cb.onchange = () => {
+      cb.checked ? QO2_PICK.add(cb.dataset.qn) : QO2_PICK.delete(cb.dataset.qn);
+      label(); msg("");
+    });
+  };
+  if (btn){
+    btn.onclick = () => { pan.hidden = !pan.hidden; if (!pan.hidden){ draw(); $("#qo2Find").focus(); } };
+    $("#qo2Find").oninput = draw;
+    pan.querySelectorAll("[data-qq]").forEach(b => b.onclick = () => {
+      const q = normId($("#qo2Find").value || "");
+      const rows = (COORD[PROJ] || []).filter(r => !q || normId(r.handle).includes(q));
+      if (b.dataset.qq === "none") QO2_PICK.clear();
+      else rows.filter(r => b.dataset.qq === "all" || r.assignee === sbUid())
+               .forEach(r => QO2_PICK.add(normId(r.handle)));
+      draw(); label();
+    });
+  }
+  // ── ค่า ──
   const sel = $("#qo2Sel");
   if (sel) sel.onchange = () => {
     const v = $("#qo2Val");
     if (sel.value === "__new"){ v.value = ""; v.hidden = false; v.focus(); }
     else { v.value = sel.value; v.hidden = true; }
+    msg("");
   };
-  const list = $("#qo2List");
-  const drawList = () => {
-    if (!list) return;
-    const q = normId(($("#qo2Find") || {}).value || "");
-    const picked = new Set(qo2NamesOf());
-    const rows = (COORD[PROJ] || []).filter(r => !q || normId(r.handle).includes(q)).slice(0, 80);
-    list.innerHTML = rows.map(r => `<button data-qn="${esc(normId(r.handle))}"${
-      picked.has(normId(r.handle)) ? ` class="on"` : ""}>${esc(r.handle)}</button>`).join("") ||
-      `<span class="hint">ไม่พบชื่อ</span>`;
-    list.querySelectorAll("[data-qn]").forEach(b => b.onclick = () => {
-      const now = qo2NamesOf(), h = b.dataset.qn;
-      $("#qo2Names").value = (now.includes(h) ? now.filter(x => x !== h) : now.concat(h)).join("\n");
-      drawList();
-    });
-  };
-  if (list){
-    drawList();
-    $("#qo2Find").oninput = drawList;
-    $("#qo2Names").oninput = drawList;
-    $("#qo2All").onchange = e => { $("#qo2Names").disabled = e.target.checked; };
-  }
+  const tr = $("#qo2Val.qo2track");
+  if (tr){ tr.onfocus = () => { tr.rows = 5; }; tr.onblur = () => { if (!tr.value.trim()) tr.rows = 1; }; }
+  // ── ตรวจ ──
   $("#qo2Go").onclick = () => {
+    const sp = qo2Spec(c) || {};
     const val = $("#qo2Val") ? String($("#qo2Val").value || "").trim() : "";
     let text;
     if (c === "track"){
-      if (!val) return $("#qo2Val").focus();
+      if (!val){ msg("วางลิสต์ชื่อ + เลขพัสดุก่อน"); return $("#qo2Val").focus(); }
       text = "เลขพัสดุ\n" + val;
     } else {
-      const all = $("#qo2All") && $("#qo2All").checked;
-      const names = qo2NamesOf();
-      if (!all && !names.length){ $("#qo2Names").focus(); return; }
-      let v = val.replace(/\s*\n\s*/g, " ");              // ตัวอ่านทำงานทีละบรรทัด — ค่าหลายบรรทัดรวมเป็นบรรทัดเดียว
+      const names = c === "add"
+        ? [...new Set(String($("#qo2New").value || "").split(/[\s,]+/).map(qo2Handle).filter(Boolean))]
+        : [...QO2_PICK];
+      if (!names.length){ msg(c === "add" ? "ใส่ชื่อคนใหม่ก่อน" : "เลือกคนก่อน — กด “ใคร ▾”"); return; }
+      let v = val.replace(/\s*\n\s*/g, " ");
       if (c === "add") v = [val, ($("#qo2Val2") || {}).value || ""].join(" ").trim();
-      if (c !== "del" && !v && c !== "add"){ ($("#qo2Sel") || $("#qo2Val")).focus(); return; }
-      text = `/${c} ${all ? "*" : names.join(" ")}` + (c === "del" ? "" : ` : ${v}`);
+      if (c !== "del" && c !== "add" && !v){ msg("เลือกค่าก่อน"); return ($("#qo2Sel") || $("#qo2Val")).focus(); }
+      // ค่าใหม่ที่พิมพ์เอง — เช็กรูปแบบก่อนส่ง ไม่ให้คำสั่งผิดรูปไปถึงหน้าตรวจ
+      if (sel && sel.value === "__new"){
+        const doc = sp.doc && typeof DOC_BY_KEY !== "undefined" ? DOC_BY_KEY[sp.doc] : null;
+        if (sp.val === "num" && !/^[+-]?[\d,]+(\.\d+)?$/.test(v)){ msg(`${sp.th} ต้องเป็นตัวเลข เช่น 12000 หรือ +500`); return; }
+        if ((c === "brief" || (doc && !doc.tags && !doc.text)) && !/^https?:\/\//i.test(v)){
+          msg(`${sp.th} ต้องเป็นลิงก์ที่ขึ้นต้นด้วย http`); return; }
+      }
+      text = `/${c} ${names.join(" ")}` + (c === "del" ? "" : ` : ${v}`);
     }
+    msg("");
+    if (pan) pan.hidden = true;
     vlog("quick", { p: PROJ, d: { c } });
     $("#qoText").value = text;
     $("#qoParse").click();
     setTimeout(() => { const pv = $("#qoPreview"); if (pv && pv.firstChild) pv.scrollIntoView({ block:"nearest", behavior:"smooth" }); }, 120);
   };
 }
+// คลิกนอกแผงเลือกคน = ปิด
+if (TEAM_MODE) document.addEventListener("pointerdown", e => {
+  const p = $("#qo2Pan");
+  if (p && !p.hidden && !e.target.closest(".qo2dd")) p.hidden = true;
+});
 
 // เจ้าของ = admin/manager หรือหัวทีม — ที่เหลือคือลูกทีม (ตั้งค่าเหลือ 4 ส่วน · ดูการเปิดดูได้แค่ของตัวเอง)
 function isTeamOwner(){ return !isCrew() || !!(TEAM && TEAM.lead_id === sbUid()); }
@@ -18843,7 +18896,8 @@ if (TEAM_MODE){
   const after = (fn, post) => function(){ const out = fn.apply(this, arguments); try { post(); } catch(e){} return out; };
   renderCoord = after(renderCoord, applyLocks);
   renderDetail = after(renderDetail, applyLocks);
-  renderProjTabs = after(renderProjTabs, () => { tabAvatars(); if (!QO2_CMD || !$("#qo2Names")) renderQO2(); });
+  // คำสั่งที่เลือกค้างไว้ไม่วาดทับ (แผงเลือกคน/ค่าที่พิมพ์จะหาย) — วาดใหม่เฉพาะตอนสลับโปรเจกต์
+  renderProjTabs = after(renderProjTabs, () => { tabAvatars(); if (!QO2_CMD || QO2_PICK_PROJ !== PROJ) renderQO2(); });
   renderMap = after(renderMap, () => { tabAvatars(); paintRemoteDrag(); presRender(); });
 }
 
