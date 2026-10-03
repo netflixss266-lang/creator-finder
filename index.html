@@ -12845,9 +12845,45 @@ try { QO2_FOLD = lsGet(LS_QO2FOLD) === "1"; } catch(e){}
 const QO2_ACT = [
   { c:"add",   th:"＋ เพิ่มคนใหม่" }, { c:"del", th:"ลบออกจากโปรเจกต์" }, { c:"move", th:"ย้ายโปรเจกต์" },
   { c:"clear", th:"ล้างค่า" }, { c:"track", th:"📦 เลขพัสดุทีละหลายคน" }, { c:"bulk", th:"⇥ วางจากชีตหลายคน" } ];
-function qo2Groups(){
-  return [["ข้อมูลในตาราง", SLASH_ROW], ["เอกสาร / ลิงก์", SLASH_DOC], ["Feedback", SLASH_FB], ["จัดการรายชื่อ", QO2_ACT]];
+// ชื่อคำสั่งในเมนูแบบ "ทำอะไร" ให้อ่านแล้วรู้เลย (ทะเบียนเดิมเป็นชื่อช่อง เช่น "เรท" "SKU")
+// ทุกคำสั่งเป็นการตั้งค่าใหม่ทับของเดิม — หน้าตรวจโชว์ เดิม → ใหม่ ให้ดูก่อนกดใช้เสมอ
+const QO2_TH = { rate:"เพิ่ม/แก้เรท", video:"ตั้งจำนวนคลิป", status:"เปลี่ยนสถานะ", pay:"ตั้งรูปแบบภาษี",
+  kind:"ตั้งกลุ่ม KOL / KOC", comm:"เพิ่ม/แก้ Commission", sku:"เพิ่ม/แก้ SKU", job:"เพิ่ม/แก้งาน (โค้ด)",
+  note:"เพิ่ม/แก้โน้ต", post:"ตั้งวันโพสต์", due:"ตั้งกำหนดส่ง", brief:"เพิ่ม/แก้ลิงก์บรีฟ" };
+const qo2Label = x => QO2_TH[x.c] || (x.doc ? "เพิ่ม/แก้ " + x.th : x.th);
+// เมนูคำสั่งยาว ~30 รายการ — โชว์เฉพาะที่โปรเจกต์นี้ใช้จริง (มีข้อมูลอยู่แล้ว) + คำสั่งหลัก
+// ที่เหลือซ่อนไว้หลัง "＋ แสดงคำสั่งทั้งหมด" (ใช้ตอนจะใส่ของที่โปรเจกต์ยังไม่เคยมี)
+let QO2_ALL = false;
+const QO2_CORE = new Set(["rate", "status", "sku", "cart", "hashtag", "note", "due", "post", "fb1",
+                          "add", "del", "move", "track", "bulk"]);
+function qo2GroupsAll(){
+  const pick = list => list.map(c => SLASH_BY[c]).filter(Boolean);
+  const g = [
+    ["งาน · เงิน",                pick(["rate", "pay", "comm", "video", "kind", "job"])],
+    ["สถานะ · วันที่",             pick(["status", "post", "due"])],
+    ["สินค้า · ตะกร้า · แฮชแท็ก", pick(["sku", "cart", "hashtag", "guide"])],
+    ["เอกสาร · ลิงก์ · โน้ต",      pick(["note", "brief", "sg", "agreement", "form", "docs", "script", "sign", "timeline"])],
+    ["Feedback",                  SLASH_FB.slice()],
+    ["จัดการรายชื่อ",              QO2_ACT.slice()],
+  ];
+  // เอกสารที่เพิ่มใน DOCS ทีหลัง ยังไม่ได้จัดกลุ่ม → ไปอยู่กลุ่มเอกสาร
+  const known = new Set(g.flatMap(x => x[1].map(y => y.c)));
+  SLASH_DOC.filter(d => !known.has(d.c)).forEach(d => g[3][1].push(d));
+  return g;
 }
+function qo2Groups(){
+  const all = qo2GroupsAll();
+  if (QO2_ALL) return all;
+  const used = x => {
+    if (QO2_CORE.has(x.c) || x.c === QO2_CMD) return true;
+    const fb = /^fb(\d)$/.exec(x.c);                 // Feedback ถัดไปโผล่เมื่อรอบก่อนหน้ามีคนได้แล้ว
+    if (fb) return qo2Existing("fb" + (fb[1] - 1)).length > 0 || qo2Existing(x.c).length > 0;
+    return qo2Existing(x.c).length > 0;
+  };
+  return all.map(([n, l]) => [n, l.filter(used)]).filter(([, l]) => l.length);
+}
+const qo2HiddenN = () => qo2GroupsAll().reduce((s, [, l]) => s + l.length, 0) -
+                         qo2Groups().reduce((s, [, l]) => s + l.length, 0);
 function qo2Spec(c){ return SLASH_BY[c] || QO2_ACT.find(a => a.c === c) || null; }
 // ช่อง "ค่า" ตามชนิดของคำสั่ง — ตัวเลือกส่งเป็นคำที่ตัวอ่านเดิมรู้จักอยู่แล้ว
 // ─── คำสั่งด่วนแบบบรรทัดเดียว (2026-10-04) ───
@@ -12915,7 +12951,9 @@ function renderQO2(){
     (QO2_FOLD ? "" :
       `<select id="qo2Cmd" class="qo2s"><option value="">— เลือกคำสั่ง —</option>${
         qo2Groups().map(([g, list]) => `<optgroup label="${esc(g)}">${list.map(x =>
-          `<option value="${esc(x.c)}"${x.c === c ? " selected" : ""}>${esc(x.th)}</option>`).join("")}</optgroup>`).join("")}</select>` +
+          `<option value="${esc(x.c)}"${x.c === c ? " selected" : ""}>${esc(qo2Label(x))}</option>`).join("")}</optgroup>`).join("")}${
+        QO2_ALL ? `<option value="__less">− ย่อ: โชว์เฉพาะที่โปรเจกต์นี้ใช้</option>`
+          : qo2HiddenN() ? `<option value="__all">＋ แสดงคำสั่งทั้งหมด (อีก ${qo2HiddenN()})</option>` : ""}</select>` +
       (!c ? `<span class="hint">เลือกคำสั่ง → เลือกคน → เลือกค่า → ตรวจ (มีหน้าตรวจก่อนใช้เสมอ)</span>`
         : (c === "track"
             ? `<textarea id="qo2Val" rows="1" class="qo2new qo2track" placeholder="วางลิสต์จากลูกค้า — บรรทัดละคน: ชื่อ + เลขพัสดุ"></textarea>`
@@ -12931,6 +12969,11 @@ function renderQO2(){
   const cmd = $("#qo2Cmd");
   if (cmd) cmd.onchange = () => {
     if (cmd.value === "bulk"){ cmd.value = c || ""; $("#bulkToggle").click(); return; }   // กล่องวางจากชีตเดิม
+    if (cmd.value === "__all" || cmd.value === "__less"){
+      QO2_ALL = cmd.value === "__all"; renderQO2();
+      const c2 = $("#qo2Cmd"); if (c2){ c2.focus(); try { c2.showPicker(); } catch(e){} }   // เปิดเมนูค้างไว้ให้เลือกต่อ
+      return;
+    }
     QO2_CMD = cmd.value || null;
     renderQO2();
   };
