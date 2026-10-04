@@ -266,6 +266,9 @@ body[data-mine] .coordbar, body[data-mine] #memSeg, body[data-mine] #creatorCard
 html[data-team] #coordFind, html[data-team] #creatorCard, html[data-team] #coordPinSect,
 html[data-team] .cmdbar-wrap, html[data-team] .cmdbar-foot, html[data-team] #cmdHelp,
 html[data-team] #pickBox{display:none!important}
+html:not([data-admin]) #settings .adminonly{display:none!important}
+/* editor สร้าง/ตั้งค่าโปรเจกต์ไม่ได้ */
+html[data-team]:not([data-pm]) #projTabs [data-manageproj], html[data-team]:not([data-pm]) #coordFirstProj{display:none!important}
 /* ลากการ์ดใน Map ด้วย pointer events — ป้ายลอยตามเมาส์ */
 .mapghost{position:fixed;left:0;top:0;z-index:9999;pointer-events:none;background:var(--accent);
   color:var(--accent-ink);font-size:.8rem;font-weight:600;padding:5px 11px;border-radius:8px;
@@ -372,6 +375,36 @@ td.rcell::before, .dfield.rcell::before{content:attr(data-rname);position:absolu
 @keyframes rflash{0%,25%{box-shadow:inset 0 0 0 2px var(--rc);background-color:color-mix(in srgb, var(--rc) 28%, transparent)}
   100%{box-shadow:inset 0 0 0 2px transparent;background-color:transparent}}
 .online [data-jump]{cursor:pointer}
+/* คลิกขวา → เมนู → แผงประวัติด้านขวา (แบบ Lark Sheets) */
+.hxmenu{position:fixed;z-index:10000;min-width:220px;background:var(--surface);border:1px solid var(--line);
+  border-radius:10px;padding:5px;box-shadow:0 12px 32px rgba(0,0,0,.5)}
+.hxmenu button{display:block;width:100%;text-align:left;background:none;border:0;color:var(--ink);font-size:.82rem;
+  padding:7px 10px;border-radius:7px;cursor:pointer}
+.hxmenu button:hover{background:rgba(var(--accent-rgb),.12);color:var(--accent)}
+.hxpanel{position:fixed;top:0;right:0;bottom:0;z-index:9000;width:min(380px,100vw);background:var(--surface);
+  border-left:1px solid var(--line);box-shadow:-12px 0 32px rgba(0,0,0,.4);transform:translateX(105%);
+  transition:transform .18s ease;display:flex;flex-direction:column}
+.hxpanel.on{transform:none}
+.hxhead{display:flex;align-items:flex-start;justify-content:space-between;gap:10px;padding:14px 16px;border-bottom:1px solid var(--line)}
+.hxsub{font-size:.76rem;color:var(--dim);margin-top:2px}
+.hxbody{flex:1;overflow:auto;padding:6px 16px 20px}
+.hxv{position:relative;padding:11px 0 11px 16px;border-left:2px solid var(--line);margin-left:6px}
+.hxv::before{content:"";position:absolute;left:-6px;top:15px;width:10px;height:10px;border-radius:50%;background:var(--accent)}
+.hxw{display:flex;align-items:center;gap:6px;font-size:.82rem}
+.hxw .av{width:18px!important;height:18px!important;background:var(--mc)!important;color:#111!important;border-radius:50%!important;
+  font-size:.58rem!important;display:inline-flex!important;padding:0!important;border:0!important}
+.hxt{margin-left:auto;font-size:.72rem;color:var(--dim);cursor:help}
+.hxc{font-size:.8rem;color:var(--mute);margin-top:3px}
+.hxval{margin-top:6px;font-size:.92rem;color:var(--ink);background:rgba(var(--accent-rgb),.08);border-radius:7px;padding:6px 9px;word-break:break-word}
+.hxold{margin-top:4px;font-size:.78rem;color:var(--dim);text-decoration:line-through;padding:0 9px;word-break:break-word}
+.hxline{font-size:.8rem;margin-top:3px;word-break:break-word}
+.hxline .hxk{color:var(--mute);margin-right:6px}
+.hxline s{color:var(--dim)}
+.hxdim{color:var(--dim)}
+.hxtag{display:inline-block;margin-top:6px;font-size:.7rem;color:var(--accent);border:1px solid var(--accent);border-radius:999px;padding:1px 8px}
+.hxrestore{margin-top:6px;background:none;border:1px solid var(--line);color:var(--ink);border-radius:7px;padding:3px 10px;font-size:.74rem;cursor:pointer}
+.hxrestore:hover{border-color:var(--accent);color:var(--accent)}
+.hxempty{color:var(--dim);font-size:.84rem;padding:20px 0}
 
 /* ── หน้าแรก — billboard แบบ Netflix แล้วต่อด้วยสองไทล์ ── */
 #homeView{min-height:calc(100vh - 52px);display:flex;flex-direction:column;
@@ -3292,11 +3325,11 @@ tr.subrow td.w-status select{width:14.6em}
          ที่เหนือตารางเหลือแต่ของที่ใช้ทุกวัน — แท็บโปรเจกต์กับ Map -->
     <!-- ไม่ crewhide แล้ว — งานเก็บที่ฐานข้อมูล ทุก role ต้องโหลดใหม่/ส่งออกได้
          เหลือเฉพาะปุ่มที่เกี่ยวกับ Google Sheet ที่ยังเป็นของ admin -->
-    <section class="sect" id="teamSect" hidden>
+    <section class="sect adminonly" id="teamSect" hidden>
       <h3>ทีม</h3>
       <div id="teamBody"></div>
     </section>
-    <section class="sect">
+    <section class="sect adminonly">
       <h3>ข้อมูล Coordinate</h3>
       <p class="sect-sub">โหลด/ส่งออกงานของหน้า Coordinator — สั่งจากช่องคำสั่งก็ได้:
         <code>/reload</code> <code>/export</code> <code>/sync</code></p>
@@ -3313,7 +3346,7 @@ tr.subrow td.w-status select{width:14.6em}
       </div>
     </section>
 
-    <section class="sect">
+    <section class="sect adminonly">
       <h3>ฐานครีเอเตอร์ ← ตาราง Coordinator</h3>
       <p class="sect-sub">หลังซิงก์งาน ระบบเทียบตารางกับฐานครีเอเตอร์ แล้ว <b>เพิ่มคนใหม่</b> · <b>อัปเดตเรทที่ตกลงจริง</b> ·
         <b>เปลี่ยนชื่อตามที่แก้ในตาราง</b><br>
@@ -3325,6 +3358,14 @@ tr.subrow td.w-status select{width:14.6em}
       </div>
     </section>
 
+    <!-- ชื่อที่ทีมเห็น — ทุกคนเปลี่ยนเองได้ (app_users แก้ตรงได้เฉพาะ admin → ผ่าน RPC set_my_name) -->
+    <section class="sect mkeep" id="myNameSect" hidden>
+      <h3>ชื่อที่แสดง</h3>
+      <p class="sect-sub">ชื่อนี้โชว์ให้คนในทีมเห็น — ในวงชื่อ ผู้ดูแลแถว ประวัติการแก้ไข และคนที่ออนไลน์</p>
+      <div class="dd-act"><input id="myName" maxlength="40" placeholder="ชื่อของคุณ">
+        <button type="button" class="export" id="myNameSave">บันทึก</button></div>
+      <div class="hint" id="myNameMsg"></div>
+    </section>
     <section class="sect mkeep">
       <h3>แจ้งเตือนก่อนไลฟ์</h3>
       <p class="sect-sub">เด้งก่อนไลฟ์ <b>30 · 20 · 10 · 5 นาที</b> เฉพาะโปรเจกต์ไลฟ์ (แผนผังแบบปฏิทินวันที่) ·
@@ -5869,7 +5910,7 @@ function renderProjTabs(){
            title="ครีเอเตอร์ที่คุณดูแลจากทุกโปรเจกต์ — พื้นที่ส่วนตัว แก้ตรงนี้คือแก้แถวเดียวกับของทีม">★ งานของฉัน<span
            class="n">${myRows().length}</span></button>` : "") +
     show.map(tab).join("") + doneTabBtn(PROJ) +
-    (TEAM_MODE ? `<button class="ghosttab" data-acts="1" title="ประวัติการแก้ไข — ใครแก้อะไรเมื่อไหร่">🕘</button>` : "") +
+
     `<button class="ghosttab" data-manageproj="1" title="เพิ่ม / ปิดงาน / ลบโปรเจกต์">⚙</button>`;
   const ac = $("#projTabs [data-acts]");
   if (ac) ac.onclick = openActivity;
@@ -7013,7 +7054,7 @@ function renderDetail(){
   body.querySelector("[data-move]").onchange = e => {
     const to = e.target.value;
     if (!confirm(`ย้าย ${r.handle} จาก ${r.project} ไป ${to}?`)){ renderDetail(); return; }
-    moveRow(r, to);
+    if (!moveRow(r, to)){ renderDetail(); return; }   // ย้ายไม่ได้ (เช่น มีคนนี้ในปลายทางแล้ว)
     DETAIL.proj = to;
     PROJ = to;
     renderProjTabs(); renderCoord(); fillProjSelect(); renderDetail();
@@ -7406,7 +7447,8 @@ function renderCoord(){
     $("#coordBody").innerHTML = `<div class="empty"><h3>ยังไม่มีโปรเจกต์</h3>
       <div>เริ่มจากเพิ่มงานแรกของคุณ — ตั้งชื่อโปรเจกต์กับชื่อแบรนด์<br>
       แล้วค่อยหยิบครีเอเตอร์จากหน้าค้นหาใส่เข้ามา</div>
-      <button class="export" id="coordFirstProj" style="margin-top:14px">เพิ่มโปรเจกต์แรก</button></div>`;
+      <button class="export" id="coordFirstProj" style="margin-top:14px">เพิ่มโปรเจกต์แรก</button>${
+      canManageProjects() ? "" : `<div class="hint" style="margin-top:10px">โปรเจกต์สร้างได้เฉพาะ admin — ขอให้ admin สร้างหรือเพิ่มคุณเข้าทีม</div>`}</div>`;
     const b = $("#coordFirstProj");
     if (b) b.onclick = openProjManager;
     return;
@@ -7668,6 +7710,10 @@ function setFieldRaw(r, f, raw){
     // แก้ชื่อ = คนละคนแล้ว key เดิมใช้ไม่ได้ ต้องล้างของเก่าทิ้งและอัปเดตลิงก์ตาม
     const clean = normId(raw);
     if (!clean) return false;
+    if (TEAM_MODE && (COORD[r.project] || []).some(x => x !== r && normId(x.handle) === clean)){
+      alert(`@${clean} มีใน ${r.project} อยู่แล้ว — ครีเอเตอร์ 1 คนมีได้แถวเดียวต่อโปรเจกต์`);
+      return false;
+    }
     delete EDITS[before];
     poolRenameNote(r.handle, clean);
     r.handle = clean;
@@ -7707,6 +7753,10 @@ function moveRow(r, to){
 }
 function moveRowRaw(r, to){
   const from = r.project;
+  if (TEAM_MODE && (COORD[to] || []).some(x => normId(x.handle) === normId(r.handle))){
+    alert(`@${normId(r.handle)} มีใน ${to} อยู่แล้ว — ย้ายไม่ได้ (ครีเอเตอร์ 1 คนมีได้แถวเดียวต่อโปรเจกต์)`);
+    return false;
+  }
   const list = COORD[from] || [];
   const at = list.indexOf(r);
   if (at >= 0) list.splice(at, 1);
@@ -7804,7 +7854,9 @@ function coordRow(r, i){
   const warned = lawWarnedAt(r.project, r.handle);
   // ชื่อ+งานซ้ำกับแถวอื่นในโปรเจกต์เดียวกัน — ซิงก์ขึ้นฐานข้อมูลไม่ได้จนกว่าจะลบให้เหลือแถวเดียว
   // ต้องเห็นตั้งแต่ในตาราง ไม่ใช่รู้ตอนกดซิงก์แล้วต้องมานั่งไล่หาว่าแถวไหน
-  const dupN = (COORD[r.project] || []).filter(x => coordKey(x) === coordKey(r)).length;
+  // โหมดทีม: ชื่อเดียวกันในโปรเจกต์ = ซ้ำ ไม่ว่าโค้ดงานจะต่างกันไหม (ฐานข้อมูลกันแถวใหม่ไว้แล้ว — นี่คือของเก่าที่ค้าง)
+  const dupN = (COORD[r.project] || []).filter(x => TEAM_MODE ? normId(x.handle) === normId(r.handle)
+                                                                : coordKey(x) === coordKey(r)).length;
   const cls = [clips.length ? "hasclips" : "", isCancelled(r) ? "cancelled" : "",
                warned ? "warned" : "", dupN > 1 ? "dupkey" : ""].filter(Boolean).join(" ");
   return `<tr draggable="true" data-row="${i}"${cls ? ` class="${cls}"` : ""}>
@@ -12408,6 +12460,7 @@ function renderTeamSect(){
     return;
   }
   const me = sbUid(), lead = TEAM.lead_id === me;
+  TEAM.members = TEAM.members || [];
   b.innerHTML = `<p class="sect-sub"><b>${esc(TEAM.name)}</b> · สมาชิก ${TEAM.members.length} คน</p>
     <div id="tmReqs"></div>
     <div class="dd-act" style="flex-wrap:wrap;align-items:center">
@@ -12515,7 +12568,7 @@ function teamReqBadge(n){
 }
 async function checkTeamRequests(){
   if (!TEAM_MODE || !PROFILE) return;
-  if (PROFILE.role !== "admin" && !(TEAM && TEAM.lead_id === sbUid())) return;
+  if (PROFILE.role !== "admin") return;
   try { teamReqBadge(((await sbRpc("list_team_requests")) || []).length); } catch(e){}
 }
 
@@ -13328,6 +13381,157 @@ async function presJump(u){
   }
 }
 
+function canManageProjects(){ return !TEAM_MODE || ["admin", "manager"].includes((PROFILE || {}).role); }
+// ═══ ประวัติการแก้ไขแบบคลิกขวา (แทนปุ่ม 🕘) — หน้าตาแบบ Lark Sheets ═══
+// คลิกขวาที่ช่องในตาราง / ชื่อครีเอเตอร์ / การ์ดใน Map / แท็บโปรเจกต์ → เมนูเล็ก → แผงประวัติด้านขวา
+// แต่ละรุ่น: ใคร · เมื่อไหร่ · ค่าใหม่ (ค่าเดิมขีดฆ่า) · "คืนค่านี้" (เฉพาะประวัติรายช่อง)
+// กด Shift ค้างตอนคลิกขวา = เมนูปกติของเบราว์เซอร์ (ก๊อป/วาง/ตรวจคำ)
+const HX_FIELDS = new Set(["handle", "kind", "note", "paytype", "postdate", "rate", "status", "videos", "deadline",
+                           "commission", "sku", "brief", "code", "tracking", "assignee"]);
+function hxRel(at){
+  const s = (Date.now() - new Date(at).getTime()) / 1000;
+  if (s < 60) return "เมื่อสักครู่";
+  if (s < 3600) return Math.floor(s / 60) + " นาทีที่แล้ว";
+  if (s < 86400) return Math.floor(s / 3600) + " ชั่วโมงที่แล้ว";
+  if (s < 7 * 86400) return Math.floor(s / 86400) + " วันที่แล้ว";
+  return new Date(at).toLocaleDateString("th-TH", { day:"numeric", month:"short", year:"2-digit" });
+}
+const hxAbs = at => new Date(at).toLocaleString("th-TH", { day:"numeric", month:"short", hour:"2-digit", minute:"2-digit", second:"2-digit" });
+const hxLabel = k => HIST_FIELD_TH[k] || ACT_FIELD_TH[k] || k;
+
+// สิ่งที่อยู่ใต้เมาส์ → เป้าหมายของประวัติ
+function hxTarget(el){
+  const tab = el.closest("#projTabs [data-p], #mapTabs [data-mp]");
+  if (tab){ const p = tab.dataset.p != null ? tab.dataset.p : tab.dataset.mp; return p ? { p } : null; }
+  const leaf = el.closest("#mapBody [data-mapwho]");
+  if (leaf) return { p: leaf.dataset.mapproj, h: normId(leaf.dataset.mapwho) };
+  const tr = el.closest("#coordBody tr[data-row]");
+  if (tr && !MINE_VIEW){
+    const r = (COORD[PROJ] || [])[+tr.dataset.row];
+    if (!r) return { p: PROJ };
+    const td = el.closest("td");
+    let f = null;
+    if (td){
+      const fe = td.querySelector("[data-f]");
+      f = fe ? fe.dataset.f : td.querySelector("[data-sku], [data-skudel]") ? "sku"
+        : td.querySelector("[data-briefadd], [data-briefdel]") ? "brief" : td.querySelector("[data-asg]") ? "assignee" : null;
+      if (f === "handle" && td.querySelector("[data-asg]") && el.closest("[data-asg]")) f = "assignee";
+    }
+    return { p: PROJ, h: normId(r.handle), c: r.code || "", f: f && HX_FIELDS.has(f) ? f : null };
+  }
+  const df = el.closest("#detailBody [data-d]");
+  if (df && DETAIL) return { p: DETAIL.proj, h: DETAIL.handle, f: HX_FIELDS.has(df.dataset.d) ? df.dataset.d : null };
+  if (el.closest("#detailBody") && DETAIL) return { p: DETAIL.proj, h: DETAIL.handle };
+  if (el.closest("#coordView, #mapView")) return { p: !$("#mapView").hidden ? (MAP_PROJ || PROJ) : PROJ };
+  return null;
+}
+function hxMenu(x, y, t){
+  hxCloseMenu();
+  const items = [];
+  if (t.f) items.push(["cell", `🕘 ประวัติช่องนี้ — ${hxLabel(t.f)}`]);
+  if (t.h) items.push(["row", `🕘 ประวัติทั้งแถว — @${t.h}`]);
+  if (t.p) items.push(["proj", `🕘 ประวัติโปรเจกต์ ${t.p}`]);
+  if (t.h) items.push(["view", `👁 ใครเปิดดู @${t.h}`]);
+  if (!items.length) return;
+  const m = document.createElement("div");
+  m.className = "hxmenu";
+  m.innerHTML = items.map(([k, label]) => `<button type="button" data-hx="${k}">${esc(label)}</button>`).join("");
+  document.body.appendChild(m);
+  const w = m.offsetWidth, h = m.offsetHeight;
+  m.style.left = Math.min(x, innerWidth - w - 8) + "px";
+  m.style.top = Math.min(y, innerHeight - h - 8) + "px";
+  m.querySelectorAll("[data-hx]").forEach(b => b.onclick = () => { hxCloseMenu(); openHx(b.dataset.hx, t); });
+}
+function hxCloseMenu(){ document.querySelectorAll(".hxmenu").forEach(m => m.remove()); }
+if (TEAM_MODE){
+  document.addEventListener("contextmenu", e => {
+    if (e.shiftKey) return;
+    const t = hxTarget(e.target);
+    if (!t) return;
+    e.preventDefault();
+    hxMenu(e.clientX, e.clientY, t);
+  });
+  document.addEventListener("pointerdown", e => { if (!e.target.closest(".hxmenu")) hxCloseMenu(); }, true);
+  document.addEventListener("keydown", e => { if (e.key === "Escape"){ hxCloseMenu(); if ($("#hxPanel")) $("#hxPanel").classList.remove("on"); } });
+  addEventListener("scroll", hxCloseMenu, true);
+}
+
+async function openHx(kind, t){
+  vlog("history", { p: t.p, h: t.h || null, d: { s: kind, f: t.f || null } });
+  let panel = $("#hxPanel");
+  if (!panel){
+    panel = document.createElement("aside");
+    panel.id = "hxPanel";
+    panel.className = "hxpanel";
+    document.body.appendChild(panel);
+  }
+  const title = kind === "cell" ? `ประวัติช่อง ${hxLabel(t.f)}` : kind === "row" ? "ประวัติทั้งแถว"
+    : kind === "view" ? "ใครเปิดดู" : "ประวัติโปรเจกต์";
+  const sub = [t.h ? "@" + t.h : "", t.p || ""].filter(Boolean).join(" · ");
+  panel.innerHTML = `<div class="hxhead"><div><b>${esc(title)}</b><div class="hxsub">${esc(sub)}</div></div>
+      <button type="button" class="x" id="hxClose" aria-label="ปิด">✕</button></div>
+    <div class="hxbody" id="hxBody"><div class="loading"><span class="spin"></span>กำลังโหลด...</div></div>`;
+  panel.classList.add("on");
+  $("#hxClose").onclick = () => panel.classList.remove("on");
+  const body = $("#hxBody");
+  try {
+    if (!ACT_USERS){
+      const r = await sbAuthed(SB_URL + "/rest/v1/app_users?select=id,display_name,email");
+      ACT_USERS = {};
+      (r.ok ? await r.json() : []).forEach(u => { ACT_USERS[u.id] = u.display_name || u.email; });
+    }
+    const who = id => (ACT_USERS || {})[id] || (id ? "บัญชีที่ถูกลบ" : "admin (SQL)");
+    const card = (a, inner) => `<div class="hxv"><div class="hxw">${a.actor ? avatar(a.actor, who(a.actor)) : ""}
+        <b>${esc(who(a.actor))}</b><span class="hxt" title="${esc(hxAbs(a.at))}">${esc(hxRel(a.at))}</span></div>${inner}</div>`;
+    if (kind === "view"){
+      const r = await sbAuthed(SB_URL + "/rest/v1/view_log?select=at,actor,kind,project,handle,detail&order=at.desc&limit=200" +
+        "&handle=eq." + encodeURIComponent(t.h) + "&project=eq." + encodeURIComponent(t.p));
+      if (!r.ok) throw new Error(`อ่านไม่ได้ (${r.status})`);
+      const list = await r.json();
+      body.innerHTML = list.length ? list.map(v => card(v, `<div class="hxc">${esc(VIEW_VERB[v.kind] || v.kind)}</div>`)).join("")
+        : `<p class="hxempty">ยังไม่มีบันทึก — หรือคุณไม่มีสิทธิ์ดูของคนอื่น (เห็นได้เฉพาะหัวทีม/admin)</p>`;
+      return;
+    }
+    let q = "/rest/v1/activity?select=at,actor,tbl,action,project,handle,code,changes&order=at.desc&limit=300" +
+      "&project=eq." + encodeURIComponent(t.p);
+    q += t.h ? "&tbl=eq.coord&handle=eq." + encodeURIComponent(t.h) : "&tbl=in.(coord,projects)";
+    const r = await sbAuthed(SB_URL + q);
+    if (!r.ok) throw new Error(`อ่านประวัติไม่ได้ (${r.status})`);
+    let list = await r.json();
+    if (kind === "cell") list = list.filter(a => a.changes && a.changes[t.f]);
+    if (!list.length){ body.innerHTML = `<p class="hxempty">ยังไม่มีประวัติ${kind === "cell" ? "ของช่องนี้" : ""}</p>`; return; }
+    const row = t.h ? (COORD[t.p] || []).find(x => normId(x.handle) === t.h) : null;
+    body.innerHTML = list.map((a, i) => {
+      const ch = a.changes || {};
+      if (kind === "cell"){
+        const [o, n] = ch[t.f];
+        const cur = i === 0;
+        return card(a, `<div class="hxval">${actVal(t.f, n)}</div>${o != null && o !== "" ? `<div class="hxold">${actVal(t.f, o)}</div>` : ""}
+          ${cur ? `<span class="hxtag">ค่าปัจจุบัน</span>`
+            : row && t.f !== "handle" ? `<button type="button" class="hxrestore" data-hxi="${i}">คืนเป็นค่านี้</button>` : ""}`);
+      }
+      const verb = (ACT_VERB[a.action] || a.action) + (a.tbl === "projects" ? "โปรเจกต์" : "");
+      const keys = Object.keys(ch);
+      const what = a.tbl === "coord" && !t.h ? ` @${a.handle}` : "";
+      const lines = ["update", "rename", "move"].includes(a.action)
+        ? keys.map(k => `<div class="hxline"><span class="hxk">${esc(hxLabel(k))}</span>${
+            ch[k][0] != null && ch[k][0] !== "" ? `<s>${actVal(k, ch[k][0])}</s> → ` : ""}<b>${actVal(k, ch[k][1])}</b></div>`).join("")
+        : keys.length ? `<div class="hxline hxdim">${keys.slice(0, 6).map(k => `${esc(hxLabel(k))}: ${
+            actVal(k, ch[k][a.action === "delete" ? 0 : 1])}`).join(" · ")}${keys.length > 6 ? " …" : ""}</div>` : "";
+      return card(a, `<div class="hxc">${esc(verb)}${esc(what)}</div>${lines}`);
+    }).join("");
+    body.querySelectorAll("[data-hxi]").forEach(b => b.onclick = () => {
+      const a = list[+b.dataset.hxi];
+      const v = a.changes[t.f][1];
+      if (!row) return;
+      if (!confirm(`คืน ${hxLabel(t.f)} ของ @${t.h} เป็น “${v == null ? "ว่าง" : v}”?`)) return;
+      setField(row, t.f, v == null ? "" : String(v));
+      renderProjTabs(); renderCoord(); if (DETAIL) renderDetail();
+      openHx(kind, t);
+    });
+  } catch(e){ body.innerHTML = `<p class="hxempty">${esc(e.message)}</p>`; }
+}
+
 // เจ้าของ = admin/manager หรือหัวทีม — ที่เหลือคือลูกทีม (ตั้งค่าเหลือ 4 ส่วน · ดูการเปิดดูได้แค่ของตัวเอง)
 function isTeamOwner(){ return !isCrew() || !!(TEAM && TEAM.lead_id === sbUid()); }
 
@@ -13733,6 +13937,11 @@ async function sbSaveProjectsTeam(){
     else { const ch = rowDiff(b, o); if (ch) pat.push([b, o, ch]); }
   });
   BASE_PROJ.forEach((b, n) => { if (!now.has(n)) del.push(b); });
+  if (!canManageProjects()){
+    ins.length = 0; del.length = 0;
+    pat.forEach(x => { ["name", "brand", "done"].forEach(k => delete x[2][k]); });
+    for (let i = pat.length - 1; i >= 0; i--) if (!Object.keys(pat[i][2]).length) pat.splice(i, 1);
+  }
   if (ins.length){
     await sbSend(SB_URL + "/rest/v1/projects?on_conflict=owner,name", "POST", ins,
                  "เพิ่มโปรเจกต์ไม่ได้", "resolution=merge-duplicates,return=minimal");
@@ -14792,9 +15001,25 @@ function setMsg(text, kind){
 function openSettings(){
   if (TEAM_MODE){
     vlog("settings");
-    const limited = !!TEAM && !isTeamOwner();
+    // admin/manager เห็นทั้งหมด (ยกเว้น 3 ส่วน adminonly ที่ admin เห็นคนเดียว) · editor เห็น 4 ส่วน + ชื่อที่แสดง
+    const limited = !canManageProjects();
+    $("#myNameSect").hidden = false;
+    $("#myName").value = (PROFILE || {}).display_name || "";
+    $("#myNameMsg").textContent = "";
+    $("#myNameSave").onclick = async () => {
+      try {
+        const j = await sbRpc("set_my_name", { p_name: $("#myName").value });
+        if (!j || !j.ok) return $("#myNameMsg").textContent = (j && j.error) || "บันทึกไม่ได้";
+        PROFILE.display_name = j.name;
+        if (TEAM){ try { const t = await sbRpc("my_team"); if (t && t.id) TEAM = t; } catch(e){} }
+        ACT_USERS = null; PRES_LAST = ""; presTrack(true);
+        $("#myName").value = j.name;
+        $("#myNameMsg").textContent = "บันทึกแล้ว — คนในทีมจะเห็นชื่อใหม่";
+        if (document.body.dataset.view === "coord") renderCoord();
+      } catch(e){ $("#myNameMsg").textContent = e.message; }
+    };
     if (limited){ document.body.dataset.memberset = "1"; $("#teamSect").hidden = true; }
-    else { delete document.body.dataset.memberset; renderTeamSect(); }
+    else { delete document.body.dataset.memberset; if ((PROFILE || {}).role === "admin") renderTeamSect(); }
     $("#privTeam").hidden = false;
     $("#privTeam").innerHTML = `<b>ที่บันทึกลงฐานข้อมูล:</b> งานที่แก้ (ทุกคนในพื้นที่เดียวกันเห็น) และการใช้งาน —
       หน้าที่เปิด · โปรเจกต์/ครีเอเตอร์ที่เปิดดู · คำค้นและตัวกรอง · ลิงก์ TikTok ที่กด · ข้อความที่คัดลอก (ความยาว + 40 ตัวแรก) ·
@@ -17881,8 +18106,8 @@ function parseSlashLine(line, pending){
   if (word === "move"){
     const to = (findProjects(value)[0] || {}).proj || matchProject(value);
     if (!to) return bad(`ไม่รู้จักโปรเจกต์ปลายทาง "${value}"`);
-    hits.forEach(t => t.proj === to
-      ? out.push({ line, ok:false, changes:{}, why:`${t.h} อยู่ใน ${to} อยู่แล้ว` })
+    hits.forEach(t => t.proj === to || (COORD[to] || []).some(x => normId(x.handle) === t.h)
+      ? out.push({ line, ok:false, changes:{}, why:`${t.h} มีใน ${to} อยู่แล้ว — ข้าม` })
       : out.push({ line, ok:true, id:t.h, proj:t.proj, row:t.row, changes:{}, moveTo:to }));
     return out;
   }
@@ -18959,6 +19184,9 @@ function isCrew(){ return !FULL_ROLES.includes((PROFILE || {}).role); }
 function applyRole(){
   if (isCrew()) document.body.dataset.crew = "1";
   else delete document.body.dataset.crew;
+  const de = document.documentElement;
+  if ((PROFILE || {}).role === "admin") de.dataset.admin = "1"; else delete de.dataset.admin;
+  if (canManageProjects()) de.dataset.pm = "1"; else delete de.dataset.pm;
 }
 
 // ═══ คู่มือเปิดใช้งานครั้งแรก — coachmark ชี้ปุ่มจริงบนหน้าจอจริง ═══
@@ -18976,7 +19204,7 @@ const COACH = [
     text: `กระดานของคุณเริ่มจากศูนย์ ไม่มีงานของใครปนมา —
       <b>กดปุ่มที่ไฮไลต์อยู่</b>เพื่อเริ่มสร้างโปรเจกต์แรก`,
     target: () => $("#coordFirstProj") || document.querySelector("#projTabs [data-manageproj]"),
-    skip: () => PROJECTS.length > 0,
+    skip: () => PROJECTS.length > 0 || !canManageProjects(),
     onEnter: async () => {
       if (document.body.dataset.view !== "coord") await setView("coord");
       // กดยกเลิกตอนใส่รหัส Coordinator — ที่เหลือของคู่มือไม่มีความหมายถ้าเข้าไม่ได้ ปิดไปเลย
@@ -18989,7 +19217,7 @@ const COACH = [
     text: `ใส่<b>ชื่อโปรเจกต์</b>กับ<b>ชื่อแบรนด์</b>ที่ช่องซึ่งไฮไลต์ไว้ แล้วกด เพิ่ม —
       ชื่อแบรนด์จะไปโผล่ในข้อความที่ส่งหาครีเอเตอร์อัตโนมัติทีหลัง`,
     target: () => document.querySelector("#projBody .prow.add"),
-    skip: () => PROJECTS.length > 0,
+    skip: () => PROJECTS.length > 0 || !canManageProjects(),
     done: () => PROJECTS.length > 0,
     waitText: "รอคุณกรอกแล้วกดเพิ่มอยู่..." },
 
