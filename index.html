@@ -405,6 +405,34 @@ td.rcell::before, .dfield.rcell::before{content:attr(data-rname);position:absolu
 .hxrestore{margin-top:6px;background:none;border:1px solid var(--line);color:var(--ink);border-radius:7px;padding:3px 10px;font-size:.74rem;cursor:pointer}
 .hxrestore:hover{border-color:var(--accent);color:var(--accent)}
 .hxempty{color:var(--dim);font-size:.84rem;padding:20px 0}
+/* คอลัมน์จัดเอง: เลิกตรึงตามลำดับที่ 1-4 · ตรึงด้วย .stk ที่วัดความกว้างจริง */
+.ctable.colmod th:nth-child(n), .ctable.colmod td:nth-child(n){left:auto;box-shadow:none}
+.ctable.colmod td:nth-child(-n+4){position:static}
+.ctable.colmod tr:hover td:nth-child(-n+4){background:inherit}
+.ctable.colmod td.stk{position:sticky;z-index:3;background:var(--surface)}
+.ctable.colmod th.stk{z-index:6;background:var(--bg)}
+.ctable.colmod tr:hover td.stk{background:var(--surface2)}
+.ctable.colmod .stklast{box-shadow:1px 0 0 var(--line)}
+.ctable .colhide{display:none!important}
+.ctable th.w-asg, .ctable td.w-asg{white-space:nowrap;width:1%}
+.ctable td.w-asg{padding-left:6px;padding-right:6px}
+.ctable td.w-asg .av{margin-right:4px!important;vertical-align:middle}
+.ctable td.w-asg .asg{display:inline-block;vertical-align:middle}
+.colpop{position:fixed;z-index:10000;width:300px;max-height:70vh;display:flex;flex-direction:column;background:var(--surface);
+  border:1px solid var(--line);border-radius:12px;box-shadow:0 14px 34px rgba(0,0,0,.5)}
+.colhead{padding:10px 12px;border-bottom:1px solid var(--line);display:flex;flex-direction:column;gap:2px}
+.colhead .hint{font-size:.72rem;color:var(--dim)}
+.collist{overflow:auto;padding:6px}
+.colrow{display:flex;align-items:center;justify-content:space-between;gap:6px;padding:4px 6px;border-radius:7px;font-size:.82rem}
+.colrow:hover{background:rgba(var(--accent-rgb),.06)}
+.colrow label{display:flex;align-items:center;gap:7px;cursor:pointer}
+.colrow input{width:auto!important;margin:0}
+.colrow .hint{font-size:.7rem;color:var(--dim)}
+.colbtns button{background:none;border:1px solid var(--line);color:var(--mute);border-radius:6px;padding:0 7px;cursor:pointer;font-size:.78rem}
+.colbtns button:hover:not(:disabled){border-color:var(--accent);color:var(--accent)}
+.colbtns button:disabled{opacity:.3;cursor:default}
+.colbtns button.del:hover{border-color:var(--lo);color:var(--lo)}
+.colfoot{display:flex;justify-content:space-between;padding:8px 12px;border-top:1px solid var(--line)}
 
 /* ── หน้าแรก — billboard แบบ Netflix แล้วต่อด้วยสองไทล์ ── */
 #homeView{min-height:calc(100vh - 52px);display:flex;flex-direction:column;
@@ -3036,6 +3064,7 @@ tr.subrow td.w-status select{width:14.6em}
     <input id="coordFind" placeholder="ค้นหาครีเอเตอร์ — พิมพ์ชื่อเพื่อดูประวัติทุกโปรเจกต์"
            autocomplete="off">
     <div class="tabs sub colseg" id="colSeg" role="tablist"></div>
+    <button class="mapbtn" id="colMgrBtn" title="ซ่อน · ย้าย · ลบคอลัมน์ (คลิกขวาที่หัวคอลัมน์ก็ได้)">☰ จัดคอลัมน์</button>
     <button class="mapbtn" id="custColBtn"
       title="เพิ่ม/แก้คอลัมน์ของโปรเจกต์นี้เอง">＋ คอลัมน์</button>
   </div>
@@ -6857,7 +6886,7 @@ function asgSelect(r, i){
   const opts = [`<option value="">–</option>`].concat(TEAM.members.map(m =>
     `<option value="${esc(m.id)}"${m.id === r.assignee ? " selected" : ""}>${esc(m.name || m.email)}</option>`));
   if (r.assignee && !memberOf(r.assignee)) opts.push(`<option value="${esc(r.assignee)}" selected>คนนอกทีม</option>`);
-  return `${pnoteMark(r)}${r.assignee ? avatar(r.assignee) : ""}<select class="asg${r.assignee === me ? " mine" : ""}" data-asg="${i}" title="ผู้ดูแลแถวนี้ — ${esc(memName(r.assignee))}${r.assignee === me ? " (คุณ)" : ""}">${opts.join("")}</select>`;
+  return `${r.assignee ? avatar(r.assignee) : ""}<select class="asg${r.assignee === me ? " mine" : ""}" data-asg="${i}" title="ผู้ดูแลแถวนี้ — ${esc(memName(r.assignee))}${r.assignee === me ? " (คุณ)" : ""}">${opts.join("")}</select>`;
 }
 
 function renderKindSeg(){
@@ -7869,7 +7898,7 @@ function coordRow(r, i){
       <input class="nm" data-i="${i}" data-f="handle" value="${esc(r.handle)}"
              title="แก้ชื่อได้ — ลิงก์จะตามไปเอง">
       ${dupN > 1 ? `<span class="duptag" title="ชื่อ ${esc(normId(r.handle))} งาน ${esc(r.code || "ว่าง")} ซ้ำกัน ${dupN} แถวในโปรเจกต์นี้ — ซิงก์ขึ้นฐานข้อมูลไม่ได้จนกว่าจะลบแถวที่ซ้ำ (หรือเปลี่ยนช่องงานให้ต่างกัน)">ซ้ำ ×${dupN}</span>` : ""}
-      ${asgSelect(r, i) || pnoteMark(r)}<a class="go" href="https://www.tiktok.com/@${esc(r.handle)}" target="_blank"
+      ${pnoteMark(r)}<a class="go" href="https://www.tiktok.com/@${esc(r.handle)}" target="_blank"
          rel="noopener noreferrer" title="เปิด TikTok">↗</a>
       <button class="icobtn" data-detail="${i}"
               title="ดู/แก้ทุกอย่างของ ${esc(r.handle)} — ไม่ต้องเลื่อนตารางไปขวา">⤢</button>
@@ -13446,6 +13475,10 @@ function hxCloseMenu(){ document.querySelectorAll(".hxmenu").forEach(m => m.remo
 if (TEAM_MODE){
   document.addEventListener("contextmenu", e => {
     if (e.shiftKey) return;
+    const th = e.target.closest("#coordBody thead th[data-col]");
+    if (th && th.dataset.col !== "move" && th.dataset.col !== "del" && th.dataset.col !== "creator"){
+      e.preventDefault(); colMenu(e.clientX, e.clientY, th.dataset.col); return;
+    }
     const t = hxTarget(e.target);
     if (!t) return;
     e.preventDefault();
@@ -13530,6 +13563,197 @@ async function openHx(kind, t){
       openHx(kind, t);
     });
   } catch(e){ body.innerHTML = `<p class="hxempty">${esc(e.message)}</p>`; }
+}
+
+// ═══ คอลัมน์: ผู้รับผิดชอบ (คอลัมน์แรก) · ซ่อน · ย้าย · ลบ (2026-10-04) ═══
+// ตารางยังวาดตามลำดับเดิม (ตัวกรองบนหัวผูกกับลำดับนั้น) แล้วค่อยจัดใหม่หลังวาด:
+//   1) แทรกคอลัมน์ "ผู้รับผิดชอบ" ต่อจากที่จับลาก (เฉพาะโปรเจกต์ทีม)
+//   2) แถวย่อยรายคลิปเติมช่องว่างของคอลัมน์ที่เพิ่มเองให้ครบ (เดิมขาด → คอลัมน์เหลื่อม)
+//   3) เรียงตามที่ผู้ใช้จัดไว้ + ซ่อนที่ซ่อนไว้
+//   4) ตรึงซ้าย: ที่จับ · ผู้รับผิดชอบ · ครีเอเตอร์ — วัดความกว้างจริงหลังวาด (เดิมตรึงตามลำดับที่ 1-4
+//      พอย้าย/แทรกคอลัมน์แล้วจะไปตรึงผิดตัว)
+// จำแยกรายบัญชี (ในเครื่อง) · ใช้กับทุกโปรเจกต์ · คอลัมน์ที่เพิ่มเองของโปรเจกต์ไหนก็อยู่ในลำดับเดียวกัน
+const LS_COLS = "cf_cols_v1";
+let COLS = { order: [], hidden: [] };
+try { const c = JSON.parse(lsGet(LS_COLS) || "null"); if (c && Array.isArray(c.order)) COLS = { order: c.order, hidden: c.hidden || [] }; } catch(e){}
+const saveCols = () => { try { lsSet(LS_COLS, JSON.stringify(COLS)); } catch(e){} };
+const COL_BASE = ["move", "creator", "videos", "kind", "status", "rate", "paytype", "net3", "sku",
+                  "postdate", "deadline", "brief", "note", "commission"];
+const COL_FIXED = new Set(["move", "asg", "creator", "del"]);
+const COL_TH = { asg:"ผู้รับผิดชอบ", creator:"ครีเอเตอร์", videos:"วิดีโอ", kind:"กลุ่ม", status:"สถานะ", rate:"เรท",
+  paytype:"รูปแบบภาษี", net3:"จ่ายจริง", sku:"SKU", postdate:"โพสต์", deadline:"กำหนดส่ง", brief:"บรีฟ",
+  note:"โน้ต", commission:"Commission" };
+const colLabel = k => k.startsWith("c:") ? ((custCols(PROJ).find(c => "c:" + c.k === k) || {}).th || k) : (COL_TH[k] || k);
+// ลำดับคอลัมน์ที่ย้ายได้ ตามที่ผู้ใช้จัด — คอลัมน์ใหม่ (ยังไม่เคยจัด) ต่อท้าย
+function colMovable(present){
+  const set = new Set(present);
+  const out = COLS.order.filter(k => set.has(k));
+  present.forEach(k => { if (!out.includes(k)) out.push(k); });
+  return out;
+}
+function colsPresent(){
+  return COL_BASE.slice(2).concat(custCols(PROJ).map(c => "c:" + c.k));
+}
+function applyColumns(){
+  if (!TEAM_MODE || MINE_VIEW) return;
+  const table = document.querySelector("#coordBody table.ctable");
+  if (!table || table.classList.contains("minetable")) return;
+  table.classList.add("colmod");
+  const headRow = table.querySelector("thead tr");
+  if (!headRow) return;
+  const keys = COL_BASE.concat(custCols(PROJ).map(c => "c:" + c.k), ["del"]);
+  const ths = [...headRow.children];
+  if (ths.length !== keys.length) return;                    // หน้าตาไม่ตรงที่คาด — ไม่แตะดีกว่าจัดผิด
+  ths.forEach((th, i) => { th.dataset.col = keys[i]; });
+  const team = isTeamProj(PROJ);
+  // 1) ผู้รับผิดชอบ
+  if (team){
+    const th = document.createElement("th");
+    th.className = "w-asg"; th.dataset.col = "asg"; th.textContent = "ผู้รับผิดชอบ";
+    th.title = "ผู้ดูแลครีเอเตอร์คนนี้ — เปลี่ยนได้จากช่องในแถว";
+    ths[0].after(th);
+  }
+  const rows = [...table.querySelectorAll("tbody > tr")];
+  rows.forEach(tr => {
+    const tds = [...tr.children];
+    const main = tr.dataset.row != null;
+    if (!main && !tr.classList.contains("subrow")) return;   // แถว "ไม่มีข้อมูล" ที่ colspan ทั้งแถว
+    // 2) แถวย่อยขาดช่องของคอลัมน์ที่เพิ่มเอง
+    if (!main && tds.length < keys.length){
+      const last = tds[tds.length - 1];
+      for (let k = tds.length; k < keys.length; k++){ const td = document.createElement("td"); td.className = "opt w-cust"; last.before(td); }
+    }
+    const cells = [...tr.children];
+    if (cells.length !== keys.length) return;
+    cells.forEach((td, i) => { td.dataset.col = keys[i]; });
+    if (team){
+      const td = document.createElement("td");
+      td.className = "w-asg"; td.dataset.col = "asg";
+      if (main){
+        const r = (COORD[PROJ] || [])[+tr.dataset.row];
+        td.innerHTML = r ? asgSelect(r, +tr.dataset.row) : "";
+      }
+      cells[0].after(td);
+    }
+  });
+  // 3) เรียง + ซ่อน
+  const movable = colMovable(colsPresent());
+  const want = ["move"].concat(team ? ["asg"] : [], ["creator"], movable, ["del"]);
+  const hidden = new Set(COLS.hidden);
+  [headRow].concat(rows).forEach(tr => {
+    const byKey = {};
+    [...tr.children].forEach(c => { if (c.dataset.col) byKey[c.dataset.col] = c; });
+    if (Object.keys(byKey).length !== want.length) return;
+    want.forEach(k => { tr.appendChild(byKey[k]); byKey[k].classList.toggle("colhide", hidden.has(k)); });
+  });
+  // ช่องเลือกผู้รับผิดชอบที่เพิ่งใส่
+  table.querySelectorAll("[data-asg]").forEach(sel => {
+    sel.onclick = e => e.stopPropagation();
+    sel.onchange = () => {
+      const r = (COORD[PROJ] || [])[+sel.dataset.asg];
+      if (!r) return;
+      setField(r, "assignee", sel.value || null);
+      renderCoord();
+    };
+  });
+  // 4) ตรึงซ้าย — วัดหลังจัดเสร็จ
+  pinColumns(table, ["move"].concat(team && !hidden.has("asg") ? ["asg"] : [], ["creator"]));
+}
+function pinColumns(table, pin){
+  let left = 0;
+  pin.forEach((k, n) => {
+    const th = table.querySelector(`thead th[data-col="${k}"]`);
+    if (!th) return;
+    const w = th.getBoundingClientRect().width;
+    table.querySelectorAll(`[data-col="${k}"]`).forEach(c => {
+      c.classList.add("stk"); c.classList.toggle("stklast", n === pin.length - 1);
+      c.style.left = left + "px";
+    });
+    left += w;
+  });
+}
+
+// ── ย้าย / ซ่อน / ลบ ──
+function colMove(k, d){
+  const order = colMovable(colsPresent());
+  const i = order.indexOf(k), j = i + d;
+  if (i < 0 || j < 0 || j >= order.length) return;
+  [order[i], order[j]] = [order[j], order[i]];
+  COLS.order = order; saveCols(); renderCoord();
+}
+function colToggle(k, show){
+  COLS.hidden = COLS.hidden.filter(x => x !== k).concat(show ? [] : [k]);
+  saveCols(); renderCoord();
+}
+function colDelete(k){
+  if (!k.startsWith("c:")) return colToggle(k, false);       // คอลัมน์หลักลบไม่ได้ — ซ่อนแทน
+  const ck = k.slice(2), c = custCols(PROJ).find(x => x.k === ck);
+  if (!c) return;
+  if (!confirm(`ลบคอลัมน์ “${c.th}” ออกจาก ${PROJ}?\n\nข้อมูลที่กรอกไว้ในคอลัมน์นี้จะไม่โชว์อีก (คอลัมน์ที่เพิ่มเองเป็นของบัญชีคุณคนเดียว)`)) return;
+  CUSTCOL[PROJ] = custCols(PROJ).filter(x => x.k !== ck);
+  saveCustCol(); renderCoord();
+}
+function openColMgr(anchor){
+  document.querySelectorAll(".colpop").forEach(p => p.remove());
+  const pop = document.createElement("div");
+  pop.className = "colpop";
+  const draw = () => {
+    const order = colMovable(colsPresent());
+    const hidden = new Set(COLS.hidden);
+    const rowsHTML = (isTeamProj(PROJ) ? [`<div class="colrow fixed"><label><input type="checkbox" data-cshow="asg"${
+        hidden.has("asg") ? "" : " checked"}> ผู้รับผิดชอบ</label><span class="hint">ตรึงซ้าย</span></div>`] : [])
+      .concat([`<div class="colrow fixed"><label><input type="checkbox" checked disabled> ครีเอเตอร์</label><span class="hint">ตรึงซ้าย</span></div>`])
+      .concat(order.map((k, i) => `<div class="colrow"><label><input type="checkbox" data-cshow="${esc(k)}"${
+          hidden.has(k) ? "" : " checked"}> ${esc(colLabel(k))}${k.startsWith("c:") ? ` <span class="hint">เพิ่มเอง</span>` : ""}</label>
+        <span class="colbtns"><button type="button" data-cup="${esc(k)}"${i ? "" : " disabled"} title="ย้ายขึ้น (ไปทางซ้าย)">↑</button>
+          <button type="button" data-cdn="${esc(k)}"${i < order.length - 1 ? "" : " disabled"} title="ย้ายลง (ไปทางขวา)">↓</button>
+          ${k.startsWith("c:") ? `<button type="button" class="del" data-cdel="${esc(k)}" title="ลบคอลัมน์นี้">🗑</button>` : ""}</span></div>`));
+    pop.innerHTML = `<div class="colhead"><b>จัดคอลัมน์</b><span class="hint">ติ๊ก = โชว์ · ↑↓ = ย้าย · คลิกขวาที่หัวคอลัมน์ก็ได้</span></div>
+      <div class="collist">${rowsHTML.join("")}</div>
+      <div class="colfoot"><button type="button" class="cmdbtn" id="colReset">คืนค่าเดิม</button>
+        <button type="button" class="cmdbtn" id="colDone">เสร็จ</button></div>`;
+    pop.querySelectorAll("[data-cshow]").forEach(cb => cb.onchange = () => { colToggle(cb.dataset.cshow, cb.checked); draw(); });
+    pop.querySelectorAll("[data-cup]").forEach(b => b.onclick = () => { colMove(b.dataset.cup, -1); draw(); });
+    pop.querySelectorAll("[data-cdn]").forEach(b => b.onclick = () => { colMove(b.dataset.cdn, 1); draw(); });
+    pop.querySelectorAll("[data-cdel]").forEach(b => b.onclick = () => { colDelete(b.dataset.cdel); draw(); });
+    pop.querySelector("#colReset").onclick = () => { COLS = { order: [], hidden: [] }; saveCols(); renderCoord(); draw(); };
+    pop.querySelector("#colDone").onclick = () => pop.remove();
+  };
+  draw();
+  document.body.appendChild(pop);
+  const r = anchor.getBoundingClientRect();
+  pop.style.top = Math.min(r.bottom + 6, innerHeight - pop.offsetHeight - 8) + "px";
+  pop.style.left = Math.max(8, Math.min(r.right - pop.offsetWidth, innerWidth - pop.offsetWidth - 8)) + "px";
+  setTimeout(() => document.addEventListener("pointerdown", function off(e){
+    if (!pop.contains(e.target) && e.target !== anchor){ pop.remove(); document.removeEventListener("pointerdown", off); }
+  }), 0);
+}
+// คลิกขวาที่หัวคอลัมน์
+function colMenu(x, y, k){
+  hxCloseMenu();
+  const order = colMovable(colsPresent());
+  const i = order.indexOf(k);
+  const items = [];
+  if (!COL_FIXED.has(k) || k === "asg") items.push(["hide", `🙈 ซ่อนคอลัมน์ “${colLabel(k)}”`]);
+  if (i > 0) items.push(["left", "← ย้ายไปซ้าย"]);
+  if (i >= 0 && i < order.length - 1) items.push(["right", "ย้ายไปขวา →"]);
+  if (k.startsWith("c:")) items.push(["del", "🗑 ลบคอลัมน์นี้"]);
+  items.push(["mgr", "☰ จัดคอลัมน์ทั้งหมด…"]);
+  const m = document.createElement("div");
+  m.className = "hxmenu";
+  m.innerHTML = items.map(([a, t]) => `<button type="button" data-ca="${a}">${esc(t)}</button>`).join("");
+  document.body.appendChild(m);
+  m.style.left = Math.min(x, innerWidth - m.offsetWidth - 8) + "px";
+  m.style.top = Math.min(y, innerHeight - m.offsetHeight - 8) + "px";
+  m.querySelectorAll("[data-ca]").forEach(b => b.onclick = () => {
+    hxCloseMenu();
+    const a = b.dataset.ca;
+    if (a === "hide") colToggle(k, false);
+    else if (a === "left") colMove(k, -1);
+    else if (a === "right") colMove(k, 1);
+    else if (a === "del") colDelete(k);
+    else openColMgr($("#colMgrBtn"));
+  });
 }
 
 // เจ้าของ = admin/manager หรือหัวทีม — ที่เหลือคือลูกทีม (ตั้งค่าเหลือ 4 ส่วน · ดูการเปิดดูได้แค่ของตัวเอง)
@@ -16401,6 +16625,8 @@ $("#gearBtn").onclick = openSettings;
 $("#closeSet").onclick = closeSettings;
 $("#closeProj").onclick = () => { $("#projPanel").hidden = true; };
 $("#closeAct").onclick = () => { $("#actPanel").hidden = true; };
+$("#colMgrBtn").onclick = e => openColMgr(e.currentTarget);
+if (!TEAM_MODE) $("#colMgrBtn").hidden = true;
 $("#teamReqBtn").onclick = () => {
   openSettings();
   setTimeout(() => { const t = $("#teamSect"); if (t) t.scrollIntoView({ block:"start", behavior:"smooth" }); }, 80);
@@ -19436,7 +19662,7 @@ foldSummaries();
 
 if (TEAM_MODE){
   const after = (fn, post) => function(){ const out = fn.apply(this, arguments); try { post(); } catch(e){} return out; };
-  renderCoord = after(renderCoord, () => { applyLocks(); paintFlash(); });
+  renderCoord = after(renderCoord, () => { applyColumns(); applyLocks(); paintFlash(); });
   renderDetail = after(renderDetail, applyLocks);
   // คำสั่งที่เลือกค้างไว้ไม่วาดทับ (แผงเลือกคน/ค่าที่พิมพ์จะหาย) — วาดใหม่เฉพาะตอนสลับโปรเจกต์
   renderProjTabs = after(renderProjTabs, () => { tabAvatars(); if (!QO2_CMD || QO2_PICK_PROJ !== PROJ) renderQO2(); });
