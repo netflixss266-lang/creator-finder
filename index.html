@@ -328,6 +328,50 @@ body.mapdrag .mapleaf{cursor:grabbing}
 .qo2 .qo2fold{flex:none;margin-left:auto}
 .qo2msg{font-size:.75rem;color:var(--lo);margin-top:4px}
 .qo2msg:empty{display:none}
+/* คำสั่งด่วน 3 ขั้น */
+.qo2rows{display:grid;grid-template-columns:auto 1fr;gap:8px 12px;align-items:center;margin-top:9px}
+.qo2step{font-size:.76rem;color:var(--mute);white-space:nowrap}
+.qo2step b{color:var(--accent);font-size:.9rem;margin-right:2px}
+.qo2chips, .qo2line{display:flex;flex-wrap:wrap;gap:6px;align-items:center}
+.qo2chip{background:none;border:1px solid var(--line);color:var(--ink);border-radius:999px;padding:4px 12px;font-size:.8rem;cursor:pointer}
+.qo2chip:hover{border-color:var(--accent);color:var(--accent)}
+.qo2chip.on, .qo2 .qo2s.on{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
+.qo2sum{font-size:.82rem;color:var(--mute)}
+.qo2sum b{color:var(--ink)}
+.qo2x{background:none;border:0;color:var(--dim);cursor:pointer;font-size:.9rem;padding:2px 6px}
+.qo2x:hover{color:var(--lo)}
+.qo2.folded .qo2rows{display:none}
+@media (max-width:640px){ .qo2rows{grid-template-columns:1fr} .qo2rows > span:empty{display:none} }
+/* เลือกทีม */
+#lockTeamPick{width:100%;text-align:left}
+.tcards{display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:8px;margin:6px 0 10px}
+.tcard{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:10px;text-align:left;cursor:pointer;color:var(--ink)}
+.tcard b{display:block;font-size:.92rem}
+.tcard span{font-size:.72rem;color:var(--dim)}
+.tcard:hover{border-color:var(--accent)}
+.tcard.on{border-color:var(--accent);box-shadow:inset 0 0 0 1px var(--accent)}
+.tjoin{display:flex;flex-direction:column;gap:8px}
+.tway{display:flex;flex-wrap:wrap;gap:6px;align-items:center}
+.tway .tl{width:100%;font-size:.74rem;color:var(--mute)}
+.tway input{flex:1;min-width:120px}
+.tway .run{width:auto}
+.tadmin{margin-top:12px;padding-top:10px;border-top:1px dashed var(--line)}
+.tpend{font-size:.86rem;line-height:1.6}
+.tpend .cmdbtn{margin-top:8px}
+.treqs{border:1px solid var(--accent);border-radius:10px;padding:8px 10px;margin:6px 0 12px}
+.tadminbox{margin-top:14px}
+.tadminbox summary{cursor:pointer;font-size:.82rem;color:var(--mute)}
+.treqbtn{background:var(--accent);color:var(--accent-ink);border:0;border-radius:999px;padding:4px 12px;font-size:.76rem;
+  font-weight:600;cursor:pointer;margin-left:auto}
+/* แบบ Google Sheets: ป้ายชื่อมุมช่อง · ช่องที่เพิ่งถูกแก้กะพริบ */
+td.rcell, .dfield.rcell{position:relative;box-shadow:inset 0 0 0 2px var(--rc)}
+td.rcell::before, .dfield.rcell::before{content:attr(data-rname);position:absolute;top:-8px;right:2px;z-index:5;
+  background:var(--rc);color:#111;font-size:.58rem;font-weight:700;line-height:1.4;padding:0 5px;
+  border-radius:4px 4px 4px 0;pointer-events:none;white-space:nowrap}
+.rflash{animation:rflash 2.2s ease-out}
+@keyframes rflash{0%,25%{box-shadow:inset 0 0 0 2px var(--rc);background-color:color-mix(in srgb, var(--rc) 28%, transparent)}
+  100%{box-shadow:inset 0 0 0 2px transparent;background-color:transparent}}
+.online [data-jump]{cursor:pointer}
 
 /* ── หน้าแรก — billboard แบบ Netflix แล้วต่อด้วยสองไทล์ ── */
 #homeView{min-height:calc(100vh - 52px);display:flex;flex-direction:column;
@@ -2516,6 +2560,8 @@ tr.subrow td.w-status select{width:14.6em}
     <button type="button" class="lockswap" id="lockForgot" hidden>ลืมรหัสผ่าน — ส่งลิงก์ตั้งใหม่เข้าอีเมล</button>
     <button type="button" class="lockswap" id="lockSwap" hidden>ยังไม่มีบัญชี — สมัครที่นี่</button>
     <button type="button" class="lockcancel" id="lockCancel" hidden>ไม่รู้รหัส — กลับหน้าแรก</button>
+    <!-- เลือกทีมจากการ์ด (mountTeamPicker) -->
+    <div id="lockTeamPick" hidden></div>
     <button type="button" class="lockswap" id="lockSkip" hidden>ข้ามไปก่อน — ใช้แบบส่วนตัว เข้าทีมทีหลังได้ที่ ⚙ ตั้งค่า</button>
     <div class="lockmsg" id="lockMsg"></div>
   </form>
@@ -2947,6 +2993,7 @@ tr.subrow td.w-status select{width:14.6em}
     <!-- ข้อความทักครั้งแรกเพื่อขอเรท — ยังไม่มีคนในตาราง เลยเป็นของโปรเจกต์ ไม่ใช่ของรายคน -->
     <button class="mapbtn" id="fmtBtn" title="ข้อความขอเรทสำหรับทักครีเอเตอร์ครั้งแรก">✉ Format ขอเรท</button>
     <div class="coord-sum" id="coordSum"></div>
+    <button type="button" class="treqbtn" id="teamReqBtn" hidden title="มีคนขอเข้าทีม — กดเพื่อไปอนุมัติ"></button>
     <div class="online" id="onlineBar"></div>
   </div>
   <div class="syncbar" id="syncBar"></div>
@@ -12217,78 +12264,119 @@ function isTeamProj(name){ return !!(TEAM_MODE && TEAM && (projMeta(name) || {})
 function spaceOf(name){ return isTeamProj(name) ? TEAM.id : sbUid(); }
 
 // ล็อกอินผ่านแล้ว — ยังไม่มีทีมก็ถามชื่อทีมต่อ (ข้ามได้ จำไว้ไม่ถามอีก เข้าทีมทีหลังที่ ⚙ ตั้งค่า)
+// ล็อกอินผ่านแล้ว — ยังไม่มีทีมก็ให้เลือกทีมต่อ (ข้ามได้ จำไว้ไม่ถามอีก เข้าทีมทีหลังที่ ⚙ ตั้งค่า)
+// มีคำขอเข้าทีมค้างอยู่ = ไม่ต้องถามซ้ำ รอหัวทีมอนุมัติ (ใช้แบบส่วนตัวไปก่อน)
 async function teamGate(){
   let bad = false;
   try { TEAM = await sbRpc("my_team"); } catch(e){ TEAM = null; bad = true; }
-  if (TEAM || bad) return;            // อ่านไม่ได้ = อย่าถาม เดี๋ยวกลายเป็นสร้างทีมซ้ำ
-  let skip = false;
+  if (TEAM || bad) return;            // อ่านไม่ได้ = อย่าถาม
+  let skip = false, pending = null;
   try { skip = !!lsGet(LS_TEAMSKIP); } catch(e){}
-  if (!skip) await askTeam();
+  try { pending = await sbRpc("my_team_request"); } catch(e){}
+  if (!skip && !pending) await askTeam();
 }
 const TEAM_LOCK_HIDE = ["#lockPin", "#lockEmail", "#lockName", "#lockCoord", "#lockPwRow", "#lockPw2",
-                        "#lockForgot", "#lockSwap", "#lockCancel"];
-// ผลจาก join_team → ข้อความที่คนอ่านแล้วรู้ว่าต้องทำอะไรต่อ
+                        "#lockForgot", "#lockSwap", "#lockCancel", "#lockTeam", "#lockTeamCode", "#lockTeamLabel"];
+// ผลจากการเข้าทีม → ข้อความที่คนอ่านแล้วรู้ว่าต้องทำอะไรต่อ
 function teamJoinNote(j){
   const ren = (j.renamed || []).length
     ? `\nโปรเจกต์ส่วนตัวที่ชื่อชนกับของทีมถูกเติม “(ส่วนตัว)” ท้ายชื่อ: ${j.renamed.join(", ")}` : "";
   return j.created
-    ? `สร้างทีม “${j.team.name}” แล้ว\nรหัสชวนเข้าทีม: ${j.team.code}\n` +
-      `ส่งชื่อทีม + รหัสนี้ให้คนในทีมใช้ตอนเข้าครั้งแรก (ดูอีกทีได้ที่ ⚙ ตั้งค่า → ทีม)${ren}`
+    ? `สร้างทีม “${j.team.name}” แล้ว\nรหัสทีม: ${j.team.code} (ดูอีกทีได้ที่ ⚙ ตั้งค่า → ทีม)${ren}`
     : ren ? `เข้าทีม “${j.team.name}” แล้ว${ren}` : "";
 }
-function askTeam(){
-  TEAM_LOCK_HIDE.forEach(s => { $(s).hidden = true; });
-  $("#lockTitle").textContent = "ทีมของคุณ";
-  $("#lockHint").textContent = "พิมพ์ชื่อทีม — ชื่อใหม่ = สร้างทีมและได้รหัส 6 หลักไว้ชวนคนอื่น · " +
-    "ทีมที่มีอยู่แล้วต้องใส่รหัสจากคนในทีม";
-  ["#lockTeam", "#lockTeamCode", "#lockTeamLabel", "#lockSkip"].forEach(s => { $(s).hidden = false; });
-  $("#lockTeam").value = ""; $("#lockTeamCode").value = ""; $("#lockTeamLabel").value = "";
-  $("#lockGo").textContent = "เข้าทีม / สร้างทีม";
-  $("#lockGo").disabled = false;
-  $("#lockMsg").className = "lockmsg"; $("#lockMsg").textContent = "";
-  $("#lockView").hidden = false;
-  setTimeout(() => $("#lockTeam").focus(), 50);
 
+// ═══ ตัวเลือกทีม ═══ ใช้ทั้งหน้าล็อกอินและในตั้งค่า
+// เลือกทีมจากการ์ด (ไม่ต้องพิมพ์ชื่อ) → ใส่รหัสทีม = เข้าทันที · หรือส่งคำขอ = รอหัวทีม/admin อนุมัติ
+// done(j) ถูกเรียกเมื่อเข้าทีมสำเร็จ (j = ผลจาก RPC)
+async function mountTeamPicker(host, done){
+  let teams = [], pending = null, pick = null;
+  try { teams = await sbRpc("list_team_choices") || []; } catch(e){}
+  try { pending = await sbRpc("my_team_request"); } catch(e){}
+  const admin = (PROFILE || {}).role === "admin";
+  const draw = (msg, err) => {
+    if (pending){
+      host.innerHTML = `<div class="tpend">📨 ส่งคำขอเข้า <b>${esc(pending.name)}</b> แล้ว — รอหัวทีมหรือ admin อนุมัติ
+          <div class="hint">อนุมัติแล้วรีเฟรชหน้าเว็บก็เห็นงานของทีมเลย · ระหว่างรอใช้แบบส่วนตัวไปก่อนได้</div>
+          <button type="button" class="cmdbtn" id="tpCancel">ยกเลิกคำขอ</button></div>`;
+      $("#tpCancel").onclick = async () => {
+        try { await sbRpc("cancel_team_request"); pending = null; draw(); } catch(e){ draw(e.message, true); }
+      };
+      return;
+    }
+    host.innerHTML = (teams.length ? `<div class="tcards">${teams.map(t => `<button type="button" class="tcard${
+        pick === t.id ? " on" : ""}" data-tp="${esc(t.id)}"><b>${esc(t.name)}</b>
+        <span>${t.n} คน${t.lead ? " · หัวทีม " + esc(t.lead) : ""}</span></button>`).join("")}</div>`
+        : `<p class="hint">ยังไม่มีทีม — ${admin ? "สร้างทีมแรกด้านล่าง" : "ให้ admin สร้างทีมก่อน แล้วค่อยกลับมาเลือก"}</p>`) +
+      (pick ? `<div class="tjoin">
+          <div class="tway"><span class="tl">มีรหัสทีม → เข้าได้ทันที</span>
+            <input id="tpCode" inputmode="numeric" maxlength="6" placeholder="รหัส 6 หลัก" autocomplete="off">
+            <button type="button" class="run" id="tpJoin">เข้าทีม</button></div>
+          <div class="tway"><span class="tl">ไม่มีรหัส → ขอเข้าทีม แล้วรอหัวทีมกดอนุมัติ</span>
+            <button type="button" class="export" id="tpReq">ส่งคำขอเข้าทีม</button></div></div>` : "") +
+      (admin ? `<div class="tway tadmin"><span class="tl">admin: สร้างทีมใหม่</span>
+          <input id="tpNew" maxlength="60" placeholder="เช่น Team 1">
+          <button type="button" class="cmdbtn" id="tpCreate">สร้าง + เข้าทีมนี้</button></div>` : "") +
+      `<div class="lockmsg${err ? " err" : ""}" id="tpMsg">${esc(msg || "")}</div>`;
+    host.querySelectorAll("[data-tp]").forEach(b => b.onclick = () => { pick = b.dataset.tp; draw(); const c = $("#tpCode"); if (c) c.focus(); });
+    const join = $("#tpJoin");
+    if (join){
+      const go = async () => {
+        join.disabled = true;
+        try {
+          const j = await sbRpc("join_team_id", { p_team: pick, p_code: $("#tpCode").value.trim() });
+          if (j && j.ok) return done(j);
+          draw((j && j.error) || "เข้าทีมไม่สำเร็จ", true);
+        } catch(e){ draw(e.message, true); }
+      };
+      join.onclick = go;
+      $("#tpCode").onkeydown = e => { if (e.key === "Enter"){ e.preventDefault(); go(); } };
+    }
+    if ($("#tpReq")) $("#tpReq").onclick = async () => {
+      try {
+        const j = await sbRpc("request_team", { p_team: pick });
+        if (!j || !j.ok) return draw((j && j.error) || "ส่งคำขอไม่สำเร็จ", true);
+        pending = await sbRpc("my_team_request"); draw();
+      } catch(e){ draw(e.message, true); }
+    };
+    if ($("#tpCreate")) $("#tpCreate").onclick = async () => {
+      const name = $("#tpNew").value.trim();
+      if (!name) return $("#tpNew").focus();
+      try {
+        const j = await sbRpc("join_team", { p_name: name });   // admin + ชื่อใหม่ = สร้างแล้วเข้าเป็นหัวทีม
+        if (j && j.ok) return done(j);
+        draw((j && j.error) || "สร้างทีมไม่สำเร็จ", true);
+      } catch(e){ draw(e.message, true); }
+    };
+  };
+  draw();
+}
+
+function askTeam(){
+  TEAM_LOCK_HIDE.forEach(s => { const el = $(s); if (el) el.hidden = true; });
+  $("#lockTitle").textContent = "เลือกทีมของคุณ";
+  $("#lockHint").textContent = "งานของแต่ละทีมเห็นกันเฉพาะในทีม — เลือกทีมที่คุณอยู่";
+  $("#lockGo").hidden = true;
+  $("#lockSkip").hidden = false;
+  $("#lockMsg").textContent = "";
+  const host = $("#lockTeamPick");
+  host.hidden = false;
+  $("#lockView").hidden = false;
   return new Promise(resolve => {
-    let shown = false;           // โชว์รหัสทีมแล้ว รอคนจดก่อนกดเข้า
-    const msg = (t, c) => { $("#lockMsg").className = "lockmsg " + (c || ""); $("#lockMsg").textContent = t; };
     const finish = () => {
-      ["#lockTeam", "#lockTeamCode", "#lockTeamLabel", "#lockSkip"].forEach(s => { $(s).hidden = true; });
-      $("#lockMsg").textContent = "";
+      host.hidden = true; host.innerHTML = "";
+      $("#lockSkip").hidden = true; $("#lockGo").hidden = false;
       $("#lockView").hidden = true;
       resolve();
     };
+    $("#lockForm").onsubmit = e => e.preventDefault();      // ปุ่มในตัวเลือกทีมจัดการเอง
     $("#lockSkip").onclick = () => { try { lsSet(LS_TEAMSKIP, "1"); } catch(e){} finish(); };
-    $("#lockForm").onsubmit = async e => {
-      e.preventDefault();
-      if (shown) return finish();
-      const name = $("#lockTeam").value.trim();
-      if (!name){ $("#lockTeam").focus(); return msg("ใส่ชื่อทีมก่อน", "err"); }
-      $("#lockGo").disabled = true; msg("กำลังเข้าทีม...", "busy");
-      try {
-        const j = await sbRpc("join_team", { p_name: name, p_code: $("#lockTeamCode").value.trim(),
-                                             p_label: $("#lockTeamLabel").value.trim() });
-        $("#lockGo").disabled = false;
-        if (!j || !j.ok){
-          msg((j && j.error) || "เข้าทีมไม่สำเร็จ", "err");
-          if (j && j.need_code) $("#lockTeamCode").focus();
-          return;
-        }
-        TEAM = j.team;
-        const note = teamJoinNote(j);
-        if (!note) return finish();
-        shown = true;
-        ["#lockTeam", "#lockTeamCode", "#lockTeamLabel", "#lockSkip"].forEach(s => { $(s).hidden = true; });
-        $("#lockTitle").textContent = j.created ? "สร้างทีมแล้ว" : "เข้าทีมแล้ว";
-        $("#lockHint").textContent = "";
-        $("#lockMsg").className = "lockmsg code";
-        $("#lockMsg").innerText = note;
-        $("#lockGo").textContent = "เข้าใช้งาน";
-      } catch(err){
-        $("#lockGo").disabled = false;
-        msg((err && err.message) || "เข้าทีมไม่สำเร็จ", "err");
-      }
-    };
+    mountTeamPicker(host, j => {
+      TEAM = j.team;
+      const note = teamJoinNote(j);
+      if (note) alert(note);
+      finish();
+    });
   });
 }
 
@@ -12306,41 +12394,31 @@ async function teamSettle(){
 function renderTeamSect(){
   $("#teamSect").hidden = false;
   const b = $("#teamBody");
+  const admin = (PROFILE || {}).role === "admin";
   if (!TEAM){
-    b.innerHTML = `<p class="sect-sub">ยังไม่ได้อยู่ในทีม — งานทุกอย่างเห็นแค่คุณคนเดียว</p>
-      <div class="dd-act" style="flex-wrap:wrap">
-        <input id="tmName" maxlength="60" placeholder="ชื่อทีม">
-        <input id="tmCode" maxlength="6" inputmode="numeric" placeholder="รหัส 6 หลัก (ถ้าเข้าทีมที่มีอยู่)">
-        <input id="tmLabel" maxlength="60" placeholder="ป้ายของคุณ (ไม่บังคับ)">
-        <button type="button" class="export" id="tmJoin">เข้าทีม / สร้างทีม</button>
-      </div>
-      <div class="hint" id="tmMsg" style="margin-top:6px"></div>`;
-    $("#tmJoin").onclick = async () => {
-      const name = $("#tmName").value.trim();
-      if (!name) return $("#tmName").focus();
+    b.innerHTML = `<p class="sect-sub">ยังไม่ได้อยู่ในทีม — งานทุกอย่างเห็นแค่คุณคนเดียว</p><div id="tmPick"></div>
+      ${admin ? `<div id="tmAdmin"></div>` : ""}`;
+    mountTeamPicker($("#tmPick"), async j => {
       if (!(await teamSettle())) return;
-      try {
-        const j = await sbRpc("join_team", { p_name: name, p_code: $("#tmCode").value.trim(),
-                                             p_label: $("#tmLabel").value.trim() });
-        if (!j || !j.ok){ $("#tmMsg").textContent = (j && j.error) || "เข้าทีมไม่สำเร็จ"; return; }
-        const note = teamJoinNote(j);
-        if (note) alert(note);
-        location.reload();             // โปรเจกต์ของทีมต้องโหลดใหม่ทั้งชุด
-      } catch(e){ $("#tmMsg").textContent = e.message; }
-    };
+      const note = teamJoinNote(j);
+      if (note) alert(note);
+      location.reload();             // โปรเจกต์ของทีมต้องโหลดใหม่ทั้งชุด
+    });
+    if (admin) renderTeamAdmin($("#tmAdmin"));
     return;
   }
-  const me = sbUid(), lead = TEAM.lead_id === me, admin = (PROFILE || {}).role === "admin";
+  const me = sbUid(), lead = TEAM.lead_id === me;
   b.innerHTML = `<p class="sect-sub"><b>${esc(TEAM.name)}</b> · สมาชิก ${TEAM.members.length} คน</p>
+    <div id="tmReqs"></div>
     <div class="dd-act" style="flex-wrap:wrap;align-items:center">
-      <span>รหัสชวนเข้าทีม</span>
+      <span>รหัสทีม</span>
       <code style="font-size:1.15em;letter-spacing:.15em">${esc(TEAM.code || "")}</code>
       <button type="button" class="export ghost" id="tmCopy">คัดลอก</button>
       ${lead || admin ? `<button type="button" class="export ghost" id="tmRegen">สุ่มรหัสใหม่</button>` : ""}
       <button type="button" class="export ghost" id="tmLeave">ออกจากทีม</button>
     </div>
     <div style="margin-top:10px">${TEAM.members.map(m => `<div class="mrow">
-      <span class="mn">${esc(m.name || m.email)}${m.id === TEAM.lead_id ? " · หัวทีม" : ""}${m.id === me ? " (คุณ)" : ""}</span>
+      <span class="mn">${avatar(m.id, m.name)} ${esc(m.name || m.email)}${m.id === TEAM.lead_id ? " · หัวทีม" : ""}${m.id === me ? " (คุณ)" : ""}</span>
       ${lead || admin || m.id === me
         ? `<input data-mlabel="${esc(m.id)}" maxlength="60" value="${esc(m.label || "")}"
              placeholder="ป้าย เช่น Sourcing, KOC — คั่นด้วยจุลภาค">`
@@ -12348,8 +12426,11 @@ function renderTeamSect(){
     </div>`).join("")}</div>
     <div class="hint" id="tmLabelMsg" style="margin-top:4px">ป้ายใช้กรองงานเหนือตาราง Coordinator (#ป้าย) ·
       หัวทีม/admin แก้ป้ายของทุกคนได้</div>
-    <div class="hint">คนใหม่: ล็อกอินครั้งแรก → พิมพ์ชื่อทีม “${esc(TEAM.name)}” + รหัสนี้ ·
-      สุ่มรหัสใหม่แล้วรหัสเก่าใช้ไม่ได้ แต่คนที่อยู่ในทีมแล้วไม่โดนเตะ</div>`;
+    <div class="hint">คนใหม่: ล็อกอินครั้งแรก → เลือก “${esc(TEAM.name)}” → ใส่รหัสนี้ (เข้าทันที) หรือกดส่งคำขอแล้วคุณอนุมัติให้ ·
+      สุ่มรหัสใหม่แล้วรหัสเก่าใช้ไม่ได้ แต่คนที่อยู่ในทีมแล้วไม่โดนเตะ</div>
+    ${admin ? `<div id="tmAdmin"></div>` : ""}`;
+  if (lead || admin) renderTeamRequests($("#tmReqs"));
+  if (admin) renderTeamAdmin($("#tmAdmin"));
   b.querySelectorAll("[data-mlabel]").forEach(inp => inp.onchange = async () => {
     try {
       await sbRpc("set_member_label", { p_user: inp.dataset.mlabel, p_label: inp.value.trim() });
@@ -12372,15 +12453,76 @@ function renderTeamSect(){
     if (!confirm(`ออกจากทีม “${TEAM.name}”?\n\nงานทีมยังอยู่กับทีม แต่คุณจะไม่เห็นอีก · งานส่วนตัวไม่กระทบ`)) return;
     if (!(await teamSettle())) return;
     try { await sbRpc("leave_team"); } catch(e){ return alert(e.message); }
-    try { lsSet(LS_TEAMSKIP, "1"); } catch(e){}     // ไม่ต้องถามชื่อทีมอีกตอนล็อกอินครั้งหน้า
+    try { lsSet(LS_TEAMSKIP, "1"); } catch(e){}
     location.reload();
   };
+}
+// คำขอเข้าทีมที่รออนุมัติ (หัวทีม = ทีมตัวเอง · admin = ทุกทีม)
+async function renderTeamRequests(host){
+  let list = [];
+  try { list = await sbRpc("list_team_requests") || []; } catch(e){ return; }
+  teamReqBadge(list.length);
+  if (!list.length){ host.innerHTML = ""; return; }
+  host.innerHTML = `<div class="treqs"><b>📨 คำขอเข้าทีม ${list.length} คน</b>${list.map(r => `<div class="mrow">
+      <span class="mn">${esc(r.name || r.email)}</span><span class="hint">${esc(r.email)} → ${esc(r.team)}</span>
+      <button type="button" class="run" data-tok="${esc(r.user_id)}" style="width:auto;padding:4px 12px">อนุมัติ</button>
+      <button type="button" class="cmdbtn" data-tno="${esc(r.user_id)}">ปฏิเสธ</button></div>`).join("")}</div>`;
+  const decide = async (u, ok) => {
+    try {
+      const j = await sbRpc("decide_team_request", { p_user: u, p_ok: ok });
+      if (!j || !j.ok) return alert((j && j.error) || "ทำไม่สำเร็จ");
+      if (TEAM) TEAM = await sbRpc("my_team");
+      renderTeamSect();
+    } catch(e){ alert(e.message); }
+  };
+  host.querySelectorAll("[data-tok]").forEach(b => b.onclick = () => decide(b.dataset.tok, true));
+  host.querySelectorAll("[data-tno]").forEach(b => b.onclick = () => decide(b.dataset.tno, false));
+}
+// admin: ทุกทีม · รหัส · หัวทีม · สร้างทีมใหม่
+async function renderTeamAdmin(host){
+  let teams = [];
+  try { teams = await sbRpc("admin_teams") || []; } catch(e){ return; }
+  host.innerHTML = `<details class="tadminbox"${teams.length ? "" : " open"}><summary>admin — ทุกทีม (${teams.length})</summary>
+    ${teams.map(t => `<div class="mrow"><span class="mn">${esc(t.name)}</span>
+      <code>${esc(t.code || "")}</code><span class="hint">${t.members.length} คน</span>
+      <select data-tlead="${esc(t.id)}" style="width:auto"><option value="">— หัวทีม —</option>${
+        t.members.map(m => `<option value="${esc(m.id)}"${m.id === t.lead_id ? " selected" : ""}>${esc(m.name)}</option>`).join("")}</select></div>`).join("")}
+    <div class="dd-act" style="margin-top:8px"><input id="tmNewTeam" maxlength="60" placeholder="ชื่อทีมใหม่ เช่น Team 2">
+      <button type="button" class="export" id="tmCreate">สร้างทีม</button></div>
+    <div class="hint" id="tmAdminMsg">สร้างทีมแล้วส่ง “ชื่อทีม + รหัส” ให้สมาชิก หรือให้เขากดขอเข้าทีมแล้วอนุมัติที่นี่ ·
+      หัวทีมเลือกได้จากคนที่อยู่ในทีมแล้ว</div></details>`;
+  host.querySelectorAll("[data-tlead]").forEach(s => s.onchange = async () => {
+    try { await sbRpc("set_team_lead", { p_team: s.dataset.tlead, p_user: s.value || null });
+          $("#tmAdminMsg").textContent = "ตั้งหัวทีมแล้ว"; }
+    catch(e){ $("#tmAdminMsg").textContent = e.message; }
+  });
+  $("#tmCreate").onclick = async () => {
+    const name = $("#tmNewTeam").value.trim();
+    if (!name) return $("#tmNewTeam").focus();
+    try {
+      const j = await sbRpc("create_team", { p_name: name });
+      if (!j || !j.ok) return $("#tmAdminMsg").textContent = (j && j.error) || "สร้างไม่สำเร็จ";
+      renderTeamAdmin(host);
+    } catch(e){ $("#tmAdminMsg").textContent = e.message; }
+  };
+}
+// ป้ายเตือนหัวทีม/admin ว่ามีคนขอเข้าทีม — โผล่ข้างคนออนไลน์เหนือตาราง
+function teamReqBadge(n){
+  const el = $("#teamReqBtn");
+  if (!el) return;
+  el.hidden = !n;
+  el.textContent = `📨 คำขอเข้าทีม ${n}`;
+}
+async function checkTeamRequests(){
+  if (!TEAM_MODE || !PROFILE) return;
+  if (PROFILE.role !== "admin" && !(TEAM && TEAM.lead_id === sbUid())) return;
+  try { teamReqBadge(((await sbRpc("list_team_requests")) || []).length); } catch(e){}
 }
 
 // ─── ประวัติการแก้ไข ───
 const ACT_VERB = { insert:"เพิ่ม", update:"แก้", delete:"ลบ", rename:"เปลี่ยนชื่อ", move:"ย้าย",
                    create:"สร้างทีม", join:"เข้าทีม", leave:"ออกจากทีม", code:"สุ่มรหัสทีมใหม่",
-                   label:"แก้ป้าย" };
+                   label:"แก้ป้าย", request:"ขอเข้าทีม", approve:"อนุมัติเข้าทีม", deny:"ปฏิเสธคำขอเข้าทีม" };
 const ACT_TBL = { coord:"งาน", projects:"โปรเจกต์", pool:"คลังครีเอเตอร์" };
 const ACT_FIELD_TH = { status:"สถานะ", rate:"เรท", net3:"จ่ายจริง", paytype:"การจ่าย", sku:"SKU",
   postdate:"วันโพสต์", note:"โน้ต", code:"งาน", link:"ลิงก์", script:"สคริปต์", name:"ชื่อ",
@@ -12615,15 +12757,21 @@ function rtApplyCoord(d){
   if (i < 0) i = list.findIndex(r => coordKey(r) === coordKey(row));
   if (i < 0 && d.type === "UPDATE") return false;      // เปลี่ยนชื่อแถวที่เรายังไม่รู้ id — โหลดใหม่ดีกว่า
   const base = BASE[p] || (BASE[p] = new Map());
-  if (i < 0){ list.push(row); i = list.length - 1; }
+  let changed = [];                                  // ช่องที่เปลี่ยน — เอาไปกะพริบ · null = แถวใหม่ทั้งแถว
+  if (i < 0){ list.push(row); i = list.length - 1; changed = null; }
   else {
     const cur = list[i], oldKey = coordKey(cur);
     const mine = EDITS[ekey(cur)] || {};             // ช่องที่เครื่องนี้แก้ค้าง ยังไม่ได้ส่ง — ของเราชนะ
-    Object.keys(row).forEach(f => { if (!(f in mine)) cur[f] = row[f]; });
+    Object.keys(row).forEach(f => {
+      if (f in mine) return;
+      if (f !== "_id" && f !== "rate_all" && JSON.stringify(cur[f] ?? null) !== JSON.stringify(row[f] ?? null)) changed.push(f);
+      cur[f] = row[f];
+    });
     if (oldKey !== coordKey(cur)) base.delete(oldKey);
   }
   // BASE = ค่าในฐานตอนนี้ · ord ใช้ตำแหน่งในเครื่อง ไม่งั้นรอบหน้าจะ PATCH ลำดับกลับไปมา
   base.set(coordKey(row), coordRowToSB(Object.assign({}, row), i));
+  if (changed === null || changed.length) rtFlashAdd(p, row, changed, rec.updated_by);
   rtRealignOrd(p);
   rtRedraw();
   return true;
@@ -12714,12 +12862,13 @@ function presWhere(m){
 }
 function presRender(){
   const ppl = Object.entries(PRES);
-  const html = ppl.map(([u, m]) => `<span class="av" style="--mc:${memColor(u)}"
-      title="${esc((m.name || memName(u)) + " — " + presWhere(m))}">${esc(memInitial(u, m.name))}</span>`).join("");
+  const html = ppl.map(([u, m]) => `<span class="av" data-jump="${esc(u)}" style="--mc:${memColor(u)}"
+      title="${esc((m.name || memName(u)) + " — " + presWhere(m))} · กดเพื่อไปที่นั่น">${esc(memInitial(u, m.name))}</span>`).join("");
   ["#onlineBar", "#mapOnline"].forEach(sel => {
     const el = $(sel);
     if (el) el.innerHTML = html ? `<span class="olab">ออนไลน์</span>${html}` : "";
   });
+  document.querySelectorAll("#onlineBar [data-jump], #mapOnline [data-jump]").forEach(a => a.onclick = () => presJump(a.dataset.jump));
   tabAvatars();
   applyLocks();
 }
@@ -12745,6 +12894,7 @@ function applyLocks(){
     el.title = el.dataset.t0 || "";
   });
   document.querySelectorAll(".rlockrow").forEach(el => el.classList.remove("rlockrow"));
+  document.querySelectorAll("td.rcell, .dfield.rcell").forEach(td => { td.classList.remove("rcell"); delete td.dataset.rname; });
   document.querySelectorAll(".rview").forEach(el => el.remove());
   const rowAt = (p, h, c) => (COORD[p] || []).findIndex(r => normId(r.handle) === h && (c == null || (r.code || "") === c));
   Object.entries(PRES).forEach(([u, m]) => {
@@ -12758,6 +12908,9 @@ function applyLocks(){
     if (!ed) return;
     const lock = el => {
       if (!el || el === document.activeElement) return;
+      // ป้ายชื่อมุมช่องแบบ Google Sheets
+      const td = el.closest("td, .dfield");
+      if (td){ td.classList.add("rcell"); td.style.setProperty("--rc", memColor(u)); td.dataset.rname = m.name || memName(u); }
       el.classList.add("rlock");
       el.style.setProperty("--rc", memColor(u));
       el.dataset.t0 = el.title || "";
@@ -12940,6 +13093,10 @@ function qo2WhoHTML(c){
         <button type="button" data-qq="none">ล้าง</button></div>
       <div class="qo2opts" id="qo2List"></div></div></div>`;
 }
+// ─── หน้าตาคำสั่งด่วน (2026-10-04 รอบ 2) ───
+// 3 ขั้นเรียงลงมาให้อ่านตามได้: ① ทำอะไร (ปุ่มคำสั่งที่ใช้บ่อย + "อื่นๆ ▾") · ② กับใคร · ③ เป็นค่าอะไร
+// มีประโยคสรุปว่า "จะทำอะไร" ก่อนกดตรวจ — อ่านแล้วรู้ทันทีว่าเลือกถูกไหม
+const QO2_TOP = ["rate", "status", "sku", "cart", "hashtag", "note", "add"];
 function renderQO2(){
   const box = $("#qo2");
   if (!box || !TEAM_MODE) return;
@@ -12947,37 +13104,91 @@ function renderQO2(){
   box.classList.toggle("folded", QO2_FOLD);
   if (QO2_PICK_PROJ !== PROJ){ QO2_PICK = new Set(); QO2_PICK_PROJ = PROJ; }
   const c = QO2_CMD;
-  box.innerHTML = `<div class="qo2bar"><span class="cmdbar-ic">⌘</span><span class="t">คำสั่งด่วน</span>` +
-    (QO2_FOLD ? "" :
-      `<select id="qo2Cmd" class="qo2s"><option value="">— เลือกคำสั่ง —</option>${
-        qo2Groups().map(([g, list]) => `<optgroup label="${esc(g)}">${list.map(x =>
-          `<option value="${esc(x.c)}"${x.c === c ? " selected" : ""}>${esc(qo2Label(x))}</option>`).join("")}</optgroup>`).join("")}${
-        QO2_ALL ? `<option value="__less">− ย่อ: โชว์เฉพาะที่โปรเจกต์นี้ใช้</option>`
-          : qo2HiddenN() ? `<option value="__all">＋ แสดงคำสั่งทั้งหมด (อีก ${qo2HiddenN()})</option>` : ""}</select>` +
-      (!c ? `<span class="hint">เลือกคำสั่ง → เลือกคน → เลือกค่า → ตรวจ (มีหน้าตรวจก่อนใช้เสมอ)</span>`
-        : (c === "track"
-            ? `<textarea id="qo2Val" rows="1" class="qo2new qo2track" placeholder="วางลิสต์จากลูกค้า — บรรทัดละคน: ชื่อ + เลขพัสดุ"></textarea>`
-            : qo2WhoHTML(c) + qo2ValueField(c)) +
-          `<button class="run qo2run" id="qo2Go">ตรวจ ▶</button>`)) +
-    `<button type="button" class="qo2fold" id="qo2Fold" title="${QO2_FOLD ? "กางคำสั่งด่วน" : "พับเก็บ"}">${
-      QO2_FOLD ? "▾ กาง" : "▴"}</button></div><div class="qo2msg" id="qo2Msg"></div>`;
+  const spec = x => qo2Spec(x) || SLASH_BY[x];
+  const top = QO2_TOP.map(spec).filter(Boolean);
+  const inTop = c && QO2_TOP.includes(c);
+  const head = `<div class="qo2bar"><span class="cmdbar-ic">⌘</span><span class="t">คำสั่งด่วน</span>
+      <span class="hint">${QO2_FOLD ? "" : `แก้ข้อมูลหลายคนพร้อมกัน — เลือกตาม ① ② ③ แล้วกดตรวจ · ไม่มีอะไรเปลี่ยนจนกว่าจะกดใช้ในผลตรวจ`}</span>
+      <button type="button" class="qo2fold" id="qo2Fold" title="${QO2_FOLD ? "กางคำสั่งด่วน" : "พับเก็บ"}">${
+        QO2_FOLD ? "▾ กาง" : "▴ พับ"}</button></div>`;
+  if (QO2_FOLD){ box.innerHTML = head; wireQO2Head(); return; }
+  const other = qo2Groups().map(([g, list]) => [g, list.filter(x => !QO2_TOP.includes(x.c))]).filter(([, l]) => l.length);
+  box.innerHTML = head + `<div class="qo2rows">
+      <span class="qo2step"><b>①</b> ทำอะไร</span>
+      <div class="qo2chips">${top.map(x => `<button type="button" class="qo2chip${x.c === c ? " on" : ""}" data-qc="${esc(x.c)}">${
+          esc(qo2Label(x))}</button>`).join("")}
+        <select id="qo2Cmd" class="qo2s${c && !inTop ? " on" : ""}"><option value="">อื่นๆ ▾</option>${
+          other.map(([g, list]) => `<optgroup label="${esc(g)}">${list.map(x =>
+            `<option value="${esc(x.c)}"${x.c === c ? " selected" : ""}>${esc(qo2Label(x))}</option>`).join("")}</optgroup>`).join("")}${
+          QO2_ALL ? `<option value="__less">− ย่อ: โชว์เฉพาะที่โปรเจกต์นี้ใช้</option>`
+            : qo2HiddenN() ? `<option value="__all">＋ แสดงคำสั่งทั้งหมด (อีก ${qo2HiddenN()})</option>` : ""}</select></div>` +
+      (!c ? "" : c === "track"
+        ? `<span class="qo2step"><b>②</b> วางลิสต์</span>
+           <div class="qo2line"><textarea id="qo2Val" rows="3" class="qo2new qo2track"
+             placeholder="วางลิสต์จากลูกค้า — บรรทัดละคน: ชื่อ + เลขพัสดุ (สลับข้างได้)&#10;nana.review   TH0124578963A"></textarea>
+             <button class="run qo2run" id="qo2Go">ตรวจก่อนใช้ ▶</button></div>`
+        : `<span class="qo2step"><b>②</b> ${c === "add" ? "ชื่อคนใหม่" : "กับใคร"}</span>
+           <div class="qo2line">${qo2WhoHTML(c)}
+             ${c === "del" ? "" : `<span class="qo2step"><b>③</b> ${c === "add" ? "เข้า" : c === "move" ? "ไปที่" : "เป็น"}</span>`}
+             ${qo2ValueField(c)}
+             <button class="run qo2run" id="qo2Go">ตรวจก่อนใช้ ▶</button>
+             <button type="button" class="qo2x" id="qo2X" title="ยกเลิกคำสั่งนี้">✕</button></div>`) +
+      (c ? `<span></span><div class="qo2sum" id="qo2Sum"></div>` : "") +
+    `</div><div class="qo2msg" id="qo2Msg"></div>`;
+  wireQO2Head();
+  const pickCmd = v => {
+    if (v === "bulk"){ $("#bulkToggle").click(); return; }              // กล่องวางจากชีตเดิม
+    if (v === "__all" || v === "__less"){
+      QO2_ALL = v === "__all"; renderQO2();
+      const s = $("#qo2Cmd"); if (s){ s.focus(); try { s.showPicker(); } catch(e){} }
+      return;
+    }
+    QO2_CMD = v || null;
+    renderQO2();
+  };
+  box.querySelectorAll("[data-qc]").forEach(b => b.onclick = () => pickCmd(QO2_CMD === b.dataset.qc ? "" : b.dataset.qc));
+  $("#qo2Cmd").onchange = e => pickCmd(e.target.value);
+  if ($("#qo2X")) $("#qo2X").onclick = () => { QO2_CMD = null; renderQO2(); };
+  if (c){ wireQO2Form(c); qo2Sum(c); }
+}
+function wireQO2Head(){
   $("#qo2Fold").onclick = () => {
     QO2_FOLD = !QO2_FOLD;
     try { lsSet(LS_QO2FOLD, QO2_FOLD ? "1" : "0"); } catch(e){}
     renderQO2(); scheduleStick();
   };
-  const cmd = $("#qo2Cmd");
-  if (cmd) cmd.onchange = () => {
-    if (cmd.value === "bulk"){ cmd.value = c || ""; $("#bulkToggle").click(); return; }   // กล่องวางจากชีตเดิม
-    if (cmd.value === "__all" || cmd.value === "__less"){
-      QO2_ALL = cmd.value === "__all"; renderQO2();
-      const c2 = $("#qo2Cmd"); if (c2){ c2.focus(); try { c2.showPicker(); } catch(e){} }   // เปิดเมนูค้างไว้ให้เลือกต่อ
-      return;
-    }
-    QO2_CMD = cmd.value || null;
-    renderQO2();
-  };
-  if (c) wireQO2Form(c);
+}
+// ประโยคสรุป "จะทำอะไร" — อัปเดตทุกครั้งที่เลือก
+function qo2Sum(c){
+  const el = $("#qo2Sum");
+  if (!el) return;
+  const sp = qo2Spec(c) || {};
+  const ppl = list => list.length > 3 ? `${list.slice(0, 3).join(", ")} และอีก ${list.length - 3} คน` : list.join(", ");
+  const selText = id => { const s = $(id); return s && s.tagName === "SELECT" && s.value ? s.options[s.selectedIndex].text : ""; };
+  const val = (() => {
+    const sel = $("#qo2Sel");
+    if (sel) return sel.value === "__new" ? String(($("#qo2Val") || {}).value || "").trim() : (sel.value ? selText("#qo2Sel").replace(/ · \d+ คน$/, "") : "");
+    return selText("#qo2Val") || String(($("#qo2Val") || {}).value || "").trim();
+  })();
+  let t;
+  if (c === "track"){
+    const n = String(($("#qo2Val") || {}).value || "").split("\n").filter(l => l.trim()).length;
+    t = n ? `จะอ่านลิสต์เลขพัสดุ <b>${n}</b> บรรทัด แล้วใส่ให้แต่ละคน` : `วางลิสต์แล้วกดตรวจ`;
+  } else if (c === "add"){
+    const names = String(($("#qo2New") || {}).value || "").split(/[\s,]+/).map(qo2Handle).filter(Boolean);
+    const kind = selText("#qo2Val2");
+    t = names.length ? `จะเพิ่ม <b>${esc(ppl(names))}</b> เข้า <b>${esc(($("#qo2Val") || {}).value || "")}</b>${
+      kind && kind !== "กลุ่ม —" ? " · กลุ่ม " + esc(kind) : ""}` : `พิมพ์ชื่อคนใหม่ (หลายคนเว้นวรรค)`;
+  } else {
+    const who = [...QO2_PICK];
+    if (!who.length) t = `เลือกคนที่ ② ก่อน`;
+    else if (c === "del") t = `จะลบ <b>${esc(ppl(who))}</b> ออกจาก ${esc(PROJ)}`;
+    else if (!val) t = `${who.length} คนแล้ว — เลือกค่าที่ ③`;
+    else if (c === "move") t = `จะย้าย <b>${esc(ppl(who))}</b> ไป <b>${esc(val)}</b>`;
+    else if (c === "clear") t = `จะล้างช่อง <b>${esc(val)}</b> ของ <b>${esc(ppl(who))}</b>`;
+    else t = `จะ${esc(qo2Label(sp))} ของ <b>${esc(ppl(who))}</b> เป็น <b>${esc(val.length > 50 ? val.slice(0, 50) + "…" : val)}</b>`;
+  }
+  el.innerHTML = "→ " + t;
 }
 // วางลิงก์ TikTok มาก็ได้ (เฉพาะช่องชื่อคนใหม่) — ดึงชื่อหลัง @ ออกมา
 const qo2Handle = t => { const m = String(t).match(/tiktok\.com\/@([^/?#\s]+)/i);
@@ -12986,7 +13197,7 @@ function wireQO2Form(c){
   const msg = t => { $("#qo2Msg").textContent = t || ""; };
   // ── ใคร ──
   const btn = $("#qo2DdBtn"), pan = $("#qo2Pan"), list = $("#qo2List");
-  const label = () => { if (btn) btn.innerHTML = (QO2_PICK.size ? `ใคร: <b>${QO2_PICK.size}</b> คน` : "ใคร —") + " ▾"; };
+  const label = () => { if (btn) btn.innerHTML = (QO2_PICK.size ? `ใคร: <b>${QO2_PICK.size}</b> คน` : "ใคร —") + " ▾"; qo2Sum(c); };
   const draw = () => {
     const q = normId($("#qo2Find").value || "");
     const rows = (COORD[PROJ] || []).filter(r => !q || normId(r.handle).includes(q));
@@ -13022,6 +13233,8 @@ function wireQO2Form(c){
   };
   const tr = $("#qo2Val.qo2track");
   if (tr){ tr.onfocus = () => { tr.rows = 5; }; tr.onblur = () => { if (!tr.value.trim()) tr.rows = 1; }; }
+  // ประโยคสรุปตามที่เลือก/พิมพ์ (event ฟองขึ้นมาที่กล่อง)
+  $("#qo2").oninput = $("#qo2").onchange = () => qo2Sum(c);
   // ── ตรวจ ──
   $("#qo2Go").onclick = () => {
     const sp = qo2Spec(c) || {};
@@ -13060,6 +13273,60 @@ if (TEAM_MODE) document.addEventListener("pointerdown", e => {
   const p = $("#qo2Pan");
   if (p && !p.hidden && !e.target.closest(".qo2dd")) p.hidden = true;
 });
+
+// ═══ เรียลไทม์แบบ Google Sheets ═══
+// · ช่องที่คนอื่นกำลังอยู่ = กรอบสีของคนนั้น + ป้ายชื่อมุมขวาบนของช่อง (applyLocks)
+// · ช่องที่คนอื่นเพิ่งแก้ = กะพริบสีของคนแก้ ~2 วิ (แถวใหม่ทั้งแถว) — ทั้งในตารางและการ์ดใน Map
+// · กดวงชื่อคนที่ออนไลน์ = กระโดดไปที่ที่เขาอยู่ (โปรเจกต์ + แถวที่เขาเปิด/แก้)
+let RT_FLASH = [];
+function rtFlashAdd(p, row, fields, u){
+  RT_FLASH.push({ p, h: normId(row.handle), c: row.code || "", fields, u: u || "", at: Date.now() });
+  RT_FLASH = RT_FLASH.filter(f => Date.now() - f.at < 4000).slice(-60);
+}
+function paintFlash(){
+  if (!RT_FLASH.length) return;
+  const fresh = RT_FLASH.filter(f => Date.now() - f.at < 2500);
+  RT_FLASH = [];                                    // ทาครั้งเดียวต่อการเปลี่ยน — วาดซ้ำทีหลังไม่กะพริบซ้ำ
+  fresh.forEach(f => {
+    const c = memColor(f.u), name = memName(f.u);
+    if (!MINE_VIEW && f.p === PROJ){
+      const i = (COORD[PROJ] || []).findIndex(r => normId(r.handle) === f.h && (r.code || "") === f.c);
+      const tr = i >= 0 && document.querySelector(`#coordBody tr[data-row="${i}"]`);
+      if (tr){
+        const cells = f.fields ? f.fields.map(k => { const el = tr.querySelector(`[data-f="${k}"]`); return el && el.closest("td"); }).filter(Boolean) : [];
+        (cells.length ? cells : [tr]).forEach(el => {
+          el.classList.remove("rflash"); void el.offsetWidth;          // เริ่มแอนิเมชันใหม่ถ้ากะพริบซ้อน
+          el.style.setProperty("--rc", c); el.classList.add("rflash");
+          el.title = `${name} เพิ่งแก้`;
+        });
+      }
+    }
+    if (!$("#mapView").hidden){
+      const leaf = [...document.querySelectorAll("#mapBody .mapleaf")]
+        .find(el => el.dataset.mapproj === f.p && normId(el.dataset.mapwho) === f.h);
+      if (leaf){ leaf.classList.remove("rflash"); void leaf.offsetWidth; leaf.style.setProperty("--rc", c); leaf.classList.add("rflash"); }
+    }
+  });
+}
+// กดวงชื่อ → ไปที่ที่คนนั้นอยู่
+async function presJump(u){
+  const m = PRES[u];
+  if (!m) return;
+  if (m.map){ openMap(m.proj || ""); return; }
+  if (m.proj === "★" || !PROJECTS.includes(m.proj)){ alert(`${m.name || memName(u)} — ${presWhere(m)}`); return; }
+  if (!$("#mapView").hidden) openTable(m.proj);
+  if (document.body.dataset.view !== "coord") await setView("coord");
+  MINE_VIEW = false; PROJ = m.proj;
+  renderProjTabs(); renderCoord();
+  const h = (m.ed && m.ed.h) || m.h;
+  const i = h ? (COORD[PROJ] || []).findIndex(r => normId(r.handle) === h) : -1;
+  const tr = i >= 0 && document.querySelector(`#coordBody tr[data-row="${i}"]`);
+  if (tr){
+    tr.scrollIntoView({ block:"center", behavior:"smooth" });
+    tr.style.setProperty("--rc", memColor(u));
+    tr.classList.remove("rflash"); void tr.offsetWidth; tr.classList.add("rflash");
+  }
+}
 
 // เจ้าของ = admin/manager หรือหัวทีม — ที่เหลือคือลูกทีม (ตั้งค่าเหลือ 4 ส่วน · ดูการเปิดดูได้แค่ของตัวเอง)
 function isTeamOwner(){ return !isCrew() || !!(TEAM && TEAM.lead_id === sbUid()); }
@@ -15909,6 +16176,10 @@ $("#gearBtn").onclick = openSettings;
 $("#closeSet").onclick = closeSettings;
 $("#closeProj").onclick = () => { $("#projPanel").hidden = true; };
 $("#closeAct").onclick = () => { $("#actPanel").hidden = true; };
+$("#teamReqBtn").onclick = () => {
+  openSettings();
+  setTimeout(() => { const t = $("#teamSect"); if (t) t.scrollIntoView({ block:"start", behavior:"smooth" }); }, 80);
+};
 $("#actPanel").onclick = e => { if (e.target.id === "actPanel") $("#actPanel").hidden = true; };
 $("#projPanel").onclick = e => { if (e.target.id === "projPanel") $("#projPanel").hidden = true; };
 $("#addSheet").onclick = addSheet;
@@ -18937,17 +19208,18 @@ foldSummaries();
 
 if (TEAM_MODE){
   const after = (fn, post) => function(){ const out = fn.apply(this, arguments); try { post(); } catch(e){} return out; };
-  renderCoord = after(renderCoord, applyLocks);
+  renderCoord = after(renderCoord, () => { applyLocks(); paintFlash(); });
   renderDetail = after(renderDetail, applyLocks);
   // คำสั่งที่เลือกค้างไว้ไม่วาดทับ (แผงเลือกคน/ค่าที่พิมพ์จะหาย) — วาดใหม่เฉพาะตอนสลับโปรเจกต์
   renderProjTabs = after(renderProjTabs, () => { tabAvatars(); if (!QO2_CMD || QO2_PICK_PROJ !== PROJ) renderQO2(); });
-  renderMap = after(renderMap, () => { tabAvatars(); paintRemoteDrag(); presRender(); });
+  renderMap = after(renderMap, () => { tabAvatars(); paintRemoteDrag(); presRender(); paintFlash(); });
 }
 
 // ต้อง login ก่อน แล้วค่อยโหลด pool จาก Supabase (ข้อมูลอยู่หลัง login)
 requireLogin().then(async () => {
   rtStart();                 // ฟังการเปลี่ยนแปลงจากเครื่องอื่นตั้งแต่เข้าเว็บ
   vlog("open");
+  if (TEAM_MODE){ checkTeamRequests(); setInterval(checkTeamRequests, 90000); }
   startLiveWarn();           // แจ้งเตือนก่อนไลฟ์ ทำงานทุกหน้า
   applyRole();                  // ต้องรู้สิทธิ์ก่อนวาดอะไร ไม่งั้นปุ่มที่กดไม่ได้จะโผล่แวบนึง
   await selectSheet();          // โหลด Creator Pool จาก Supabase
