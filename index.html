@@ -405,6 +405,156 @@ td.rcell::before, .dfield.rcell::before{content:attr(data-rname);position:absolu
 .hxrestore{margin-top:6px;background:none;border:1px solid var(--line);color:var(--ink);border-radius:7px;padding:3px 10px;font-size:.74rem;cursor:pointer}
 .hxrestore:hover{border-color:var(--accent);color:var(--accent)}
 .hxempty{color:var(--dim);font-size:.84rem;padding:20px 0}
+/* ── หน้าตาโหมดทีม: แท็บไม่ยืดเต็มแถว (เดิม flex:1 ทำให้ช่องไฟห่างไม่เท่ากัน) · เลื่อนข้างได้เมื่อมีหลายโปรเจกต์ ── */
+html:not([data-team]) .teamonly{display:none!important}
+body:not([data-view="review"]) #reviewView{display:none}
+html[data-team] #projTabs, html[data-team] #mapTabs, .rv-proj{flex-wrap:nowrap;overflow-x:auto;scrollbar-width:thin;
+  justify-content:flex-start;gap:4px}
+html[data-team] .coord-head #projTabs{flex:1;min-width:0}
+html[data-team] #projTabs button, html[data-team] #mapTabs button, .rv-proj button{flex:none;padding:7px 13px;border-radius:7px;white-space:nowrap}
+html[data-team] #projTabs button .n, html[data-team] #mapTabs button .n, .rv-proj button .n{display:inline-block;min-width:1.6em;
+  padding:0 6px;margin-left:6px;border-radius:999px;background:rgba(127,127,127,.18);opacity:1;font-size:.78em;text-align:center}
+html[data-team] #projTabs button[aria-selected="true"] .n, html[data-team] #mapTabs button[aria-selected="true"] .n,
+  .rv-proj button[aria-selected="true"] .n{background:rgba(0,0,0,.18)}
+/* หัวเว็บ */
+html[data-team] .nav{gap:4px}
+html[data-team] .nav button{border-radius:8px;padding:7px 13px}
+html[data-team] .nav button[aria-current="page"]{background:var(--surface2)}
+html[data-team] .nav button:hover{background:var(--surface2)}
+#qoNavBtn[aria-expanded="true"]{background:var(--accent);color:var(--accent-ink)}
+.nbadge{display:inline-block;margin-left:6px;min-width:18px;padding:0 5px;border-radius:999px;background:var(--lo);color:#fff;
+  font-size:.68rem;font-weight:700;line-height:18px;text-align:center;vertical-align:1px}
+/* แผงลอยคำสั่งด่วน */
+.qopop[hidden]{display:none!important}
+.qopop{position:fixed;inset:0;z-index:9400;background:rgba(0,0,0,.35);display:flex;justify-content:center;align-items:flex-start;
+  padding:calc(64px + env(safe-area-inset-top,0px)) 16px 16px}
+.qopop-in{width:min(1000px,100%);max-height:calc(100vh - 90px);overflow:auto;background:var(--bg);border:1px solid var(--line);
+  border-radius:14px;box-shadow:0 22px 60px rgba(0,0,0,.5);padding:12px 14px 14px}
+.qopop-head{display:flex;align-items:center;gap:12px;margin-bottom:8px}
+.qopop-head b{font-family:'Space Grotesk',sans-serif;font-size:1rem}
+.qopop-head label{display:flex;align-items:center;gap:6px;margin-left:auto}
+.qopop-head select{width:auto;padding:4px 8px;font-size:.8rem}
+#qoPop .qo2{margin:0;border:0;padding:0;background:none}
+#qoPop .qo2fold, #qoPop .qo2bar > .cmdbar-ic, #qoPop .qo2bar > .t{display:none}
+#qoPop #qoPreview:not(:empty){margin-top:12px;border-top:1px solid var(--line);padding-top:10px}
+
+/* ═══ ห้องตรวจดราฟต์ ═══ สีบทบาทตาม sheet: IBD แดง · PM ม่วง · แบรนด์ฟ้า · ครีเอเตอร์ส้ม */
+:root{--rv-ibd:#F07272;--rv-pm:#B293FF;--rv-brand:#64AEFF;--rv-creator:#F2B24C}
+#reviewView{padding:16px 22px 40px;max-width:1400px;margin:0 auto}
+@media (max-width:700px){ #reviewView{padding:12px} }
+.rv-head{display:flex;flex-wrap:wrap;gap:10px 16px;align-items:center}
+.rv-head .rv-proj{flex:1 1 400px;min-width:0;margin:0}
+.rv-role{display:flex;align-items:center;gap:6px;font-size:.78rem;color:var(--mute);flex-wrap:wrap}
+.rv-role button{display:flex;align-items:center;gap:6px;background:var(--surface);border:1px solid var(--line);border-radius:999px;padding:4px 11px;font-size:.78rem;color:var(--mute)}
+.rv-role button[aria-pressed="true"]{color:var(--ink);border-color:var(--accent)}
+.rv-role i, .rv-turn i{width:8px;height:8px;border-radius:50%;background:var(--c);display:inline-block}
+.rv-note{font-size:.74rem;color:var(--dim);margin:10px 0 0}
+.rv-turns{display:flex;flex-wrap:wrap;gap:8px;margin:12px 0}
+.rv-turn{display:flex;align-items:center;gap:7px;background:var(--surface);border:1px solid var(--line);border-radius:999px;padding:5px 12px 5px 10px;font-size:.8rem;color:var(--ink)}
+.rv-turn b{font-family:'IBM Plex Mono',monospace}
+.rv-turn[aria-pressed="true"]{border-color:var(--c);box-shadow:inset 0 0 0 1px var(--c)}
+.rv-turn.mine{background:rgba(var(--accent-rgb),.1)}
+.rv-desk{display:grid;grid-template-columns:minmax(260px,320px) minmax(0,1fr);gap:16px;align-items:start}
+@media (max-width:880px){ .rv-desk{grid-template-columns:1fr} }
+.rv-queue{background:var(--surface);border:1px solid var(--line);border-radius:12px;overflow:hidden;position:sticky;top:70px}
+@media (max-width:880px){ .rv-queue{position:static} }
+.rv-find{padding:10px;border-bottom:1px solid var(--line)}
+.rv-find input{padding:6px 10px;font-size:.84rem}
+.rv-list{max-height:calc(100vh - 260px);overflow:auto}
+@media (max-width:880px){ .rv-list{max-height:none} }
+.rv-qi{display:grid;grid-template-columns:auto 1fr auto;gap:2px 10px;align-items:center;width:100%;text-align:left;background:none;border:0;
+  border-bottom:1px solid var(--line);padding:10px 12px;position:relative;color:var(--ink)}
+.rv-qi:hover{background:var(--surface2)}
+.rv-qi[aria-current="true"]{background:rgba(var(--accent-rgb),.1)}
+.rv-qi[aria-current="true"]::before{content:"";position:absolute;left:0;top:8px;bottom:8px;width:3px;border-radius:0 3px 3px 0;background:var(--accent)}
+.rv-qi .av{grid-row:1 / 3;width:24px!important;height:24px!important;font-size:.64rem!important;border-radius:50%!important;
+  background:var(--mc)!important;color:#111!important;display:inline-flex!important;align-items:center;justify-content:center;padding:0!important;border:0!important}
+.rv-qi .h{font-weight:600;font-size:.88rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.rv-qi .sub{grid-column:2 / 4;font-size:.74rem;color:var(--mute);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.rv-wait{font-size:.68rem;border-radius:999px;padding:1px 8px;border:1px solid var(--c);color:var(--c);white-space:nowrap}
+.rv-empty{padding:26px 16px;text-align:center;color:var(--dim);font-size:.85rem}
+.rv-detail{min-width:0;display:flex;flex-direction:column;gap:14px}
+.rv-card{background:var(--surface);border:1px solid var(--line);border-radius:12px}
+.rv-who{padding:16px 18px;display:flex;flex-wrap:wrap;gap:12px 20px;align-items:flex-start}
+.rv-who h2{font-size:1.25rem;margin:0}
+.rv-who a{color:var(--accent);text-decoration:none;font-size:.8rem}
+.rv-facts{display:flex;flex-wrap:wrap;gap:6px;margin-top:6px}
+.rv-facts span{font-size:.74rem;background:var(--surface2);border-radius:6px;padding:2px 8px;color:var(--mute)}
+.rv-facts b{color:var(--ink)}
+.rv-people{margin-left:auto;display:flex;align-items:center;gap:12px;font-size:.78rem;color:var(--mute);flex-wrap:wrap}
+.rv-people .av{width:20px!important;height:20px!important;font-size:.58rem!important;border-radius:50%!important;background:var(--mc)!important;color:#111!important;
+  display:inline-flex!important;align-items:center;justify-content:center;padding:0!important;border:0!important;vertical-align:middle}
+.rv-steps{display:flex;padding:12px 18px 14px;overflow-x:auto;border-top:1px solid var(--line)}
+.rv-st{flex:1 0 84px;position:relative;text-align:center;font-size:.72rem;color:var(--dim);padding-top:22px}
+.rv-st::before{content:"";position:absolute;top:6px;left:50%;width:13px;height:13px;margin-left:-6.5px;border-radius:50%;border:2px solid var(--line);background:var(--surface);z-index:1}
+.rv-st::after{content:"";position:absolute;top:12px;left:calc(50% + 8px);right:calc(-50% + 8px);height:2px;background:var(--line)}
+.rv-st:last-child::after{display:none}
+.rv-st.done{color:var(--mute)}
+.rv-st.done::before{background:var(--accent);border-color:var(--accent)}
+.rv-st.done::after{background:var(--accent)}
+.rv-st.now{color:var(--ink);font-weight:600}
+.rv-st.now::before{border-color:var(--accent);box-shadow:0 0 0 4px rgba(var(--accent-rgb),.18)}
+.rv-next{padding:14px 18px;border-left:4px solid var(--c);display:flex;flex-direction:column;gap:10px}
+.rv-nextrow{display:flex;flex-wrap:wrap;align-items:center;gap:10px 14px}
+.rv-nextrow .what{flex:1 1 260px;min-width:0}
+.rv-nextrow .what b{display:block;font-size:.95rem}
+.rv-nextrow .what span{font-size:.78rem;color:var(--mute)}
+.rv-btns{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.rv-btn{border:1px solid var(--line);background:var(--surface);color:var(--ink);border-radius:8px;padding:7px 14px;font-size:.82rem;font-weight:600}
+.rv-btn:hover{border-color:var(--accent)}
+.rv-btn.primary{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
+.rv-btn.good{border-color:var(--hi);color:var(--hi)}
+.rv-btn.bad{border-color:var(--lo);color:var(--lo)}
+.rv-btn:disabled{opacity:.45;cursor:not-allowed}
+.rv-ibd, .rv-say{display:grid;grid-template-columns:74px minmax(0,1fr);gap:6px}
+.rv-ibd input, .rv-say input{font-family:'IBM Plex Mono',monospace;text-align:center;font-size:.8rem;padding:6px}
+.rv-ibd textarea, .rv-say textarea{min-height:42px;resize:vertical;font-size:.84rem;padding:7px 10px}
+.rv-rhead{display:flex;flex-wrap:wrap;align-items:center;gap:8px 12px;padding:12px 18px;border-bottom:1px solid var(--line);cursor:pointer;user-select:none}
+.rv-rhead h3{font-size:1rem;margin:0}
+.rv-rhead .tog{margin-left:auto;color:var(--dim);font-size:.8rem}
+.rv-chip{font-size:.7rem;border-radius:999px;padding:1px 9px;border:1px solid var(--c);color:var(--c);white-space:nowrap}
+.rv-round.closed .rv-rbody, .rv-round.closed .rv-compose{display:none}
+.rv-rbody{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.15fr)}
+@media (max-width:1050px){ .rv-rbody{grid-template-columns:1fr} }
+.rv-clips{padding:14px 18px;border-right:1px solid var(--line);display:flex;flex-direction:column;gap:10px;min-width:0}
+@media (max-width:1050px){ .rv-clips{border-right:0;border-bottom:1px solid var(--line)} }
+.rv-detail .lbl{font-size:.7rem;letter-spacing:.06em;text-transform:uppercase;color:var(--dim)}
+.rv-clip{display:grid;grid-template-columns:auto minmax(0,1fr) auto;gap:2px 10px;align-items:center;background:var(--surface2);border-radius:9px;padding:9px 10px}
+.rv-clip .pf{width:34px;height:34px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-family:'IBM Plex Mono',monospace;
+  font-size:.62rem;font-weight:600;background:var(--c);color:#fff;grid-row:1 / 3}
+.rv-clip .t{font-weight:600;font-size:.84rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.rv-clip .u{grid-column:2;font-size:.72rem;color:var(--mute);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.rv-clip a{grid-row:1 / 3;grid-column:3;font-size:.76rem;color:var(--accent);text-decoration:none;border:1px solid var(--line);border-radius:7px;padding:4px 9px;white-space:nowrap}
+.rv-addclip{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,.55fr) auto;gap:6px}
+@media (max-width:520px){ .rv-addclip{grid-template-columns:1fr} }
+.rv-addclip input{padding:7px 10px;font-size:.82rem;min-width:0}
+.rv-err{font-size:.76rem;color:var(--lo)}
+.rv-thread{padding:14px 18px;display:flex;flex-direction:column;gap:10px;min-width:0}
+.rv-msg{display:grid;grid-template-columns:auto minmax(0,1fr);gap:2px 10px}
+.rv-msg .av{grid-row:1 / 3;width:28px!important;height:28px!important;font-size:.7rem!important;border-radius:50%!important;background:var(--mc)!important;
+  color:#111!important;display:inline-flex!important;align-items:center;justify-content:center;padding:0!important;border:0!important}
+.rv-msg .meta{font-size:.76rem;color:var(--mute);display:flex;flex-wrap:wrap;gap:6px;align-items:center}
+.rv-msg .meta b{color:var(--ink);font-size:.82rem}
+.rv-msg .body{font-size:.86rem;white-space:pre-wrap;word-break:break-word}
+.rv-ts{font-family:'IBM Plex Mono',monospace;font-size:.74rem;background:rgba(var(--accent-rgb),.14);color:var(--accent);border-radius:5px;padding:0 6px;margin-right:4px}
+.rv-verdict{font-size:.7rem;font-weight:600;border-radius:5px;padding:0 7px;color:#111;background:var(--c)}
+.rv-sys{font-size:.76rem;color:var(--dim)}
+.rv-compose{border-top:1px solid var(--line);display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr)}
+@media (max-width:1050px){ .rv-compose{grid-template-columns:1fr} }
+.rv-compose .c2l, .rv-compose .c2r{padding:14px 18px;display:flex;flex-direction:column;gap:10px;min-width:0}
+.rv-compose .c2l{border-right:1px solid var(--line)}
+@media (max-width:1050px){ .rv-compose .c2l{border-right:0;border-bottom:1px solid var(--line)} }
+.rv-compose h4{margin:0;font-size:.95rem}
+.rv-pick{display:flex;gap:9px;align-items:flex-start;font-size:.84rem;padding:7px 9px;border-radius:8px;background:var(--surface2);cursor:pointer}
+.rv-pick input{width:auto;margin-top:4px;flex:none}
+.rv-pick b{font-size:.7rem;color:var(--c);margin-right:6px}
+.rv-pick.off{opacity:.55}
+#rvCmdText{min-height:120px;resize:vertical;line-height:1.6;font-size:.86rem}
+.rv-cmd{background:var(--bg);border:1px solid var(--line);border-radius:10px;overflow:hidden}
+.rv-cmdhead{display:flex;align-items:center;gap:8px;padding:8px 12px;border-bottom:1px solid var(--line);font-size:.8rem}
+.rv-cmdhead b{flex:1}
+.rv-cmdbody{padding:12px 14px;white-space:pre-wrap;font-size:.86rem;line-height:1.65;word-break:break-word}
+.rv-sent{font-size:.78rem;color:var(--hi)}
 /* คอลัมน์จัดเอง: เลิกตรึงตามลำดับที่ 1-4 · ตรึงด้วย .stk ที่วัดความกว้างจริง */
 .ctable.colmod th:nth-child(n), .ctable.colmod td:nth-child(n){left:auto;box-shadow:none}
 .ctable.colmod td:nth-child(-n+4){position:static}
@@ -2571,6 +2721,9 @@ tr.subrow td.w-status select{width:14.6em}
   <nav class="nav" id="navBar">
     <button data-go="find" class="crewhide">ค้นหาครีเอเตอร์</button>
     <button data-go="coord">Coordinator</button>
+    <!-- โหมดทีม: ห้องตรวจดราฟต์ (หน้าของตัวเอง) · คำสั่งด่วน (แผงลอย ใช้ได้จากทุกหน้า) -->
+    <button data-go="review" class="teamonly">ตรวจดราฟต์<span class="nbadge" id="rvBadge" hidden></span></button>
+    <button type="button" id="qoNavBtn" class="teamonly" aria-expanded="false" aria-controls="qoPop">⚡ คำสั่งด่วน</button>
   </nav>
   <div class="hgroup">
     <button class="gear crewhide" id="foldBtn" aria-expanded="true"
@@ -2587,6 +2740,16 @@ tr.subrow td.w-status select{width:14.6em}
             title="ครีเอเตอร์ที่หยิบไว้">🛒 ตะกร้า <span class="n" id="cartN">0</span></button>
   </div>
 </header>
+
+<!-- ═══ คำสั่งด่วน — แผงลอยใต้หัวเว็บ (กล่องคำสั่ง/ผลตรวจถูกย้ายมาไว้ในนี้ตอนเปิดเว็บ) ═══ -->
+<div class="qopop" id="qoPop" hidden>
+  <div class="qopop-in" role="dialog" aria-label="คำสั่งด่วน">
+    <div class="qopop-head"><b>⚡ คำสั่งด่วน</b>
+      <label class="hint">โปรเจกต์ <select id="qoPopProj"></select></label>
+      <button type="button" class="x" id="qoPopClose" aria-label="ปิด">✕</button></div>
+    <div id="qoPopBody"></div>
+  </div>
+</div>
 
 <!-- ═══ ประตูรหัส ═══ -->
 <div class="lock" id="lockView" hidden>
@@ -2902,6 +3065,9 @@ tr.subrow td.w-status select{width:14.6em}
 </div>
 
 <!-- ═══ Coordinate — คุมงานที่รับไปแล้ว แยกตามโปรเจกต์ ═══ -->
+<!-- ═══ ห้องตรวจดราฟต์ (โหมดทีม) — วาดโดย renderReview() ═══ -->
+<section id="reviewView"></section>
+
 <section id="coordView">
   <!-- ช่องคำสั่งช่องเดียว — เพิ่มคนใหม่กับแก้ข้อมูลใช้ช่องเดียวกัน
        เมื่อก่อนเป็นสองกล่องใหญ่กางค้างไว้ กินจอทั้งหน้าก่อนจะเห็นตาราง -->
@@ -3052,9 +3218,6 @@ tr.subrow td.w-status select{width:14.6em}
     <!-- ภาพรวมทั้งโปรเจกต์ — อยู่ติดแท็บโปรเจกต์เพราะมันคือ "อีกมุมของข้อมูลชุดเดียวกัน" -->
     <button class="mapbtn" id="mapBtn" title="ดูภาพรวมทั้งโปรเจกต์เป็นแผนผัง (กด M)">◈ Map</button>
     <!-- ข้อความทักครั้งแรกเพื่อขอเรท — ยังไม่มีคนในตาราง เลยเป็นของโปรเจกต์ ไม่ใช่ของรายคน -->
-    <!-- เดโมห้องตรวจดราฟต์ — มีไฟล์ draft.html เฉพาะบน sandbox (netflixss) · ALTA ไม่มี จึงซ่อนไว้ -->
-    <a class="mapbtn" id="draftDemoBtn" href="draft.html" target="_blank" rel="noopener" hidden
-       title="เดโมห้องตรวจดราฟต์ (ข้อมูลสมมติ ยังไม่ต่อฐานข้อมูล)">🎬 ตรวจดราฟต์ (เดโม)</a>
     <button class="mapbtn" id="fmtBtn" title="ข้อความขอเรทสำหรับทักครีเอเตอร์ครั้งแรก">✉ Format ขอเรท</button>
     <div class="coord-sum" id="coordSum"></div>
     <button type="button" class="treqbtn" id="teamReqBtn" hidden title="มีคนขอเข้าทีม — กดเพื่อไปอนุมัติ"></button>
@@ -10637,11 +10800,14 @@ function openMap(proj){
 
 function renderMap(){
   loadLaw();
-  $("#mapTabs").innerHTML = [["", "ทุกโปรเจกต์"]].concat(projTabList(MAP_PROJ).map(p => [p, p]))
+  // โหมดทีม: แท็บชุดเดียวกับหน้าตาราง — ★ งานของฉัน (ทุกโปรเจกต์ กรองเฉพาะที่ฉันดูแล) · 👥 = งานทีม
+  const mineTab = TEAM_MODE && TEAM ? [["__mine", "★ งานของฉัน"]] : [];
+  const mineOn = !MAP_PROJ && MEMSEG === "me" && mineTab.length;
+  $("#mapTabs").innerHTML = mineTab.concat([["", "ทุกโปรเจกต์"]], projTabList(MAP_PROJ).map(p => [p, p]))
     .map(([id, label]) => `<button role="tab" data-mp="${esc(id)}"
-      aria-selected="${(MAP_PROJ || "") === id}"${id && (projMeta(id) || {}).done ? ` class="isdone"` : ""}>${
-      id && (projMeta(id) || {}).done ? "✓ " : ""}${esc(label)}${
-      id ? `<span class="n">${mapRows(id).length}</span>` : ""}</button>`).join("") + doneTabBtn(MAP_PROJ);
+      aria-selected="${id === "__mine" ? !!mineOn : !id ? !MAP_PROJ && !mineOn : MAP_PROJ === id}"${id && (projMeta(id) || {}).done ? ` class="isdone"` : ""}>${
+      id && (projMeta(id) || {}).done ? "✓ " : ""}${id && id !== "__mine" && isTeamProj(id) ? "👥 " : ""}${esc(label)}${
+      id && id !== "__mine" ? `<span class="n">${mapRows(id).length}</span>` : ""}</button>`).join("") + doneTabBtn(MAP_PROJ);
   $("#mapTabs").querySelectorAll("[data-showdone]").forEach(b => b.onclick = () => {
     SHOW_DONE = b.dataset.showdone === "1"; renderMap(); renderProjTabs();
   });
@@ -10679,7 +10845,11 @@ function renderMap(){
   const cpb = $("#calPasteBtn");
   if (cpb) cpb.onclick = () => renderCalPaste(MAP_PROJ);
   document.querySelectorAll("#mapTabs [data-mp]").forEach(b => b.onclick = () => {
-    MAP_PROJ = b.dataset.mp || null; renderMap(); $("#mapBody").scrollIntoView({block:"start"});
+    const id = b.dataset.mp;
+    if (id === "__mine"){ MAP_PROJ = null; MEMSEG = "me"; }
+    else { MAP_PROJ = id || null; if (!id && MEMSEG === "me") MEMSEG = "all"; }
+    try { lsSet(LS_MEMSEG, MEMSEG); } catch(e){}
+    renderMap(); $("#mapBody").scrollIntoView({block:"start"});
   });
   document.querySelectorAll("#mapModes [data-mm]").forEach(b => b.onclick = () => {
     MAP_MODE = b.dataset.mm; renderMap();
@@ -12874,8 +13044,9 @@ function rtRedraw(){
   clearTimeout(RT_REDRAW_T);
   RT_REDRAW_T = setTimeout(() => {
     const ae = document.activeElement;
-    if (ae && /^(INPUT|TEXTAREA|SELECT)$/.test(ae.tagName) && ae.closest("#coordBody, #detailPanel"))
+    if (ae && /^(INPUT|TEXTAREA|SELECT)$/.test(ae.tagName) && ae.closest("#coordBody, #detailPanel, #reviewView, #qoPop"))
       return rtRedraw();
+    if (document.body.dataset.view === "review") renderReview();
     renderProjTabs();
     if (document.body.dataset.view === "coord") renderCoord();
     if (!$("#mapView").hidden && !document.body.classList.contains("mapdrag")) renderMap();
@@ -13222,7 +13393,15 @@ function renderQO2(){
     `</div><div class="qo2msg" id="qo2Msg"></div>`;
   wireQO2Head();
   const pickCmd = v => {
-    if (v === "bulk"){ $("#bulkToggle").click(); return; }              // กล่องวางจากชีตเดิม
+    if (v === "bulk"){                                                   // กล่องวางจากชีตเดิม (อยู่ในหน้า Coordinator)
+      closeQoPop();
+      (document.body.dataset.view === "coord" ? Promise.resolve() : setView("coord")).then(() => {
+        if (!$("#mapView").hidden) $("#mapView").hidden = true;
+        if ($("#bulkFold").hidden) $("#bulkToggle").click();
+        $("#bulkFold").scrollIntoView({ behavior:"smooth", block:"start" });
+      });
+      return;
+    }
     if (v === "__all" || v === "__less"){
       QO2_ALL = v === "__all"; renderQO2();
       const s = $("#qo2Cmd"); if (s){ s.focus(); try { s.showPicker(); } catch(e){} }
@@ -13235,6 +13414,31 @@ function renderQO2(){
   $("#qo2Cmd").onchange = e => pickCmd(e.target.value);
   if ($("#qo2X")) $("#qo2X").onclick = () => { QO2_CMD = null; renderQO2(); };
   if (c){ wireQO2Form(c); qo2Sum(c); }
+}
+// ── แผงลอยคำสั่งด่วน (ปุ่มบนหัวเว็บ) ──
+function qoPopProj(){
+  const sel = $("#qoPopProj");
+  if (!sel) return;
+  sel.innerHTML = projTabList(PROJ).map(p => `<option value="${esc(p)}"${p === PROJ ? " selected" : ""}>${isTeamProj(p) ? "👥 " : ""}${esc(p)}</option>`).join("");
+}
+function closeQoPop(){ $("#qoPop").hidden = true; $("#qoNavBtn").setAttribute("aria-expanded", "false"); }
+async function openQoPop(){
+  if (!COORD_READY) await setView("coord");
+  QO2_FOLD = false; renderQO2(); qoPopProj();
+  $("#qoPop").hidden = false; $("#qoNavBtn").setAttribute("aria-expanded", "true");
+}
+function initQoPop(){
+  ["#qo2", "#qoMsg", "#qoPreview"].forEach(id => { const el = $(id); if (el) $("#qoPopBody").appendChild(el); });
+  $("#qoNavBtn").onclick = () => $("#qoPop").hidden ? openQoPop() : closeQoPop();
+  $("#qoPopClose").onclick = closeQoPop;
+  $("#qoPop").onclick = e => { if (e.target.id === "qoPop") closeQoPop(); };
+  document.addEventListener("keydown", e => { if (e.key === "Escape" && !$("#qoPop").hidden) closeQoPop(); });
+  $("#qoPopProj").onchange = e => {
+    PROJ = e.target.value; MINE_VIEW = false;
+    renderProjTabs(); if (document.body.dataset.view === "coord") renderCoord();
+    if (document.body.dataset.view === "review") renderReview();
+    renderQO2();
+  };
 }
 function wireQO2Head(){
   $("#qo2Fold").onclick = () => {
@@ -13757,6 +13961,301 @@ function colMenu(x, y, k){
     else if (a === "del") colDelete(k);
     else openColMgr($("#colMgrBtn"));
   });
+}
+
+// ═══ ห้องตรวจดราฟต์ (ทดลองในเว็บ · 2026-10-05) ═══
+// รายชื่อ = ครีเอเตอร์ในโปรเจกต์ที่เลือกจริง · ขั้นของแต่ละคนอ่านจาก "สถานะ" ในตาราง
+// ปุ่มในห้องนี้เปลี่ยนสถานะจริง (setField → ซิงก์ขึ้นฐานเหมือนแก้ในตาราง)
+// ส่งข้อความเข้า Command = เขียนลงช่อง Feedback Draft N ของคนนั้นจริง (setCmdOwnLink)
+// ⚠️ ยังเป็นของทดลอง: รอบดราฟต์ · ลิงก์คลิป · เธรดฟีดแบค เก็บในเบราว์เซอร์นี้ (cf_review_v1) — ทีมยังไม่เห็นของกันและกัน
+const LS_REVIEW = "cf_review_v1";
+let RV = {};
+try { RV = JSON.parse(lsGet(LS_REVIEW) || "{}") || {}; } catch(e){}
+const rvSave = () => { try { lsSet(LS_REVIEW, JSON.stringify(RV)); } catch(e){} };
+let RV_ROLE = null, RV_SEL = null, RV_TURN = "", RV_FIND = "";
+// บทบาท — สีตาม sheet: IBD แดง · PM/PMA ม่วง · แบรนด์ไม่มีบัญชีในเว็บ → PM/admin บันทึกแทน
+const RV_ROLES = {
+  ibd:     { th:"IBD",        c:"var(--rv-ibd)" },
+  pm:      { th:"PM / PMA",   c:"var(--rv-pm)" },
+  brand:   { th:"แบรนด์",     c:"var(--rv-brand)" },
+  creator: { th:"ครีเอเตอร์", c:"var(--rv-creator)" },
+};
+const RV_STEPS = [["cf","แบรนด์ CF"],["ship","ของถึง"],["pre","SG · สคริป"],["d1","Draft 1"],["d2","Draft 2"],["d3","Draft 3"],["canpost","โพสต์ได้"],["posted","โพสต์แล้ว"]];
+const rvMe = () => (PROFILE || {}).display_name || "ฉัน";
+const rvRole = () => RV_ROLE || (["admin", "manager"].includes((PROFILE || {}).role) ? "pm" : "ibd");
+const rvKey = r => cmdKey(r.project, r.handle);
+function rvState(r){ const k = rvKey(r); return RV[k] || (RV[k] = { rounds: [] }); }
+const rvStatus = r => STATUS_MIGRATE[r.status] || r.status || "";
+const rvStTh = v => (STAGE_MATCH.find(x => x.v === v) || {}).th || v || "ยังไม่มีสถานะ";
+function rvStep(r){
+  const s = rvStatus(r);
+  if (isCancelled(r)) return "cancel";
+  if (!s || s === "Waiting Confirm") return "cf";
+  if (s === "Confirmed" || s === "Waiting Delivery") return "ship";
+  if (["Already Delivered", "Waiting Sent to SG", "Already Sent to SG", "Waiting Script", "Already Feedback Script"].includes(s)) return "pre";
+  const m = s.match(/^(Waiting|Feedback) Draft (\d)$/);
+  if (m) return "d" + m[2];
+  if (s === "Waiting to Post") return "canpost";
+  return "posted";
+}
+// รอบดราฟต์ปัจจุบันจากสถานะ + ที่บันทึกในเครื่อง
+function rvRound(r){
+  const st = rvStep(r);
+  if (!/^d\d$/.test(st)) return null;
+  const n = +st[1], S = rvState(r);
+  let rd = S.rounds.find(x => x.n === n);
+  if (!rd){
+    // ฟีดแบค Draft N แล้ว = ส่งฟีดแบคไปแล้ว รอดราฟต์ถัดไป
+    const fed = /^Feedback Draft/.test(rvStatus(r));
+    rd = { n, stage: fed ? "sent" : "wait", clips: [], thread: [], open: true };
+    S.rounds.push(rd);
+  }
+  return rd;
+}
+function rvTurn(r){
+  const st = rvStep(r), nx = n => n < 3 ? `Draft ${n + 1}` : "แก้รอบสุดท้าย";
+  if (st === "cancel") return { role:"", what:"ยกเลิกงานแล้ว" };
+  if (st === "cf") return { role:"brand", what:"รอแบรนด์คอนเฟิร์มรายชื่อ" };
+  if (st === "ship") return { role:"brand", what:"รอแบรนด์ส่งสินค้าถึงครีเอเตอร์" };
+  if (st === "pre") return { role:"ibd", what:"เตรียม SG / สคริป แล้วเริ่มรอ Draft 1" };
+  if (st === "canpost") return { role:"creator", what:"รอครีเอเตอร์โพสต์" };
+  if (st === "posted") return { role:"", what: rvStTh(rvStatus(r)) };
+  const rd = rvRound(r), n = rd.n;
+  return { wait:{ role:"creator", what:`รอครีเอเตอร์ส่ง Draft ${n}` },
+    ibd:  { role:"ibd",   what:`ใส่ IBD Feedback ของ Draft ${n} แล้วส่งให้ PM` },
+    pm:   { role:"pm",    what:`PM/PMA ตรวจ Draft ${n}` },
+    brand:{ role:"brand", what:`แบรนด์ให้ฟีดแบค Draft ${n}` },
+    relay:{ role:"ibd",   what:`จัดข้อความฟีดแบคส่งเข้า Command แล้วขอ ${nx(n)}` },
+    sent: { role:"ibd",   what:`ส่งฟีดแบคแล้ว — กดขอ ${nx(n)}` } }[rd.stage] || { role:"", what:"" };
+}
+const rvRel = at => { const s = (Date.now() - new Date(at)) / 1000;
+  return s < 60 ? "เมื่อสักครู่" : s < 3600 ? Math.floor(s / 60) + " นาที" : s < 86400 ? Math.floor(s / 3600) + " ชม." : Math.floor(s / 86400) + " วัน"; };
+const rvNow = () => new Date().toISOString();
+const rvTs = s => /^\d{1,2}:\d{2}$/.test(String(s || "").trim()) ? String(s).trim() : "";
+const RV_PF = url => { const u = String(url || "").toLowerCase();
+  if (u.includes("tiktok.com")) return ["TT", "#111", "TikTok"];
+  if (u.includes("drive.google") || u.includes("docs.google")) return ["GD", "#1A73E8", "Google Drive"];
+  if (u.includes("larksuite") || u.includes("feishu")) return ["LK", "#3370FF", "Lark"];
+  if (u.includes("youtu")) return ["YT", "#E62117", "YouTube"];
+  if (u.includes("instagram")) return ["IG", "#C13584", "Instagram"];
+  return ["URL", "var(--mute)", "ลิงก์"]; };
+const rvVid = url => { const m = String(url || "").match(/\/video\/(\d{8,})/); return m ? m[1] : ""; };
+
+function renderReview(){
+  const v = $("#reviewView");
+  if (!v || document.body.dataset.view !== "review") return;
+  if (!PROJECTS.length){ v.innerHTML = `<div class="empty"><h3>ยังไม่มีโปรเจกต์</h3></div>`; return; }
+  const role = rvRole(), rows = (COORD[PROJ] || []).filter(r => !isCancelled(r));
+  const cnt = k => rows.filter(r => rvTurn(r).role === k).length;
+  const turns = [["", "ทั้งหมด", rows.length, "var(--accent)"], ["ibd", "รอ IBD", cnt("ibd"), RV_ROLES.ibd.c], ["pm", "รอ PM/PMA", cnt("pm"), RV_ROLES.pm.c],
+    ["brand", "รอแบรนด์", cnt("brand"), RV_ROLES.brand.c], ["creator", "รอครีเอเตอร์", cnt("creator"), RV_ROLES.creator.c],
+    ["done", "โพสต์แล้ว", rows.filter(r => rvStep(r) === "posted").length, "var(--hi)"]];
+  const q = RV_FIND.trim().toLowerCase();
+  const list = rows.filter(r => { const t = rvTurn(r);
+      if (RV_TURN === "done" ? rvStep(r) !== "posted" : RV_TURN && t.role !== RV_TURN) return false;
+      if (MEMSEG === "me" && isTeamProj(PROJ) && r.assignee !== sbUid()) return false;
+      return !q || [r.handle, r.sku, memName(r.assignee)].join(" ").toLowerCase().includes(q); })
+    .sort((a, b) => (rvTurn(b).role === role) - (rvTurn(a).role === role));
+  if (!RV_SEL || !rows.some(r => rvKey(r) === RV_SEL)) RV_SEL = list[0] ? rvKey(list[0]) : null;
+  v.innerHTML = `<div class="rv-head">
+      <div class="tabs sub rv-proj" role="tablist">${projTabList(PROJ).map(p => `<button role="tab" data-rvp="${esc(p)}" aria-selected="${p === PROJ}">${
+        isTeamProj(p) ? "👥 " : ""}${esc(p)}<span class="n">${(COORD[p] || []).filter(r => !isCancelled(r)).length}</span></button>`).join("")}</div>
+      <div class="rv-role"><span>ทดลองเป็น</span>${["ibd", "pm"].map(k => `<button type="button" data-rvrole="${k}" aria-pressed="${role === k}">
+        <i style="--c:${RV_ROLES[k].c}"></i>${RV_ROLES[k].th}</button>`).join("")}<span class="hint" title="แบรนด์ไม่มีบัญชีในเว็บ — PM/admin กดบันทึกผลของแบรนด์แทน">แบรนด์ = PM บันทึกแทน</span></div>
+    </div>
+    <div class="rv-note">ทดลอง: ขั้นและสถานะใช้ของจริงในโปรเจกต์ · รอบดราฟต์ ลิงก์คลิป และฟีดแบค ยังเก็บในเครื่องนี้ (ทีมยังไม่เห็นกัน)</div>
+    <div class="rv-turns">${turns.map(([k, t, n, c]) => `<button type="button" class="rv-turn${k === role ? " mine" : ""}" data-rvturn="${k}"
+      aria-pressed="${RV_TURN === k}" style="--c:${c}"><i></i>${esc(t)}${k === role ? " (คุณ)" : ""} <b>${n}</b></button>`).join("")}
+      ${isTeamProj(PROJ) ? `<button type="button" class="rv-turn" data-rvmine="1" aria-pressed="${MEMSEG === "me"}" style="--c:var(--accent)"><i></i>เฉพาะที่ฉันดูแล</button>` : ""}</div>
+    <div class="rv-desk">
+      <aside class="rv-queue"><div class="rv-find"><input id="rvFind" placeholder="ค้นชื่อ / SKU / ผู้ดูแล" value="${esc(RV_FIND)}" autocomplete="off"></div>
+        <div class="rv-list">${list.map(r => { const t = rvTurn(r), rc = t.role ? RV_ROLES[t.role].c : "var(--hi)";
+          return `<button type="button" class="rv-qi" data-rvsel="${esc(rvKey(r))}" aria-current="${rvKey(r) === RV_SEL}">
+            ${r.assignee ? avatar(r.assignee) : `<span class="av" style="--mc:#777">?</span>`}
+            <span class="h">${esc(r.handle)} <span class="hint">${esc(r.kind || "")}</span></span>
+            <span class="rv-wait" style="--c:${rc}">${t.role ? (t.role === role ? "ตาคุณ" : "รอ" + RV_ROLES[t.role].th) : "จบแล้ว"}</span>
+            <span class="sub">${esc(t.what)}</span></button>`; }).join("") || `<div class="rv-empty">ไม่มีครีเอเตอร์ในกลุ่มนี้</div>`}</div></aside>
+      <section class="rv-detail" id="rvDetail"></section>
+    </div>`;
+  v.querySelectorAll("[data-rvp]").forEach(b => b.onclick = () => { PROJ = b.dataset.rvp; MINE_VIEW = false; RV_SEL = null; renderProjTabs(); renderReview(); });
+  v.querySelectorAll("[data-rvrole]").forEach(b => b.onclick = () => { RV_ROLE = b.dataset.rvrole; renderReview(); });
+  v.querySelectorAll("[data-rvturn]").forEach(b => b.onclick = () => { RV_TURN = RV_TURN === b.dataset.rvturn ? "" : b.dataset.rvturn; renderReview(); });
+  const mn = v.querySelector("[data-rvmine]");
+  if (mn) mn.onclick = () => { MEMSEG = MEMSEG === "me" ? "all" : "me"; try { lsSet(LS_MEMSEG, MEMSEG); } catch(e){} renderReview(); };
+  v.querySelectorAll("[data-rvsel]").forEach(b => b.onclick = () => {
+    RV_SEL = b.dataset.rvsel; renderReview();
+    if (matchMedia("(max-width:880px)").matches) $("#rvDetail").scrollIntoView({ behavior:"smooth", block:"start" });
+  });
+  $("#rvFind").oninput = e => { RV_FIND = e.target.value; const pos = e.target.selectionStart; renderReview(); const f = $("#rvFind"); f.focus(); f.setSelectionRange(pos, pos); };
+  renderReviewDetail();
+  rvBadge();
+}
+function rvBadge(){
+  const b = $("#rvBadge");
+  if (!b) return;
+  const role = rvRole();
+  const n = PROJECTS.reduce((s, p) => s + (COORD[p] || []).filter(r => !isCancelled(r) && rvTurn(r).role === role &&
+    (!isTeamProj(p) || !r.assignee || r.assignee === sbUid() || role === "pm")).length, 0);
+  b.textContent = n || ""; b.hidden = !n;
+}
+
+function renderReviewDetail(){
+  const box = $("#rvDetail");
+  const r = (COORD[PROJ] || []).find(x => rvKey(x) === RV_SEL);
+  if (!r){ box.innerHTML = `<div class="rv-empty">เลือกครีเอเตอร์ด้านซ้าย</div>`; return; }
+  const role = rvRole(), t = rvTurn(r), st = rvStep(r), mine = t.role === role || (t.role === "brand" && role === "pm");
+  const idx = RV_STEPS.findIndex(s => s[0] === st), rd = rvRound(r), S = rvState(r);
+  const rc = t.role ? RV_ROLES[t.role].c : "var(--hi)";
+  box.innerHTML = `<div class="rv-card"><div class="rv-who">
+      <div><h2>${esc(r.handle)}</h2><a href="https://www.tiktok.com/@${esc(r.handle)}" target="_blank" rel="noopener">tiktok.com/@${esc(r.handle)} ↗</a>
+        <div class="rv-facts"><span>${esc(r.kind || "—")}</span><span>สถานะ <b>${esc(rvStTh(rvStatus(r)))}</b></span>
+          ${r.sku ? `<span>${esc(r.sku)}</span>` : ""}${r.rate != null ? `<span>เรท <b>${mBaht(r.rate)}</b></span>` : ""}</div></div>
+      <div class="rv-people">${r.assignee ? `<span>${avatar(r.assignee)} ผู้ดูแล ${esc(memName(r.assignee))}</span>` : ""}
+        <button type="button" class="rv-btn" data-rvcmd="1">✉ เปิด Command</button></div></div>
+      <div class="rv-steps">${RV_STEPS.map(([k, th], i) => `<div class="rv-st${st === "posted" || i < idx ? " done" : i === idx ? " now" : ""}">${esc(th)}</div>`).join("")}</div></div>
+    <div class="rv-card rv-next" style="--c:${rc}"><div class="rv-nextrow">
+      <div class="what"><b>${t.role ? (mine ? "ตาคุณ: " : `รอ ${RV_ROLES[t.role].th}: `) : ""}${esc(t.what)}</b>
+        <span>${t.role === "brand" ? "แบรนด์ไม่มีบัญชีในเว็บ — PM/PMA กดบันทึกผลของแบรนด์แทน" : !mine && t.role && t.role !== "creator" ? `สลับ “ทดลองเป็น” ด้านบนเพื่อลองกด` : ""}</span></div>
+      <div class="rv-btns">${rvActions(r, t, mine, rd)}</div></div>
+      ${mine && rd && rd.stage === "ibd" ? `<div class="rv-ibd"><input id="rvIbdTs" placeholder="0:03" inputmode="numeric" aria-label="นาทีในคลิป" autocomplete="off">
+        <textarea id="rvIbdText" placeholder="IBD Feedback — ดูคลิปแล้วเห็นอะไรต้องแก้ (ไม่มีแก้เว้นว่างได้)"></textarea></div>` : ""}</div>
+    ${S.rounds.filter(x => x.n <= (rd ? rd.n : 9)).slice().sort((a, b) => b.n - a.n).map(x => rvRoundHTML(r, x, x === rd)).join("")}`;
+  rvWire(r, rd);
+}
+function rvActions(r, t, mine, rd){
+  const dis = mine ? "" : " disabled", st = rvStep(r);
+  if (st === "cf") return `<button class="rv-btn good" data-rvact="cf"${dis}>✓ แบรนด์ Confirm</button>`;
+  if (st === "ship") return `<button class="rv-btn primary" data-rvact="arrived"${dis}>ของถึงครีเอเตอร์แล้ว</button>`;
+  if (st === "pre") return `<button class="rv-btn primary" data-rvact="start"${dis}>เริ่มรอ Draft 1 →</button>`;
+  if (st === "canpost") return `<button class="rv-btn primary" data-rvact="posted">บันทึกว่าโพสต์แล้ว</button>`;
+  if (!rd) return "";
+  if (rd.stage === "wait") return `<span class="hint">วางลิงก์ดราฟต์ด้านล่าง — ส่งให้ IBD ตรวจเอง</span>`;
+  if (rd.stage === "ibd") return `<button class="rv-btn primary" data-rvact="to-pm"${dis}>ส่ง IBD Feedback ให้ PM →</button>`;
+  if (rd.stage === "pm") return `<button class="rv-btn good" data-rvact="pm-ok"${dis}>✓ Approve · ส่งแบรนด์</button><button class="rv-btn bad" data-rvact="pm-no"${dis}>✕ ขอแก้</button>`;
+  if (rd.stage === "brand") return `<button class="rv-btn good" data-rvact="br-ok"${dis}>✓ แบรนด์ผ่าน</button><button class="rv-btn bad" data-rvact="br-edit"${dis}>แบรนด์ขอแก้</button>`;
+  if (rd.stage === "relay") return `<button class="rv-btn" data-rvact="jump"${dis}>↓ ไปจัดข้อความ</button>`;
+  if (rd.stage === "sent") return `<button class="rv-btn primary" data-rvact="next"${dis}>ขอ ${rd.n < 3 ? "Draft " + (rd.n + 1) : "แก้รอบสุดท้าย"} →</button>`;
+  return "";
+}
+const rvFbItems = rd => rd.thread.map((m, i) => ({ m, i })).filter(({ m }) => ["ibd", "pm", "brand"].includes(m.role) && !m.auto && String(m.text || "").trim());
+// ติ๊กไว้ก่อน: แบรนด์ + IBD · ของ PM เฉพาะตอนขอแก้ (ข้อความอนุมัติภายในไม่ควรถึงครีเอเตอร์)
+const rvDefaultPick = rd => rvFbItems(rd).filter(({ m }) => m.role !== "pm" || m.verdict === "reject").map(x => x.i);
+const rvBuild = rd => { const pick = rd.pick || rvDefaultPick(rd);
+  return rvFbItems(rd).filter(x => pick.includes(x.i)).map(({ m }) => `• ${m.ts ? m.ts + " " : ""}${m.text.trim()}`).join("\n"); };
+// ข้อความใน Command จริงของคนนี้ (บล็อกที่มี {{feedbackN}})
+function rvCmdText(r, n, text){
+  const b = cmdBlocksFor(r.project, r.handle).find(x => (x.b || "").includes(`{{feedback${n}}}`));
+  const body = b ? b.b : `แอดมินขออนุญาตส่ง Feedback Draft#${n} นะครับ😀\n📦สำหรับ: {{sku}}\n📌📌\n\n{{feedback${n}}}`;
+  return { title: b ? b.t : `Feedback Draft #${n}`, body: voiceText(body).replace(/\{\{sku\??\}\}/g, r.sku || "…..ยังไม่มี SKU…..")
+    .replace(`{{feedback${n}}}`, text || "…..ยังไม่มีฟีดแบค…..").replace(/\{\{brandname\??\}\}/g, brandOf(r.project)) };
+}
+function rvRoundHTML(r, rd, live){
+  const chip = { wait:["รอดราฟต์", "var(--rv-creator)"], ibd:["IBD กำลังตรวจ", "var(--rv-ibd)"], pm:["รอ PM/PMA", "var(--rv-pm)"],
+    brand:["รอแบรนด์", "var(--rv-brand)"], relay:["ขอแก้ · IBD จัดข้อความ", "var(--lo)"], sent:["ส่งฟีดแบคแล้ว", "var(--hi)"], done:["จบรอบ", "var(--hi)"] }[rd.stage] || ["", "var(--dim)"];
+  const role = rvRole(), compose = live && (rd.stage === "relay" || rd.stage === "sent");
+  const text = rd.draft != null ? rd.draft : (cmdOwnRead(r.project, r.handle).links[fbKey(rd.n)] || rvBuild(rd));
+  const pick = rd.pick || rvDefaultPick(rd), cmd = rvCmdText(r, rd.n, text);
+  return `<article class="rv-card rv-round${rd.open ? "" : " closed"}">
+    <div class="rv-rhead" data-rvtog="${rd.n}" role="button" tabindex="0"><h3>Draft ${rd.n}</h3><span class="rv-chip" style="--c:${chip[1]}">${esc(chip[0])}</span>
+      <span class="hint">${rd.clips.length} คลิป · ${rd.thread.filter(m => m.role !== "sys").length} ข้อความ</span><span class="tog">${rd.open ? "▴ พับ" : "▾ กาง"}</span></div>
+    <div class="rv-rbody">
+      <div class="rv-clips"><span class="lbl">วิดีโอ / คลิป</span>
+        ${rd.clips.map(cl => { const [ab, col, name] = RV_PF(cl.url), id = rvVid(cl.url);
+          return `<div class="rv-clip"><span class="pf" style="--c:${col}">${ab}</span><span class="t">${esc(cl.label || name)}</span>
+            <span class="u">${esc(name)}${id ? " · Video ID " + esc(id) : ""} · ${esc(cl.by)} · ${esc(rvRel(cl.at))}</span>
+            <a href="${esc(cl.url)}" target="_blank" rel="noopener">เปิดดู ↗</a></div>`; }).join("") || `<div class="hint">ยังไม่มีคลิปในรอบนี้</div>`}
+        ${live ? `<div class="rv-addclip"><input id="rvUrl" type="url" placeholder="วางลิงก์ TikTok / Google Drive / Lark …" autocomplete="off">
+          <input id="rvLabel" placeholder="ชื่อคลิป" autocomplete="off"><button class="rv-btn" data-rvclip="1" type="button">เพิ่มคลิป</button></div>
+          <div class="rv-err" id="rvClipErr"></div>` : ""}</div>
+      <div class="rv-thread"><span class="lbl">ฟีดแบค IBD · PM · แบรนด์</span>
+        ${rd.thread.map(m => m.role === "sys" ? `<div class="rv-sys">${esc(m.text)} · ${esc(rvRel(m.at))}</div>` : `<div class="rv-msg">
+            <span class="av" style="--mc:${(RV_ROLES[m.role] || RV_ROLES.creator).c}">${esc(memInitial(null, m.who))}</span>
+            <span class="meta"><b>${esc(m.who)}</b><span>${esc((RV_ROLES[m.role] || {}).th || "")}</span>${m.verdict ? `<span class="rv-verdict" style="--c:${
+              m.verdict === "approve" || m.verdict === "ok" ? "var(--hi)" : "var(--lo)"}">${{ approve:"Approve", reject:"ขอแก้", ok:"ผ่าน", edit:"ขอแก้" }[m.verdict]}</span>` : ""}<span>${esc(rvRel(m.at))}</span></span>
+            <div class="body">${m.ts ? `<span class="rv-ts">${esc(m.ts)}</span>` : ""}${esc(m.text)}</div></div>`).join("") || `<div class="hint">ยังไม่มีฟีดแบค</div>`}
+        ${live ? `<div class="rv-say"><input id="rvTs" placeholder="0:03" inputmode="numeric" aria-label="นาทีในคลิป" autocomplete="off">
+          <textarea id="rvMsg" placeholder="พิมพ์ฟีดแบคในนาม ${esc(RV_ROLES[role].th)}${role === "pm" ? " (หรือของแบรนด์ — เลือกปุ่มด้านล่าง)" : ""}"></textarea></div>
+          <div class="rv-btns"><button class="rv-btn" data-rvsay="${role}" type="button">ส่งฟีดแบค</button>${role === "pm" ? `<button class="rv-btn" data-rvsay="brand" type="button">บันทึกเป็นฟีดแบคแบรนด์</button>` : ""}</div>` : ""}
+      </div>
+    </div>
+    ${compose ? `<div class="rv-compose">
+      <div class="c2l"><h4>📝 จัดข้อความถึงครีเอเตอร์</h4><span class="hint">ติ๊กเลือก → เรียงเป็นข้อให้ → แก้ถ้อยคำได้อิสระ</span>
+        ${rvFbItems(rd).map(({ m, i }) => `<label class="rv-pick${pick.includes(i) ? "" : " off"}" style="--c:${RV_ROLES[m.role].c}">
+          <input type="checkbox" data-rvpick="${i}"${pick.includes(i) ? " checked" : ""}><span><b>${esc(RV_ROLES[m.role].th)} · ${esc(m.who)}</b>${
+            m.ts ? `<span class="rv-ts">${esc(m.ts)}</span>` : ""}${esc(m.text)}</span></label>`).join("") || `<span class="hint">ยังไม่มีฟีดแบคให้เลือก</span>`}
+        <textarea id="rvCmdText" aria-label="ข้อความถึงครีเอเตอร์">${esc(text)}</textarea>
+        <div class="rv-btns"><button class="rv-btn" type="button" data-rvrebuild="1">↺ สร้างใหม่จากที่ติ๊ก</button></div></div>
+      <div class="c2r"><h4>👁 ครีเอเตอร์จะได้รับแบบนี้</h4>
+        <div class="rv-cmd"><div class="rv-cmdhead"><b>${esc(cmd.title)}</b><span class="hint">Command ของ ${esc(r.handle)}</span></div>
+          <div class="rv-cmdbody" id="rvCmdPrev">${esc(cmd.body)}</div></div>
+        <div class="rv-btns"><button class="rv-btn primary" type="button" data-rvsend="1">${rd.stage === "sent" ? "อัปเดตใน Command" : "ส่งเข้า Command"} · Feedback Draft #${rd.n}</button>
+          <button class="rv-btn" type="button" data-rvcmd="1">✉ เปิด Command</button></div>
+        ${rd.stage === "sent" ? `<div class="rv-sent">✓ อยู่ในช่อง Feedback Draft ${rd.n} ของ ${esc(r.handle)} แล้ว — สถานะเป็น “${esc(rvStTh("Feedback Draft " + rd.n))}”</div>` : ""}
+      </div></div>` : ""}
+  </article>`;
+}
+function rvSay(rd, role, text, verdict, ts, auto){
+  rd.thread.push({ role, who: role === "brand" ? brandOf(PROJ) : rvMe(), text: text || "", at: rvNow(), ts: ts || "", verdict: verdict || "", auto: !!auto });
+}
+function rvLog(rd, text){ rd.thread.push({ role:"sys", who:"", text, at: rvNow() }); }
+function rvSetStatus(r, v){ setField(r, "status", v); renderProjTabs(); }
+function rvWire(r, rd){
+  const box = $("#rvDetail"), role = rvRole(), redraw = () => { rvSave(); renderReview(); };
+  box.querySelectorAll("[data-rvcmd]").forEach(b => b.onclick = () => openCmd(r.project, r.handle));
+  box.querySelectorAll("[data-rvtog]").forEach(h => {
+    const go = () => { const x = rvState(r).rounds.find(y => y.n === +h.dataset.rvtog); x.open = !x.open; redraw(); };
+    h.onclick = go; h.onkeydown = e => { if (e.key === "Enter" || e.key === " "){ e.preventDefault(); go(); } };
+  });
+  box.querySelectorAll("[data-rvact]").forEach(b => b.onclick = () => {
+    const a = b.dataset.rvact;
+    if (a === "jump"){ const c = box.querySelector(".rv-compose"); if (c) c.scrollIntoView({ behavior:"smooth", block:"start" }); return; }
+    if (a === "cf") rvSetStatus(r, "Confirmed");
+    if (a === "arrived") rvSetStatus(r, "Already Delivered");
+    if (a === "start") rvSetStatus(r, "Waiting Draft 1");
+    if (a === "posted"){ rvSetStatus(r, "Already Posted"); if (!r.postdate) setField(r, "postdate", new Date().toLocaleDateString("th-TH", { day:"numeric", month:"short" })); }
+    if (a === "to-pm"){ const t = ($("#rvIbdText") || {}).value.trim();
+      rvSay(rd, "ibd", t || "ตรวจแล้ว ไม่มีจุดแก้", "", rvTs(($("#rvIbdTs") || {}).value), !t); rd.stage = "pm"; }
+    if (a === "pm-ok"){ rvSay(rd, "pm", "", "approve", "", true); rd.stage = "brand"; }
+    if (a === "pm-no"){ rvSay(rd, "pm", "ขอแก้ก่อนส่งแบรนด์", "reject", "", true); rd.stage = "relay"; }
+    if (a === "br-ok"){ rvSay(rd, "brand", "ผ่าน โพสต์ได้", "ok", "", true); rd.stage = "done"; rvSetStatus(r, "Waiting to Post"); }
+    if (a === "br-edit"){ rvSay(rd, "brand", "ขอแก้", "edit", "", true); rd.stage = "relay"; }
+    if (a === "next"){ rd.stage = "done"; rd.open = false; rvSetStatus(r, rd.n < 3 ? `Waiting Draft ${rd.n + 1}` : "Waiting Draft 3"); }
+    vlog("review", { p: r.project, h: normId(r.handle), d: { a } });
+    redraw();
+  });
+  const cl = box.querySelector("[data-rvclip]");
+  if (cl) cl.onclick = () => {
+    const url = $("#rvUrl").value.trim();
+    if (!/^https?:\/\/\S+\.\S+/.test(url)){ $("#rvClipErr").textContent = "วางลิงก์ที่ขึ้นต้นด้วย http:// หรือ https://"; return; }
+    rd.clips.push({ url, label: $("#rvLabel").value.trim(), by: rvMe(), at: rvNow() });
+    if (rd.stage === "wait"){ rd.stage = "ibd"; rvLog(rd, `Draft ${rd.n} เข้ามาแล้ว ส่งให้ IBD ตรวจ`); }
+    redraw();
+  };
+  box.querySelectorAll("[data-rvsay]").forEach(b => b.onclick = () => {
+    const t = $("#rvMsg").value.trim();
+    if (!t) return $("#rvMsg").focus();
+    rvSay(rd, b.dataset.rvsay, t, "", rvTs($("#rvTs").value)); rd.draft = null; redraw();
+  });
+  const ta = $("#rvCmdText");
+  if (ta){
+    ta.oninput = () => { rd.draft = ta.value; rvSave(); $("#rvCmdPrev").textContent = rvCmdText(r, rd.n, ta.value).body; };
+    box.querySelectorAll("[data-rvpick]").forEach(cb => cb.onchange = () => {
+      const cur = new Set(rd.pick || rvDefaultPick(rd));
+      cb.checked ? cur.add(+cb.dataset.rvpick) : cur.delete(+cb.dataset.rvpick);
+      rd.pick = rvFbItems(rd).map(x => x.i).filter(i => cur.has(i)); rd.draft = rvBuild(rd); redraw();
+    });
+    box.querySelector("[data-rvrebuild]").onclick = () => { rd.draft = rvBuild(rd); redraw(); };
+    box.querySelector("[data-rvsend]").onclick = () => {
+      if (!ta.value.trim()) return ta.focus();
+      // ช่อง Feedback Draft N ของคนนี้ใน Command จริง
+      setCmdOwnLink(r.project, r.handle, fbKey(rd.n), ta.value.trim());
+      rd.draft = ta.value.trim(); rd.stage = "sent";
+      rvLog(rd, `ส่งเข้า Command · Feedback Draft ${rd.n}`);
+      rvSetStatus(r, `Feedback Draft ${rd.n}`);
+      vlog("review", { p: r.project, h: normId(r.handle), d: { a: "send-cmd", n: rd.n } });
+      redraw();
+    };
+  }
 }
 
 // เจ้าของ = admin/manager หรือหัวทีม — ที่เหลือคือลูกทีม (ตั้งค่าเหลือ 4 ส่วน · ดูการเปิดดูได้แค่ของตัวเอง)
@@ -14769,7 +15268,7 @@ async function setView(v){
   if (v === "find" && !RESULTS.length) runLive();
   // กลับมาจาก Coordinator — สถานะงานอาจเปลี่ยนไปแล้ว ป้ายบนการ์ดต้องตาม (ไม่จัดอันดับใหม่)
   else if (v === "find" && POOL.length){ renderWorkTabs(); run({ rank:false }); }
-  if (v === "coord" && !COORD_READY){
+  if ((v === "coord" || v === "review") && !COORD_READY){
     COORD_READY = true;
     $("#coordBody").innerHTML = `<div class="loading"><span class="spin"></span>กำลังโหลดจากชีต...</div>`;
     await loadCoordData();
@@ -14779,6 +15278,11 @@ async function setView(v){
   // ไม่ใช่ "แถวที่ 14 ของโปรเจกต์ที่เปิดค้างไว้เมื่อวานเขียนว่าอะไร"
   // ปิดแผนผังเมื่อไหร่ก็เจอตารางที่อยู่ข้างหลัง กด ◈ Map กลับมาได้ตลอด
   if (v === "coord"){ measureStick(); if (PROJECTS.length) openMap(null); }
+  if (v === "review"){
+    if (!$("#mapView").hidden) $("#mapView").hidden = true;
+    loadCmdLinks(); loadCmdEdit(); loadCmdOwn();
+    renderReview();
+  }
   if (v === "home") homeCounts();
 }
 
@@ -16629,7 +17133,6 @@ $("#closeSet").onclick = closeSettings;
 $("#closeProj").onclick = () => { $("#projPanel").hidden = true; };
 $("#closeAct").onclick = () => { $("#actPanel").hidden = true; };
 $("#colMgrBtn").onclick = e => openColMgr(e.currentTarget);
-if (/github\.io$/.test(location.hostname) || location.hostname === "localhost") $("#draftDemoBtn").hidden = false;
 if (!TEAM_MODE) $("#colMgrBtn").hidden = true;
 $("#teamReqBtn").onclick = () => {
   openSettings();
@@ -19669,13 +20172,14 @@ if (TEAM_MODE){
   renderCoord = after(renderCoord, () => { applyColumns(); applyLocks(); paintFlash(); });
   renderDetail = after(renderDetail, applyLocks);
   // คำสั่งที่เลือกค้างไว้ไม่วาดทับ (แผงเลือกคน/ค่าที่พิมพ์จะหาย) — วาดใหม่เฉพาะตอนสลับโปรเจกต์
-  renderProjTabs = after(renderProjTabs, () => { tabAvatars(); if (!QO2_CMD || QO2_PICK_PROJ !== PROJ) renderQO2(); });
+  renderProjTabs = after(renderProjTabs, () => { tabAvatars(); if (!QO2_CMD || QO2_PICK_PROJ !== PROJ) renderQO2(); rvBadge(); qoPopProj(); });
   renderMap = after(renderMap, () => { tabAvatars(); paintRemoteDrag(); presRender(); paintFlash(); });
 }
 
 // ต้อง login ก่อน แล้วค่อยโหลด pool จาก Supabase (ข้อมูลอยู่หลัง login)
 requireLogin().then(async () => {
   rtStart();                 // ฟังการเปลี่ยนแปลงจากเครื่องอื่นตั้งแต่เข้าเว็บ
+  if (TEAM_MODE) initQoPop();
   vlog("open");
   if (TEAM_MODE){ checkTeamRequests(); setInterval(checkTeamRequests, 90000); }
   startLiveWarn();           // แจ้งเตือนก่อนไลฟ์ ทำงานทุกหน้า
@@ -19683,7 +20187,7 @@ requireLogin().then(async () => {
   await selectSheet();          // โหลด Creator Pool จาก Supabase
   let last = "home";
   try { last = lsGet(LS_VIEW) || "home"; } catch(e){}
-  if (!["find","coord","home"].includes(last)) last = "home";
+  if (!["find","coord","home","review"].includes(last) || (last === "review" && !TEAM_MODE)) last = "home";
   if (last === "find" && isCrew()) last = "home";
   // คนสมัครเองไม่มีใครสอน — กางคู่มือให้ก่อนตั้งแต่ยังไม่เจอประตูรหัส Coordinator
   if (isCrew() && !lsGet(LS_TOUR)) await openCoach();
