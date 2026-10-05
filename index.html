@@ -3052,6 +3052,9 @@ tr.subrow td.w-status select{width:14.6em}
     <!-- ภาพรวมทั้งโปรเจกต์ — อยู่ติดแท็บโปรเจกต์เพราะมันคือ "อีกมุมของข้อมูลชุดเดียวกัน" -->
     <button class="mapbtn" id="mapBtn" title="ดูภาพรวมทั้งโปรเจกต์เป็นแผนผัง (กด M)">◈ Map</button>
     <!-- ข้อความทักครั้งแรกเพื่อขอเรท — ยังไม่มีคนในตาราง เลยเป็นของโปรเจกต์ ไม่ใช่ของรายคน -->
+    <!-- เดโมห้องตรวจดราฟต์ — มีไฟล์ draft.html เฉพาะบน sandbox (netflixss) · ALTA ไม่มี จึงซ่อนไว้ -->
+    <a class="mapbtn" id="draftDemoBtn" href="draft.html" target="_blank" rel="noopener" hidden
+       title="เดโมห้องตรวจดราฟต์ (ข้อมูลสมมติ ยังไม่ต่อฐานข้อมูล)">🎬 ตรวจดราฟต์ (เดโม)</a>
     <button class="mapbtn" id="fmtBtn" title="ข้อความขอเรทสำหรับทักครีเอเตอร์ครั้งแรก">✉ Format ขอเรท</button>
     <div class="coord-sum" id="coordSum"></div>
     <button type="button" class="treqbtn" id="teamReqBtn" hidden title="มีคนขอเข้าทีม — กดเพื่อไปอนุมัติ"></button>
@@ -16626,6 +16629,7 @@ $("#closeSet").onclick = closeSettings;
 $("#closeProj").onclick = () => { $("#projPanel").hidden = true; };
 $("#closeAct").onclick = () => { $("#actPanel").hidden = true; };
 $("#colMgrBtn").onclick = e => openColMgr(e.currentTarget);
+if (/github\.io$/.test(location.hostname) || location.hostname === "localhost") $("#draftDemoBtn").hidden = false;
 if (!TEAM_MODE) $("#colMgrBtn").hidden = true;
 $("#teamReqBtn").onclick = () => {
   openSettings();

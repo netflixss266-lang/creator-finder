@@ -1,0 +1,675 @@
+<!doctype html>
+<html lang="th">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="robots" content="noindex">
+<title>ห้องตรวจดราฟต์ RC × Alta</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bai+Jamjuree:wght@500;600;700&family=IBM+Plex+Sans+Thai:wght@400;500;600&family=IBM+Plex+Mono:wght@500&display=swap">
+<style>
+/* Layout: mock of the real Coordinator page — site header → project tabs → view switch (ตาราง / Map / ตรวจดราฟต์) → review desk (queue | creator rounds) */
+:root{
+  --bg:#F3F6F6; --surface:#FFFFFF; --surface2:#EEF3F3; --line:#DCE4E5; --fg:#11191B; --mute:#5B6B70; --dim:#8A989C;
+  --accent:#0E9F8D; --accent-ink:#FFFFFF; --accent-soft:rgba(14,159,141,.10);
+  --ibd:#D64545; --pm:#8B5CF6; --brand:#2F7FE0; --creator:#C7841B; --ok:#1F9D63; --warn:#C7841B; --bad:#D64545;
+  --cmd:#F7FAFA;
+  --f-display:"Bai Jamjuree","IBM Plex Sans Thai",system-ui,sans-serif;
+  --f-body:"IBM Plex Sans Thai",system-ui,-apple-system,"Segoe UI",sans-serif;
+  --f-mono:"IBM Plex Mono",ui-monospace,Consolas,monospace;
+  --r:10px;
+}
+@media (prefers-color-scheme: dark){ :root:not([data-theme="light"]){
+  --bg:#0E1214; --surface:#151B1E; --surface2:#1B2327; --line:#273136; --fg:#E7EEF0; --mute:#9AA8AD; --dim:#6E7C81;
+  --accent:#2DD4BF; --accent-ink:#06231F; --accent-soft:rgba(45,212,191,.12);
+  --ibd:#F07272; --pm:#B293FF; --brand:#64AEFF; --creator:#F2B24C; --ok:#3ECF8E; --warn:#F2B24C; --bad:#F07272;
+  --cmd:#11171A; color-scheme:dark } }
+:root[data-theme="dark"]{
+  --bg:#0E1214; --surface:#151B1E; --surface2:#1B2327; --line:#273136; --fg:#E7EEF0; --mute:#9AA8AD; --dim:#6E7C81;
+  --accent:#2DD4BF; --accent-ink:#06231F; --accent-soft:rgba(45,212,191,.12);
+  --ibd:#F07272; --pm:#B293FF; --brand:#64AEFF; --creator:#F2B24C; --ok:#3ECF8E; --warn:#F2B24C; --bad:#F07272;
+  --cmd:#11171A; color-scheme:dark }
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--fg);font:14px/1.55 var(--f-body);padding-inline:16px;padding-block:0 28px}
+button,input,textarea,select{font:inherit;color:inherit}
+button{cursor:pointer}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+h1,h2,h3{font-family:var(--f-display);text-wrap:balance;margin:0}
+.wrap{max-width:1280px;margin:0 auto}
+.hint{font-size:.74rem;color:var(--dim)}
+.err{font-size:.76rem;color:var(--bad)}
+.dot{width:8px;height:8px;border-radius:50%;background:var(--c);flex:none}
+
+/* ── แถบเดโม (ไม่มีในเว็บจริง) ── */
+.demobar{display:flex;flex-wrap:wrap;align-items:center;gap:8px 12px;padding:8px 12px;margin-top:12px;border:1px dashed var(--line);border-radius:var(--r);font-size:.78rem;color:var(--mute)}
+.demobar b{font-family:var(--f-display);color:var(--fg);letter-spacing:.02em}
+.seg{display:inline-flex;background:var(--surface2);border:1px solid var(--line);border-radius:999px;padding:3px}
+.seg button{border:0;background:none;border-radius:999px;padding:4px 11px;font-size:.78rem;color:var(--mute);display:flex;align-items:center;gap:6px}
+.seg button[aria-pressed="true"]{background:var(--surface);color:var(--fg);box-shadow:0 1px 3px rgba(0,0,0,.12)}
+.ghost{background:none;border:1px solid var(--line);border-radius:8px;padding:4px 10px;font-size:.76rem;color:var(--mute)}
+.ghost:hover{border-color:var(--accent);color:var(--accent)}
+.demobar .sp{margin-left:auto}
+
+/* ── หัวเว็บ (เหมือนเว็บจริง) ── */
+.site{display:flex;align-items:center;gap:18px;padding-block:14px 10px;border-bottom:1px solid var(--line);flex-wrap:wrap}
+.logo{font-family:var(--f-display);font-weight:700;color:var(--accent);letter-spacing:.06em;font-size:1rem;display:flex;align-items:baseline;gap:8px}
+.logo small{font-family:var(--f-mono);font-size:.62rem;color:var(--dim);letter-spacing:.12em}
+.nav{display:flex;gap:4px}
+.nav span{padding:4px 10px;border-radius:8px;font-size:.84rem;color:var(--mute)}
+.nav span.on{color:var(--fg);font-weight:600;background:var(--surface2)}
+.me{margin-left:auto;display:flex;align-items:center;gap:8px;font-size:.8rem;color:var(--mute)}
+
+/* แท็บโปรเจกต์ + มุมมอง */
+.ptabs{display:flex;flex-wrap:wrap;gap:6px;padding-block:12px 0}
+.ptab{border:1px solid var(--line);background:var(--surface);border-radius:9px;padding:6px 14px;font-size:.82rem;color:var(--mute)}
+.ptab.on{background:var(--accent);border-color:var(--accent);color:var(--accent-ink);font-weight:600}
+.views{display:flex;flex-wrap:wrap;align-items:center;gap:6px;padding-block:10px 12px}
+.view{display:flex;align-items:center;gap:6px;border:1px solid var(--line);background:var(--surface);border-radius:9px;padding:6px 13px;font-size:.84rem;font-weight:600}
+.view[aria-pressed="true"]{border-color:var(--accent);box-shadow:inset 0 0 0 1px var(--accent);color:var(--accent)}
+.view .badge{font-family:var(--f-mono);font-size:.68rem;background:var(--ibd);color:#fff;border-radius:999px;padding:0 6px}
+.views .note{font-size:.74rem;color:var(--dim);margin-left:4px}
+
+/* ── สรุปว่าใครถือลูก ── */
+.turns{display:flex;flex-wrap:wrap;gap:8px;padding-block:0 12px}
+.turn{display:flex;align-items:center;gap:8px;background:var(--surface);border:1px solid var(--line);border-radius:999px;padding:5px 12px 5px 10px;font-size:.8rem}
+.turn b{font-family:var(--f-mono);font-variant-numeric:tabular-nums}
+.turn[aria-pressed="true"]{border-color:var(--c);box-shadow:inset 0 0 0 1px var(--c)}
+.turn.mine{background:var(--accent-soft)}
+
+/* ── ห้องตรวจ ── */
+.desk{display:grid;grid-template-columns:minmax(270px,330px) minmax(0,1fr);gap:16px;align-items:start}
+@media (max-width:880px){ .desk{grid-template-columns:1fr} }
+.queue{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);overflow:hidden;position:sticky;top:12px}
+@media (max-width:880px){ .queue{position:static} }
+.qfind{padding:10px;border-bottom:1px solid var(--line)}
+.qfind input{width:100%;background:var(--surface2);border:1px solid var(--line);border-radius:8px;padding:6px 10px;font-size:.84rem}
+.qlist{max-height:calc(100vh - 230px);overflow:auto}
+@media (max-width:880px){ .qlist{max-height:none} }
+.qi{display:grid;grid-template-columns:auto 1fr auto;gap:2px 10px;align-items:center;width:100%;text-align:left;background:none;border:0;
+  border-bottom:1px solid var(--line);padding:10px 12px;position:relative}
+.qi:hover{background:var(--surface2)}
+.qi[aria-current="true"]{background:var(--accent-soft)}
+.qi[aria-current="true"]::before{content:"";position:absolute;left:0;top:8px;bottom:8px;width:3px;border-radius:0 3px 3px 0;background:var(--accent)}
+.qi .h{font-weight:600;font-size:.9rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.qi .sub{grid-column:2 / 4;font-size:.74rem;color:var(--mute);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.av{width:26px;height:26px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;font-size:.7rem;font-weight:700;
+  background:var(--c);color:#fff;flex:none}
+.qi .av{grid-row:1 / 3}
+.wait{font-size:.7rem;border-radius:999px;padding:1px 8px;border:1px solid var(--c);color:var(--c);white-space:nowrap}
+.late{color:var(--warn);font-weight:600}
+.empty{padding:28px 16px;text-align:center;color:var(--dim);font-size:.85rem}
+
+.detail{min-width:0;display:flex;flex-direction:column;gap:14px}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:var(--r)}
+.who{padding:16px 18px;display:flex;flex-wrap:wrap;gap:12px 20px;align-items:flex-start}
+.who h2{font-size:1.3rem;font-weight:700}
+.who a{color:var(--accent);text-decoration:none;font-size:.8rem}
+.facts{display:flex;flex-wrap:wrap;gap:6px;margin-top:6px}
+.fact{font-size:.74rem;background:var(--surface2);border-radius:6px;padding:2px 8px;color:var(--mute)}
+.fact b{color:var(--fg);font-weight:600}
+.people{margin-left:auto;display:flex;gap:14px;font-size:.78rem;color:var(--mute)}
+.people span{display:flex;align-items:center;gap:6px}
+.people .av{width:22px;height:22px;font-size:.62rem}
+.steps{display:flex;padding:14px 18px 16px;overflow-x:auto;border-top:1px solid var(--line)}
+.st{flex:1 0 92px;position:relative;text-align:center;font-size:.72rem;color:var(--dim);padding-top:24px}
+.st::before{content:"";position:absolute;top:8px;left:50%;width:14px;height:14px;margin-left:-7px;border-radius:50%;border:2px solid var(--line);background:var(--surface);z-index:1}
+.st::after{content:"";position:absolute;top:14px;left:calc(50% + 9px);right:calc(-50% + 9px);height:2px;background:var(--line)}
+.st:last-child::after{display:none}
+.st.done{color:var(--mute)}
+.st.done::before{background:var(--accent);border-color:var(--accent)}
+.st.done::after{background:var(--accent)}
+.st.now{color:var(--fg);font-weight:600}
+.st.now::before{border-color:var(--accent);box-shadow:0 0 0 4px var(--accent-soft)}
+.st small{display:block;font-family:var(--f-mono);font-size:.66rem;color:var(--dim);font-weight:500;margin-top:1px}
+
+.next{padding:14px 18px;border-left:4px solid var(--c);display:flex;flex-direction:column;gap:10px}
+.nextrow{display:flex;flex-wrap:wrap;align-items:center;gap:10px 14px}
+.next .what{flex:1 1 260px;min-width:0}
+.next .what b{display:block;font-size:.95rem}
+.next .what span{font-size:.8rem;color:var(--mute)}
+.btns{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.btn{border:1px solid var(--line);background:var(--surface);border-radius:8px;padding:7px 14px;font-size:.82rem;font-weight:600}
+.btn:hover{border-color:var(--accent)}
+.btn.primary{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
+.btn.good{border-color:var(--ok);color:var(--ok)}
+.btn.bad{border-color:var(--bad);color:var(--bad)}
+.btn:disabled{opacity:.45;cursor:not-allowed}
+/* ช่องฟีดแบค IBD ในแถบ "ตาคุณ" */
+.ibdfb{display:grid;grid-template-columns:76px minmax(0,1fr);gap:6px}
+.ibdfb input,.ibdfb textarea,.crow input,.crow textarea{background:var(--surface2);border:1px solid var(--line);border-radius:8px;padding:7px 10px;font-size:.84rem;min-width:0}
+.ibdfb input,.crow input{font-family:var(--f-mono);text-align:center;font-size:.8rem}
+.ibdfb textarea{resize:vertical;min-height:42px}
+
+.round .rhead{display:flex;flex-wrap:wrap;align-items:center;gap:8px 12px;padding:12px 18px;border-bottom:1px solid var(--line);cursor:pointer;user-select:none}
+.rhead h3{font-size:1rem;font-weight:600}
+.chip{font-size:.7rem;border-radius:999px;padding:1px 9px;border:1px solid var(--c);color:var(--c);white-space:nowrap}
+.rhead .tog{margin-left:auto;color:var(--dim);font-size:.8rem}
+.round.closed .rbody,.round.closed .compose2{display:none}
+.rbody{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.15fr)}
+@media (max-width:1000px){ .rbody{grid-template-columns:1fr} }
+.clips{padding:14px 18px;border-right:1px solid var(--line);display:flex;flex-direction:column;gap:10px;min-width:0}
+@media (max-width:1000px){ .clips{border-right:0;border-bottom:1px solid var(--line)} }
+.lbl{font-size:.7rem;letter-spacing:.06em;text-transform:uppercase;color:var(--dim)}
+.clip{display:grid;grid-template-columns:auto minmax(0,1fr) auto;gap:2px 10px;align-items:center;background:var(--surface2);border-radius:9px;padding:9px 10px}
+.pf{width:34px;height:34px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-family:var(--f-mono);font-size:.62rem;font-weight:600;background:var(--c);color:#fff;grid-row:1 / 3}
+.clip .t{font-weight:600;font-size:.84rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.clip .u{grid-column:2;font-size:.72rem;color:var(--mute);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.clip a{grid-row:1 / 3;grid-column:3;font-size:.76rem;color:var(--accent);text-decoration:none;border:1px solid var(--line);border-radius:7px;padding:4px 9px;white-space:nowrap}
+.addclip{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,.6fr) auto;gap:6px}
+@media (max-width:520px){ .addclip{grid-template-columns:1fr} }
+.addclip input{background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:7px 10px;font-size:.82rem;min-width:0}
+.thread{padding:14px 18px;display:flex;flex-direction:column;gap:10px;min-width:0}
+.msg{display:grid;grid-template-columns:auto minmax(0,1fr);gap:2px 10px}
+.msg .av{width:28px;height:28px;grid-row:1 / 3}
+.msg .meta{font-size:.76rem;color:var(--mute);display:flex;flex-wrap:wrap;gap:6px;align-items:center}
+.msg .meta b{color:var(--fg);font-size:.82rem}
+.msg .body{font-size:.86rem;white-space:pre-wrap;word-break:break-word}
+.ts{font-family:var(--f-mono);font-size:.74rem;background:var(--accent-soft);color:var(--accent);border-radius:5px;padding:0 6px;margin-right:4px}
+.verdict{font-size:.7rem;font-weight:600;border-radius:5px;padding:0 7px;color:#fff;background:var(--c)}
+.sys{font-size:.76rem;color:var(--dim);display:flex;gap:8px;align-items:center}
+.sys::before{content:"";width:6px;height:6px;border-radius:50%;background:var(--line);flex:none}
+.compose{display:flex;flex-direction:column;gap:6px;border-top:1px dashed var(--line);padding-top:10px}
+.crow{display:grid;grid-template-columns:74px minmax(0,1fr);gap:6px}
+.crow textarea{resize:vertical;min-height:40px}
+
+/* ── จัดข้อความถึงครีเอเตอร์ → Command ── */
+.compose2{border-top:1px solid var(--line);display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr)}
+@media (max-width:1000px){ .compose2{grid-template-columns:1fr} }
+.c2l,.c2r{padding:14px 18px;display:flex;flex-direction:column;gap:10px;min-width:0}
+.c2l{border-right:1px solid var(--line)}
+@media (max-width:1000px){ .c2l{border-right:0;border-bottom:1px solid var(--line)} }
+.c2l h4,.c2r h4{font-family:var(--f-display);font-size:.95rem;margin:0;display:flex;align-items:center;gap:8px}
+.pick{display:flex;gap:9px;align-items:flex-start;font-size:.84rem;padding:7px 9px;border-radius:8px;background:var(--surface2);cursor:pointer}
+.pick input{margin-top:4px;flex:none}
+.pick .src{font-size:.7rem;font-weight:600;color:var(--c);margin-right:6px;white-space:nowrap}
+.pick.off{opacity:.55}
+.c2l textarea{background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:9px 11px;font-size:.86rem;min-height:120px;resize:vertical;line-height:1.6}
+.cmdcard{background:var(--cmd);border:1px solid var(--line);border-radius:10px;overflow:hidden}
+.cmdhead{display:flex;align-items:center;gap:8px;padding:8px 12px;border-bottom:1px solid var(--line);font-size:.8rem}
+.cmdhead .num{width:22px;height:22px;border-radius:50%;background:var(--accent);color:var(--accent-ink);display:inline-flex;align-items:center;justify-content:center;font-weight:700;font-size:.7rem}
+.cmdhead b{flex:1}
+.cmdbody{padding:12px 14px;white-space:pre-wrap;font-size:.86rem;line-height:1.65;word-break:break-word}
+.cmdbody .fill{color:var(--accent);font-weight:500}
+.cmdbody .gap{color:var(--bad);border-bottom:1px dashed var(--bad)}
+.sent{font-size:.78rem;color:var(--ok);display:flex;align-items:center;gap:6px}
+
+/* ── มุมมองตาราง (ย่อ) ── */
+.tbl{overflow-x:auto;background:var(--surface);border:1px solid var(--line);border-radius:var(--r)}
+table{border-collapse:collapse;width:100%;min-width:640px;font-size:.84rem}
+th,td{padding:9px 12px;border-bottom:1px solid var(--line);text-align:left;white-space:nowrap}
+th{font-size:.72rem;color:var(--mute);font-weight:600;background:var(--surface2)}
+td .av{width:22px;height:22px;font-size:.6rem;margin-right:6px;vertical-align:middle}
+.dchip{border:1px solid var(--c);color:var(--c);background:none;border-radius:999px;padding:2px 10px;font-size:.74rem;font-weight:600}
+.dchip:hover{background:var(--accent-soft)}
+.newcol{background:var(--accent-soft)}
+
+.toast{position:fixed;left:50%;bottom:calc(18px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);background:var(--fg);color:var(--bg);
+  padding:8px 16px;border-radius:999px;font-size:.84rem;opacity:0;transition:opacity .2s;pointer-events:none;z-index:50}
+.toast.on{opacity:1}
+@media (prefers-reduced-motion:reduce){ *{transition:none!important} }
+</style>
+</head>
+<body>
+<!-- เดโมห้องตรวจดราฟต์ — ข้อมูลสมมติ ไม่ต่อฐานข้อมูล · ต้นฉบับ: Artifact "ห้องตรวจดราฟต์ RC × Alta" -->
+
+
+<div class="wrap">
+  <div class="demobar" role="group" aria-label="ตัวควบคุมเดโม">
+    <b>เดโม</b><span>ข้อมูลสมมติ (หน้าตาตาม sheet “RC x Alta Stage 2”) · บันทึกแค่ในเบราว์เซอร์นี้ · แถบนี้ไม่มีในเว็บจริง</span>
+    <span class="sp">ลองเป็น</span><div class="seg" id="roleSeg"></div>
+    <button class="ghost" id="reset" type="button">รีเซ็ตเดโม</button>
+  </div>
+
+  <!-- ═══ หน้า Coordinator ในเว็บจริง ═══ -->
+  <header class="site">
+    <div class="logo">CREATOR FINDER <small>ALTA GLOBAL COMMERCE</small></div>
+    <nav class="nav"><span>ค้นหาครีเอเตอร์</span><span class="on">Coordinator</span></nav>
+    <div class="me" id="me"></div>
+  </header>
+  <div class="ptabs" aria-label="โปรเจกต์"><span class="ptab">★ งานของฉัน</span><span class="ptab on">👥 RC × Alta Stage 2</span><span class="ptab">👥 OBSBOT-KOL</span></div>
+  <div class="views" role="group" aria-label="มุมมอง">
+    <button class="view" type="button" data-view="table">▦ ตาราง</button>
+    <button class="view" type="button" data-view="map">◈ Map</button>
+    <button class="view" type="button" data-view="review">🎬 ตรวจดราฟต์ <span class="badge" id="myBadge"></span></button>
+    <span class="note">← มุมมองใหม่ อยู่ข้าง Map · ตัวเลขแดง = งานที่รอคุณ</span>
+  </div>
+
+  <div id="viewTable" hidden></div>
+  <div id="viewReview">
+    <div class="turns" id="turns" role="group" aria-label="กรองตามว่ารอใคร"></div>
+    <main class="desk">
+      <aside class="queue" aria-label="รายชื่อครีเอเตอร์">
+        <div class="qfind"><input id="qFind" placeholder="ค้นชื่อ / สินค้า / IBD" autocomplete="off"></div>
+        <div class="qlist" id="qList"></div>
+      </aside>
+      <section class="detail" id="detail" aria-live="polite"></section>
+    </main>
+  </div>
+</div>
+<div class="toast" id="toast" role="status"></div>
+
+<script>
+// ═══ บทบาท — สีตาม sheet: IBD แดง · PM/PMA ม่วง ═══
+const ROLES = {
+  ibd:     { th:"IBD",        who:"Saipaan", c:"var(--ibd)" },
+  pm:      { th:"PM / PMA",   who:"Bright",  c:"var(--pm)" },
+  brand:   { th:"แบรนด์ RC",  who:"RC",      c:"var(--brand)" },
+  creator: { th:"ครีเอเตอร์", who:"",        c:"var(--creator)" },
+};
+const STEPS = [["cf","แบรนด์ CF"],["ship","ของถึง"],["d1","Draft 1"],["d2","Draft 2"],["d3","Draft 3"],["canpost","โพสต์ได้"],["posted","โพสต์แล้ว"]];
+const DAY = 864e5;
+const ago = (d, h) => new Date(Date.now() - d * DAY - (h || 0) * 36e5).toISOString();
+// ต้นแบบบล็อก Command จริงในเว็บ ("10. Feedback Draft #1" …)
+const CMD_FB = n => `แอดมินขออนุญาตส่ง Feedback Draft#${n} นะครับ😀\n📦สำหรับ: {{sku}}\n📌📌\n\n{{feedback${n}}}`;
+
+function seed(){
+  const M = (role, who, text, at, ts, verdict) => ({ role, who, text, at, ts: ts || "", verdict: verdict || "" });
+  const R = (n, stage, clips, thread, extra) => Object.assign({ n, stage, clips: clips || [], thread: thread || [], open: true }, extra || {});
+  const C = (url, label, by, at) => ({ url, label, by, at });
+  return [
+    { id:11, h:"nana.makeup", kind:"KOC", ibd:"Saipaan", follower:"8.2K", tier:"2K - 19K", product:"Concealer - C02 Natural", cost:63,
+      step:"d1", dates:{ cf:ago(24), ship:ago(16) }, since:ago(0, 6),
+      rounds:[ R(1, "relay", [ C("https://drive.google.com/file/d/DEMO/view", "Draft 1", "creator", ago(4)) ],
+        [ M("creator", "nana.makeup", "ส่ง Draft 1 ค่ะ Makeup no makeup", ago(4)),
+          M("ibd", "Saipaan", "ช่วงเปิดคลิปช้าไปนิด ตัดให้เข้าเรื่องเร็วขึ้น", ago(3), "0:00"),
+          M("pm", "Bright", "โทนผิวดีมาก ส่งแบรนด์ได้", ago(2), "", "approve"),
+          M("brand", "RC", "ขึ้น text ชื่อสี C02 Natural ตอนหยิบสินค้า", ago(0, 6), "0:05"),
+          M("brand", "RC", "ขอช็อตก่อน-หลังชัดๆ อีก 1 ช็อต", ago(0, 6), "0:18", "edit") ]) ] },
+    { id:1, h:"mali.review", kind:"KOC", ibd:"Min", follower:"6,854", tier:"2K - 19K", product:"Blush - Gemi (Moomin)", cost:63,
+      step:"d1", dates:{ cf:ago(30), ship:ago(20) }, since:ago(1, 3),
+      rounds:[ R(1, "ibd", [ C("https://drive.google.com/file/d/DEMO/view", "Draft 1 ตัวเต็ม", "creator", ago(1, 3)) ],
+        [ M("creator", "mali.review", "ส่ง Draft 1 แล้วค่ะ หัวข้อ Pain point", ago(1, 3)) ]) ] },
+    { id:5, h:"praew.daily", kind:"KOC", ibd:"Saipaan", follower:"1,249", tier:"2K - 19K", product:"Blush - Gemi (Moomin)", cost:63,
+      step:"d2", dates:{ cf:ago(28), ship:ago(22), d1:ago(9) }, since:ago(0, 20),
+      rounds:[ R(1, "done", [ C("https://drive.google.com/file/d/DEMO/view", "Draft 1", "creator", ago(9)) ],
+        [ M("ibd", "Saipaan", "อาจจะรีเควสถ่ายใหม่เรื่องแสง", ago(8)),
+          M("pm", "Bright", "เปิดคลิปไม่ดึงดูด หากถ่ายใหม่ได้จะดีมาก", ago(8), "", "reject"),
+          M("brand", "RC", "ขอรบกวนให้ครีเอเตอร์ถ่ายใหม่", ago(7), "", "edit") ],
+        { open:false, cmd:{ text:"• อยากให้ถ่ายใหม่ในที่แสงสว่างขึ้น\n• เปิดคลิปให้ดึงดูดกว่านี้ เข้าเรื่องสินค้าเร็วขึ้น", at:ago(7) } }),
+        R(2, "ibd", [ C("https://drive.google.com/file/d/DEMO/view", "Draft 2 (ถ่ายใหม่)", "creator", ago(0, 20)),
+                      C("https://drive.google.com/file/d/DEMO/view", "ฟุตเทจดิบ", "creator", ago(0, 20)) ],
+        [ M("creator", "praew.daily", "ถ่ายใหม่แล้วค่ะ ปรับความเร็วทั้งคลิปขึ้นแล้ว", ago(0, 20)) ]) ] },
+    { id:2, h:"benz.beauty", kind:"KOL", ibd:"Min", follower:"32.1K", tier:"20K - 99K (S1)", product:"Blush - Haelyn (40)", cost:274,
+      step:"d2", dates:{ cf:ago(40), ship:ago(30), d1:ago(12) }, since:ago(0, 5),
+      rounds:[ R(1, "done", [ C("https://drive.google.com/file/d/DEMO/view", "Draft 1", "creator", ago(12)) ],
+        [ M("ibd", "Min", "เปิดคลิปช้าไป ลองตัด 3 วิแรกออก", ago(11), "0:00"),
+          M("pm", "Bright", "", ago(10), "", "approve"),
+          M("brand", "RC", "ขอให้เห็นสีบนแก้มชัดกว่านี้", ago(9), "0:12", "edit") ],
+        { open:false, cmd:{ text:"• 0:00 ตัด 3 วิแรกออก ให้เข้าเรื่องเร็วขึ้น\n• 0:12 ขอให้เห็นสีบนแก้มชัดกว่านี้", at:ago(9) } }),
+        R(2, "pm", [ C("https://drive.google.com/file/d/DEMO/view", "Draft 2", "creator", ago(1)),
+                     C("https://www.tiktok.com/@benz.beauty/video/7000000000000000001", "ตัวอย่างอ้างอิง", "ibd", ago(1)) ],
+        [ M("ibd", "Min", "แก้ตามแบรนด์ครบแล้ว", ago(0, 5)) ]) ] },
+    { id:3, h:"cream.cheese", kind:"KOL", ibd:"Plup", follower:"1.3M", tier:"1M+ (S3)", product:"Blush - Lekui (20)", cost:1174,
+      step:"d1", dates:{ cf:ago(35), ship:ago(25) }, since:ago(3),
+      rounds:[ R(1, "brand", [ C("https://drive.google.com/file/d/DEMO/view", "Draft 1", "creator", ago(5)) ],
+        [ M("ibd", "Plup", "baeshu สีนี้ต้องหาคนผิวแอบขาว ลองดูโทนแสงอีกที", ago(4), "0:08"),
+          M("pm", "Bright", "โทนโอเค ส่งแบรนด์ได้", ago(3), "", "approve") ]) ] },
+    { id:4, h:"mimi.cosme", kind:"KOC", ibd:"Saipaan", follower:"14.4K", tier:"±20K", product:"Blush - Haelyn (40)", cost:63,
+      step:"d2", dates:{ cf:ago(28), ship:ago(22), d1:ago(10) }, since:ago(2),
+      rounds:[ R(1, "done", [ C("https://drive.google.com/file/d/DEMO/view", "Draft 1", "creator", ago(10)) ],
+        [ M("ibd", "Saipaan", "เพิ่ม text คำว่า Cream", ago(9), "0:03"), M("pm", "Bright", "", ago(9), "", "approve"),
+          M("brand", "RC", "เพิ่มโค้ดสีก่อนชื่อสี", ago(8), "0:03", "edit") ],
+        { open:false, cmd:{ text:"• 0:03 เพิ่ม text คำว่า Cream\n• 0:03 เพิ่มโค้ดสีก่อนชื่อสี", at:ago(8) } }),
+        R(2, "wait", [], [ { role:"sys", who:"", text:"รอครีเอเตอร์ส่ง Draft 2", at:ago(2) } ]) ] },
+    { id:6, h:"ploy.glow", kind:"KOC", ibd:"Saipaan", follower:"11K", tier:"±20K", product:"Blush - Haelyn (40)", cost:63,
+      step:"canpost", dates:{ cf:ago(30), ship:ago(24), d1:ago(14), canpost:ago(1) }, since:ago(1),
+      rounds:[ R(1, "done", [ C("https://drive.google.com/file/d/DEMO/view", "Draft 1", "creator", ago(14)) ],
+        [ M("ibd", "Saipaan", "รบกวนขึ้น Text : Misty Rose Makeup", ago(13)), M("pm", "Bright", "", ago(12), "", "approve"),
+          M("brand", "RC", "ผ่าน โพสต์ได้เลย", ago(1), "", "ok") ]) ], post:{} },
+    { id:7, h:"pear.pear", kind:"KOL", ibd:"Min", follower:"31.5K", tier:"20K - 99K (S1)", product:"Blush - Minki (Moomin)", cost:274,
+      step:"posted", dates:{ cf:ago(60), ship:ago(50), d1:ago(40), canpost:ago(30), posted:ago(28) }, since:ago(28),
+      rounds:[ R(1, "done", [ C("https://drive.google.com/file/d/DEMO/view", "Draft 1", "creator", ago(40)) ],
+        [ M("pm", "Bright", "", ago(38), "", "approve"), M("brand", "RC", "Baby Skin Blush สวยมาก ผ่าน", ago(31), "", "ok") ], { open:false }) ],
+      post:{ link:"https://www.tiktok.com/@pear.pear/video/7000000000000000001", code:"#DEMOCODE0000000000000", expiry:"60 Days", cart:"Add cart later" } },
+    { id:8, h:"bonus.bb", kind:"KOC", ibd:"Peach", follower:"3,610", tier:"2K - 19K", product:"Blush - Minki (Moomin)", cost:63,
+      step:"d1", dates:{ cf:ago(20), ship:ago(6) }, since:ago(6), rounds:[ R(1, "wait", [], []) ] },
+    { id:9, h:"rin.diary", kind:"KOC", ibd:"Peach", follower:"16.8K", tier:"±20K", product:"Blush - Gemi (Moomin)", cost:63,
+      step:"ship", dates:{ cf:ago(9) }, since:ago(9), rounds:[] },
+    { id:10, h:"atom.hey", kind:"KOC", ibd:"Min", follower:"2,521", tier:"2K - 19K", product:"Lip - LB400 Oat Glaze (40)", cost:63,
+      step:"cf", dates:{}, since:ago(2), rounds:[] },
+  ];
+}
+
+// v3: v2 อาจเก็บข้อความภาษาไทยที่เพี้ยนไว้ตอนหน้ายังไม่ได้ระบุ UTF-8 — เริ่มใหม่จากข้อมูลตัวอย่าง
+const LS = "draft-review-demo-v3";
+try { localStorage.removeItem("draft-review-demo-v1"); localStorage.removeItem("draft-review-demo-v2"); } catch(e){}
+let DATA = null, ROLE = "ibd", SEL = 11, TURN = "", FIND = "", VIEW = "review";
+try { const s = JSON.parse(localStorage.getItem(LS) || "null"); if (s && Array.isArray(s.data)){ DATA = s.data; ROLE = s.role || ROLE; SEL = s.sel || SEL; VIEW = s.view || VIEW; } } catch(e){}
+if (!DATA) DATA = seed();
+const save = () => { try { localStorage.setItem(LS, JSON.stringify({ data: DATA, role: ROLE, sel: SEL, view: VIEW })); } catch(e){} };
+
+const $ = s => document.querySelector(s);
+const esc = s => String(s == null ? "" : s).replace(/[&<>"']/g, c => ({ "&":"&amp;", "<":"&lt;", ">":"&gt;", '"':"&quot;", "'":"&#39;" })[c]);
+const ini = n => ([...String(n || "?")].find(ch => /[A-Za-zก-ฮ0-9]/.test(ch)) || "?").toUpperCase();
+const rel = at => { const s = (Date.now() - new Date(at)) / 1000;
+  return s < 60 ? "เมื่อสักครู่" : s < 3600 ? Math.floor(s / 60) + " นาที" : s < 86400 ? Math.floor(s / 3600) + " ชม." : Math.floor(s / 86400) + " วัน"; };
+const dshort = at => at ? new Date(at).toLocaleDateString("th-TH", { day:"numeric", month:"short" }) : "";
+const curRound = c => c.rounds[c.rounds.length - 1];
+function toast(t){ const el = $("#toast"); el.textContent = t; el.classList.add("on"); clearTimeout(toast.t); toast.t = setTimeout(() => el.classList.remove("on"), 1900); }
+
+function turnOf(c){
+  if (c.step === "cf") return { role:"brand", what:"รอแบรนด์คอนเฟิร์มรายชื่อ", how:"Waiting Brand CF" };
+  if (c.step === "ship") return { role:"brand", what:"รอแบรนด์ส่งสินค้า", how:"Pending Brand Shipment" };
+  if (c.step === "canpost") return { role:"creator", what:"รอครีเอเตอร์โพสต์ แล้ว IBD วางลิงก์โพสต์", how:"Waiting to post" };
+  if (c.step === "posted") return { role:"", what:"โพสต์แล้ว", how:"Already Post" };
+  const r = curRound(c), n = r ? r.n : 1, st = r ? r.stage : "wait";
+  const ord = n === 1 ? "1st" : n === 2 ? "2nd" : "3rd";
+  if (st === "wait") return { role:"creator", what:`รอครีเอเตอร์ส่ง Draft ${n}`, how:`Waiting ${ord} Draft` };
+  if (st === "ibd") return { role:"ibd", what:`ใส่ IBD Feedback ของ Draft ${n} แล้วส่งให้ PM`, how:`IBD Feedback · ${ord} Draft` };
+  if (st === "pm") return { role:"pm", what:`PM/PMA ตรวจ Draft ${n}`, how:`Waiting PM / PMA Asst. Feedback ${ord} Draft` };
+  if (st === "brand") return { role:"brand", what:`แบรนด์ให้ฟีดแบค Draft ${n}`, how:`Brand Feedback · ${ord} Draft` };
+  if (st === "relay") return { role:"ibd", what:`จัดข้อความฟีดแบคส่งเข้า Command แล้วขอ Draft ${n + 1}`, how:`Relay feedback ${ord} Draft` };
+  return { role:"", what:"", how:"" };
+}
+
+// ═══ แถบเดโม + หัวเว็บ + มุมมอง ═══
+function renderChrome(){
+  $("#roleSeg").innerHTML = ["ibd", "pm", "brand"].map(k => `<button type="button" data-role="${k}" aria-pressed="${ROLE === k}">
+    <span class="dot" style="--c:${ROLES[k].c}"></span>${esc(ROLES[k].th)}</button>`).join("");
+  $("#roleSeg").querySelectorAll("[data-role]").forEach(b => b.onclick = () => { ROLE = b.dataset.role; save(); renderAll(); toast(`ตอนนี้คุณคือ ${ROLES[ROLE].th}`); });
+  $("#me").innerHTML = `<span class="av" style="--c:${ROLES[ROLE].c};width:24px;height:24px">${esc(ini(ROLES[ROLE].who))}</span>${esc(ROLES[ROLE].who)} · ${esc(ROLES[ROLE].th)}`;
+  const n = DATA.filter(c => turnOf(c).role === ROLE).length;
+  $("#myBadge").textContent = n || ""; $("#myBadge").hidden = !n;
+  document.querySelectorAll("[data-view]").forEach(b => {
+    b.setAttribute("aria-pressed", b.dataset.view === VIEW);
+    b.onclick = () => { if (b.dataset.view === "map"){ toast("Map เดิมอยู่ตรงนี้ในเว็บจริง — เดโมนี้โชว์แค่ตารางกับห้องตรวจ"); return; }
+      VIEW = b.dataset.view; save(); renderAll(); };
+  });
+  $("#viewTable").hidden = VIEW !== "table"; $("#viewReview").hidden = VIEW !== "review";
+}
+// ตาราง (ย่อ) — คอลัมน์ "ดราฟต์" ใหม่: กดแล้วเปิดห้องตรวจของคนนั้น
+function renderTable(){
+  if (VIEW !== "table") return;
+  $("#viewTable").innerHTML = `<div class="tbl"><table><thead><tr><th>ผู้รับผิดชอบ</th><th>ครีเอเตอร์</th><th>สินค้า</th>
+      <th class="newcol">ดราฟต์ (ใหม่)</th><th>เรท</th></tr></thead><tbody>${DATA.map(c => { const t = turnOf(c), r = curRound(c);
+      const label = c.step === "posted" ? "โพสต์แล้ว" : c.step === "canpost" ? "โพสต์ได้" : c.step === "cf" ? "รอแบรนด์ CF" : c.step === "ship" ? "รอของ" :
+        `Draft ${r ? r.n : 1} · ${t.role === "creator" ? "รอครีเอเตอร์" : "รอ" + ROLES[t.role].th.replace("แบรนด์ RC", "แบรนด์")}`;
+      return `<tr><td><span class="av" style="--c:var(--ibd)">${esc(ini(c.ibd))}</span>${esc(c.ibd)}</td><td><b>${esc(c.h)}</b></td>
+        <td>${esc(c.product)}</td><td class="newcol"><button class="dchip" type="button" data-open="${c.id}" style="--c:${t.role ? ROLES[t.role].c : "var(--ok)"}">${esc(label)} ›</button></td>
+        <td>฿${esc(c.cost)}</td></tr>`; }).join("")}</tbody></table></div>
+    <p class="hint" style="margin-top:8px">ในเว็บจริงคือตาราง Coordinator เดิมทั้งหมด — เพิ่มแค่คอลัมน์ “ดราฟต์” ที่กดแล้วเปิดห้องตรวจของคนนั้น</p>`;
+  $("#viewTable").querySelectorAll("[data-open]").forEach(b => b.onclick = () => { SEL = +b.dataset.open; VIEW = "review"; save(); renderAll(); });
+}
+
+function renderTurns(){
+  const cnt = k => DATA.filter(c => turnOf(c).role === k).length;
+  const items = [["", "ทั้งหมด", DATA.length, "var(--accent)"], ["ibd", "รอ IBD", cnt("ibd"), ROLES.ibd.c], ["pm", "รอ PM/PMA", cnt("pm"), ROLES.pm.c],
+    ["brand", "รอแบรนด์", cnt("brand"), ROLES.brand.c], ["creator", "รอครีเอเตอร์", cnt("creator"), ROLES.creator.c],
+    ["done", "โพสต์แล้ว", DATA.filter(c => c.step === "posted").length, "var(--ok)"]];
+  $("#turns").innerHTML = items.map(([k, t, n, c]) => `<button type="button" class="turn${k === ROLE ? " mine" : ""}" data-turn="${k}"
+      aria-pressed="${TURN === k}" style="--c:${c}"><span class="dot" style="--c:${c}"></span>${esc(t)}${k === ROLE ? " (คุณ)" : ""} <b>${n}</b></button>`).join("");
+  $("#turns").querySelectorAll("[data-turn]").forEach(b => b.onclick = () => { TURN = TURN === b.dataset.turn ? "" : b.dataset.turn; renderTurns(); renderQueue(); });
+}
+function renderQueue(){
+  const q = FIND.trim().toLowerCase();
+  const list = DATA.filter(c => { const t = turnOf(c);
+    if (TURN === "done" ? c.step !== "posted" : TURN && t.role !== TURN) return false;
+    return !q || [c.h, c.product, c.ibd, c.kind].join(" ").toLowerCase().includes(q); });
+  list.sort((a, b) => (turnOf(b).role === ROLE) - (turnOf(a).role === ROLE) || new Date(a.since) - new Date(b.since));
+  $("#qList").innerHTML = list.length ? list.map(c => {
+    const t = turnOf(c), days = (Date.now() - new Date(c.since)) / DAY, rc = t.role ? ROLES[t.role].c : "var(--ok)";
+    return `<button type="button" class="qi" data-id="${c.id}" aria-current="${c.id === SEL}">
+      <span class="av" style="--c:var(--ibd)" title="IBD ${esc(c.ibd)}">${esc(ini(c.ibd))}</span>
+      <span class="h">${esc(c.h)} <span class="hint">${esc(c.kind)}</span></span>
+      <span class="wait" style="--c:${rc}">${t.role ? (t.role === ROLE ? "ตาคุณ" : "รอ" + ROLES[t.role].th.replace("แบรนด์ RC", "แบรนด์")) : "จบแล้ว"}</span>
+      <span class="sub">${esc(t.what)} · <span class="${days > 2 && t.role ? "late" : ""}">ค้าง ${esc(rel(c.since))}</span></span></button>`; }).join("")
+    : `<div class="empty">ไม่มีครีเอเตอร์ในกลุ่มนี้</div>`;
+  $("#qList").querySelectorAll("[data-id]").forEach(b => b.onclick = () => {
+    SEL = +b.dataset.id; save(); renderQueue(); renderDetail();
+    if (matchMedia("(max-width:880px)").matches) $("#detail").scrollIntoView({ behavior:"smooth", block:"start" });
+  });
+}
+
+const PF = url => { const u = String(url || "").toLowerCase();
+  if (u.includes("tiktok.com")) return ["TT", "#111", "TikTok"];
+  if (u.includes("drive.google") || u.includes("docs.google")) return ["GD", "#1A73E8", "Google Drive"];
+  if (u.includes("larksuite") || u.includes("feishu")) return ["LK", "#3370FF", "Lark"];
+  if (u.includes("youtu")) return ["YT", "#E62117", "YouTube"];
+  if (u.includes("instagram")) return ["IG", "#C13584", "Instagram"];
+  return ["URL", "var(--mute)", "ลิงก์"]; };
+const vidId = url => { const m = String(url || "").match(/\/video\/(\d{8,})/); return m ? m[1] : ""; };
+
+function renderDetail(){
+  if (VIEW !== "review") return;
+  const c = DATA.find(x => x.id === SEL) || DATA[0];
+  if (!c){ $("#detail").innerHTML = ""; return; }
+  SEL = c.id;
+  const t = turnOf(c), idx = STEPS.findIndex(s => s[0] === c.step), mine = t.role === ROLE;
+  const rc = t.role ? ROLES[t.role].c : "var(--ok)";
+  $("#detail").innerHTML = `
+    <div class="card">
+      <div class="who">
+        <div><h2>${esc(c.h)}</h2>
+          <a href="https://www.tiktok.com/@${esc(c.h)}" target="_blank" rel="noopener">tiktok.com/@${esc(c.h)} ↗</a>
+          <div class="facts"><span class="fact">${esc(c.kind)}</span><span class="fact">ผู้ติดตาม <b>${esc(c.follower)}</b></span>
+            <span class="fact">${esc(c.tier)}</span><span class="fact">${esc(c.product)}</span><span class="fact">Cost <b>฿${esc(c.cost)}</b></span></div></div>
+        <div class="people"><span><span class="av" style="--c:var(--ibd)">${esc(ini(c.ibd))}</span>IBD ${esc(c.ibd)}</span>
+          <span><span class="av" style="--c:var(--pm)">B</span>PM Bright</span></div>
+      </div>
+      <div class="steps" aria-label="ขั้นตอน">${STEPS.map(([k, th], i) => `<div class="st${i < idx || c.step === "posted" ? " done" : i === idx ? " now" : ""}">${esc(th)}
+        <small>${esc(dshort(c.dates[k]))}</small></div>`).join("")}</div>
+    </div>
+    <div class="card next" style="--c:${rc}">
+      <div class="nextrow">
+        <div class="what"><b>${t.role ? (mine ? "ตาคุณ: " : `รอ ${ROLES[t.role].th}: `) : "เสร็จแล้ว: "}${esc(t.what)}</b>
+          <span>ใน sheet คือ “${esc(t.how)}” · ค้างมา ${esc(rel(c.since))}${t.role && !mine && t.role !== "creator" ? ` · สลับเป็น ${esc(ROLES[t.role].th)} ที่แถบเดโมด้านบนเพื่อลองกด` : ""}</span></div>
+        <div class="btns">${actionsHTML(c, t, mine)}</div>
+      </div>
+      ${mine && curRound(c) && curRound(c).stage === "ibd" ? `<div class="ibdfb">
+          <input id="ibdTs" placeholder="0:03" inputmode="numeric" aria-label="นาทีในคลิป (ไม่บังคับ)" autocomplete="off">
+          <textarea id="ibdText" placeholder="IBD Feedback — ดูคลิปแล้วเห็นอะไรต้องแก้ พิมพ์ที่นี่ (ไม่มีแก้ก็เว้นว่างได้)"></textarea></div>` : ""}
+    </div>
+    ${c.rounds.slice().reverse().map(r => roundHTML(c, r)).join("")}
+    ${c.step === "canpost" || c.step === "posted" ? postHTML(c) : ""}`;
+  wireDetail(c);
+}
+
+function actionsHTML(c, t, mine){
+  const dis = mine ? "" : " disabled", r = curRound(c);
+  if (c.step === "cf") return `<button class="btn good" data-act="cf-ok"${dis}>Confirm</button><button class="btn" data-act="cf-backup"${dis}>Back-up</button><button class="btn bad" data-act="cf-no"${dis}>Rejected</button>`;
+  if (c.step === "ship") return `<button class="btn primary" data-act="arrived"${ROLE === "brand" || ROLE === "ibd" ? "" : " disabled"}>ของถึงครีเอเตอร์แล้ว</button>`;
+  if (c.step === "canpost") return `<span class="hint">วางลิงก์โพสต์ด้านล่างแล้วกดบันทึก</span>`;
+  if (c.step === "posted") return `<span class="chip" style="--c:var(--ok)">Already Post</span>`;
+  if (!r) return "";
+  if (r.stage === "wait") return `<span class="hint">วางลิงก์ดราฟต์ในรอบที่ ${r.n} ด้านล่าง ระบบส่งให้ IBD เอง</span>`;
+  if (r.stage === "ibd") return `<button class="btn primary" data-act="to-pm"${dis}>ส่ง IBD Feedback ให้ PM →</button>`;
+  if (r.stage === "pm") return `<button class="btn good" data-act="pm-ok"${dis}>✓ Approve · ส่งแบรนด์</button><button class="btn bad" data-act="pm-no"${dis}>✕ ขอแก้ก่อนส่งแบรนด์</button>`;
+  if (r.stage === "brand") return `<button class="btn good" data-act="br-ok"${dis}>✓ ผ่าน โพสต์ได้</button><button class="btn bad" data-act="br-edit"${dis}>ขอแก้</button>`;
+  if (r.stage === "relay") return `<button class="btn" data-act="jump-compose"${dis}>↓ ไปจัดข้อความ</button>
+    <button class="btn primary" data-act="next"${dis || (r.cmd ? "" : " disabled")} title="${r.cmd ? "" : "ส่งข้อความเข้า Command ก่อน"}">ขอ Draft ${Math.min(r.n + 1, 3)} →</button>`;
+  return "";
+}
+function roundHTML(c, r){
+  const live = r === curRound(c) && !["canpost", "posted"].includes(c.step);
+  const chip = { wait:["รอดราฟต์", "var(--creator)"], ibd:["IBD กำลังตรวจ", "var(--ibd)"], pm:["รอ PM/PMA", "var(--pm)"],
+    brand:["รอแบรนด์", "var(--brand)"], relay:["แบรนด์ขอแก้ · IBD จัดข้อความ", "var(--bad)"], done:["จบรอบ", "var(--ok)"] }[r.stage] || ["", "var(--dim)"];
+  const showCompose = r.stage === "relay" || r.cmd;
+  return `<article class="card round${r.open ? "" : " closed"}" id="round-${r.n}">
+    <div class="rhead" data-toggle="${r.n}" role="button" tabindex="0" aria-expanded="${r.open}">
+      <h3>Draft ${r.n}</h3><span class="chip" style="--c:${chip[1]}">${esc(chip[0])}</span>
+      ${r.cmd ? `<span class="chip" style="--c:var(--ok)">✓ อยู่ใน Command แล้ว</span>` : ""}
+      <span class="hint">${r.clips.length} คลิป · ${r.thread.filter(m => m.role !== "sys").length} ข้อความ</span>
+      <span class="tog">${r.open ? "▴ พับ" : "▾ กาง"}</span></div>
+    <div class="rbody">
+      <div class="clips"><span class="lbl">วิดีโอ / คลิป</span>
+        ${r.clips.map(cl => { const [ab, col, name] = PF(cl.url), id = vidId(cl.url);
+          return `<div class="clip"><span class="pf" style="--c:${col}">${ab}</span><span class="t">${esc(cl.label || name)}</span>
+            <span class="u">${esc(name)}${id ? " · Video ID " + esc(id) : ""} · ${esc(cl.by === "creator" ? c.h : (ROLES[cl.by] || {}).th || cl.by)} · ${esc(rel(cl.at))}</span>
+            <a href="${esc(cl.url)}" target="_blank" rel="noopener">เปิดดู ↗</a></div>`; }).join("") || `<div class="hint">ยังไม่มีคลิปในรอบนี้</div>`}
+        ${live ? `<div class="addclip"><input id="clipUrl-${r.n}" type="url" placeholder="วางลิงก์ TikTok / Google Drive / Lark …" autocomplete="off">
+            <input id="clipLabel-${r.n}" placeholder="ชื่อคลิป เช่น เวอร์ชันแก้ text" autocomplete="off">
+            <button class="btn" data-addclip="${r.n}" type="button">เพิ่มคลิป</button></div>
+          <div class="err" id="clipErr-${r.n}"></div><span class="hint">ใส่ได้หลายคลิปต่อรอบ — ตัวเต็ม · ฟุตเทจดิบ · คลิปอ้างอิง</span>` : ""}
+      </div>
+      <div class="thread"><span class="lbl">ฟีดแบค IBD · PM · แบรนด์</span>
+        ${r.thread.map(m => m.role === "sys" ? `<div class="sys">${esc(m.text)} · ${esc(rel(m.at))}</div>` : `<div class="msg">
+            <span class="av" style="--c:${(ROLES[m.role] || ROLES.creator).c}">${esc(ini(m.who))}</span>
+            <span class="meta"><b>${esc(m.who)}</b><span>${esc((ROLES[m.role] || {}).th || "")}</span>${m.verdict ? `<span class="verdict" style="--c:${
+              m.verdict === "approve" || m.verdict === "ok" ? "var(--ok)" : "var(--bad)"}">${{ approve:"Approve", reject:"ขอแก้", ok:"ผ่าน", edit:"ขอแก้" }[m.verdict]}</span>` : ""}<span>${esc(rel(m.at))}</span></span>
+            <div class="body">${m.ts ? `<span class="ts">${esc(m.ts)}</span>` : ""}${esc(m.text)}</div></div>`).join("") || `<div class="hint">ยังไม่มีฟีดแบค</div>`}
+        <div class="compose"><div class="crow"><input id="ts-${r.n}" placeholder="0:03" inputmode="numeric" aria-label="นาทีในคลิป (ไม่บังคับ)" autocomplete="off">
+            <textarea id="fb-${r.n}" placeholder="พิมพ์ฟีดแบคในนาม ${esc(ROLES[ROLE].th)}"></textarea></div>
+          <div class="btns"><button class="btn" data-fb="${r.n}" type="button">ส่งฟีดแบค</button></div></div>
+      </div>
+    </div>
+    ${showCompose ? composeHTML(c, r) : ""}
+  </article>`;
+}
+
+// ═══ จัดข้อความถึงครีเอเตอร์ → ส่งเข้า Command ═══
+// ดึงฟีดแบคทุกข้อในรอบนั้น (ข้อความครีเอเตอร์/ระบบไม่เอา) → ติ๊กเลือก → แก้ได้ → พรีวิวเป็นกล่อง Command จริง
+const fbItems = r => r.thread.map((m, i) => ({ m, i })).filter(({ m }) => ["ibd", "pm", "brand"].includes(m.role) && m.text.trim());
+// ติ๊กไว้ตั้งแต่แรก: ของแบรนด์กับ IBD · ของ PM เฉพาะตอนขอแก้ (ข้อความอนุมัติภายในอย่าง "ส่งแบรนด์ได้" ไม่ควรถึงครีเอเตอร์)
+const defaultPick = r => fbItems(r).filter(({ m }) => m.role !== "pm" || m.verdict === "reject").map(x => x.i);
+function buildText(r){
+  const pick = r.pick || defaultPick(r);
+  return fbItems(r).filter(x => pick.includes(x.i)).map(({ m }) => `• ${m.ts ? m.ts + " " : ""}${m.text.trim()}`).join("\n");
+}
+function cmdPreview(c, r, text){
+  const body = esc(CMD_FB(Math.min(r.n, 3)))
+    .replace("{{sku}}", `<span class="fill">${esc(c.product)}</span>`)
+    .replace(/\{\{feedback\d\}\}/, text.trim() ? `<span class="fill">${esc(text)}</span>` : `<span class="gap">…..ยังไม่มีฟีดแบค…..</span>`);
+  return `<div class="cmdcard"><div class="cmdhead"><span class="num">${9 + Math.min(r.n, 3)}</span><b>Feedback Draft #${Math.min(r.n, 3)}</b>
+    <span class="hint">Command ของ ${esc(c.h)}</span></div><div class="cmdbody">${body}</div></div>`;
+}
+function composeHTML(c, r){
+  const can = ROLE === "ibd";
+  const items = fbItems(r);
+  const pick = r.pick || defaultPick(r);
+  const text = r.draftText != null ? r.draftText : (r.cmd ? r.cmd.text : buildText(r));
+  return `<div class="compose2" id="compose-${r.n}">
+    <div class="c2l">
+      <h4>📝 จัดข้อความถึงครีเอเตอร์ ${can ? "" : `<span class="hint">(IBD เป็นคนจัด — คุณดูได้อย่างเดียว)</span>`}</h4>
+      <span class="hint">ติ๊กเลือกฟีดแบคที่จะส่ง → ระบบเรียงเป็นข้อให้ → แก้ถ้อยคำในกล่องได้อิสระ</span>
+      ${items.map(({ m, i }) => `<label class="pick${pick.includes(i) ? "" : " off"}" style="--c:${ROLES[m.role].c}">
+          <input type="checkbox" data-pick="${i}"${pick.includes(i) ? " checked" : ""}${can ? "" : " disabled"}>
+          <span><span class="src">${esc(ROLES[m.role].th)} · ${esc(m.who)}</span>${m.ts ? `<span class="ts">${esc(m.ts)}</span>` : ""}${esc(m.text)}</span></label>`).join("")
+        || `<span class="hint">ยังไม่มีฟีดแบคให้เลือก</span>`}
+      <textarea id="cmdText-${r.n}" aria-label="ข้อความถึงครีเอเตอร์"${can ? "" : " readonly"}>${esc(text)}</textarea>
+      ${can ? `<div class="btns"><button class="btn" type="button" data-rebuild="${r.n}">↺ สร้างใหม่จากที่ติ๊ก</button></div>` : ""}
+    </div>
+    <div class="c2r">
+      <h4>👁 ครีเอเตอร์จะได้รับแบบนี้</h4>
+      <div id="cmdPrev-${r.n}">${cmdPreview(c, r, text)}</div>
+      <div class="btns">
+        ${can ? `<button class="btn primary" type="button" data-sendcmd="${r.n}">${r.cmd ? "อัปเดตใน Command" : "ส่งเข้า Command"} · Feedback Draft #${Math.min(r.n, 3)}</button>` : ""}
+        <button class="btn" type="button" data-copycmd="${r.n}">คัดลอกข้อความ</button>
+      </div>
+      ${r.cmd ? `<div class="sent">✓ อยู่ใน Command ของ ${esc(c.h)} แล้ว · ${esc(rel(r.cmd.at))} — เปิด ✉ Command ของคนนี้ก็เห็นกล่องนี้พร้อมส่ง</div>` : ""}
+    </div>
+  </div>`;
+}
+
+function postHTML(c){
+  const p = c.post || (c.post = {}), id = vidId(p.link), done = c.step === "posted";
+  return `<section class="card"><div class="rhead" style="cursor:default;display:flex;gap:10px;padding:12px 18px;border-bottom:1px solid var(--line)"><h3>โพสต์</h3>
+      <span class="chip" style="--c:${done ? "var(--ok)" : "var(--creator)"}">${done ? "Already Post" : "Waiting to post"}</span></div>
+    <div style="padding:14px 18px;display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:10px">
+      ${[["pLink", "ลิงก์โพสต์ TikTok", p.link, "https://www.tiktok.com/@…/video/…"], ["pCode", "Gen Code", p.code, "#…"]].map(([id2, lab, v, ph]) =>
+        `<label style="display:flex;flex-direction:column;gap:4px;font-size:.74rem;color:var(--mute)">${lab}<input id="${id2}" value="${esc(v || "")}" placeholder="${ph}"
+          style="background:var(--surface2);border:1px solid var(--line);border-radius:8px;padding:7px 10px;font-size:.84rem;min-width:0"></label>`).join("")}
+      ${[["pExp", "อายุโค้ด", p.expiry, ["", "7 Days", "14 days", "30 Days", "60 Days", "90 Days", "120 Days", "180 Days", "365 Days"]],
+         ["pCart", "ตะกร้า", p.cart, ["", "During post", "Add cart later"]]].map(([id2, lab, v, opts]) =>
+        `<label style="display:flex;flex-direction:column;gap:4px;font-size:.74rem;color:var(--mute)">${lab}<select id="${id2}"
+          style="background:var(--surface2);border:1px solid var(--line);border-radius:8px;padding:7px 10px;font-size:.84rem">${opts.map(o =>
+          `<option value="${esc(o)}"${o === (v || "") ? " selected" : ""}>${esc(o || "—")}</option>`).join("")}</select></label>`).join("")}
+    </div>
+    <div class="btns" style="padding:0 18px 16px"><button class="btn primary" id="pSave" type="button">${done ? "บันทึก" : "บันทึกว่าโพสต์แล้ว"}</button>
+      <span class="hint">${id ? "Video ID " + esc(id) : "ดึง Video ID จากลิงก์ให้เอง"}</span><span class="err" id="pErr"></span></div></section>`;
+}
+
+const now = () => new Date().toISOString();
+function log(r, text){ r.thread.push({ role:"sys", who:"", text, at:now() }); }
+function say(r, text, verdict, ts){ r.thread.push({ role:ROLE, who:ROLES[ROLE].who, text:text || "", at:now(), ts:ts || "", verdict:verdict || "" }); }
+function moved(c){ c.since = now(); save(); renderAll(); }
+const tsOk = s => /^\d{1,2}:\d{2}$/.test(String(s || "").trim()) ? s.trim() : "";
+
+function wireDetail(c){
+  const r = curRound(c);
+  $("#detail").querySelectorAll("[data-toggle]").forEach(h => {
+    const go = () => { const rr = c.rounds.find(x => x.n === +h.dataset.toggle); rr.open = !rr.open; save(); renderDetail(); };
+    h.onclick = go; h.onkeydown = e => { if (e.key === "Enter" || e.key === " "){ e.preventDefault(); go(); } };
+  });
+  $("#detail").querySelectorAll("[data-act]").forEach(b => b.onclick = () => {
+    const a = b.dataset.act;
+    if (a === "jump-compose"){ const el = $(`#compose-${r.n}`); if (el) el.scrollIntoView({ behavior:"smooth", block:"start" }); return; }
+    if (a === "cf-ok"){ c.dates.cf = now(); c.step = "ship"; toast("Confirm แล้ว — รอแบรนด์ส่งของ"); }
+    if (a === "cf-backup"){ toast("ตั้งเป็น Back-up (Alta) — อยู่ในรายชื่อสำรอง"); return; }
+    if (a === "cf-no"){ toast("Rejected — ในเว็บจริงจะย้ายไปกลุ่มที่ตัดออก"); return; }
+    if (a === "arrived"){ c.dates.ship = now(); c.step = "d1"; c.rounds.push({ n:1, stage:"wait", clips:[], thread:[], open:true }); log(curRound(c), "ของถึงแล้ว รอครีเอเตอร์ส่ง Draft 1"); toast("บันทึกวันของถึงแล้ว"); }
+    if (a === "to-pm"){
+      const txt = ($("#ibdText") || {}).value || "", ts = tsOk(($("#ibdTs") || {}).value);
+      say(r, txt.trim() || "ตรวจแล้ว ไม่มีจุดแก้", "", ts); r.stage = "pm"; toast("ส่ง IBD Feedback ให้ PM/PMA แล้ว"); }
+    if (a === "pm-ok"){ r.stage = "brand"; say(r, "", "approve"); toast("Approve แล้ว — ส่งแบรนด์"); }
+    if (a === "pm-no"){ r.stage = "relay"; say(r, "ขอแก้ก่อนส่งแบรนด์ — ดูฟีดแบคด้านบน", "reject"); toast("ตีกลับให้ IBD จัดข้อความถึงครีเอเตอร์"); }
+    if (a === "br-ok"){ r.stage = "done"; say(r, "ผ่าน โพสต์ได้", "ok"); c.dates.canpost = now(); c.step = "canpost"; toast("ผ่านแล้ว — รอโพสต์"); }
+    if (a === "br-edit"){ r.stage = "relay"; say(r, "ขอแก้ — ดูฟีดแบคด้านบน", "edit"); toast("ส่งกลับให้ IBD จัดข้อความ"); }
+    if (a === "next"){
+      if (!r.cmd){ toast("ส่งข้อความเข้า Command ก่อน"); return; }
+      r.stage = "done"; r.open = false;
+      const n = Math.min(r.n + 1, 3);
+      c.dates["d" + r.n] = c.dates["d" + r.n] || now(); c.step = "d" + n;
+      c.rounds.push({ n: r.n < 3 ? n : r.n + 1, stage:"wait", clips:[], thread:[], open:true });
+      log(curRound(c), `รอครีเอเตอร์ส่ง Draft ${curRound(c).n}`); toast(`ขอ Draft ${curRound(c).n} แล้ว`);
+    }
+    moved(c);
+  });
+  $("#detail").querySelectorAll("[data-addclip]").forEach(b => b.onclick = () => {
+    const n = +b.dataset.addclip, rr = c.rounds.find(x => x.n === n);
+    const url = $(`#clipUrl-${n}`).value.trim(), label = $(`#clipLabel-${n}`).value.trim();
+    if (!/^https?:\/\/\S+\.\S+/.test(url)){ $(`#clipErr-${n}`).textContent = "วางลิงก์ที่ขึ้นต้นด้วย http:// หรือ https://"; return; }
+    rr.clips.push({ url, label, by: ROLE, at:now() });
+    if (rr.stage === "wait"){ rr.stage = "ibd"; log(rr, `Draft ${n} เข้ามาแล้ว ส่งให้ IBD ตรวจ`); }
+    moved(c); toast("เพิ่มคลิปแล้ว");
+  });
+  $("#detail").querySelectorAll("[data-fb]").forEach(b => b.onclick = () => {
+    const n = +b.dataset.fb, rr = c.rounds.find(x => x.n === n), text = $(`#fb-${n}`).value.trim();
+    if (!text) return $(`#fb-${n}`).focus();
+    say(rr, text, "", tsOk($(`#ts-${n}`).value)); rr.draftText = null; save(); renderDetail(); toast("ส่งฟีดแบคแล้ว");
+  });
+  // จัดข้อความ
+  c.rounds.forEach(rr => {
+    const ta = $(`#cmdText-${rr.n}`);
+    if (!ta) return;
+    const refresh = () => { $(`#cmdPrev-${rr.n}`).innerHTML = cmdPreview(c, rr, ta.value); };
+    ta.oninput = () => { rr.draftText = ta.value; save(); refresh(); };
+    $(`#compose-${rr.n}`).querySelectorAll("[data-pick]").forEach(cb => cb.onchange = () => {
+      const all = fbItems(rr).map(x => x.i);
+      const cur = new Set(rr.pick || defaultPick(rr));
+      cb.checked ? cur.add(+cb.dataset.pick) : cur.delete(+cb.dataset.pick);
+      rr.pick = all.filter(i => cur.has(i)); rr.draftText = buildText(rr); save(); renderDetail();
+    });
+    const rb = $(`#compose-${rr.n} [data-rebuild]`);
+    if (rb) rb.onclick = () => { rr.draftText = buildText(rr); save(); renderDetail(); toast("สร้างข้อความใหม่จากที่ติ๊กแล้ว"); };
+    const sb = $(`#compose-${rr.n} [data-sendcmd]`);
+    if (sb) sb.onclick = () => {
+      if (!ta.value.trim()){ toast("ข้อความยังว่าง — ติ๊กฟีดแบคอย่างน้อย 1 ข้อ"); return; }
+      rr.cmd = { text: ta.value, at: now() }; rr.draftText = ta.value;
+      log(rr, `IBD ส่งข้อความเข้า Command · Feedback Draft #${Math.min(rr.n, 3)}`);
+      save(); renderAll(); toast("ส่งเข้า Command แล้ว");
+    };
+    const cp = $(`#compose-${rr.n} [data-copycmd]`);
+    if (cp) cp.onclick = () => {
+      const full = CMD_FB(Math.min(rr.n, 3)).replace("{{sku}}", c.product).replace(/\{\{feedback\d\}\}/, ta.value);
+      (navigator.clipboard ? navigator.clipboard.writeText(full) : Promise.reject()).then(() => toast("คัดลอกแล้ว"),
+        () => { ta.focus(); ta.select(); toast("กด Ctrl+C เพื่อคัดลอก"); });
+    };
+  });
+  const ps = $("#pSave");
+  if (ps) ps.onclick = () => {
+    const link = $("#pLink").value.trim();
+    if (link && !/tiktok\.com\/@[^/]+\/video\/\d+/.test(link)){ $("#pErr").textContent = "ลิงก์ต้องเป็นลิงก์วิดีโอ TikTok (…/video/ตัวเลข)"; return; }
+    c.post = { link, code: $("#pCode").value.trim(), expiry: $("#pExp").value, cart: $("#pCart").value };
+    if (link && c.step !== "posted"){ c.step = "posted"; c.dates.posted = now(); toast("บันทึกว่าโพสต์แล้ว"); moved(c); return; }
+    save(); renderDetail(); toast("บันทึกแล้ว");
+  };
+}
+
+function renderAll(){ renderChrome(); renderTable(); if (VIEW === "review"){ renderTurns(); renderQueue(); renderDetail(); } }
+$("#qFind").oninput = e => { FIND = e.target.value; renderQueue(); };
+$("#reset").onclick = () => { DATA = seed(); SEL = 11; TURN = ""; VIEW = "review"; ROLE = "ibd"; save(); renderAll(); toast("กลับเป็นข้อมูลตัวอย่างแล้ว"); };
+renderAll();
+</script>
+
+</body>
+</html>
