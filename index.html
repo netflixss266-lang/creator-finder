@@ -621,15 +621,13 @@ body[data-view="home"] #homeView{display:flex}
 body:not([data-view="home"]) #homeView{display:none}
 body:not([data-view="find"]) .wrap{display:none}
 body:not([data-view="coord"]) #coordView{display:none}
-body[data-view="home"] .hgroup > :not(#gearBtn){display:none}
+body[data-view="home"] .hgroup > :not(#acctBtn){display:none}
 /* หน้า Coordinate ไม่เกี่ยวกับการหาคนใหม่ ซ่อนของฝั่งค้นหาไปเลย */
 body[data-view="coord"] #foldBtn,
 body[data-view="coord"] .poolstat,
 body[data-view="coord"] #addBtn,
 body[data-view="coord"] #cartBtn{display:none}
-/* ตั้งค่ามีทั้ง URL+token ที่เขียนชีตได้ ให้เข้าถึงได้จากหลัง Coordinator เท่านั้น
-   หน้าค้นหาผ่านประตูชั้นเดียว ส่วนหน้านี้ผ่านสองชั้น */
-body:not([data-view="coord"]) #gearBtn{display:none}
+/* ตั้งค่าย้ายเข้าเมนูบัญชีมุมขวาบนแล้ว — เปิดได้จากทุกหน้า (ประตูรหัส Coordinator ยกเลิกไปแล้ว ไม่มีเหตุให้ซ่อน) */
 
 /* ── Coordinate ── */
 #coordView{padding:20px 24px}
@@ -2706,6 +2704,69 @@ tr.subrow td.w-status select{width:14.6em}
   padding:11px 14px;font-size:.82rem;color:var(--mute);margin-bottom:16px;line-height:1.5}
 .banner b{color:var(--ink)}
 @media(prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+
+/* ══ บัญชี (มุมขวาบน) ══ ตั้งค่า + ออกจากระบบ + ขนาดตัวอักษร รวมไว้ในเมนูเดียว หัวเว็บเหลือที่ให้ของใช้ทุกวัน */
+.acctbtn{display:inline-flex;align-items:center;gap:8px;background:var(--surface);border:1px solid var(--line);
+  color:var(--ink);border-radius:999px;padding:3px 11px 3px 3px;font-size:.82rem;max-width:220px;flex:none}
+.acctbtn:hover,.acctbtn[aria-expanded="true"]{border-color:rgba(var(--accent-rgb),.6);background:var(--surface2)}
+.acav{display:inline-grid;place-items:center;flex:none;width:28px;height:28px;border-radius:50%;
+  background:var(--mc,var(--accent));color:#111;font-weight:700;font-size:.8rem;line-height:1}
+.acctbtn .an{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:600}
+.acctbtn .caret{color:var(--dim);font-size:.66rem}
+@media(max-width:720px){.acctbtn .an,.acctbtn .caret{display:none}.acctbtn{padding:3px}}
+.acctmenu{position:fixed;z-index:400;top:58px;right:14px;width:300px;max-width:calc(100vw - 24px);
+  background:var(--surface);border:1px solid var(--line);border-radius:12px;box-shadow:var(--shadow);padding:6px;
+  animation:acin .14s ease-out}
+.acctmenu[hidden]{display:none!important}
+@keyframes acin{from{opacity:0;transform:translateY(-4px)}}
+.am-head{display:flex;gap:12px;align-items:center;padding:12px 10px 14px;border-bottom:1px solid var(--line);margin-bottom:6px}
+.am-head .acav{width:44px;height:44px;font-size:1.15rem}
+.am-head .nm{font-weight:700;font-size:.98rem;line-height:1.3}
+.am-head .em{color:var(--mute);font-size:.76rem;word-break:break-all}
+.am-chips{display:flex;flex-wrap:wrap;gap:4px;margin-top:6px}
+.am-chip{font-size:.66rem;border:1px solid var(--line);border-radius:999px;padding:1px 8px;color:var(--mute)}
+.am-chip.role{color:var(--accent);border-color:rgba(var(--accent-rgb),.5)}
+.acctmenu .mi{display:flex;align-items:center;gap:10px;width:100%;background:none;border:0;color:var(--ink);
+  text-align:left;padding:9px 10px;border-radius:8px;font-size:.86rem}
+.acctmenu .mi:hover,.acctmenu .mi:focus-visible{background:var(--surface2);outline:none}
+.acctmenu .mi .ic{width:20px;text-align:center;color:var(--mute);flex:none}
+.acctmenu .mi .rt{margin-left:auto;color:var(--dim);font-size:.74rem}
+.acctmenu .sep{border-top:1px solid var(--line);margin:6px 4px}
+.acctmenu .mi.out,.acctmenu .mi.out .ic{color:var(--lo)}
+/* หน้าบัญชี = แท็บแรกของหน้าตั้งค่า */
+.settabs{display:flex;gap:3px;background:var(--surface);border:1px solid var(--line);border-radius:999px;padding:3px;margin-right:auto;margin-left:18px}
+.settabs button{background:none;border:0;color:var(--mute);padding:5px 15px;border-radius:999px;font-size:.84rem;font-weight:600}
+.settabs button[aria-selected="true"]{background:var(--accent);color:var(--accent-ink)}
+@media(max-width:560px){#setTitle{display:none}.settabs{margin-left:0}}
+#settings[data-tab="acct"] .setbody{display:none}
+#settings:not([data-tab="acct"]) .acctbody{display:none}
+.acctbody{flex:1;padding:8px 26px 60px;max-width:760px;width:100%;margin:0 auto}
+@media(max-width:560px){.acctbody,.setbody{padding-left:14px;padding-right:14px}}
+.acard{display:flex;gap:18px;align-items:center;margin-top:16px;padding:20px 22px;border-radius:12px;
+  background:linear-gradient(135deg,rgba(var(--accent-rgb),.15),var(--surface) 62%);border:1px solid var(--line)}
+.acard .acav{width:64px;height:64px;font-size:1.6rem}
+.acard .nm{font-size:1.25rem;font-weight:700;line-height:1.25}
+.acard .em{color:var(--mute);font-size:.86rem;word-break:break-all}
+.acard dl{display:grid;grid-template-columns:auto 1fr;gap:2px 12px;margin-top:10px;font-size:.78rem}
+.acard dt{color:var(--dim)} .acard dd{color:var(--mute)}
+.acform{display:grid;gap:11px;max-width:440px;margin-top:6px}
+.acform .f{display:grid;gap:4px;font-size:.78rem;color:var(--mute)}
+.acform input:not([type=checkbox]),#myName{background:var(--bg);border:1px solid var(--line);color:var(--ink);
+  border-radius:8px;padding:9px 11px;font:inherit;font-size:.9rem;width:100%}
+.acform input:focus,#myName:focus{outline:none;border-color:var(--accent)}
+.acform .run{justify-self:start;width:auto;padding:9px 20px}
+.acform .linkbtn{background:none;border:0;color:var(--accent);font-size:.78rem;padding:0;justify-self:start;text-decoration:underline}
+.pwmeter{height:5px;border-radius:3px;background:var(--surface2);overflow:hidden;margin-top:-4px}
+.pwmeter i{display:block;height:100%;width:0;transition:width .2s,background .2s}
+.pwrules{display:flex;flex-wrap:wrap;gap:3px 12px;font-size:.74rem;color:var(--dim)}
+.pwrules span::before{content:"○ "} .pwrules .ok{color:var(--hi)} .pwrules .ok::before{content:"✓ "}
+.acpend{border:1px solid rgba(var(--warn-rgb),.5);background:rgba(var(--warn-rgb),.1);color:var(--warn);
+  border-radius:8px;padding:9px 12px;font-size:.8rem;line-height:1.5;margin-top:4px}
+.acnow{font-size:.84rem;color:var(--mute);margin-bottom:4px} .acnow b{color:var(--ink)}
+.acrow{display:flex;gap:8px;flex-wrap:wrap;margin-top:8px}
+.actoast{position:fixed;z-index:500;left:50%;bottom:24px;transform:translateX(-50%);max-width:min(560px,calc(100vw - 32px));
+  background:var(--surface2);border:1px solid rgba(var(--accent-rgb),.5);color:var(--ink);border-radius:10px;
+  padding:11px 16px;font-size:.86rem;box-shadow:var(--shadow);line-height:1.5}
 </style>
 </head>
 <body>
@@ -2731,15 +2792,25 @@ tr.subrow td.w-status select{width:14.6em}
     <div class="poolstat crewhide">pool: <b id="poolN">0</b> คน</div>
     <div class="srcchip" id="srcChip" title="ตอนนี้เว็บอ่านชีตด้วยวิธีไหน"></div>
     <button class="gear accent crewhide" id="addBtn" aria-haspopup="dialog">+<span class="lbl"> เพิ่มครีเอเตอร์</span></button>
-    <button class="gear" id="gearBtn" aria-haspopup="dialog">⚙<span class="lbl"> ตั้งค่า</span></button>
     <button class="gear" id="undoBtn" hidden title="ย้อนกลับ (Ctrl+Z)">↶<span class="lbl"> ย้อนกลับ</span></button>
     <button class="gear" id="syncBtn" hidden title="ส่งที่แก้ขึ้นฐานข้อมูลเดี๋ยวนี้ (Ctrl+S)">⇧<span class="lbl"> ซิงก์</span></button>
-    <button class="gear uibtn" id="uiBtn" title="ขนาดตัวอักษรทั้งเว็บ — กดเพื่อสลับ">A</button>
-    <button class="gear" id="lockBtn" title="ล็อกหน้าจอ ต้องใส่รหัสใหม่">🔒<span class="lbl"> ล็อก</span></button>
     <button class="gear cartbtn empty crewhide" id="cartBtn" aria-haspopup="dialog"
             title="ครีเอเตอร์ที่หยิบไว้">🛒 ตะกร้า <span class="n" id="cartN">0</span></button>
+    <button type="button" class="acctbtn" id="acctBtn" aria-haspopup="menu" aria-expanded="false" aria-controls="acctMenu"
+            title="บัญชีของฉัน · ตั้งค่า"><span class="acav" id="acctAv">?</span><span class="an" id="acctName">บัญชี</span><span class="caret">▾</span></button>
   </div>
 </header>
+
+<!-- ═══ เมนูบัญชี — ตั้งค่า / ขนาดตัวอักษร / ออกจากระบบ ย้ายมาอยู่ในนี้ ═══ -->
+<div class="acctmenu" id="acctMenu" role="menu" aria-label="บัญชี" hidden>
+  <div class="am-head" id="amHead"></div>
+  <button type="button" class="mi" role="menuitem" data-am="profile"><span class="ic">👤</span>บัญชีของฉัน<span class="rt">ชื่อเล่น · อีเมล · รหัสผ่าน</span></button>
+  <button type="button" class="mi" role="menuitem" data-am="settings"><span class="ic">⚙</span>ตั้งค่าเว็บ</button>
+  <button type="button" class="mi" role="menuitem" data-am="ui"><span class="ic">A</span>ขนาดตัวอักษร<span class="rt" id="uiBtn"></span></button>
+  <button type="button" class="mi" role="menuitem" data-am="tour"><span class="ic">📖</span>คู่มือการใช้งาน</button>
+  <div class="sep"></div>
+  <button type="button" class="mi out" role="menuitem" data-am="logout" id="lockBtn"><span class="ic">⎋</span>ออกจากระบบ</button>
+</div>
 
 <!-- ═══ คำสั่งด่วน — แผงลอยใต้หัวเว็บ (กล่องคำสั่ง/ผลตรวจถูกย้ายมาไว้ในนี้ตอนเปิดเว็บ) ═══ -->
 <div class="qopop" id="qoPop" hidden>
@@ -3511,8 +3582,65 @@ tr.subrow td.w-status select{width:14.6em}
 <div class="overlay full" id="settings" hidden>
   <div class="modal" role="dialog" aria-modal="true" aria-labelledby="setTitle">
     <div class="modal-head">
-      <h2 id="setTitle">ตั้งค่าเว็บ</h2>
+      <h2 id="setTitle">ตั้งค่า</h2>
+      <div class="settabs" role="tablist">
+        <button type="button" role="tab" data-st="acct" aria-selected="false">👤 บัญชีของฉัน</button>
+        <button type="button" role="tab" data-st="web" aria-selected="true">⚙ ตั้งค่าเว็บ</button>
+      </div>
       <button class="x" id="closeSet" aria-label="ปิด">✕</button>
+    </div>
+
+    <!-- ═══ บัญชีของฉัน ═══ -->
+    <div class="acctbody" id="acctBody">
+      <div class="acard" id="acctCard"></div>
+      <!-- ชื่อที่ทีมเห็น — ทุกคนเปลี่ยนเองได้ (app_users แก้ตรงได้เฉพาะ admin → ผ่าน RPC set_my_name) -->
+      <section class="sect" id="myNameSect" hidden>
+        <h3>ชื่อเล่น · ชื่อที่ทีมเห็น</h3>
+        <p class="sect-sub">โชว์ในวงชื่อ ผู้ดูแลแถว ประวัติการแก้ไข คนที่ออนไลน์ และห้องตรวจดราฟต์ — ตัวแรกของชื่อเป็นตัวในวงกลม</p>
+        <div class="acform"><input id="myName" maxlength="40" placeholder="เช่น จิ๊บ" autocomplete="nickname">
+          <div class="pwrules" id="myNameLabel"></div>
+          <button type="button" class="run" id="myNameSave">บันทึกชื่อ</button></div>
+        <div class="addmsg" id="myNameMsg"></div>
+      </section>
+      <section class="sect" id="acctPwSect">
+        <h3>เปลี่ยนรหัสผ่าน</h3>
+        <p class="sect-sub">ใส่รหัสปัจจุบันก่อนเพื่อยืนยันว่าเป็นเจ้าของบัญชีจริง — กันคนอื่นมาเปลี่ยนตอนเราลุกจากโต๊ะ</p>
+        <form class="acform" id="pwForm" autocomplete="on">
+          <input type="email" id="pwUser" autocomplete="username" hidden>
+          <label class="f">รหัสปัจจุบัน<input type="password" id="pwCur" autocomplete="current-password" required></label>
+          <label class="f">รหัสใหม่<input type="password" id="pwNew" autocomplete="new-password" minlength="10" required></label>
+          <div class="pwmeter"><i id="pwBar"></i></div>
+          <div class="pwrules" id="pwRules"></div>
+          <label class="f">พิมพ์รหัสใหม่อีกครั้ง<input type="password" id="pwNew2" autocomplete="new-password" required></label>
+          <label class="chk"><input type="checkbox" id="pwShow"> แสดงรหัสที่พิมพ์</label>
+          <label class="chk"><input type="checkbox" id="pwOthers" checked> ออกจากระบบเครื่องอื่นทั้งหมดหลังเปลี่ยน</label>
+          <button type="submit" class="run" id="pwGo">เปลี่ยนรหัสผ่าน</button>
+          <button type="button" class="linkbtn" id="pwForgot">จำรหัสปัจจุบันไม่ได้? ส่งลิงก์ตั้งรหัสใหม่ไปที่อีเมล</button>
+          <div class="addmsg" id="pwMsg"></div>
+        </form>
+      </section>
+      <section class="sect" id="acctEmailSect">
+        <h3>เปลี่ยนอีเมล</h3>
+        <p class="sect-sub">อีเมลใช้ล็อกอินและรับลิงก์ตั้งรหัสใหม่ · ระบบส่งลิงก์ยืนยันไป <b>ทั้งอีเมลเดิมและอีเมลใหม่</b>
+          ต้องกดครบทั้งสองฉบับ อีเมลถึงจะเปลี่ยน — ระหว่างนั้นยังล็อกอินด้วยอีเมลเดิม</p>
+        <div class="acnow" id="emNow"></div>
+        <div id="emPend"></div>
+        <form class="acform" id="emForm" autocomplete="on">
+          <label class="f">อีเมลใหม่<input type="email" id="emNew" autocomplete="email" required></label>
+          <label class="f">รหัสผ่านปัจจุบัน (ยืนยันตัวตน)<input type="password" id="emPw" autocomplete="current-password" required></label>
+          <button type="submit" class="run" id="emGo">ส่งลิงก์ยืนยัน</button>
+          <div class="addmsg" id="emMsg"></div>
+        </form>
+      </section>
+      <section class="sect" id="acctSessSect">
+        <h3>การเข้าสู่ระบบ</h3>
+        <p class="sect-sub" id="sessInfo"></p>
+        <div class="acrow">
+          <button type="button" class="export" id="sessOthers">ออกจากระบบเครื่องอื่นทั้งหมด</button>
+          <button type="button" class="export" id="sessOut" style="color:var(--lo)">ออกจากระบบเครื่องนี้</button>
+        </div>
+        <div class="addmsg" id="sessMsg"></div>
+      </section>
     </div>
 
     <div class="setbody">
@@ -3553,14 +3681,6 @@ tr.subrow td.w-status select{width:14.6em}
       </div>
     </section>
 
-    <!-- ชื่อที่ทีมเห็น — ทุกคนเปลี่ยนเองได้ (app_users แก้ตรงได้เฉพาะ admin → ผ่าน RPC set_my_name) -->
-    <section class="sect mkeep" id="myNameSect" hidden>
-      <h3>ชื่อที่แสดง</h3>
-      <p class="sect-sub">ชื่อนี้โชว์ให้คนในทีมเห็น — ในวงชื่อ ผู้ดูแลแถว ประวัติการแก้ไข และคนที่ออนไลน์</p>
-      <div class="dd-act"><input id="myName" maxlength="40" placeholder="ชื่อของคุณ">
-        <button type="button" class="export" id="myNameSave">บันทึก</button></div>
-      <div class="hint" id="myNameMsg"></div>
-    </section>
     <section class="sect mkeep">
       <h3>แจ้งเตือนก่อนไลฟ์</h3>
       <p class="sect-sub">เด้งก่อนไลฟ์ <b>30 · 20 · 10 · 5 นาที</b> เฉพาะโปรเจกต์ไลฟ์ (แผนผังแบบปฏิทินวันที่) ·
@@ -12325,8 +12445,9 @@ $("#mapView").onclick = e => { if (e.target.id === "mapView") openTable(MAP_PROJ
 
 $("#syncBtn").onclick = () => syncCoord(true);
 
-// ล็อกเองได้โดยไม่ต้องปิดแท็บ — ลุกจากโต๊ะแล้วกดทีนึง
-$("#lockBtn").onclick = async () => {
+// ออกจากระบบเองได้โดยไม่ต้องปิดแท็บ — ลุกจากโต๊ะแล้วกดทีนึง (ปุ่มอยู่ในเมนูบัญชีมุมขวาบน)
+async function doLogout(){
+  closeAcctMenu();
   GATE_OK = {};                 // ล้างประตูชั้นใน (coord) ด้วย
   $("#cmdPanel").classList.remove("on");
   $("#cart").classList.remove("on");
@@ -12337,8 +12458,9 @@ $("#lockBtn").onclick = async () => {
   await requireLogin();
   applyRole();                  // คนที่กลับเข้ามาอาจสิทธิ์ไม่เท่าคนที่เพิ่งออกไป
   if (isCrew() && !lsGet(LS_TOUR)) await openCoach();
+  renderAcctBtn();
   setView("home");
-};
+}
 
 $("#closeCmd").onclick = () => $("#cmdPanel").classList.remove("on");
 $("#voiceBtn").onclick = () => {
@@ -14967,9 +15089,21 @@ async function sbRecover(email){
 // อ่านผลจากลิงก์ในเมลแล้วลบออกจากแถบที่อยู่ทันที — token ไม่ควรค้างให้ก๊อปลิงก์ไปส่งต่อ หรือโผล่ในประวัติ
 function recoveryFromHash(){
   const h = location.hash.replace(/^#/, "");
-  if (!/(^|&)(type=(recovery|invite)|error=)/.test(h)) return null;
+  if (!/(^|&)(type=(recovery|invite|email_change)|error=|message=)/.test(h)) return null;
   const q = new URLSearchParams(h);
   try { history.replaceState(null, "", location.pathname + location.search); } catch(e){}
+  // เปลี่ยนอีเมล: ลิงก์แรก (จากอีเมลฝั่งเดียว) ได้แค่ข้อความ · ลิงก์สุดท้ายได้ session ใหม่ที่อีเมลเปลี่ยนแล้ว
+  if (q.get("message") && !q.get("access_token")){
+    ACCT_NOTE = /other email/i.test(q.get("message"))
+      ? "ยืนยันฝั่งหนึ่งแล้ว — เหลือกดลิงก์ในอีกอีเมลหนึ่ง อีเมลถึงจะเปลี่ยน"
+      : q.get("message");
+    return null;
+  }
+  if (q.get("type") === "email_change" && q.get("access_token")){
+    ACCT_NOTE = "เปลี่ยนอีเมลเรียบร้อย — ครั้งต่อไปล็อกอินด้วยอีเมลใหม่";
+    return { access_token: q.get("access_token"), refresh_token: q.get("refresh_token") || "",
+             expires_in: +q.get("expires_in") || 3600, emailChange: true };
+  }
   if (q.get("error")){
     const expired = /expired|invalid/i.test(q.get("error_code") + " " + q.get("error_description"));
     return { error: expired
@@ -15069,6 +15203,7 @@ async function requireLogin0(){
     try {
       const r = await fetch(SB_URL + "/auth/v1/user", { headers: sbHeaders(true) });
       const u = r.ok ? await r.json() : null;
+      if (u && u.id && rec.emailChange){ SESSION.user = u; saveSession(SESSION); return await requireLogin0(); }
       if (u && u.id){ SESSION.user = u; saveSession(SESSION); return await askNewPassword(rec.invite); }
     } catch(e){}
     saveSession(null);
@@ -15729,7 +15864,9 @@ function setMsg(text, kind){
   el.innerHTML = text;
 }
 
-function openSettings(){
+function openSettings(tab){
+  setSetTab(tab === "acct" ? "acct" : "web");
+  if (tab === "acct") renderAcct();
   if (TEAM_MODE){
     vlog("settings");
     // admin/manager เห็นทั้งหมด (ยกเว้น 3 ส่วน adminonly ที่ admin เห็นคนเดียว) · editor เห็น 4 ส่วน + ชื่อที่แสดง
@@ -15740,14 +15877,17 @@ function openSettings(){
     $("#myNameSave").onclick = async () => {
       try {
         const j = await sbRpc("set_my_name", { p_name: $("#myName").value });
+        $("#myNameMsg").className = "addmsg on err";
         if (!j || !j.ok) return $("#myNameMsg").textContent = (j && j.error) || "บันทึกไม่ได้";
         PROFILE.display_name = j.name;
         if (TEAM){ try { const t = await sbRpc("my_team"); if (t && t.id) TEAM = t; } catch(e){} }
         ACT_USERS = null; PRES_LAST = ""; presTrack(true);
         $("#myName").value = j.name;
+        $("#myNameMsg").className = "addmsg on ok";
         $("#myNameMsg").textContent = "บันทึกแล้ว — คนในทีมจะเห็นชื่อใหม่";
+        renderAcctBtn(); renderAcctCard();
         if (document.body.dataset.view === "coord") renderCoord();
-      } catch(e){ $("#myNameMsg").textContent = e.message; }
+      } catch(e){ $("#myNameMsg").className = "addmsg on err"; $("#myNameMsg").textContent = e.message; }
     };
     if (limited){ document.body.dataset.memberset = "1"; $("#teamSect").hidden = true; }
     else { delete document.body.dataset.memberset; if ((PROFILE || {}).role === "admin") renderTeamSect(); }
@@ -15767,6 +15907,251 @@ function openSettings(){
   $("#poolSyncNow").onclick = () => { closeSettings(); poolSyncRun(true); };
   $("#addMsg").className = "addmsg";
   $("#settings").hidden = false;
+}
+
+// ═══ บัญชีของฉัน (มุมขวาบน) ═══
+// ปุ่มวงกลมชื่อ → เมนู: บัญชีของฉัน · ตั้งค่าเว็บ · ขนาดตัวอักษร · คู่มือ · ออกจากระบบ
+// หน้าบัญชี = แท็บแรกของหน้าตั้งค่า: ชื่อเล่น · เปลี่ยนรหัสผ่าน · เปลี่ยนอีเมล · การเข้าสู่ระบบ
+var ACCT_NOTE = "";    // ข้อความจากลิงก์ยืนยันอีเมล — โชว์หลังเปิดเว็บเสร็จ (var: ถูกตั้งค่าตั้งแต่ตอนอ่าน hash ก่อนบรรทัดนี้จะรัน)
+const ROLE_TH = { admin:"แอดมิน", manager:"ผู้จัดการ", editor:"สมาชิก", viewer:"ดูอย่างเดียว" };
+function acctUser(){ return (SESSION && SESSION.user) || {}; }
+function acctName(){ return ((PROFILE || {}).display_name || "").trim() || (acctUser().email || "").split("@")[0] || "บัญชี"; }
+function acctLabel(){ const m = memberOf(sbUid()); return (m && m.label) || ""; }
+function acctAvatar(){
+  const id = sbUid(), c = TEAM && memberOf(id) ? memColor(id) : "var(--accent)";
+  return `<span class="acav" style="--mc:${c}">${esc(memInitial(id, acctName()))}</span>`;
+}
+function acctDate(t){
+  if (!t) return "—";
+  const d = new Date(t);
+  return isNaN(d) ? "—" : d.toLocaleDateString("th-TH", { day:"numeric", month:"short", year:"numeric" }) +
+    " " + d.toLocaleTimeString("th-TH", { hour:"2-digit", minute:"2-digit" });
+}
+function renderAcctBtn(){
+  const b = $("#acctBtn");
+  if (!b) return;
+  b.hidden = !SESSION;
+  $("#acctAv").outerHTML = acctAvatar().replace('class="acav"', 'class="acav" id="acctAv"');
+  $("#acctName").textContent = acctName();
+  const u = acctUser(), role = (PROFILE || {}).role;
+  $("#amHead").innerHTML = `${acctAvatar()}<div style="min-width:0">
+    <div class="nm">${esc(acctName())}</div><div class="em">${esc(u.email || "")}</div>
+    <div class="am-chips">${role ? `<span class="am-chip role">${esc(ROLE_TH[role] || role)}</span>` : ""}${
+      TEAM ? `<span class="am-chip">👥 ${esc(TEAM.name)}</span>` : ""}${
+      acctLabel() ? `<span class="am-chip">${esc(acctLabel())}</span>` : ""}</div></div>`;
+}
+function openAcctMenu(){
+  renderAcctBtn();
+  const m = $("#acctMenu"), r = $("#acctBtn").getBoundingClientRect();
+  m.style.top = Math.round(r.bottom + 8) + "px";
+  m.style.right = Math.max(8, Math.round(innerWidth - r.right)) + "px";
+  m.hidden = false;
+  $("#acctBtn").setAttribute("aria-expanded", "true");
+  const f = m.querySelector(".mi"); if (f) f.focus();
+}
+function closeAcctMenu(){
+  const m = $("#acctMenu");
+  if (!m || m.hidden) return;
+  m.hidden = true;
+  $("#acctBtn").setAttribute("aria-expanded", "false");
+}
+$("#acctBtn").onclick = e => { e.stopPropagation(); $("#acctMenu").hidden ? openAcctMenu() : closeAcctMenu(); };
+$("#acctMenu").onclick = e => {
+  const b = e.target.closest("[data-am]");
+  if (!b) return;
+  const k = b.dataset.am;
+  if (k === "ui"){ cycleUI(); return; }          // เมนูค้างไว้ กดสลับได้หลายครั้ง
+  closeAcctMenu();
+  if (k === "profile") openSettings("acct");
+  else if (k === "settings") openSettings("web");
+  else if (k === "tour"){ $("#settings").hidden = true; openCoach(); }
+  else if (k === "logout") doLogout();
+};
+document.addEventListener("click", e => {
+  if (!e.target.closest("#acctMenu") && !e.target.closest("#acctBtn")) closeAcctMenu();
+});
+document.addEventListener("keydown", e => {
+  const m = $("#acctMenu");
+  if (!m || m.hidden) return;
+  if (e.key === "Escape"){ e.preventDefault(); e.stopPropagation(); closeAcctMenu(); $("#acctBtn").focus(); return; }
+  if (e.key === "ArrowDown" || e.key === "ArrowUp"){
+    const items = [...m.querySelectorAll(".mi")], i = items.indexOf(document.activeElement);
+    const n = e.key === "ArrowDown" ? (i + 1) % items.length : (i - 1 + items.length) % items.length;
+    items[n].focus(); e.preventDefault();
+  }
+}, true);
+addEventListener("resize", closeAcctMenu);
+
+function setSetTab(t){
+  $("#settings").dataset.tab = t;
+  document.querySelectorAll("#settings .settabs [data-st]").forEach(b =>
+    b.setAttribute("aria-selected", b.dataset.st === t ? "true" : "false"));
+  if (TEAM_MODE) vlog("settings:" + t);
+}
+document.querySelectorAll("#settings .settabs [data-st]").forEach(b => b.onclick = () => {
+  if (b.dataset.st === "acct"){ setSetTab("acct"); renderAcct(); } else openSettings("web");
+  $("#settings").scrollTop = 0;
+});
+
+function acMsg(id, text, kind){
+  const el = $("#" + id);
+  el.className = "addmsg" + (text ? " on " + (kind || "ok") : "");
+  el.innerHTML = text || "";
+}
+function sbErrTh(j, status, fallback){
+  const m = (j && (j.error_description || j.msg || j.message || j.error)) || "";
+  const code = (j && (j.error_code || j.code)) || "";
+  if (status === 429 || /rate limit|too many/i.test(m)) return "ส่งบ่อยเกินไป — ระบบส่งอีเมลได้จำกัดต่อชั่วโมง รอสักพักแล้วลองใหม่";
+  if (/same_password|same/i.test(code + m)) return "รหัสใหม่ต้องไม่ซ้ำกับรหัสเดิม";
+  if (/weak|short|characters/i.test(code + m)) return "รหัสสั้นหรือเดาง่ายเกินไป — ยาวอย่างน้อย 10 ตัว";
+  if (/email_exists|already been registered|already registered/i.test(code + m)) return "อีเมลนี้มีบัญชีอยู่แล้ว";
+  if (/invalid.*email|email_address_invalid|validate email/i.test(code + m)) return "รูปแบบอีเมลไม่ถูกต้อง หรือระบบไม่รับโดเมนนี้";
+  if (/sending|smtp|email_address_not_authorized/i.test(code + m))
+    return "ระบบส่งอีเมลไม่ได้ — เว็บยังใช้ตัวส่งอีเมลพื้นฐานของ Supabase ที่ส่งได้เฉพาะบางอีเมล ให้แอดมินตั้งค่าตัวส่งอีเมล (SMTP) ก่อน";
+  return m || fallback + ` (${status})`;
+}
+// ยืนยันรหัสปัจจุบัน = ล็อกอินซ้ำ ได้ session ใหม่สดๆ มาแทนของเดิม
+// Supabase บางโปรเจกต์ตั้งให้เปลี่ยนรหัสได้เฉพาะ session ที่เพิ่งล็อกอิน (ไม่งั้นต้องขอรหัส OTP ทางอีเมล) — session ใหม่ผ่านเงื่อนไขนี้เสมอ
+// session เดิมของเครื่องนี้ถูกยกเลิกทิ้ง ไม่ปล่อยค้างไว้เป็นช่องโหว่
+async function acctReauth(password){
+  const email = acctUser().email;
+  const r = await fetch(SB_URL + "/auth/v1/token?grant_type=password",
+    { method:"POST", headers: sbHeaders(false), body: JSON.stringify({ email, password }) });
+  const j = await r.json().catch(() => ({}));
+  if (!r.ok) throw new Error(r.status === 400 ? "รหัสผ่านปัจจุบันไม่ถูกต้อง" : sbErrTh(j, r.status, "ยืนยันตัวตนไม่สำเร็จ"));
+  const oldHdr = sbHeaders(true);
+  sbStore(j);
+  try { rtAuth(); } catch(e){}
+  fetch(SB_URL + "/auth/v1/logout?scope=local", { method:"POST", headers: oldHdr }).catch(() => {});
+  return j;
+}
+async function sbUserPut(body, query){
+  const r = await fetch(SB_URL + "/auth/v1/user" + (query || ""),
+    { method:"PUT", headers: sbHeaders(true), body: JSON.stringify(body) });
+  const j = await r.json().catch(() => ({}));
+  if (!r.ok) throw new Error(sbErrTh(j, r.status, "บันทึกไม่สำเร็จ"));
+  if (j && j.id){ SESSION.user = j; saveSession(SESSION); }
+  return j;
+}
+async function acctRefreshUser(){
+  try {
+    const r = await sbAuthed(SB_URL + "/auth/v1/user", {});
+    const u = r && r.ok ? await r.json() : null;
+    if (u && u.id){ SESSION.user = u; saveSession(SESSION); }
+  } catch(e){}
+}
+
+const PW_RULES = [
+  ["ยาว 10 ตัวขึ้นไป", p => p.length >= 10],
+  ["มีตัวพิมพ์เล็ก+ใหญ่", p => /[a-z]/.test(p) && /[A-Z]/.test(p)],
+  ["มีตัวเลข", p => /\d/.test(p)],
+  ["มีสัญลักษณ์", p => /[^A-Za-z0-9]/.test(p)],
+];
+function pwMeter(){
+  const p = $("#pwNew").value, ok = PW_RULES.map(([, f]) => f(p));
+  const n = ok.filter(Boolean).length + (p.length >= 14 ? 1 : 0);
+  const bar = $("#pwBar");
+  bar.style.width = (p ? Math.min(100, n * 20 + 10) : 0) + "%";
+  bar.style.background = !ok[0] ? "var(--lo)" : n <= 2 ? "var(--warn)" : "var(--hi)";
+  $("#pwRules").innerHTML = PW_RULES.map(([t], i) => `<span class="${ok[i] ? "ok" : ""}">${t}</span>`).join("");
+}
+
+function renderAcctCard(){
+  const u = acctUser(), role = (PROFILE || {}).role;
+  $("#acctCard").innerHTML = `${acctAvatar()}<div style="min-width:0">
+    <div class="nm">${esc(acctName())}</div><div class="em">${esc(u.email || "")}</div>
+    <dl><dt>สิทธิ์</dt><dd>${esc(ROLE_TH[role] || role || "—")}</dd>
+      ${TEAM ? `<dt>ทีม</dt><dd>${esc(TEAM.name)}${TEAM.lead_id === sbUid() ? " · หัวทีม" : ""}</dd>` : ""}
+      ${acctLabel() ? `<dt>หน้าที่</dt><dd>${esc(acctLabel())} <span style="color:var(--dim)">(หัวทีม/แอดมินตั้งให้)</span></dd>` : ""}
+      <dt>สมัครเมื่อ</dt><dd>${esc(acctDate(u.created_at))}</dd></dl></div>`;
+}
+function renderAcct(){
+  renderAcctCard();
+  const u = acctUser();
+  $("#pwUser").value = u.email || "";
+  ["pwCur", "pwNew", "pwNew2", "emNew", "emPw"].forEach(id => $("#" + id).value = "");
+  ["pwMsg", "emMsg", "sessMsg"].forEach(id => acMsg(id, ""));
+  $("#myNameLabel").innerHTML = "";
+  $("#myName").oninput = () => {
+    const v = $("#myName").value.trim();
+    $("#myNameLabel").innerHTML = v ? `<span>ตัวในวงกลม: <b>${esc(memInitial(sbUid(), v))}</b></span>` : "";
+  };
+  pwMeter();
+  renderEmailNow();
+  $("#sessInfo").innerHTML = `ล็อกอินครั้งล่าสุด <b>${esc(acctDate(u.last_sign_in_at))}</b> ·
+    เครื่องนี้จำการล็อกอินไว้ ไม่ต้องใส่รหัสใหม่ทุกครั้ง<br>ลืมออกจากระบบที่เครื่องอื่น (เช่น คอมที่ออฟฟิศ) กด
+    <b>ออกจากระบบเครื่องอื่นทั้งหมด</b> — เครื่องนี้ยังใช้ต่อได้`;
+  acctRefreshUser().then(() => { renderEmailNow(); renderAcctCard(); });
+}
+function renderEmailNow(){
+  const u = acctUser();
+  $("#emNow").innerHTML = `อีเมลตอนนี้: <b>${esc(u.email || "—")}</b>`;
+  $("#emPend").innerHTML = u.new_email
+    ? `<div class="acpend">⏳ รอยืนยันเปลี่ยนเป็น <b>${esc(u.new_email)}</b>${
+        u.email_change_sent_at ? ` · ส่งลิงก์เมื่อ ${esc(acctDate(u.email_change_sent_at))}` : ""}<br>
+        กดลิงก์ในอีเมลให้ครบทั้งสองฉบับ (เช็กโฟลเดอร์สแปมด้วย) · ส่งคำขอใหม่ = ยกเลิกอันเดิม</div>` : "";
+}
+
+$("#pwNew").oninput = pwMeter;
+$("#pwShow").onchange = e => ["pwCur", "pwNew", "pwNew2"].forEach(id => $("#" + id).type = e.target.checked ? "text" : "password");
+$("#pwForm").onsubmit = async e => {
+  e.preventDefault();
+  const cur = $("#pwCur").value, nw = $("#pwNew").value, nw2 = $("#pwNew2").value;
+  if (nw.length < 10) return acMsg("pwMsg", "รหัสใหม่ต้องยาวอย่างน้อย 10 ตัว", "err");
+  if (nw !== nw2) return acMsg("pwMsg", "รหัสใหม่สองช่องไม่ตรงกัน", "err");
+  if (nw === cur) return acMsg("pwMsg", "รหัสใหม่ต้องไม่ซ้ำกับรหัสเดิม", "err");
+  const go = $("#pwGo"); go.disabled = true; acMsg("pwMsg", "กำลังเปลี่ยน…", "ok");
+  try {
+    await acctReauth(cur);
+    await sbUserPut({ password: nw });
+    let extra = "";
+    if ($("#pwOthers").checked){
+      const r = await fetch(SB_URL + "/auth/v1/logout?scope=others", { method:"POST", headers: sbHeaders(true) }).catch(() => null);
+      extra = r && r.ok ? " · ออกจากระบบเครื่องอื่นแล้ว" : " · (ออกจากระบบเครื่องอื่นไม่สำเร็จ ลองกดในหัวข้อการเข้าสู่ระบบ)";
+    }
+    ["pwCur", "pwNew", "pwNew2"].forEach(id => $("#" + id).value = ""); pwMeter();
+    acMsg("pwMsg", "✓ เปลี่ยนรหัสผ่านแล้ว — ครั้งต่อไปใช้รหัสใหม่" + extra, "ok");
+    if (TEAM_MODE) vlog("account:password");
+  } catch(err){ acMsg("pwMsg", esc(err.message), "err"); }
+  go.disabled = false;
+};
+$("#pwForgot").onclick = async () => {
+  const email = acctUser().email;
+  if (!email) return;
+  try { await sbRecover(email); acMsg("pwMsg", `ส่งลิงก์ตั้งรหัสใหม่ไปที่ <b>${esc(email)}</b> แล้ว — เช็กโฟลเดอร์สแปมด้วย`, "ok"); }
+  catch(err){ acMsg("pwMsg", esc(err.message), "err"); }
+};
+$("#emForm").onsubmit = async e => {
+  e.preventDefault();
+  const nw = $("#emNew").value.trim().toLowerCase(), pw = $("#emPw").value;
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(nw)) return acMsg("emMsg", "รูปแบบอีเมลไม่ถูกต้อง", "err");
+  if (nw === (acctUser().email || "").toLowerCase()) return acMsg("emMsg", "นี่คืออีเมลที่ใช้อยู่แล้ว", "err");
+  const go = $("#emGo"); go.disabled = true; acMsg("emMsg", "กำลังส่ง…", "ok");
+  try {
+    await acctReauth(pw);
+    await sbUserPut({ email: nw }, "?redirect_to=" + encodeURIComponent(SB_RESET_TO));
+    $("#emNew").value = ""; $("#emPw").value = "";
+    renderEmailNow();
+    acMsg("emMsg", `ส่งลิงก์ยืนยันแล้ว — เปิดอีเมล <b>${esc(nw)}</b> และอีเมลเดิม แล้วกดลิงก์ให้ครบทั้งสองฉบับ`, "ok");
+    if (TEAM_MODE) vlog("account:email");
+  } catch(err){ acMsg("emMsg", esc(err.message), "err"); }
+  go.disabled = false;
+};
+$("#sessOthers").onclick = async () => {
+  if (!confirm("ออกจากระบบทุกเครื่องยกเว้นเครื่องนี้?")) return;
+  try {
+    const r = await sbAuthed(SB_URL + "/auth/v1/logout?scope=others", { method:"POST" });
+    acMsg("sessMsg", r && r.ok ? "✓ ออกจากระบบเครื่องอื่นทั้งหมดแล้ว — เครื่องนี้ยังใช้ต่อได้" : "ไม่สำเร็จ ลองใหม่อีกครั้ง", r && r.ok ? "ok" : "err");
+  } catch(err){ acMsg("sessMsg", esc(err.message), "err"); }
+};
+$("#sessOut").onclick = () => { closeSettings(); doLogout(); };
+
+function acctToast(text){
+  const t = document.createElement("div");
+  t.className = "actoast"; t.setAttribute("role", "status"); t.textContent = text;
+  document.body.appendChild(t);
+  setTimeout(() => t.remove(), 7000);
+  t.onclick = () => t.remove();
 }
 
 // ─── หน้ากู้ข้อมูล ───
@@ -17116,19 +17501,17 @@ const LS_UI = "cf_ui_v1";
 let UI_I = 1;
 function applyUI(){
   document.documentElement.style.setProperty("--ui", UI_SIZES[UI_I][1] + "px");
-  $("#uiBtn").innerHTML = `A<span class="sz">${esc(UI_SIZES[UI_I][0])}</span>`;
-  $("#uiBtn").title = `ขนาดตัวอักษร: ${UI_SIZES[UI_I][0]} — กดเพื่อสลับ`;
+  $("#uiBtn").textContent = UI_SIZES[UI_I][0] + " ›";
   measureStick();
 }
 try { const v = +lsGet(LS_UI); if (UI_SIZES[v]) UI_I = v; } catch(e){}
-$("#uiBtn").onclick = () => {
+function cycleUI(){
   UI_I = (UI_I + 1) % UI_SIZES.length;
   try { lsSet(LS_UI, UI_I); } catch(e){}
   applyUI();
-};
+}
 applyUI();
 
-$("#gearBtn").onclick = openSettings;
 $("#closeSet").onclick = closeSettings;
 $("#closeProj").onclick = () => { $("#projPanel").hidden = true; };
 $("#closeAct").onclick = () => { $("#actPanel").hidden = true; };
@@ -19920,6 +20303,7 @@ function applyRole(){
   const de = document.documentElement;
   if ((PROFILE || {}).role === "admin") de.dataset.admin = "1"; else delete de.dataset.admin;
   if (canManageProjects()) de.dataset.pm = "1"; else delete de.dataset.pm;
+  renderAcctBtn();
 }
 
 // ═══ คู่มือเปิดใช้งานครั้งแรก — coachmark ชี้ปุ่มจริงบนหน้าจอจริง ═══
@@ -20184,6 +20568,7 @@ requireLogin().then(async () => {
   if (TEAM_MODE){ checkTeamRequests(); setInterval(checkTeamRequests, 90000); }
   startLiveWarn();           // แจ้งเตือนก่อนไลฟ์ ทำงานทุกหน้า
   applyRole();                  // ต้องรู้สิทธิ์ก่อนวาดอะไร ไม่งั้นปุ่มที่กดไม่ได้จะโผล่แวบนึง
+  if (ACCT_NOTE){ acctToast(ACCT_NOTE); ACCT_NOTE = ""; }
   await selectSheet();          // โหลด Creator Pool จาก Supabase
   let last = "home";
   try { last = lsGet(LS_VIEW) || "home"; } catch(e){}
