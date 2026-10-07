@@ -9601,10 +9601,7 @@ function cmdAddAt(scope, proj, handle, afterId){
   if (scope === "mine"){
     blk.id = cmdNewId("m");
     cmdOwn(proj, handle).add.push(blk);
-    saveCmdOwn();
-    return blk.id;
-  }
-  if (scope === "global"){
+  } else if (scope === "global"){
     blk.id = cmdNewId("g");
     (CMDADD[ALLP] || (CMDADD[ALLP] = [])).push(blk);
   } else {
@@ -9612,7 +9609,16 @@ function cmdAddAt(scope, proj, handle, afterId){
     if (scope === "KOL" || scope === "KOC") blk.kind = scope;   // ได้เฉพาะกลุ่มนี้ (ตัวกรองเดิมของ blockForPay)
     (CMDADD[proj] || (CMDADD[proj] = [])).push(blk);
   }
-  saveCmdEdit();
+  // บล็อกข้างเคียงเลขลำดับซ้ำกัน (lo = hi) → ค่ากลางไม่อยู่ระหว่างสองอัน บล็อกใหม่ไปโผล่ใต้บล็อกอื่น
+  // เช็คจากผลจริง: ถ้าไม่ได้อยู่ต่อจากบล็อกที่กด ให้เรียงเลขใหม่ทั้งแท็บนี้ (ลำดับบนจอเดิม + บล็อกใหม่ต่อจากที่กด)
+  const after = cmdScopeView(scope, proj, handle).filter(b => !b.hidden);
+  const want = view.map(b => b.id);
+  want.splice(lo ? i + 1 : 0, 0, blk.id);
+  if (after.map(b => b.id).join("|") !== want.join("|")){
+    const byId = new Map(after.map(b => [b.id, b]));
+    want.forEach((id, n) => { const b = byId.get(id); if (b) cmdSetOrd(scope, proj, handle, b, n); });
+  }
+  if (scope === "mine"){ pruneCmdOwn(proj, handle); saveCmdOwn(); } else saveCmdEdit();
   return blk.id;
 }
 // บล็อกนี้เกิดในชั้นของแท็บนี้เองไหม — ใช่ = ลบทิ้งได้จริง/แก้ที่ตัวมันตรงๆ · ไม่ใช่ = ซ่อนเฉพาะชั้นนี้
