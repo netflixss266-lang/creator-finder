@@ -2767,6 +2767,24 @@ tr.subrow td.w-status select{width:14.6em}
 .actoast{position:fixed;z-index:500;left:50%;bottom:24px;transform:translateX(-50%);max-width:min(560px,calc(100vw - 32px));
   background:var(--surface2);border:1px solid rgba(var(--accent-rgb),.5);color:var(--ink);border-radius:10px;
   padding:11px 16px;font-size:.86rem;box-shadow:var(--shadow);line-height:1.5}
+
+/* ══ แท็บล่างสุดของตาราง: งานหลัก | ชั่วคราว ══ (แบบแท็บชีตใน Excel/Lark) */
+.sheetbar{position:sticky;bottom:0;z-index:6;display:flex;align-items:center;gap:6px;flex-wrap:wrap;
+  margin-top:10px;padding:7px 8px;background:var(--bg);border-top:1px solid var(--line)}
+.sheetbar .st{background:var(--surface);border:1px solid var(--line);color:var(--mute);border-radius:0 0 8px 8px;
+  border-top:2px solid transparent;padding:5px 14px;font-size:.82rem;font-weight:600;display:inline-flex;gap:6px;align-items:center}
+.sheetbar .st .n{font-size:.7rem;background:var(--surface2);border-radius:999px;padding:0 7px;color:var(--dim)}
+.sheetbar .st[aria-selected="true"]{color:var(--ink);background:var(--surface2);border-top-color:var(--accent)}
+.sheetbar .st.tmp[aria-selected="true"]{border-top-color:var(--warn)}
+.sheetbar .st.tmp .n{color:var(--warn)}
+.sheetbar .sa{margin-left:auto;display:flex;gap:6px;flex-wrap:wrap}
+.sheetbar .sa button{background:var(--surface);border:1px solid var(--line);color:var(--ink);border-radius:8px;padding:5px 12px;font-size:.78rem}
+.sheetbar .sa button:hover{background:var(--surface2)}
+.sheetbar .sa .danger{color:var(--lo);border-color:rgba(var(--lo-rgb),.45)}
+.sheetbar .sa .danger:hover{background:rgba(var(--lo-rgb),.12)}
+body[data-sheet="temp"] #coordBody .ctable tbody tr[data-row]{box-shadow:inset 3px 0 0 rgba(var(--warn-rgb),.7)}
+.tmpnote{font-size:.78rem;color:var(--warn);margin:0 0 8px;line-height:1.5}
+.ctable .mvmain{background:none;border:0;color:var(--warn);font-size:.85rem;padding:2px 4px;margin-right:2px}
 </style>
 </head>
 <body>
@@ -6155,7 +6173,7 @@ async function loadCoordData(force){
         brief: o.brief || "", note: o.note || "",
         commission: o.commission || "", script: o.script || "", rate_all: [],
         tracking: o.tracking || "",
-        ...(TEAM_MODE ? { assignee: o.assignee || null, _id: o.id } : {}),
+        ...(TEAM_MODE ? { assignee: o.assignee || null, _id: o.id, temp: !!o.temp } : {}),
       }));
       if (TEAM_MODE && BASE_PROJ) setCoordBase(mapped);
       shapeCoord(mapped);
@@ -7753,10 +7771,63 @@ function migrateStatuses(){
   renderProjTabs(); renderCoord();
 }
 
+// ═══ แท็บ "ชั่วคราว" (ล่างสุดของตารางทุกโปรเจกต์) ═══
+// ที่พักงานที่รับต่อมาจากคนอื่น — วาง/เพิ่มคนตอนอยู่แท็บนี้ แถวเข้ามาที่นี่ ไม่ปนกับงานหลัก
+// ทำต่อได้ตามปกติ (สถานะ/Command/Map เห็นด้วย) · เสร็จแล้วย้ายเข้างานหลัก หรือลบทิ้งทั้งแท็บทีเดียว
+// เก็บเป็นธง coord.temp ในฐานข้อมูล (team-mode-7.sql) — ทั้งทีมเห็นตรงกัน
+const SHEET = {};            // โปรเจกต์ → "main" | "temp" (จำแค่ระหว่างเปิดเว็บ)
+function sheetOf(p){ return TEAM_MODE && SHEET[p] === "temp" ? "temp" : "main"; }
+function tempRows(p){ return (COORD[p] || []).filter(r => r.temp); }
+function sheetBar(){
+  if (!TEAM_MODE) return "";
+  const all = COORD[PROJ] || [], t = all.filter(r => r.temp).length, cur = sheetOf(PROJ);
+  return `<div class="sheetbar" role="tablist" aria-label="แท็บในโปรเจกต์">
+    <button type="button" class="st" role="tab" data-sheet="main" aria-selected="${cur === "main"}">📋 งานหลัก <span class="n">${all.length - t}</span></button>
+    <button type="button" class="st tmp" role="tab" data-sheet="temp" aria-selected="${cur === "temp"}"
+      title="ที่พักงานที่รับต่อจากคนอื่น — ลบทิ้งทั้งแท็บได้ทีเดียว">⏳ ชั่วคราว <span class="n">${t}</span></button>
+    ${cur === "temp" && t ? `<div class="sa">
+      <button type="button" data-sheetact="move">↑ ย้ายทั้งหมดเข้างานหลัก</button>
+      <button type="button" class="danger" data-sheetact="wipe">🗑 ลบทั้งแท็บ (${t})</button></div>` : ""}
+  </div>`;
+}
+function sheetMoveMain(rows){
+  if (!rows.length) return;
+  histBegin(PROJ, `ย้าย ${rows.length} คน จากชั่วคราวเข้างานหลัก`);
+  rows.forEach(r => { histTouch(r); setFieldRaw(r, "temp", false); });
+  histEnd();
+  renderProjTabs(); renderCoord();
+}
+function sheetWipe(){
+  const rows = tempRows(PROJ);
+  if (!rows.length) return;
+  if (!confirm(`ลบทั้งแท็บชั่วคราวของ ${PROJ}?\n\n${rows.length} คน: ${rows.slice(0, 8).map(r => "@" + normId(r.handle)).join(", ")}${
+    rows.length > 8 ? ` …และอีก ${rows.length - 8}` : ""}\n\nงานหลักไม่ถูกแตะ · กด Ctrl+Z ย้อนได้ก่อนซิงก์`)) return;
+  histBegin(PROJ, `ลบแท็บชั่วคราว ${rows.length} คน · ${PROJ}`);
+  rows.forEach(r => { histTouch(r); delete EDITS[ekey(r)]; });
+  COORD[PROJ] = (COORD[PROJ] || []).filter(r => !r.temp);
+  histEnd();
+  FORCE_PROJ.add(PROJ);      // ลบทีเดียวหลายคน = ยืนยันแล้วในกล่องข้างบน ไม่ต้องให้แถบ "ยืนยันว่าลบจริง" ถามซ้ำ
+  if (TEAM_MODE) vlog("temp:wipe", { p: PROJ, d: String(rows.length) });
+  saveEdits(); markDirty(); renderProjTabs(); renderCoord();
+}
+if (TEAM_MODE) $("#coordBody").addEventListener("click", e => {
+  const t = e.target.closest("[data-sheet],[data-sheetact],[data-mvmain]");
+  if (!t) return;
+  if (t.dataset.sheet){ SHEET[PROJ] = t.dataset.sheet; vlog("sheet:" + t.dataset.sheet, { p: PROJ }); renderCoord(); return; }
+  if (t.dataset.sheetact === "wipe") return sheetWipe();
+  if (t.dataset.sheetact === "move"){
+    const rows = tempRows(PROJ);
+    if (confirm(`ย้าย ${rows.length} คนจากชั่วคราวเข้างานหลักของ ${PROJ}?`)) sheetMoveMain(rows);
+    return;
+  }
+  if (t.dataset.mvmain != null){ const r = (COORD[PROJ] || [])[+t.dataset.mvmain]; if (r) sheetMoveMain([r]); }
+});
+
 function renderCoord(){
   renderKindSeg(); renderColSeg(); renderMemSeg();
   if (TEAM_MODE && TEAM && MINE_VIEW){ document.body.dataset.mine = "1"; return renderMine(); }
   delete document.body.dataset.mine;
+  if (TEAM_MODE) document.body.dataset.sheet = sheetOf(PROJ); else delete document.body.dataset.sheet;
   if (!PROJECTS.length){
     $("#coordSum").innerHTML = "";
     $("#coordBody").innerHTML = `<div class="empty"><h3>ยังไม่มีโปรเจกต์</h3>
@@ -7769,13 +7840,15 @@ function renderCoord(){
     return;
   }
   const all = COORD[PROJ] || [];
+  const inTemp = sheetOf(PROJ) === "temp";
   const rows = (KINDSEG === "all" ? all : all.filter(r => (r.kind || "") === KINDSEG))
+                 .filter(r => !TEAM_MODE || !!r.temp === inTemp)
                  .filter(passFilter).filter(passMember);
-  if (!all.length){
+  if (!all.length && !inTemp){
     $("#coordSum").innerHTML = "";
     $("#coordBody").innerHTML = `<div class="empty"><h3>${esc(PROJ)} ยังไม่มีข้อมูล</h3>
       <div>เพิ่มแถวในแท็บ <b>Coordinate</b> ของชีต แล้วกดโหลดใหม่<br>
-      (คอลัมน์ Project ต้องเขียนว่า <b>${esc(PROJ)}</b> เป๊ะ)</div></div>`;
+      (คอลัมน์ Project ต้องเขียนว่า <b>${esc(PROJ)}</b> เป๊ะ)</div></div>` + sheetBar();
     return;
   }
 
@@ -7804,7 +7877,11 @@ function renderCoord(){
                        s:a.selectionStart, e:a.selectionEnd } : null };
   })();
 
-  $("#coordBody").innerHTML = `<div class="cwrap"><table class="ctable${LEAN ? " lean" : ""}">
+  const tmpEmpty = inTemp && !all.some(r => r.temp);
+  $("#coordBody").innerHTML = (inTemp ? `<p class="tmpnote">⏳ <b>แท็บชั่วคราว</b> — ที่พักงานที่รับต่อจากคนอื่น ·
+      เพิ่มคนใหม่หรือวางรายชื่อตอนอยู่แท็บนี้ แถวจะเข้ามาที่นี่ · ทำงานต่อได้ตามปกติ ·
+      เสร็จแล้วกด ↑ ย้ายเข้างานหลัก หรือ 🗑 ลบทั้งแท็บทีเดียว</p>` : "") +
+    `<div class="cwrap"><table class="ctable${LEAN ? " lean" : ""}">
     <thead><tr>
       <th class="w-move" title="ลากเพื่อสลับลำดับ">↕</th>
       <th>ครีเอเตอร์</th><th style="text-align:center">วิดีโอ</th>
@@ -7819,6 +7896,8 @@ function renderCoord(){
       <th class="w-del"></th>
     </tr></thead><tbody>${rows.length
       ? rows.map(r => coordRow(r, all.indexOf(r))).join("")
+      : tmpEmpty ? `<tr><td colspan="${15 + custCols(PROJ).length}" style="text-align:center;color:var(--dim);padding:26px">
+          แท็บชั่วคราวยังว่าง — กด <b>+ เพิ่มครีเอเตอร์</b> หรือ <b>⚡ คำสั่งด่วน → วางจากชีตหลายคน</b> ตอนอยู่แท็บนี้</td></tr>`
       : `<tr><td colspan="${15 + custCols(PROJ).length}" style="text-align:center;color:var(--dim);padding:22px">
           ไม่มีแถวที่ตรงกับตัวกรอง —
           <button class="cmdbtn" id="clearAllF">ล้างตัวกรองทั้งหมด</button></td></tr>`
@@ -7827,7 +7906,7 @@ function renderCoord(){
     custCols(PROJ).filter(c => c.type === "list").map(c =>
       `<datalist id="custOpt_${esc(c.k)}">${
         [...new Set(all.map(r => String(r[c.k] || "").trim()).filter(Boolean))]
-          .map(v => `<option value="${esc(v)}">`).join("")}</datalist>`).join("");
+          .map(v => `<option value="${esc(v)}">`).join("")}</datalist>`).join("") + sheetBar();
 
   // ปุ่มกรองบนหัวตาราง — จับคู่ด้วยลำดับคอลัมน์ ไม่ใช่ข้อความ
   // (ข้อความซ้ำกันได้ และพอใส่ปุ่มลงไปแล้ว textContent ก็เปลี่ยน)
@@ -8017,7 +8096,8 @@ function setField(r, f, raw){
 }
 // ชื่อไทยของช่องที่ QO_LABEL ไม่มี — ใช้แค่ตั้งหัวเรื่องในประวัติ ไม่ได้ผูกกับตัวอ่านคำสั่ง
 const HIST_FIELD_TH = { handle:"ชื่อ", kind:"กลุ่ม", videos:"จำนวนวิดีโอ", deadline:"กำหนดส่ง",
-  brief:"บรีฟ", commission:"Commission", project:"โปรเจกต์", tracking:"เลขพัสดุ", assignee:"ผู้ดูแล" };
+  brief:"บรีฟ", commission:"Commission", project:"โปรเจกต์", tracking:"เลขพัสดุ", assignee:"ผู้ดูแล",
+  temp:"แท็บชั่วคราว" };
 function setFieldRaw(r, f, raw){
   if (!r) return false;
   const before = ekey(r);
@@ -8233,7 +8313,8 @@ function coordRow(r, i){
         : `<input data-i="${i}" data-f="${esc(c.k)}" value="${esc(r[c.k] || "")}"
              placeholder="-"${c.type === "num" ? ` inputmode="numeric" class="mono"` : ""}>`
     }</td>`).join("")}
-    <td class="w-del"><button class="delrow" data-del="${i}"
+    <td class="w-del">${r.temp ? `<button type="button" class="mvmain" data-mvmain="${i}"
+        title="ย้าย ${esc(r.handle)} เข้างานหลัก">↑</button>` : ""}<button class="delrow" data-del="${i}"
         title="ลบ ${esc(r.handle)} ออกจาก ${esc(PROJ)}">🗑</button></td>
   </tr>${subRows(r, i)}`;
 }
@@ -13103,7 +13184,7 @@ function sbRowToCoord(o){
     net3: o.net3 == null ? null : Number(o.net3), paytype: o.paytype || "", sku: o.sku || "",
     postdate: o.postdate || "", deadline: o.deadline || "", brief: o.brief || "", note: o.note || "",
     commission: o.commission || "", script: o.script || "", rate_all: [], tracking: o.tracking || "",
-    assignee: o.assignee || null, _id: o.id };
+    assignee: o.assignee || null, _id: o.id, temp: !!o.temp };
 }
 // คืน true = จัดการแล้ว · false = ไม่แน่ใจ ให้โหลดใหม่ทั้งหมดแทน (ปลอดภัยกว่าเดา)
 function rtApplyCoord(d){
@@ -14605,7 +14686,7 @@ const coordRowToSB = (r, i) => ({
   // เลขพัสดุส่งเฉพาะตอนฐานข้อมูลมีคอลัมน์แล้ว — ส่งคอลัมน์ที่ไม่มีไป PostgREST ตอบ 400 ทั้งก้อน = ซิงก์พังทั้งหน้า
   ...(TRACK_COL === true ? { tracking: r.tracking || "" } : {}),
   // ผู้ดูแลแถว (โหมดทีม) — ว่าง = ฐานข้อมูลใส่คนเพิ่มให้ตอน insert
-  ...(TEAM_MODE ? { assignee: r.assignee || null } : {}),
+  ...(TEAM_MODE ? { assignee: r.assignee || null, temp: !!r.temp } : {}),
 });
 
 // 404 = ยังไม่ได้สร้างตาราง (ยังไม่ได้รัน coord_sync.sql) — บอกให้ตรงจุด
@@ -14646,7 +14727,7 @@ async function sbFetchCoord(){
   // ตารางนี้โตตามจำนวนคน×โปรเจกต์ ตอนนี้ยังไม่ถึงพัน แต่โดนเพดานเดียวกับ pool แน่ๆ ถ้าปล่อยไว้
   // แล้วอาการจะร้ายกว่า เพราะเว็บซิงก์แบบ "เขียนทับทั้งชุด" — อ่านมาไม่ครบแล้วเขียนกลับ = ของหายจริง
   const cols = ((await trackColProbe()) ? SB_COORD_COLS + ",tracking" : SB_COORD_COLS) +
-               (TEAM_MODE ? ",assignee,id" : "");
+               (TEAM_MODE ? ",assignee,id,temp" : "");
   return await sbFetchAll("/rest/v1/coord?select=" + cols +
                           "&order=project.asc&order=ord.asc", "อ่านงาน Coordinate ไม่ได้");
 }
@@ -18111,7 +18192,8 @@ function blankRow(id, proj, kind){
   return { handle:id, project:proj, kind:kind || "",
     link:`https://www.tiktok.com/@${id}`,
     code:"", status:"", videos:null, rate:null, paytype:"", net3:null,
-    sku:"", postdate:"", deadline:"", brief:"", note:"", rate_all:[] };
+    sku:"", postdate:"", deadline:"", brief:"", note:"", rate_all:[],
+    ...(sheetOf(proj) === "temp" ? { temp: true } : {}) };
 }
 
 function addToProject(id, proj, kind, changes){
