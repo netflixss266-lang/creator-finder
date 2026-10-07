@@ -13369,7 +13369,22 @@ function presWhere(m){
   return [where, m.h ? "ดู @" + m.h : "", m.ed ? `กำลังแก้${field(m.ed.f)} @${m.ed.h}` : ""]
     .filter(Boolean).join(" · ");
 }
+// ⚠️ เปิดตัวเลือก (select) = focusin → ส่งสถานะ "กำลังแก้" → สถานะของเราเด้งกลับมา → presRender แก้ DOM รอบๆ
+//   เบราว์เซอร์ปิดรายการที่กางอยู่ทันที (กางแล้วหุบเอง) — ระหว่างที่ select โฟกัสอยู่ เลื่อนการวาดไว้ก่อน วาดตอนออกจากช่อง
+let PRES_DEFER = false;
 function presRender(){
+  const ae = document.activeElement;
+  if (ae && ae.tagName === "SELECT"){
+    if (!PRES_DEFER){
+      PRES_DEFER = true;
+      // เช็กเป็นระยะ ไม่พึ่ง blur อย่างเดียว (หน้าต่างไม่ได้โฟกัส/ช่องถูกวาดใหม่ = blur ไม่มา แล้วค้างไม่วาดอีกเลย)
+      const t = setInterval(() => {
+        if (document.activeElement === ae && ae.isConnected) return;
+        clearInterval(t); PRES_DEFER = false; presRender();
+      }, 400);
+    }
+    return;
+  }
   const ppl = Object.entries(PRES);
   const html = ppl.map(([u, m]) => `<span class="av" data-jump="${esc(u)}" style="--mc:${memColor(u)}"
       title="${esc((m.name || memName(u)) + " — " + presWhere(m))} · กดเพื่อไปที่นั่น">${esc(memInitial(u, m.name))}</span>`).join("");
