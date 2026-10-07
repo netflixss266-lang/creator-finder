@@ -2785,6 +2785,7 @@ tr.subrow td.w-status select{width:14.6em}
 body[data-sheet="temp"] #coordBody .ctable tbody tr[data-row]{box-shadow:inset 3px 0 0 rgba(var(--warn-rgb),.7)}
 .tmpnote{font-size:.78rem;color:var(--warn);margin:0 0 8px;line-height:1.5}
 .ctable .mvmain{background:none;border:0;color:var(--warn);font-size:.85rem;padding:2px 4px;margin-right:2px}
+html[data-team] [data-nosheet]{display:none!important}
 </style>
 </head>
 <body>
@@ -3675,7 +3676,7 @@ body[data-sheet="temp"] #coordBody .ctable tbody tr[data-row]{box-shadow:inset 3
       <p class="sect-sub">โหลด/ส่งออกงานของหน้า Coordinator — สั่งจากช่องคำสั่งก็ได้:
         <code>/reload</code> <code>/export</code> <code>/sync</code></p>
       <div class="dd-act" style="flex-wrap:wrap">
-        <a class="export crewhide" id="coordSheet" target="_blank" rel="noopener noreferrer"
+        <a class="export crewhide" id="coordSheet" data-nosheet target="_blank" rel="noopener noreferrer"
            href="https://docs.google.com/spreadsheets/d/1v5CrMct_EQEnHYndMAujZZI_DUBhGY5j5msfJ-2uBOM/edit#gid=33859969">เปิดชีต ↗</a>
         <button type="button" class="export" id="coordReload">โหลดใหม่จากฐานข้อมูล</button>
         <button type="button" class="export" id="coordExport">Export CSV</button>
@@ -5780,7 +5781,9 @@ function clearDirty(){
 // เดิมฟ้อง "ซิงก์ไม่สำเร็จ" ทุกรอบ ทั้งที่ฐานข้อมูลของเว็บบันทึกครบแล้ว — คนเลยนึกว่างานไม่ถูกบันทึก
 const LS_HOOK_BAD = "cf_hook_bad_v1";
 function hookBad(){ try { return !!HOOK.token && lsGet(LS_HOOK_BAD) === HOOK.token; } catch(e){ return false; } }
-function canSync(){ return !!(HOOK.url && HOOK.token) && !isCrew() && !hookBad(); }
+// โหมดทีม (2026-10-07): เลิกใช้ Google Sheet แล้ว — งาน Coordinator อยู่ที่ฐานข้อมูลของเว็บที่เดียว
+// ไม่ส่งขึ้นชีต · ไม่ดึงจากชีตมาตั้งต้น · ไม่เตือนเรื่อง Apps Script ไม่รู้จักโปรเจกต์
+function canSync(){ return !TEAM_MODE && !!(HOOK.url && HOOK.token) && !isCrew() && !hookBad(); }
 
 // ═══ ซิงก์ขึ้นฐานข้อมูล (ทุกคน) ═══
 // นี่คือเส้นทางหลักแล้ว — ทุกคนที่แก้อะไรจะถูกดันขึ้น Supabase กองเดียวกัน
