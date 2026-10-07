@@ -5776,7 +5776,11 @@ function clearDirty(){
 }
 
 // ชีตเป็นทางออกของ admin เท่านั้น — editor ซิงก์ผ่านฐานข้อมูล ไม่ต้องรู้จัก Apps Script เลย
-function canSync(){ return !!(HOOK.url && HOOK.token) && !isCrew(); }
+// token ที่ Apps Script เคยตอบ "ไม่ได้รับอนุญาต" = หยุดส่งขึ้นชีตไว้ จนกว่าจะใส่ token ใหม่ในตั้งค่า
+// เดิมฟ้อง "ซิงก์ไม่สำเร็จ" ทุกรอบ ทั้งที่ฐานข้อมูลของเว็บบันทึกครบแล้ว — คนเลยนึกว่างานไม่ถูกบันทึก
+const LS_HOOK_BAD = "cf_hook_bad_v1";
+function hookBad(){ try { return !!HOOK.token && lsGet(LS_HOOK_BAD) === HOOK.token; } catch(e){ return false; } }
+function canSync(){ return !!(HOOK.url && HOOK.token) && !isCrew() && !hookBad(); }
 
 // ═══ ซิงก์ขึ้นฐานข้อมูล (ทุกคน) ═══
 // นี่คือเส้นทางหลักแล้ว — ทุกคนที่แก้อะไรจะถูกดันขึ้น Supabase กองเดียวกัน
@@ -6003,6 +6007,11 @@ async function syncCoordSheet(){
         scriptSaw(p, false);
         failed.push(`${p} (ชีต): Apps Script ยังไม่รู้จักโปรเจกต์นี้ — เติม '${p}' ท้าย COORD_PROJECTS ` +
                     `ใน รหัส.gs แล้ว Deploy → Manage deployments → ✏️ → New version`);
+      } else if (said && said.ok === false && said.error === "ไม่ได้รับอนุญาต"){
+        try { lsSet(LS_HOOK_BAD, HOOK.token); } catch(e){}
+        acctToast("ส่งขึ้น Google Sheet ไม่ได้ — token ในเว็บไม่ตรงกับ Apps Script · งานบนเว็บบันทึกครบแล้ว ไม่มีอะไรหาย · " +
+                  "หยุดส่งขึ้นชีตไว้ก่อน ใส่ token ใหม่ได้ที่ ตั้งค่าเว็บ → เพิ่มครีเอเตอร์เข้าชีต");
+        break;
       } else if (said && said.ok === false){
         failed.push(`${p} (ชีต): ${said.error}`);
         // สคริปต์หยุดไว้เพราะแถวหายเยอะผิดปกติ — ต้องให้คนยืนยันก่อน ไม่ใช่ retry เอง
@@ -16632,6 +16641,7 @@ $("#privateMode").onchange = e => {
 };
 function saveHook(){
   HOOK = { url: $("#hookUrl").value.trim(), token: $("#hookToken").value.trim() };
+  if (!hookBad()) lsSet(LS_HOOK_BAD, "");
   const keep = $("#hookKeep").checked;
   try {
     lsSet(LS_HOOK, JSON.stringify(
