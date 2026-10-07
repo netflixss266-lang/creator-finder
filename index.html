@@ -14053,6 +14053,39 @@ function colMovable(present){
 function colsPresent(){
   return COL_BASE.slice(2).concat(custCols(PROJ).map(c => "c:" + c.k));
 }
+// ตำแหน่งที่กำลังอ่าน/พิมพ์อยู่ในตาราง — จำก่อนวาดใหม่ คืนหลังวาดเสร็จ (รวมตัวอักษรที่พิมพ์ค้างยังไม่ได้กด Enter)
+function coordViewState(){
+  const cw = document.querySelector("#coordBody .cwrap"), a = document.activeElement;
+  const st = { top: cw ? cw.scrollTop : 0, left: cw ? cw.scrollLeft : 0, page: window.scrollY, sel: null };
+  if (a && a.closest && a.closest("#coordBody") && a.dataset){
+    const d = a.dataset;
+    const q = d.clip != null ? `[data-clip="${d.clip}"][data-k="${d.k}"]`
+            : d.i != null && d.f ? `[data-i="${d.i}"][data-f="${d.f}"]`
+            : d.asg != null ? `[data-asg="${d.asg}"]` : null;
+    if (q){
+      let s0 = null, e0 = null;
+      try { s0 = a.selectionStart; e0 = a.selectionEnd; } catch(e){}
+      st.sel = { q, val: a.value, def: a.defaultValue, tag: a.tagName, s: s0, e: e0 };
+    }
+  }
+  return st;
+}
+function coordViewRestore(st){
+  if (!st) return;
+  const cw = document.querySelector("#coordBody .cwrap");
+  if (cw){ cw.scrollTop = st.top; cw.scrollLeft = st.left; }
+  if (Math.abs(window.scrollY - st.page) > 1) window.scrollTo(window.scrollX, st.page);
+  if (!st.sel) return;
+  const el = document.querySelector("#coordBody " + st.sel.q);
+  if (!el) return;
+  // ยังพิมพ์ไม่เสร็จ (ค่าบนจอต่างจากค่าตอนวาด) และแถวนั้นไม่ได้ถูกแก้จากที่อื่นระหว่างนั้น → ใส่ที่พิมพ์ค้างกลับ
+  if (st.sel.tag === "INPUT" || st.sel.tag === "TEXTAREA"){
+    if (st.sel.val !== st.sel.def && el.value === st.sel.def) el.value = st.sel.val;
+  }
+  if (document.activeElement !== el) el.focus({ preventScroll: true });
+  try { if (st.sel.s != null && el.setSelectionRange) el.setSelectionRange(st.sel.s, st.sel.e); } catch(e){}
+  if (cw){ cw.scrollTop = st.top; cw.scrollLeft = st.left; }
+}
 function applyColumns(){
   if (!TEAM_MODE || MINE_VIEW) return;
   const table = document.querySelector("#coordBody table.ctable");
@@ -20736,7 +20769,17 @@ foldSummaries();
 
 if (TEAM_MODE){
   const after = (fn, post) => function(){ const out = fn.apply(this, arguments); try { post(); } catch(e){} return out; };
-  renderCoord = after(renderCoord, () => { applyColumns(); applyLocks(); paintFlash(); });
+  // ⚠️ applyColumns ขยับ/เพิ่มคอลัมน์ "หลัง" renderCoord คืนตำแหน่งเลื่อน+เคอร์เซอร์ไปแล้ว
+  //   = ตารางกระโดด (คอลัมน์ผู้รับผิดชอบดันทุกอย่างไปทางขวา) และช่องที่พิมพ์อยู่หลุดโฟกัส ตัวที่พิมพ์ค้างหาย
+  //   จำสถานะไว้ก่อนวาด แล้วคืนอีกรอบหลังจัดคอลัมน์เสร็จ
+  { const orig = renderCoord;
+    renderCoord = function(){
+      const st = coordViewState();
+      const out = orig.apply(this, arguments);
+      applyColumns(); applyLocks(); paintFlash();
+      coordViewRestore(st);
+      return out;
+    }; }
   renderDetail = after(renderDetail, applyLocks);
   // คำสั่งที่เลือกค้างไว้ไม่วาดทับ (แผงเลือกคน/ค่าที่พิมพ์จะหาย) — วาดใหม่เฉพาะตอนสลับโปรเจกต์
   renderProjTabs = after(renderProjTabs, () => { tabAvatars(); if (!QO2_CMD || QO2_PICK_PROJ !== PROJ) renderQO2(); rvBadge(); qoPopProj(); });
