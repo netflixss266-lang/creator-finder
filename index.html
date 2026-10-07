@@ -7842,8 +7842,10 @@ function sheetWipe(){
   saveEdits(); markDirty(); renderProjTabs(); renderCoord();
 }
 if (TEAM_MODE) $("#coordBody").addEventListener("click", e => {
-  const t = e.target.closest("[data-sheet],[data-sheetact],[data-mvmain]");
-  if (!t) return;
+  // ⚠️ ต้องเป็นปุ่มเท่านั้น — body ก็มี data-sheet (ใช้ทำแถบส้ม) closest() เลยเจอ body ทุกคลิก
+  //   = วาดตารางใหม่ทุกครั้งที่คลิกอะไรในตาราง ตัวเลือก (select) กางแล้วหุบทันที
+  const t = e.target.closest("button[data-sheet],button[data-sheetact],button[data-mvmain]");
+  if (!t || !e.currentTarget.contains(t)) return;
   if (t.dataset.sheet){ SHEET[PROJ] = t.dataset.sheet; vlog("sheet:" + t.dataset.sheet, { p: PROJ }); QO2_PICK.clear(); renderCoord(); renderQO2(); qoPopProj(); return; }
   if (t.dataset.sheetact === "wipe") return sheetWipe();
   if (t.dataset.sheetact === "move"){
