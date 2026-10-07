@@ -432,7 +432,9 @@ html[data-team] .nav button:hover{background:var(--surface2)}
   border-radius:14px;box-shadow:0 22px 60px rgba(0,0,0,.5);padding:12px 14px 14px}
 .qopop-head{display:flex;align-items:center;gap:12px;margin-bottom:8px}
 .qopop-head b{font-family:'Space Grotesk',sans-serif;font-size:1rem}
-.qopop-head label{display:flex;align-items:center;gap:6px;margin-left:auto}
+.qopop-head label{display:flex;align-items:center;gap:6px}
+.qopop-head label:first-of-type{margin-left:auto}
+@media(max-width:560px){.qopop-head{flex-wrap:wrap}}
 .qopop-head select{width:auto;padding:4px 8px;font-size:.8rem}
 #qoPop .qo2{margin:0;border:0;padding:0;background:none}
 #qoPop .qo2fold, #qoPop .qo2bar > .cmdbar-ic, #qoPop .qo2bar > .t{display:none}
@@ -2786,6 +2788,7 @@ body[data-sheet="temp"] #coordBody .ctable tbody tr[data-row]{box-shadow:inset 3
 .tmpnote{font-size:.78rem;color:var(--warn);margin:0 0 8px;line-height:1.5}
 .ctable .mvmain{background:none;border:0;color:var(--warn);font-size:.85rem;padding:2px 4px;margin-right:2px}
 html[data-team] [data-nosheet]{display:none!important}
+#qoPopSheet.tmp{color:var(--warn);border-color:rgba(var(--warn-rgb),.6)}
 </style>
 </head>
 <body>
@@ -2836,6 +2839,7 @@ html[data-team] [data-nosheet]{display:none!important}
   <div class="qopop-in" role="dialog" aria-label="คำสั่งด่วน">
     <div class="qopop-head"><b>⚡ คำสั่งด่วน</b>
       <label class="hint">โปรเจกต์ <select id="qoPopProj"></select></label>
+      <label class="hint" title="ทำกับแถวในแท็บไหน · เพิ่มคนใหม่/วางรายชื่อ เข้าแท็บนี้">แท็บ <select id="qoPopSheet"></select></label>
       <button type="button" class="x" id="qoPopClose" aria-label="ปิด">✕</button></div>
     <div id="qoPopBody"></div>
   </div>
@@ -7839,7 +7843,7 @@ function sheetWipe(){
 if (TEAM_MODE) $("#coordBody").addEventListener("click", e => {
   const t = e.target.closest("[data-sheet],[data-sheetact],[data-mvmain]");
   if (!t) return;
-  if (t.dataset.sheet){ SHEET[PROJ] = t.dataset.sheet; vlog("sheet:" + t.dataset.sheet, { p: PROJ }); renderCoord(); return; }
+  if (t.dataset.sheet){ SHEET[PROJ] = t.dataset.sheet; vlog("sheet:" + t.dataset.sheet, { p: PROJ }); QO2_PICK.clear(); renderCoord(); renderQO2(); qoPopProj(); return; }
   if (t.dataset.sheetact === "wipe") return sheetWipe();
   if (t.dataset.sheetact === "move"){
     const rows = tempRows(PROJ);
@@ -13649,6 +13653,13 @@ function qoPopProj(){
   const sel = $("#qoPopProj");
   if (!sel) return;
   sel.innerHTML = projTabList(PROJ).map(p => `<option value="${esc(p)}"${p === PROJ ? " selected" : ""}>${isTeamProj(p) ? "👥 " : ""}${esc(p)}</option>`).join("");
+  const sh = $("#qoPopSheet");
+  if (sh){
+    const all = COORD[PROJ] || [], t = all.filter(r => r.temp).length, cur = sheetOf(PROJ);
+    sh.innerHTML = `<option value="main"${cur === "main" ? " selected" : ""}>📋 งานหลัก (${all.length - t})</option>
+      <option value="temp"${cur === "temp" ? " selected" : ""}>⏳ ชั่วคราว (${t})</option>`;
+    sh.classList.toggle("tmp", cur === "temp");
+  }
 }
 function closeQoPop(){ $("#qoPop").hidden = true; $("#qoNavBtn").setAttribute("aria-expanded", "false"); }
 async function openQoPop(){
@@ -13667,6 +13678,13 @@ function initQoPop(){
     renderProjTabs(); if (document.body.dataset.view === "coord") renderCoord();
     if (document.body.dataset.view === "review") renderReview();
     renderQO2();
+  };
+  // แท็บงานหลัก/ชั่วคราว — ตัวเดียวกับแท็บล่างตาราง เปลี่ยนที่ไหนก็ตามกันทั้งสองที่
+  $("#qoPopSheet").onchange = e => {
+    SHEET[PROJ] = e.target.value; QO2_PICK.clear();
+    vlog("sheet:" + e.target.value, { p: PROJ });
+    if (document.body.dataset.view === "coord") renderCoord();
+    renderQO2(); qoPopProj();
   };
 }
 function wireQO2Head(){
@@ -13711,6 +13729,11 @@ function qo2Sum(c){
 // วางลิงก์ TikTok มาก็ได้ (เฉพาะช่องชื่อคนใหม่) — ดึงชื่อหลัง @ ออกมา
 const qo2Handle = t => { const m = String(t).match(/tiktok\.com\/@([^/?#\s]+)/i);
                          return normId(m ? decodeURIComponent(m[1]) : t); };
+// รายชื่อให้เลือกในคำสั่งด่วน = เฉพาะแถวในแท็บที่เลือก (งานหลัก / ชั่วคราว)
+function qo2SheetRows(){
+  const tmp = sheetOf(PROJ) === "temp";
+  return (COORD[PROJ] || []).filter(r => !TEAM_MODE || !!r.temp === tmp);
+}
 function wireQO2Form(c){
   const msg = t => { $("#qo2Msg").textContent = t || ""; };
   // ── ใคร ──
@@ -13718,7 +13741,7 @@ function wireQO2Form(c){
   const label = () => { if (btn) btn.innerHTML = (QO2_PICK.size ? `ใคร: <b>${QO2_PICK.size}</b> คน` : "ใคร —") + " ▾"; qo2Sum(c); };
   const draw = () => {
     const q = normId($("#qo2Find").value || "");
-    const rows = (COORD[PROJ] || []).filter(r => !q || normId(r.handle).includes(q));
+    const rows = qo2SheetRows().filter(r => !q || normId(r.handle).includes(q));
     list.innerHTML = rows.map(r => { const h = normId(r.handle);
       return `<label><input type="checkbox" data-qn="${esc(h)}"${QO2_PICK.has(h) ? " checked" : ""}>${
         isTeamProj(PROJ) && r.assignee ? avatar(r.assignee) : ""}<span>${esc(r.handle)}</span>
@@ -13734,7 +13757,7 @@ function wireQO2Form(c){
     $("#qo2Find").oninput = draw;
     pan.querySelectorAll("[data-qq]").forEach(b => b.onclick = () => {
       const q = normId($("#qo2Find").value || "");
-      const rows = (COORD[PROJ] || []).filter(r => !q || normId(r.handle).includes(q));
+      const rows = qo2SheetRows().filter(r => !q || normId(r.handle).includes(q));
       if (b.dataset.qq === "none") QO2_PICK.clear();
       else rows.filter(r => b.dataset.qq === "all" || r.assignee === sbUid())
                .forEach(r => QO2_PICK.add(normId(r.handle)));
