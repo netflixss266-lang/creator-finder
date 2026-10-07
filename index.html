@@ -2789,6 +2789,7 @@ body[data-sheet="temp"] #coordBody .ctable tbody tr[data-row]{box-shadow:inset 3
 .ctable .mvmain{background:none;border:0;color:var(--warn);font-size:.85rem;padding:2px 4px;margin-right:2px}
 html[data-team] [data-nosheet]{display:none!important}
 #qoPopSheet.tmp{color:var(--warn);border-color:rgba(var(--warn-rgb),.6)}
+.cmdblk.justadded{border-color:var(--accent);box-shadow:0 0 0 3px rgba(var(--accent-rgb),.35);transition:box-shadow .3s}
 </style>
 </head>
 <body>
@@ -9480,6 +9481,7 @@ function cmdBlocksAll(proj, kind, level){
   const GM = cmdMetaRead(ALLP), PM = cmdMetaRead("P:" + proj);
   const KM = kind ? cmdMetaRead(cmdMetaKey("K", proj, kind)) : null;
   const pHide = new Set(CMDHIDE[proj] || []);
+  let badOrd = 0;
   const mk = (id, def, dord, custom, from) => {
     const ed = up >= 2 ? ((CMDEDIT[proj] || {})[id] || null) : null;         // ของโปรเจกต์นี้
     const ge = custom ? null : ((CMDEDIT[ALLP] || {})[id] || null);           // ของทุกโปรเจกต์
@@ -9491,7 +9493,7 @@ function cmdBlocksAll(proj, kind, level){
     let hidBy = GM.hide.includes(id) ? "G" : "";
     if (up >= 2){ if (PM.show.includes(id)) hidBy = ""; if (pHide.has(id)) hidBy = "P"; }
     if (KM){ if (KM.show.includes(id)) hidBy = ""; if (KM.hide.includes(id)) hidBy = "K"; }
-    let ord = dord;
+    let ord = Number.isFinite(+dord) && dord !== null && dord !== "" ? +dord : 900 + (++badOrd);
     if (GM.ord[id] != null) ord = GM.ord[id];
     if (up >= 2 && PM.ord[id] != null) ord = PM.ord[id];
     if (KM && KM.ord[id] != null) ord = KM.ord[id];
@@ -9530,7 +9532,8 @@ function cmdBlocksFor(proj, handle){
         ord: ords[b.id] != null ? ords[b.id] : b.ord });
     });
   // ของที่เพิ่มให้คนนี้ถือเป็น "ของเขา" เสมอ — ต้นแบบไม่มีให้เทียบ จึงคืนค่ากลับไม่ได้ มีแต่ลบ
-  const extra = (o.add || []).map(x => Object.assign({}, x, {
+  const extra = (o.add || []).map((x, k) => Object.assign({}, x, {
+    ord: Number.isFinite(+x.ord) && x.ord !== null ? +x.ord : 900 + k,
     clip:false, kind:"", pay:null, custom:true, from:"mine", edited:false, hidden:false,
     mine:true, onlyMine:true, base:null }));
   return base.concat(extra).sort((a, b) => a.ord - b.ord);
@@ -9590,7 +9593,10 @@ function cmdAddAt(scope, proj, handle, afterId){
   const view = cmdScopeView(scope, proj, handle).filter(b => !b.hidden);
   const i = afterId ? view.findIndex(b => b.id === afterId) : view.length - 1;
   const lo = view[i], hi = view[i + 1];
-  const ord = !lo ? (hi ? hi.ord - 1 : 0) : !hi ? lo.ord + 1 : (lo.ord + hi.ord) / 2;
+  const fin = v => Number.isFinite(+v) ? +v : null;
+  const lo_ = lo ? fin(lo.ord) : null, hi_ = hi ? fin(hi.ord) : null;
+  let ord = lo_ == null ? (hi_ != null ? hi_ - 1 : view.length) : hi_ == null ? lo_ + 1 : (lo_ + hi_) / 2;
+  if (!Number.isFinite(ord)) ord = view.length;
   const blk = { ord, t:"บล็อกใหม่", b:"" };
   if (scope === "mine"){
     blk.id = cmdNewId("m");
@@ -9949,8 +9955,16 @@ function renderCmdEditor(proj, handle){
   });
   // ── เพิ่ม / ซ่อน·ลบ / คืน / ย้าย — ทุกแท็บใช้ปุ่มชุดเดียวกัน เขียนลงชั้นของแท็บที่เปิดอยู่ ──
   document.querySelectorAll("#cmdBody [data-cadd]").forEach(b => b.onclick = () => {
-    cmdAddAt(scope, proj, handle, b.dataset.cadd);
+    const id = cmdAddAt(scope, proj, handle, b.dataset.cadd);
     renderCmdEditor(proj, handle);
+    const t = id && document.querySelector(`#cmdBody .cmdt[data-id="${CSS.escape(id)}"]`);
+    const blk = t && t.closest(".cmdblk");
+    if (blk){
+      blk.classList.add("justadded");
+      blk.scrollIntoView({ block: "center", behavior: "smooth" });
+      t.focus({ preventScroll: true }); t.select();
+      setTimeout(() => blk.classList.remove("justadded"), 2400);
+    }
   });
   document.querySelectorAll("#cmdBody [data-cmv]").forEach(b => b.onclick = () => {
     if (cmdMoveAt(scope, proj, handle, b.dataset.cmv, Number(b.dataset.dir))) renderCmdEditor(proj, handle);
