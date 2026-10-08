@@ -17798,18 +17798,25 @@ $("#coordPinSave").onclick = async () => {
 $("#usersSect").addEventListener("toggle", function(){ if (this.open) renderUsers(); });
 
 // ─── ขนาดตัวอักษร ───
-const UI_SIZES = [["เล็ก", 15], ["ปกติ", 17], ["ใหญ่", 19], ["ใหญ่มาก", 21]];
-const LS_UI = "cf_ui_v1";
-let UI_I = 1;
+// เพิ่มขนาดเล็กลงอีก 2 ระดับ (2026-10-08) — จอโน้ตบุ๊กเห็นตารางได้กว้างขึ้น
+// เก็บเป็นขนาด px (cf_ui_v2) ไม่ใช่ลำดับ — แทรกระดับใหม่แล้วลำดับเลื่อน ของที่จำไว้จะเพี้ยน
+const UI_SIZES = [["เล็กที่สุด", 13], ["เล็กมาก", 14], ["เล็ก", 15], ["ปกติ", 17], ["ใหญ่", 19], ["ใหญ่มาก", 21]];
+const LS_UI = "cf_ui_v2";
+let UI_I = 3;
 function applyUI(){
   document.documentElement.style.setProperty("--ui", UI_SIZES[UI_I][1] + "px");
   $("#uiBtn").textContent = UI_SIZES[UI_I][0] + " ›";
   measureStick();
 }
-try { const v = +lsGet(LS_UI); if (UI_SIZES[v]) UI_I = v; } catch(e){}
+try {
+  let px = +lsGet(LS_UI);
+  if (!px){ const old = lsGet("cf_ui_v1"); if (old != null && old !== "") px = [15, 17, 19, 21][+old]; }   // ของเดิมเก็บเป็นลำดับ
+  const i = UI_SIZES.findIndex(x => x[1] === px);
+  if (i >= 0) UI_I = i;
+} catch(e){}
 function cycleUI(){
   UI_I = (UI_I + 1) % UI_SIZES.length;
-  try { lsSet(LS_UI, UI_I); } catch(e){}
+  try { lsSet(LS_UI, UI_SIZES[UI_I][1]); } catch(e){}
   applyUI();
 }
 applyUI();
