@@ -2790,6 +2790,9 @@ body[data-sheet="temp"] #coordBody .ctable tbody tr[data-row]{box-shadow:inset 3
 html[data-team] [data-nosheet]{display:none!important}
 #qoPopSheet.tmp{color:var(--warn);border-color:rgba(var(--warn-rgb),.6)}
 .cmdblk.justadded{border-color:var(--accent);box-shadow:0 0 0 3px rgba(var(--accent-rgb),.35);transition:box-shadow .3s}
+.tstab{border-collapse:collapse;font-size:.82rem;min-width:320px}
+.tstab th,.tstab td{padding:4px 10px;border-bottom:1px solid var(--line);text-align:left}
+.tstab th{color:var(--dim);font-weight:600}
 </style>
 </head>
 <body>
@@ -3849,6 +3852,17 @@ html[data-team] [data-nosheet]{display:none!important}
       <button class="run" id="hookTest">บันทึกแล้วทดสอบ</button>
       <div class="addmsg" id="hookMsg"></div>
     </details>
+
+    <!-- เช็คว่าลิงก์/ต้นแบบ Command ขึ้นไปเป็นของทีมครบไหม (ตาราง team_kv) -->
+    <section class="sect mkeep teamonly" id="tsSect">
+      <h3>ข้อมูล Command ของทีม</h3>
+      <p class="sect-sub">ลิงก์ที่ใช้ร่วมกัน ({{form}} {{sign}} …) · ลิงก์/แฮชแท็ก/ตะกร้า/ข้อความรายคน · คู่มือตาม SKU · ต้นแบบข้อความ —
+        เก็บเป็นของทีม ทุกคนในทีมเห็นตรงกัน · ตารางนี้เทียบ <b>ในเครื่องนี้</b> กับ <b>ที่ขึ้นทีมแล้ว</b></p>
+      <div id="tsStat" class="hint">กำลังเช็ค…</div>
+      <div class="dd-act" style="flex-wrap:wrap;margin-top:8px">
+        <button type="button" class="export" id="tsNow">⇅ ซิงก์กับทีมตอนนี้</button>
+      </div>
+    </section>
 
     <!-- การตั้งค่าส่วนตัวอยู่ในเบราว์เซอร์ (แยกตามเว็บ/เครื่อง) — ย้ายผ่านไฟล์ ไม่ผ่านฐานข้อมูล -->
     <section class="sect mkeep" id="xferSect">
@@ -20871,17 +20885,37 @@ foldSummaries();
 // รายคนเฉพาะโปรเจกต์ของทีม · โปรเจกต์ส่วนตัวยังอยู่ในเครื่องอย่างเดียว
 // กติกาตอนดึง: ทีมมี = ใช้ของทีม · ทีมไม่มีแต่เคยมี (TS_LAST) = มีคนลบ → ลบในเครื่อง · ไม่เคยมี = ของใหม่ในเครื่อง → ส่งขึ้น
 const LS_TS_LAST = "cf_ts_last_v1";
+const tsObj = (get, ok, save) => ({ all: get, ok, save,
+  put: (k, v) => { get()[k] = v; }, drop: k => { delete get()[k]; } });
+// ต้นแบบข้อความ Command อยู่ 5 ถัง — แตกเป็นรายการ "ชนิด|ขอบเขต" (ขอบเขต = * · โปรเจกต์ · P:/K:… ของ CMDMETA)
+const TPL_STORE = { edit: () => CMDEDIT, add: () => CMDADD, hide: () => CMDHIDE, kind: () => CMDKIND, meta: () => CMDMETA };
+const tplEmpty = v => v == null || (Array.isArray(v) ? !v.length : typeof v === "object" && !Object.keys(v).length);
+const tplProj = (t, sc) => t === "meta" ? (sc === ALLP ? ALLP : sc.replace(/^P:/, "").replace(/^K:[^:]*:/, "")) : sc;
+let saveCmdEditRaw = null;
 const TS = {
-  links: { get: () => CMDLINKS, ok: () => true, save: () => lsSet(LS_CMDLINKS, JSON.stringify(CMDLINKS)) },
-  own:   { get: () => CMDOWN, ok: k => isTeamProj(k.slice(0, k.lastIndexOf("|"))), save: () => lsSet(LS_CMDOWN, JSON.stringify(CMDOWN)) },
-  sku:   { get: () => SKUGUIDE, ok: () => true, save: () => lsSet(LS_SKUGUIDE, JSON.stringify(SKUGUIDE)) },
+  links: tsObj(() => CMDLINKS, () => true, () => lsSet(LS_CMDLINKS, JSON.stringify(CMDLINKS))),
+  own:   tsObj(() => CMDOWN, k => isTeamProj(k.slice(0, k.lastIndexOf("|"))), () => lsSet(LS_CMDOWN, JSON.stringify(CMDOWN))),
+  sku:   tsObj(() => SKUGUIDE, () => true, () => lsSet(LS_SKUGUIDE, JSON.stringify(SKUGUIDE))),
+  tpl: {
+    all: () => {
+      const o = {};
+      for (const t in TPL_STORE){ const st = TPL_STORE[t]();
+        for (const sc in st) if (!tplEmpty(st[sc])) o[t + "|" + sc] = st[sc]; }
+      return o;
+    },
+    ok: k => { const i = k.indexOf("|"), t = k.slice(0, i), p = tplProj(t, k.slice(i + 1));
+               return !!TPL_STORE[t] && (p === ALLP || isTeamProj(p)); },
+    put: (k, v) => { const i = k.indexOf("|"); const st = TPL_STORE[k.slice(0, i)]; if (st) st()[k.slice(i + 1)] = v; },
+    drop: k => { const i = k.indexOf("|"); const st = TPL_STORE[k.slice(0, i)]; if (st) delete st()[k.slice(i + 1)]; },
+    save: () => (saveCmdEditRaw || saveCmdEdit)(),
+  },
 };
 let TS_LAST = null, TS_BUSY = false, TS_AT = 0;
 const TS_T = {};
 function tsLastLoad(){
   let j = null;
   try { j = JSON.parse(lsGet(LS_TS_LAST) || "null"); } catch(e){}
-  TS_LAST = j && j.team === TEAM.id && j.ns ? j.ns : { links:{}, own:{}, sku:{} };
+  TS_LAST = j && j.team === TEAM.id && j.ns ? j.ns : { links:{}, own:{}, sku:{}, tpl:{} };
 }
 function tsLastSave(){ try { lsSet(LS_TS_LAST, JSON.stringify({ team: TEAM.id, ns: TS_LAST })); } catch(e){} }
 async function tsPull(force){
@@ -20893,22 +20927,22 @@ async function tsPull(force){
     const r = await sbAuthed(SB_URL + "/rest/v1/team_kv?select=ns,k,v&team_id=eq." + encodeURIComponent(TEAM.id));
     if (!r.ok) return;
     const rows = await r.json();
-    loadCmdLinks(); loadCmdOwn(); loadSkuGuide();
+    loadCmdLinks(); loadCmdOwn(); loadSkuGuide(); loadCmdEdit();
     tsLastLoad();
-    const srv = { links:{}, own:{}, sku:{} };
+    const srv = { links:{}, own:{}, sku:{}, tpl:{} };
     rows.forEach(x => { if (srv[x.ns]) srv[x.ns][x.k] = x.v; });
     const push = [];
     for (const ns in TS){
-      const S = TS[ns], obj = S.get(), last = TS_LAST[ns] || (TS_LAST[ns] = {});
+      const S = TS[ns], obj = S.all(), last = TS_LAST[ns] || (TS_LAST[ns] = {});
       let changed = false, mine = false;
       for (const k in srv[ns]){
         const sv = JSON.stringify(srv[ns][k]);
-        if (JSON.stringify(obj[k]) !== sv){ obj[k] = srv[ns][k]; changed = true; }
+        if (JSON.stringify(obj[k]) !== sv){ S.put(k, srv[ns][k]); changed = true; }
         last[k] = sv;
       }
       for (const k of Object.keys(obj)){
         if (k in srv[ns] || !S.ok(k) || obj[k] == null) continue;
-        if (k in last){ delete obj[k]; delete last[k]; changed = true; }
+        if (k in last){ S.drop(k); delete last[k]; changed = true; }
         else mine = true;
       }
       for (const k of Object.keys(last)) if (!(k in srv[ns])) delete last[k];
@@ -20929,7 +20963,7 @@ function tsSoon(ns){
 async function tsPush(ns){
   if (!TEAM_MODE || !TEAM) return;
   if (!TS_LAST) tsLastLoad();
-  const S = TS[ns], obj = S.get(), last = TS_LAST[ns] || (TS_LAST[ns] = {});
+  const S = TS[ns], obj = S.all(), last = TS_LAST[ns] || (TS_LAST[ns] = {});
   const up = [], del = [];
   for (const k in obj){
     if (!S.ok(k) || obj[k] == null) continue;
@@ -20953,6 +20987,32 @@ async function tsPush(ns){
   } catch(e){ console.warn("team_kv", e); }
   tsLastSave();
 }
+// ── หน้าเช็ค: ในเครื่องนี้ vs ขึ้นทีมแล้ว ──
+const TS_TH = { links: "ลิงก์ที่ใช้ร่วมกัน", own: "ลิงก์/ข้อความรายคน", sku: "คู่มือตาม SKU", tpl: "ต้นแบบข้อความ" };
+async function renderTsStat(){
+  const el = $("#tsStat");
+  if (!el) return;
+  if (!TEAM_MODE || !TEAM){ el.textContent = "ยังไม่ได้อยู่ในทีม"; return; }
+  let rows = [];
+  try {
+    const r = await sbAuthed(SB_URL + "/rest/v1/team_kv?select=ns,k&team_id=eq." + encodeURIComponent(TEAM.id));
+    rows = r.ok ? await r.json() : [];
+  } catch(e){ el.textContent = "เช็คไม่ได้: " + e.message; return; }
+  loadCmdLinks(); loadCmdOwn(); loadSkuGuide(); loadCmdEdit();
+  const srv = {}; rows.forEach(x => (srv[x.ns] || (srv[x.ns] = new Set())).add(x.k));
+  const line = ns => {
+    const S = TS[ns], loc = Object.keys(S.all()).filter(k => S.ok(k) && S.all()[k] != null);
+    const up = srv[ns] || new Set(), miss = loc.filter(k => !up.has(k)).length;
+    return `<tr><td>${TS_TH[ns]}</td><td style="text-align:right">${loc.length}</td><td style="text-align:right">${up.size}</td>
+      <td>${miss ? `<span style="color:var(--warn)">ยังไม่ขึ้น ${miss}</span>` : `<span style="color:var(--hi)">✓ ครบ</span>`}</td></tr>`;
+  };
+  const L = CMDLINKS, up = srv.links || new Set();
+  const fields = CMD_LINK_FIELDS.map(([k, th]) =>
+    `<span style="color:${up.has(k) && L[k] ? "var(--hi)" : "var(--dim)"}">${up.has(k) && L[k] ? "✓" : "–"} ${esc(th)} <code>{{${esc(k.replace(/KO[LC]$/, ""))}}}</code></span>`).join("<br>");
+  el.innerHTML = `<table class="tstab"><tr><th>หมวด</th><th>ในเครื่องนี้</th><th>ขึ้นทีมแล้ว</th><th></th></tr>
+    ${["links", "own", "sku", "tpl"].map(line).join("")}</table>
+    <details style="margin-top:8px"><summary>ลิงก์ที่ใช้ร่วมกันทีละช่อง (✓ = ทีมมีแล้ว)</summary><div style="margin-top:6px;line-height:1.8">${fields}</div></details>`;
+}
 // ของทีมเปลี่ยน → วาดกล่อง Command ที่เปิดอยู่ใหม่ (ไม่ทับตอนกำลังพิมพ์/แก้ข้อความ)
 function tsRedraw(){
   const p = $("#cmdPanel");
@@ -20966,7 +21026,16 @@ if (TEAM_MODE){
   saveCmdLinks = tsAfter(saveCmdLinks, () => tsSoon("links"));
   saveCmdOwn = tsAfter(saveCmdOwn, () => tsSoon("own"));
   saveSkuGuide = tsAfter(saveSkuGuide, () => tsSoon("sku"));
+  saveCmdEditRaw = saveCmdEdit;
+  saveCmdEdit = tsAfter(saveCmdEdit, () => tsSoon("tpl"));
   openCmd = tsAfter(openCmd, () => tsPull());
+  openSettings = tsAfter(openSettings, () => renderTsStat());
+  $("#tsNow").onclick = async () => {
+    $("#tsStat").textContent = "กำลังซิงก์…";
+    await tsPull(true);
+    for (const ns in TS) await tsPush(ns);
+    renderTsStat();
+  };
   addEventListener("focus", () => tsPull());
   setInterval(() => { if (!document.hidden) tsPull(); }, 60000);
 }
