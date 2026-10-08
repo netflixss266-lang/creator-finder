@@ -15232,7 +15232,8 @@ function askLogin(){
       const cpin = $("#lockCoord").value.replace(/\D/g, "");
       if (!email || !pw) return;
       // รหัส Coordinator ตั้งพร้อมกันตรงนี้เลย จะได้ไม่ต้องไปหาใครขอทีหลัง
-      if (signup && cpin.length !== 6){
+      // โหมดทีมยกเลิกรหัส Coordinator แล้ว (ช่องถูกซ่อน) — เดิมยังเช็คอยู่ สมัครไม่ผ่านทั้งที่ไม่มีช่องให้กรอก
+      if (signup && !TEAM_MODE && cpin.length !== 6){
         $("#lockMsg").className = "lockmsg err";
         $("#lockMsg").textContent = "ตั้งรหัสหน้า Coordinator ให้ครบ 6 หลักก่อน";
         $("#lockCoord").focus();
@@ -15253,7 +15254,7 @@ function askLogin(){
         if (!p) throw new Error("เข้าสู่ระบบได้ แต่ยังไม่มีสิทธิ์ใช้งาน — ติดต่อแอดมิน");
         if (!p.is_active){ await sbLogout(); throw new Error("บัญชีนี้ถูกระงับการใช้งาน"); }
         // เพิ่งพิมพ์รหัสนี้เองสดๆ ไม่ต้องถามซ้ำทันที — คู่มือที่กำลังจะเปิดจะได้พาเข้า Coordinator ได้เลย
-        if (signup){ await coordPinSet(cpin); GATE_OK.coord = true; }
+        if (signup && !TEAM_MODE){ await coordPinSet(cpin); GATE_OK.coord = true; }
         sbTouchSeen();                       // ไม่ต้องรอ ไม่ให้ถ่วงการเข้าใช้งาน
         // สลับมาคนละบัญชีกับตอนเปิดหน้า — ของในเครื่องที่โหลดค้างไว้เป็นของคนก่อน เปิดหน้าใหม่ให้อ่านช่องที่ถูก
         if (nsStale()){ $("#lockMsg").textContent = "กำลังเปิดพื้นที่ทำงานของคุณ..."; location.reload(); return; }
