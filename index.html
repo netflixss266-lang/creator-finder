@@ -2857,6 +2857,8 @@ html[data-team] [data-nosheet]{display:none!important}
     <!-- ชื่อที่จะโชว์ในทีม — ใช้เฉพาะตอนสมัคร ว่างได้ เดี๋ยวตัดจากอีเมลให้เอง -->
     <input id="lockName" type="text" autocomplete="name" placeholder="ชื่อที่ให้ทีมเห็น (เว้นว่างได้)"
            class="lockemail" hidden>
+    <!-- โหมดทีม: สมัครต้องเลือกทีม + ใส่รหัสทีมที่ได้จากหัวทีม ถึงจะเข้าใช้งานได้ -->
+    <select id="lockTeamSel" class="lockemail" hidden><option value="">— เลือกทีม —</option></select>
     <!-- รหัสหน้า Coordinator ตั้งตอนสมัคร ไม่ใช่รหัสกลางของทีมอีกแล้ว — ของใครของมัน -->
     <input id="lockCoord" type="password" inputmode="numeric" maxlength="6" autocomplete="off"
            placeholder="ตั้งรหัส 6 หลักสำหรับหน้า Coordinator" class="lockemail" hidden>
@@ -12779,10 +12781,10 @@ async function teamGate(){
   let bad = false;
   try { TEAM = await sbRpc("my_team"); } catch(e){ TEAM = null; bad = true; }
   if (TEAM || bad) return;            // อ่านไม่ได้ = อย่าถาม
-  let skip = false, pending = null;
-  try { skip = !!lsGet(LS_TEAMSKIP); } catch(e){}
-  try { pending = await sbRpc("my_team_request"); } catch(e){}
-  if (!skip && !pending) await askTeam();
+  // ยังไม่มีทีม = ฐานข้อมูลไม่ให้เห็นอะไรเลย (team-mode-8) — ต้องเข้าทีมก่อน · admin/manager ข้ามได้
+  let skip = false;
+  if (!isCrew()) try { skip = !!lsGet(LS_TEAMSKIP); } catch(e){}
+  if (!skip) await askTeam();
 }
 const TEAM_LOCK_HIDE = ["#lockPin", "#lockEmail", "#lockName", "#lockCoord", "#lockPwRow", "#lockPw2",
                         "#lockForgot", "#lockSwap", "#lockCancel", "#lockTeam", "#lockTeamCode", "#lockTeamLabel"];
@@ -12803,14 +12805,28 @@ async function mountTeamPicker(host, done){
   try { teams = await sbRpc("list_team_choices") || []; } catch(e){}
   try { pending = await sbRpc("my_team_request"); } catch(e){}
   const admin = (PROFILE || {}).role === "admin";
+  const note0 = TEAM_GATE_NOTE; TEAM_GATE_NOTE = "";
+  let first = true;
   const draw = (msg, err) => {
+    if (first){ first = false; if (!msg && note0){ msg = note0; err = true; } }
     if (pending){
       host.innerHTML = `<div class="tpend">📨 ส่งคำขอเข้า <b>${esc(pending.name)}</b> แล้ว — รอหัวทีมหรือ admin อนุมัติ
-          <div class="hint">อนุมัติแล้วรีเฟรชหน้าเว็บก็เห็นงานของทีมเลย · ระหว่างรอใช้แบบส่วนตัวไปก่อนได้</div>
-          <button type="button" class="cmdbtn" id="tpCancel">ยกเลิกคำขอ</button></div>`;
+          <div class="hint">ระหว่างรอยังเข้าใช้งานไม่ได้ · มีรหัสทีมแล้ว กดยกเลิกคำขอแล้วใส่รหัสได้เลย</div>
+          <button type="button" class="cmdbtn" id="tpCheck">เช็คว่าอนุมัติแล้วหรือยัง</button>
+          <button type="button" class="cmdbtn" id="tpCancel">ยกเลิกคำขอ</button>
+          <button type="button" class="cmdbtn" id="tpOut">ออกจากระบบ</button></div>
+        <div class="lockmsg${err ? " err" : ""}" id="tpMsg">${esc(msg || "")}</div>`;
       $("#tpCancel").onclick = async () => {
         try { await sbRpc("cancel_team_request"); pending = null; draw(); } catch(e){ draw(e.message, true); }
       };
+      $("#tpCheck").onclick = async () => {
+        try {
+          const t = await sbRpc("my_team");
+          if (t && t.id) return done({ ok: true, team: t });
+          draw("ยังไม่ได้รับอนุมัติ — ลองใหม่อีกครั้งภายหลัง");
+        } catch(e){ draw(e.message, true); }
+      };
+      $("#tpOut").onclick = async () => { await sbLogout(); location.reload(); };
       return;
     }
     host.innerHTML = (teams.length ? `<div class="tcards">${teams.map(t => `<button type="button" class="tcard${
@@ -12866,7 +12882,8 @@ function askTeam(){
   $("#lockTitle").textContent = "เลือกทีมของคุณ";
   $("#lockHint").textContent = "งานของแต่ละทีมเห็นกันเฉพาะในทีม — เลือกทีมที่คุณอยู่";
   $("#lockGo").hidden = true;
-  $("#lockSkip").hidden = false;
+  $("#lockSkip").hidden = isCrew();             // คนทั่วไปข้ามไม่ได้ — ไม่มีทีมก็ไม่เห็นข้อมูลอยู่ดี
+  $("#lockSkip").textContent = "ข้ามไปก่อน (admin) — เข้าทีมทีหลังได้ที่ ตั้งค่า";
   $("#lockMsg").textContent = "";
   const host = $("#lockTeamPick");
   host.hidden = false;
@@ -15162,16 +15179,34 @@ function nsStale(){
 }
 
 let LOCK_MODE = "login";        // login | signup
+let TEAM_GATE_NOTE = "";        // ข้อความค้างไปโชว์ในขั้นเลือกทีม (เช่น สมัครแล้วแต่รหัสทีมผิด)
+// รายชื่อทีมให้เลือกตอนสมัคร — ยังไม่มี session จึงเรียกด้วย anon key (RPC signup_teams คืนแค่ id + ชื่อ)
+async function loadSignupTeams(){
+  const sel = $("#lockTeamSel");
+  try {
+    const r = await fetch(SB_URL + "/rest/v1/rpc/signup_teams", { method:"POST", headers: sbHeaders(false), body:"{}" });
+    const list = r.ok ? await r.json() : [];
+    sel.innerHTML = `<option value="">— เลือกทีม —</option>` +
+      (list || []).map(t => `<option value="${esc(t.id)}">${esc(t.name)}</option>`).join("");
+    if (!(list || []).length) sel.innerHTML = `<option value="">ยังไม่มีทีม — ให้ admin สร้างทีมก่อน</option>`;
+  } catch(e){ sel.innerHTML = `<option value="">โหลดรายชื่อทีมไม่ได้ — ลองรีเฟรช</option>`; }
+}
 function askLogin(){
   const signup = LOCK_MODE === "signup";
   $("#lockTitle").textContent = signup ? "สมัครใช้งาน" : "เข้าสู่ระบบ";
   $("#lockHint").textContent  = signup
-    ? "สมัครเองได้เลย ไม่ต้องรอแอดมินเพิ่มให้ — ตั้งรหัส 2 ชั้นตอนนี้ทีเดียว แล้วเข้าใช้งานได้ทันที"
+    ? (TEAM_MODE ? "เลือกทีม แล้วใส่รหัสทีม 6 หลักที่ได้จากหัวทีม — รหัสถูกถึงจะเข้าใช้งานได้"
+                 : "สมัครเองได้เลย ไม่ต้องรอแอดมินเพิ่มให้ — ตั้งรหัส 2 ชั้นตอนนี้ทีเดียว แล้วเข้าใช้งานได้ทันที")
     : "Creator Finder — ใช้อีเมลและรหัสผ่านของทีม";
   $("#lockPin").hidden = true;
   $("#lockEmail").hidden = false;
   $("#lockName").hidden = !signup;
   $("#lockCoord").hidden = !signup || TEAM_MODE;
+  $("#lockTeamSel").hidden = !(signup && TEAM_MODE);
+  $("#lockTeamCode").hidden = !(signup && TEAM_MODE);
+  $("#lockTeamCode").value = "";
+  $("#lockTeamCode").placeholder = "รหัสทีม 6 หลัก (ขอจากหัวทีม)";
+  if (signup && TEAM_MODE) loadSignupTeams();
   $("#lockPwRow").hidden = false;
   $("#lockCancel").hidden = true;
   $("#lockSwap").hidden = false;
@@ -15233,6 +15268,13 @@ function askLogin(){
       if (!email || !pw) return;
       // รหัส Coordinator ตั้งพร้อมกันตรงนี้เลย จะได้ไม่ต้องไปหาใครขอทีหลัง
       // โหมดทีมยกเลิกรหัส Coordinator แล้ว (ช่องถูกซ่อน) — เดิมยังเช็คอยู่ สมัครไม่ผ่านทั้งที่ไม่มีช่องให้กรอก
+      const tsel = $("#lockTeamSel").value, tcode = $("#lockTeamCode").value.replace(/\D/g, "");
+      if (signup && TEAM_MODE && (!tsel || tcode.length !== 6)){
+        $("#lockMsg").className = "lockmsg err";
+        $("#lockMsg").textContent = !tsel ? "เลือกทีมก่อน" : "ใส่รหัสทีม 6 หลัก (ขอจากหัวทีม)";
+        (!tsel ? $("#lockTeamSel") : $("#lockTeamCode")).focus();
+        return;
+      }
       if (signup && !TEAM_MODE && cpin.length !== 6){
         $("#lockMsg").className = "lockmsg err";
         $("#lockMsg").textContent = "ตั้งรหัสหน้า Coordinator ให้ครบ 6 หลักก่อน";
@@ -15255,6 +15297,13 @@ function askLogin(){
         if (!p.is_active){ await sbLogout(); throw new Error("บัญชีนี้ถูกระงับการใช้งาน"); }
         // เพิ่งพิมพ์รหัสนี้เองสดๆ ไม่ต้องถามซ้ำทันที — คู่มือที่กำลังจะเปิดจะได้พาเข้า Coordinator ได้เลย
         if (signup && !TEAM_MODE){ await coordPinSet(cpin); GATE_OK.coord = true; }
+        // สมัครแล้วเข้าทีมทันทีด้วยรหัสที่ใส่ — ผิด = บัญชีมีแล้วแต่ยังไม่เห็นอะไร ไปลองใหม่ที่ขั้นเลือกทีม
+        if (signup && TEAM_MODE){
+          try {
+            const j = await sbRpc("join_team_id", { p_team: tsel, p_code: tcode });
+            if (!(j && j.ok)) TEAM_GATE_NOTE = "สมัครแล้ว แต่ " + ((j && j.error) || "เข้าทีมไม่สำเร็จ") + " — เลือกทีมแล้วใส่รหัสอีกครั้ง";
+          } catch(e){ TEAM_GATE_NOTE = "สมัครแล้ว แต่เข้าทีมไม่สำเร็จ: " + e.message; }
+        }
         sbTouchSeen();                       // ไม่ต้องรอ ไม่ให้ถ่วงการเข้าใช้งาน
         // สลับมาคนละบัญชีกับตอนเปิดหน้า — ของในเครื่องที่โหลดค้างไว้เป็นของคนก่อน เปิดหน้าใหม่ให้อ่านช่องที่ถูก
         if (nsStale()){ $("#lockMsg").textContent = "กำลังเปิดพื้นที่ทำงานของคุณ..."; location.reload(); return; }
