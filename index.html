@@ -7125,8 +7125,9 @@ function renderMemSeg(){
 function renderMapMem(){
   const el = $("#mapMem");
   if (!el) return;
-  const scope = MAP_PROJ ? (COORD[MAP_PROJ] || []) : PROJECTS.flatMap(p => COORD[p] || []);
-  if (!TEAM_MODE || !TEAM || !scope.some(r => isTeamProj(r.project))){ el.hidden = true; el.innerHTML = ""; return; }
+  // แถบ ทุกคน/ของฉัน/รายคน อยู่เฉพาะหน้าย่อยของแต่ละโปรเจกต์ — หน้าทุกโปรเจกต์/★ งานของฉัน ไม่มี
+  const scope = MAP_PROJ ? (COORD[MAP_PROJ] || []) : [];
+  if (!TEAM_MODE || !TEAM || !MAP_PROJ || !scope.some(r => isTeamProj(r.project))){ el.hidden = true; el.innerHTML = ""; return; }
   memSegFill(el, scope, true, () => { renderMap(); renderCoord(); });
 }
 
@@ -11067,7 +11068,7 @@ function renderMap(){
     SHOW_DONE = b.dataset.showdone === "1"; renderMap(); renderProjTabs();
   });
   // นับจากขอบเขตที่กำลังดูอยู่ — แผ่นรวมนับทุกโปรเจกต์ แผ่นเดียวนับเฉพาะโปรเจกต์นั้น
-  const scope = MAP_PROJ ? (COORD[MAP_PROJ] || []) : PROJECTS.flatMap(p => COORD[p] || []);
+  const scope = MAP_PROJ ? (COORD[MAP_PROJ] || []) : mapAllProjs().flatMap(p => COORD[p] || []);
   $("#mapKind").innerHTML = [["all","ทั้งหมด"],["KOL","KOL"],["KOC","KOC"]].map(([id, label]) =>
     `<button role="tab" data-mk="${id}" aria-selected="${MAP_KIND === id}">${label}<span class="n">${
       id === "all" ? scope.length : scope.filter(r => kindOf(r) === id).length}</span></button>`).join("");
@@ -11102,7 +11103,7 @@ function renderMap(){
   document.querySelectorAll("#mapTabs [data-mp]").forEach(b => b.onclick = () => {
     const id = b.dataset.mp;
     if (id === "__mine"){ MAP_PROJ = null; MEMSEG = "me"; }
-    else { MAP_PROJ = id || null; if (!id && MEMSEG === "me") MEMSEG = "all"; }
+    else { MAP_PROJ = id || null; if (!id) MEMSEG = "all"; }   // หน้าทุกโปรเจกต์ไม่มีแถบกรองคน — ล้างตัวกรองที่ค้างจากหน้าย่อย
     try { lsSet(LS_MEMSEG, MEMSEG); } catch(e){}
     renderMap(); $("#mapBody").scrollIntoView({block:"start"});
   });
@@ -12402,14 +12403,16 @@ function renderCalPaste(proj){
 
 const calDayLabel = d => `${d.getDate()} ${TH_MON_SHORT[d.getMonth()]} ${d.getFullYear() + 543}`;
 
+// แผ่น "ทุกโปรเจกต์" ในโหมดทีม = เฉพาะโปรเจกต์ของทีม (โปรเจกต์ส่วนตัวดูที่แท็บของมันเอง)
+const mapAllProjs = () => TEAM_MODE && TEAM ? PROJECTS.filter(isTeamProj) : PROJECTS;
 function mapAllSheet(){
-  const all = PROJECTS.flatMap(mapRows);
+  const all = mapAllProjs().flatMap(mapRows);
   if (!all.length) return `<div class="mapempty">ยังไม่มีข้อมูล — โหลดจากชีตก่อน</div>`;
   const g = mapStats(all);
   return `<div class="mapsum">
       <div class="mapstat"><div class="k">รวมทุกโปรเจกต์</div><div class="v">${g.active}${
         g.cancel ? `<span style="font-size:.6em;color:var(--dim)">/${g.n}</span>` : ""}</div>
-        <div class="s">${PROJECTS.length} โปรเจกต์ · ${g.clips} คลิป${
+        <div class="s">${mapAllProjs().length} โปรเจกต์ · ${g.clips} คลิป${
           g.cancel ? `<br><span style="color:#C98A8A">ยกเลิกไปแล้ว ${g.cancel} คน</span>` : ""}</div></div>
       <div class="mapstat"><div class="k">เรทรวม</div><div class="v">${mBaht(g.rate)}</div>
         <div class="s">บริษัทจ่ายจริง ${mBaht(g.co)}</div></div>
@@ -12420,7 +12423,7 @@ function mapAllSheet(){
         <div class="s">ไม่มีเรท ${g.noRate} · ไม่มีสถานะ ${g.noSt}</div></div>
     </div>
     ${mapBar(g)}
-    <div class="mapgrid">${PROJECTS.map(p => {
+    <div class="mapgrid">${mapAllProjs().map(p => {
       const rows = mapRows(p);
       const s = mapStats(rows);
       const flagged = rows.filter(r => mapFlags(r).length).length;
