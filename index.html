@@ -2771,8 +2771,9 @@ tr.subrow td.w-status select{width:14.6em}
   padding:11px 16px;font-size:.86rem;box-shadow:var(--shadow);line-height:1.5}
 
 /* ══ แท็บล่างสุดของตาราง: งานหลัก | ชั่วคราว ══ (แบบแท็บชีตใน Excel/Lark) */
-.sheetbar{position:sticky;bottom:0;z-index:6;display:flex;align-items:center;gap:6px;flex-wrap:wrap;
-  margin-top:10px;padding:7px 8px;background:var(--bg);border-top:1px solid var(--line)}
+/* ไม่ลอยทับตาราง (เดิม sticky + พื้นทึบ บังแถวล่างๆ ไว้) — วางต่อท้ายตารางเหมือนแท็บชีตใน Excel */
+.sheetbar{position:static;display:flex;align-items:center;gap:6px;flex-wrap:wrap;
+  margin-top:8px;padding:2px 0 0;background:none;border-top:1px solid var(--line)}
 .sheetbar .st{background:var(--surface);border:1px solid var(--line);color:var(--mute);border-radius:0 0 8px 8px;
   border-top:2px solid transparent;padding:5px 14px;font-size:.82rem;font-weight:600;display:inline-flex;gap:6px;align-items:center}
 .sheetbar .st .n{font-size:.7rem;background:var(--surface2);border-radius:999px;padding:0 7px;color:var(--dim)}
