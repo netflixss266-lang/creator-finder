@@ -16413,7 +16413,7 @@ function acctToast(text){
 const XFER_SKIP = new Set(["cf_session_v1", "cf_owner_v1", "cf_hook_v1", "cf_hook_bad_v1", "cf_hook_token",
   "cf_private_v1", "cf_ai_v1", "cf_coord_v1", "cf_coord_dirty_v1", "cf_coord_new_v1", "cf_coordpin_v1",
   "cf_sheets_v1", "cf_scriptproj_v1", "cf_poolsync_sent_v1", "cf_poolsync_log_v1", "cf_team_skip_v1",
-  "cf_view_v1", "cf_projects_v1", "cf_tour_v1"]);
+  "cf_view_v1", "cf_projects_v1", "cf_tour_v1", "cf_ts_last_v1"]);
 function xferKeys(){
   const out = {};
   try {
@@ -20864,6 +20864,113 @@ renderKindTabs();
 renderSheetSelect();
 foldSummaries();
 
+// ═══ ลิงก์/ข้อมูลประกอบ Command ใช้ร่วมกันทั้งทีม (ตาราง team_kv — team-mode-9.sql) ═══
+// เดิมอยู่ในเบราว์เซอร์ของแต่ละคน: {{form}} {{sign}} {{docs}} ที่ใช้ร่วมกัน · ลิงก์/ข้อความ/แฮชแท็ก/ตะกร้ารายคน · คู่มือตาม SKU
+// = คนในทีมเห็นไม่ตรงกัน และย้ายเว็บ/เครื่องแล้วหาย
+// ยังเก็บในเครื่องเหมือนเดิม (ใช้งานได้ตอนเน็ตหลุด) + ซิงก์กับทีมเป็นรายการย่อย ไม่ใช่ทั้งก้อน — สองคนแก้คนละคนไม่ทับกัน
+// รายคนเฉพาะโปรเจกต์ของทีม · โปรเจกต์ส่วนตัวยังอยู่ในเครื่องอย่างเดียว
+// กติกาตอนดึง: ทีมมี = ใช้ของทีม · ทีมไม่มีแต่เคยมี (TS_LAST) = มีคนลบ → ลบในเครื่อง · ไม่เคยมี = ของใหม่ในเครื่อง → ส่งขึ้น
+const LS_TS_LAST = "cf_ts_last_v1";
+const TS = {
+  links: { get: () => CMDLINKS, ok: () => true, save: () => lsSet(LS_CMDLINKS, JSON.stringify(CMDLINKS)) },
+  own:   { get: () => CMDOWN, ok: k => isTeamProj(k.slice(0, k.lastIndexOf("|"))), save: () => lsSet(LS_CMDOWN, JSON.stringify(CMDOWN)) },
+  sku:   { get: () => SKUGUIDE, ok: () => true, save: () => lsSet(LS_SKUGUIDE, JSON.stringify(SKUGUIDE)) },
+};
+let TS_LAST = null, TS_BUSY = false, TS_AT = 0;
+const TS_T = {};
+function tsLastLoad(){
+  let j = null;
+  try { j = JSON.parse(lsGet(LS_TS_LAST) || "null"); } catch(e){}
+  TS_LAST = j && j.team === TEAM.id && j.ns ? j.ns : { links:{}, own:{}, sku:{} };
+}
+function tsLastSave(){ try { lsSet(LS_TS_LAST, JSON.stringify({ team: TEAM.id, ns: TS_LAST })); } catch(e){} }
+async function tsPull(force){
+  if (!TEAM_MODE || !TEAM || TS_BUSY) return;
+  if (!force && Date.now() - TS_AT < 15000) return;
+  TS_BUSY = true; TS_AT = Date.now();
+  let redraw = false;
+  try {
+    const r = await sbAuthed(SB_URL + "/rest/v1/team_kv?select=ns,k,v&team_id=eq." + encodeURIComponent(TEAM.id));
+    if (!r.ok) return;
+    const rows = await r.json();
+    loadCmdLinks(); loadCmdOwn(); loadSkuGuide();
+    tsLastLoad();
+    const srv = { links:{}, own:{}, sku:{} };
+    rows.forEach(x => { if (srv[x.ns]) srv[x.ns][x.k] = x.v; });
+    const push = [];
+    for (const ns in TS){
+      const S = TS[ns], obj = S.get(), last = TS_LAST[ns] || (TS_LAST[ns] = {});
+      let changed = false, mine = false;
+      for (const k in srv[ns]){
+        const sv = JSON.stringify(srv[ns][k]);
+        if (JSON.stringify(obj[k]) !== sv){ obj[k] = srv[ns][k]; changed = true; }
+        last[k] = sv;
+      }
+      for (const k of Object.keys(obj)){
+        if (k in srv[ns] || !S.ok(k) || obj[k] == null) continue;
+        if (k in last){ delete obj[k]; delete last[k]; changed = true; }
+        else mine = true;
+      }
+      for (const k of Object.keys(last)) if (!(k in srv[ns])) delete last[k];
+      if (changed){ S.save(); redraw = true; }
+      if (mine) push.push(ns);
+    }
+    tsLastSave();
+    for (const ns of push) await tsPush(ns);
+  } catch(e){ console.warn("team_kv", e); }
+  finally { TS_BUSY = false; }
+  if (redraw) tsRedraw();
+}
+function tsSoon(ns){
+  if (!TEAM_MODE || !TEAM) return;
+  clearTimeout(TS_T[ns]);
+  TS_T[ns] = setTimeout(() => tsPush(ns), 1200);
+}
+async function tsPush(ns){
+  if (!TEAM_MODE || !TEAM) return;
+  if (!TS_LAST) tsLastLoad();
+  const S = TS[ns], obj = S.get(), last = TS_LAST[ns] || (TS_LAST[ns] = {});
+  const up = [], del = [];
+  for (const k in obj){
+    if (!S.ok(k) || obj[k] == null) continue;
+    const v = JSON.stringify(obj[k]);
+    if (last[k] !== v) up.push([k, v]);
+  }
+  for (const k in last) if (obj[k] == null || !S.ok(k)) del.push(k);
+  try {
+    for (let i = 0; i < up.length; i += 200){
+      const part = up.slice(i, i + 200);
+      await sbSend(SB_URL + "/rest/v1/team_kv?on_conflict=team_id,ns,k", "POST",
+        part.map(([k, v]) => ({ team_id: TEAM.id, ns, k, v: JSON.parse(v) })),
+        "บันทึกลิงก์ของทีมไม่ได้", "resolution=merge-duplicates,return=minimal");
+      part.forEach(([k, v]) => { last[k] = v; });
+    }
+    await inParallel(del, async k => {
+      await sbSend(SB_URL + `/rest/v1/team_kv?team_id=${sbEq(TEAM.id)}&ns=${sbEq(ns)}&k=${sbEq(k)}`,
+        "DELETE", null, "ลบลิงก์ของทีมไม่ได้");
+      delete last[k];
+    });
+  } catch(e){ console.warn("team_kv", e); }
+  tsLastSave();
+}
+// ของทีมเปลี่ยน → วาดกล่อง Command ที่เปิดอยู่ใหม่ (ไม่ทับตอนกำลังพิมพ์/แก้ข้อความ)
+function tsRedraw(){
+  const p = $("#cmdPanel");
+  if (!p || !p.classList.contains("on") || !CMD_NOW || CMD_EDITING) return;
+  const a = document.activeElement;
+  if (a && p.contains(a) && /^(INPUT|TEXTAREA|SELECT)$/.test(a.tagName)) return;
+  openCmd(CMD_NOW.proj, CMD_NOW.handle);
+}
+if (TEAM_MODE){
+  const tsAfter = (fn, post) => function(){ const out = fn.apply(this, arguments); try { post(); } catch(e){} return out; };
+  saveCmdLinks = tsAfter(saveCmdLinks, () => tsSoon("links"));
+  saveCmdOwn = tsAfter(saveCmdOwn, () => tsSoon("own"));
+  saveSkuGuide = tsAfter(saveSkuGuide, () => tsSoon("sku"));
+  openCmd = tsAfter(openCmd, () => tsPull());
+  addEventListener("focus", () => tsPull());
+  setInterval(() => { if (!document.hidden) tsPull(); }, 60000);
+}
+
 if (TEAM_MODE){
   const after = (fn, post) => function(){ const out = fn.apply(this, arguments); try { post(); } catch(e){} return out; };
   // ⚠️ applyColumns ขยับ/เพิ่มคอลัมน์ "หลัง" renderCoord คืนตำแหน่งเลื่อน+เคอร์เซอร์ไปแล้ว
@@ -20892,6 +20999,7 @@ requireLogin().then(async () => {
   startLiveWarn();           // แจ้งเตือนก่อนไลฟ์ ทำงานทุกหน้า
   applyRole();                  // ต้องรู้สิทธิ์ก่อนวาดอะไร ไม่งั้นปุ่มที่กดไม่ได้จะโผล่แวบนึง
   if (ACCT_NOTE){ acctToast(ACCT_NOTE); ACCT_NOTE = ""; }
+  if (TEAM_MODE) tsPull(true);   // ลิงก์/ข้อมูล Command ของทีม
   await selectSheet();          // โหลด Creator Pool จาก Supabase
   let last = "home";
   try { last = lsGet(LS_VIEW) || "home"; } catch(e){}
