@@ -2830,6 +2830,12 @@ html[data-team] [data-nosheet]{display:none!important}
 .fxbtn:hover{border-color:var(--accent)}
 .fxbtn.del{color:var(--lo)}
 .fxadd{width:100%;text-align:center}
+.fxtt{flex:1;min-width:0;font-size:.82rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.fxprev{margin:0;white-space:pre-wrap;word-break:break-word;font:inherit;font-size:.82rem;line-height:1.6;cursor:copy;
+  background:var(--bg);border:1px solid var(--line);border-radius:6px;padding:7px 9px;max-height:220px;overflow:auto}
+.fxprev:hover{border-color:rgba(var(--accent-rgb),.5)}
+.fxbox.copied{border-color:var(--hi)}
+.fxbox.copied .fxtt::after{content:" · คัดลอกแล้ว ✓";color:var(--hi);font-weight:600}
 </style>
 </head>
 <body>
@@ -6469,11 +6475,30 @@ function loadFormats(){
 }
 // ── กล่องข้อความเพิ่มเติมใต้ตัวเลือก (ทักซ้ำ · ตอบกลับ · ขอบคุณ ฯลฯ) — แยกรายโปรเจกต์ × KOL/KOC ──
 // แก้ได้ทั้งหัวข้อและข้อความ · เพิ่ม/ลบกล่องเอง · ใช้ตัวแปรชุดเดียวกับ format หลัก · ใช้ร่วมกันทั้งทีม (team_kv ns=fmt)
-const LS_FMTEXTRA = "cf_fmtextra_v1";     // { "โปรเจกต์|budget": [ {id, t, b} ] }
+// รายโปรเจกต์ชุดเดียว ใช้ทั้ง KOL และ KOC (เพิ่มครั้งเดียวขึ้นทั้งสองแท็บ)
+// โปรเจกต์ที่ยังไม่เคยแตะ = ใช้ชุดตั้งต้น (FMT_EXTRA_DEFAULT) · แก้/เพิ่ม/ลบเมื่อไหร่ = คัดลอกชุดตั้งต้นมาเป็นของโปรเจกต์นั้น
+//   (เก็บ [] ได้ = ลบหมดตั้งใจ ไม่เด้งกลับไปเป็นชุดตั้งต้น)
+const LS_FMTEXTRA = "cf_fmtextra_v1";     // { "โปรเจกต์": [ {id, t, b} ] }  (เดิม "โปรเจกต์|budget" — รวมให้ตอนโหลด)
+// ข้อความเขียนเป็นเสียงชาย — ตอนคัดลอกแปลงครับ/ค่ะตามปุ่มหางเสียงให้เอง
+const FMT_EXTRA_DEFAULT = [
+  { id: "d_rate", t: "รับเรท", b: "ขอบคุณมากครับ แอดมินส่งรายละเอียดให้ทางแบรนด์พิจารณานะครับ😊🙏" },
+];
 let FMT_EXTRA = {};
-function loadFmtExtra(){ try { FMT_EXTRA = JSON.parse(lsGet(LS_FMTEXTRA) || "{}") || {}; } catch(e){ FMT_EXTRA = {}; } }
+function loadFmtExtra(){
+  try { FMT_EXTRA = JSON.parse(lsGet(LS_FMTEXTRA) || "{}") || {}; } catch(e){ FMT_EXTRA = {}; }
+  // รวมของเดิมที่แยก KOL/KOC เข้าเป็นชุดเดียวของโปรเจกต์
+  let moved = false;
+  for (const k of Object.keys(FMT_EXTRA)){
+    const m = k.match(/^(.*)\|(budget|nobudget)$/);
+    if (!m) continue;
+    const cur = FMT_EXTRA[m[1]] || (FMT_EXTRA[m[1]] = FMT_EXTRA_DEFAULT.map(x => Object.assign({}, x)));
+    (FMT_EXTRA[k] || []).forEach(x => { if (!cur.some(y => y.id === x.id)) cur.push(x); });
+    delete FMT_EXTRA[k]; moved = true;
+  }
+  if (moved) try { lsSet(LS_FMTEXTRA, JSON.stringify(FMT_EXTRA)); } catch(e){}
+}
+const fmtExtraOf = proj => FMT_EXTRA[proj] || FMT_EXTRA_DEFAULT;
 function saveFmtExtra(){
-  for (const k in FMT_EXTRA) if (!(FMT_EXTRA[k] || []).length) delete FMT_EXTRA[k];
   try { lsSet(LS_FMTEXTRA, JSON.stringify(FMT_EXTRA)); } catch(e){}
 }
 function saveFormats(){
@@ -6498,6 +6523,27 @@ function saveFmtSku(proj, text){
   try { lsSet(LS_FMTSKU, JSON.stringify(FMT_SKU_BY)); } catch(e){}
 }
 
+let FX_EDIT = new Set();             // id กล่องที่กำลังแก้
+// เติมตัวแปร + ครับ/ค่ะ — ใช้ทั้งกล่องเพิ่มเติม (format หลักเติมเองในตัว renderFormat)
+function fmtFill(t, vals, proj){
+  return voiceText(t).replace(/\{\{([\w฀-๿]+)\}\}/g, (_, k) => {
+    const v = k === "sku" ? fmtSkuText(proj) : vals[k];
+    return v != null && v !== "" ? v : `…..ยังไม่มี${FMT_GAP[k] || k}…..`; });
+}
+// คลิกที่ข้อความ = คลุมทั้งก้อน + คัดลอกทันที (ผ่าน copy event เดิม → วางที่ไหนก็เป็นตัวดำ)
+// ลากคลุมบางส่วนเอง = ไม่ทับ ปล่อยให้ Ctrl+C เอง
+function selectCopy(el, done){
+  const sel = getSelection();
+  if (sel && !sel.isCollapsed && el.contains(sel.anchorNode) && sel.toString() !== el.textContent) return false;
+  const rg = document.createRange();
+  rg.selectNodeContents(el);
+  sel.removeAllRanges(); sel.addRange(rg);
+  let ok = false;
+  try { ok = document.execCommand("copy"); } catch(e){}
+  if (!ok) navigator.clipboard.writeText(el.textContent).then(() => done && done(true)).catch(() => done && done(false));
+  else if (done) done(true);
+  return true;
+}
 function renderFormat(){
   const proj = PROJ;
   const body = $("#fmtBody");
@@ -6568,20 +6614,25 @@ function renderFormat(){
        <p class="picksum fmtsrc">${esc(K.th)} · ${mine ? "ใช้ต้นแบบที่แก้ไว้ของโปรเจกต์นี้" : "ใช้ต้นแบบตั้งต้น"}</p>
        <div class="fmtextra">
          <div class="fxhead"><b>ข้อความเพิ่มเติม</b>
-           <span>ทักซ้ำ · ตอบกลับ · ขอบคุณ — แก้ได้ทั้งหมด ใช้ตัวแปรเดียวกัน · ทั้งทีมเห็นเหมือนกัน</span></div>
-         ${(FMT_EXTRA[fmtDraftKey(proj, K.k)] || []).map(x => `<div class="fxbox" data-fx="${esc(x.id)}">
+           <span>ใช้ทั้ง KOL และ KOC ของโปรเจกต์นี้ · แก้ได้ทั้งหมด · ครับ/ค่ะ ตามปุ่มหางเสียง · ทั้งทีมเห็นเหมือนกัน</span></div>
+         ${fmtExtraOf(proj).map(x => FX_EDIT.has(x.id) ? `<div class="fxbox editing" data-fx="${esc(x.id)}">
              <div class="fxtop"><input class="fxt" value="${esc(x.t || "")}" placeholder="หัวข้อ เช่น ทักซ้ำครั้งที่ 2">
-               <button type="button" class="fxbtn" data-fxcopy="1" title="คัดลอก (เติมตัวแปรให้แล้ว)">คัดลอก</button>
+               <button type="button" class="fxbtn" data-fxdone="1">เสร็จ</button>
                <button type="button" class="fxbtn del" data-fxdel="1" title="ลบกล่องนี้">🗑</button></div>
              <textarea class="fxb" rows="${Math.min(10, Math.max(3, String(x.b || "").split("\n").length + 1))}"
                placeholder="พิมพ์ข้อความ — ใส่ {{brandname}} {{sku}} {{videos}} {{commission}} ได้">${esc(x.b || "")}</textarea>
+           </div>` : `<div class="fxbox" data-fx="${esc(x.id)}">
+             <div class="fxtop"><b class="fxtt">${esc(x.t || "ไม่มีหัวข้อ")}</b>
+               <button type="button" class="fxbtn" data-fxedit="1" title="แก้หัวข้อ/ข้อความ">✎</button>
+               <button type="button" class="fxbtn del" data-fxdel="1" title="ลบกล่องนี้">🗑</button></div>
+             <pre class="fxprev" data-fxcopy="1" title="คลิก = คลุมทั้งหมดและคัดลอกทันที">${esc(fmtFill(x.b || "", vals, proj) || "(ว่าง — กด ✎ เพื่อพิมพ์)")}</pre>
            </div>`).join("")}
          <button type="button" class="export fxadd" id="fxAdd">＋ เพิ่มกล่องข้อความ</button>
        </div>
      </div>
      <div class="fmtmain">
-       <div class="fmthint" id="fmtHint">คลิกที่ข้อความ = คลุมทั้งหมด แล้วกด <kbd>Ctrl</kbd>+<kbd>C</kbd> · ลากคลุมบางส่วนเองก็ได้</div>
-       <pre class="fmtprev" id="fmtPrev" title="คลิกเพื่อคลุมทั้งข้อความ">${esc(filled)}</pre>
+       <div class="fmthint" id="fmtHint">คลิกที่ข้อความ = คลุมทั้งหมด + คัดลอกทันที · ลากคลุมบางส่วนเองก็ได้</div>
+       <pre class="fmtprev" id="fmtPrev" title="คลิก = คลุมทั้งข้อความและคัดลอกทันที">${esc(filled)}</pre>
      </div>
    </div>`);
 
@@ -6663,25 +6714,30 @@ function renderFormat(){
     };
     $("#fmtEdit").onclick = () => { FMT_EDIT = true; rerender(); };
     // ── กล่องข้อความเพิ่มเติม ── บันทึกทุกตัวอักษร (ไม่วาดใหม่ระหว่างพิมพ์ เคอร์เซอร์ไม่หลุด)
-    const xkey = fmtDraftKey(proj, K.k);
-    const xlist = () => FMT_EXTRA[xkey] || (FMT_EXTRA[xkey] = []);
-    const xfill = t => voiceText(t).replace(/\{\{([\w฀-๿]+)\}\}/g, (_, k) => {
-      const v = k === "sku" ? fmtSkuText(proj) : vals[k];
-      return v != null && v !== "" ? v : `…..ยังไม่มี${FMT_GAP[k] || k}…..`; });
+    const xkey = proj;
+    const xlist = () => FMT_EXTRA[xkey] || (FMT_EXTRA[xkey] = FMT_EXTRA_DEFAULT.map(x => Object.assign({}, x)));
     let xT = null;
     body.querySelectorAll(".fxbox").forEach(box => {
       const id = box.dataset.fx, item = () => xlist().find(x => x.id === id);
       const save = () => { clearTimeout(xT); xT = setTimeout(saveFmtExtra, 400); };
-      box.querySelector(".fxt").addEventListener("input", e => { const it = item(); if (it){ it.t = e.target.value; save(); } });
-      box.querySelector(".fxb").addEventListener("input", e => { const it = item(); if (it){ it.b = e.target.value; save(); } });
-      box.querySelector("[data-fxcopy]").onclick = e => {
-        const it = item(); if (!it) return;
-        const btn = e.currentTarget;
-        navigator.clipboard.writeText(xfill(it.b || "")).then(() => {
-          btn.textContent = "คัดลอกแล้ว ✓"; setTimeout(() => { btn.textContent = "คัดลอก"; }, 1500);
-        }).catch(() => { btn.textContent = "ก๊อปไม่ได้"; });
-        vlog("format:extra", { p: proj, d: it.t || "" });
-      };
+      const t = box.querySelector(".fxt"), b = box.querySelector(".fxb");
+      if (t) t.addEventListener("input", e => { const it = item(); if (it){ it.t = e.target.value; save(); } });
+      if (b) b.addEventListener("input", e => { const it = item(); if (it){ it.b = e.target.value; save(); } });
+      const ed = box.querySelector("[data-fxedit]"), dn = box.querySelector("[data-fxdone]");
+      if (ed) ed.onclick = () => { FX_EDIT.add(id); rerender(); const nb = body.querySelector(`.fxbox[data-fx="${CSS.escape(id)}"] .fxb`); if (nb) nb.focus(); };
+      if (dn) dn.onclick = () => { clearTimeout(xT); saveFmtExtra(); FX_EDIT.delete(id); rerender(); };
+      const pv = box.querySelector(".fxprev");
+      if (pv){
+        pv.addEventListener("mouseup", () => {
+          const it = item(); if (!it || !it.b) return;
+          if (selectCopy(pv, ok => { box.classList.toggle("copied", ok); setTimeout(() => box.classList.remove("copied"), 1400); }))
+            vlog("format:extra", { p: proj, d: it.t || "" });
+        });
+        pv.addEventListener("copy", e => {
+          const tx = getSelection().toString();
+          copyAsBlack(e, tx, `<div style="${COPY_BLACK};white-space:pre-wrap">${esc(tx).replace(/\n/g, "<br>")}</div>`);
+        });
+      }
       box.querySelector("[data-fxdel]").onclick = () => {
         const it = item(); if (!it) return;
         if ((it.b || it.t) && !confirm(`ลบกล่อง "${it.t || "ไม่มีหัวข้อ"}"?`)) return;
@@ -6689,7 +6745,9 @@ function renderFormat(){
       };
     });
     $("#fxAdd").onclick = () => {
-      xlist().push({ id: "f" + Date.now().toString(36) + Math.random().toString(36).slice(2, 5), t: "", b: "" });
+      const nid = "f" + Date.now().toString(36) + Math.random().toString(36).slice(2, 5);
+      FX_EDIT.add(nid);
+      xlist().push({ id: nid, t: "", b: "" });
       saveFmtExtra(); rerender();
       const boxes = body.querySelectorAll(".fxbox"); const last = boxes[boxes.length - 1];
       if (last){ last.scrollIntoView({ block: "nearest", behavior: "smooth" }); last.querySelector(".fxt").focus(); }
@@ -6698,13 +6756,10 @@ function renderFormat(){
     // ลากคลุมบางส่วนเองยังได้ — ถ้าตอนปล่อยเมาส์มีส่วนที่คลุมอยู่ในข้อความแล้ว ไม่ไปทับ
     const pre = $("#fmtPrev"), hint = $("#fmtHint");
     pre.addEventListener("mouseup", () => {
-      const sel = getSelection();
-      if (sel && !sel.isCollapsed && pre.contains(sel.anchorNode)) return;
-      const rg = document.createRange();
-      rg.selectNodeContents(pre);
-      sel.removeAllRanges(); sel.addRange(rg);
-      hint.className = "fmthint ok";
-      hint.innerHTML = `คลุมทั้งข้อความแล้ว — กด <kbd>Ctrl</kbd>+<kbd>C</kbd> ได้เลย`;
+      selectCopy(pre, ok => {
+        hint.className = "fmthint ok";
+        hint.textContent = ok ? "คัดลอกทั้งข้อความแล้ว ✓" : "คลุมแล้ว — กด Ctrl+C เพื่อคัดลอก";
+      });
     });
     pre.addEventListener("copy", e => {
       // วางลง Docs/อีเมลแล้วต้องเป็นตัวดำ ไม่ใช่ตัวขาวของธีมมืด · ช่องว่างและขึ้นบรรทัดคงไว้ตามต้นฉบับ
@@ -21105,14 +21160,18 @@ const TS = {
       const o = {};
       for (const p in FORMATS) if (FORMATS[p] != null) o["main|" + p + "|budget"] = FORMATS[p];
       for (const p in FORMATS_NB) if (FORMATS_NB[p] != null) o["main|" + p + "|nobudget"] = FORMATS_NB[p];
-      for (const k in FMT_EXTRA) if ((FMT_EXTRA[k] || []).length) o["extra|" + k] = FMT_EXTRA[k];
+      for (const k in FMT_EXTRA) if (Array.isArray(FMT_EXTRA[k])) o["extra|" + k] = FMT_EXTRA[k];
       return o;
     },
-    ok: k => { const a = k.indexOf("|"), b = k.lastIndexOf("|"); return a > 0 && b > a && isTeamProj(k.slice(a + 1, b)); },
-    put: (k, v) => { const a = k.indexOf("|"), b = k.lastIndexOf("|"), t = k.slice(0, a), p = k.slice(a + 1, b), kd = k.slice(b + 1);
-      if (t === "main") (kd === "nobudget" ? FORMATS_NB : FORMATS)[p] = v; else if (t === "extra") FMT_EXTRA[p + "|" + kd] = v; },
-    drop: k => { const a = k.indexOf("|"), b = k.lastIndexOf("|"), t = k.slice(0, a), p = k.slice(a + 1, b), kd = k.slice(b + 1);
-      if (t === "main") delete (kd === "nobudget" ? FORMATS_NB : FORMATS)[p]; else if (t === "extra") delete FMT_EXTRA[p + "|" + kd]; },
+    // extra|โปรเจกต์ · main|โปรเจกต์|budget
+    ok: k => k.startsWith("extra|") ? isTeamProj(k.slice(6))
+      : (() => { const a = k.indexOf("|"), b = k.lastIndexOf("|"); return a > 0 && b > a && isTeamProj(k.slice(a + 1, b)); })(),
+    put: (k, v) => { if (k.startsWith("extra|")) { FMT_EXTRA[k.slice(6)] = v; return; }
+      const a = k.indexOf("|"), b = k.lastIndexOf("|"), p = k.slice(a + 1, b), kd = k.slice(b + 1);
+      if (k.startsWith("main|")) (kd === "nobudget" ? FORMATS_NB : FORMATS)[p] = v; },
+    drop: k => { if (k.startsWith("extra|")) { delete FMT_EXTRA[k.slice(6)]; return; }
+      const a = k.indexOf("|"), b = k.lastIndexOf("|"), p = k.slice(a + 1, b), kd = k.slice(b + 1);
+      if (k.startsWith("main|")) delete (kd === "nobudget" ? FORMATS_NB : FORMATS)[p]; },
     save: () => { try { lsSet(LS_FORMAT, JSON.stringify(FORMATS)); lsSet(LS_FORMAT_NB, JSON.stringify(FORMATS_NB));
                         lsSet(LS_FMTEXTRA, JSON.stringify(FMT_EXTRA)); } catch(e){} },
   },
