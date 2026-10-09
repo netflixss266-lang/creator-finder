@@ -2771,9 +2771,18 @@ tr.subrow td.w-status select{width:14.6em}
   padding:11px 16px;font-size:.86rem;box-shadow:var(--shadow);line-height:1.5}
 
 /* ══ แท็บล่างสุดของตาราง: งานหลัก | ชั่วคราว ══ (แบบแท็บชีตใน Excel/Lark) */
-/* ไม่ลอยทับตาราง (เดิม sticky + พื้นทึบ บังแถวล่างๆ ไว้) — วางต่อท้ายตารางเหมือนแท็บชีตใน Excel */
-.sheetbar{position:static;display:flex;align-items:center;gap:6px;flex-wrap:wrap;
-  margin-top:8px;padding:2px 0 0;background:none;border-top:1px solid var(--line)}
+/* ติดมุมล่างซ้ายของจอตลอด (ข้อมูลยาวแค่ไหนก็เห็น) — แถบเล็กแค่ขนาดปุ่ม ไม่กินเต็มแถว
+   ตารางเว้นที่ด้านล่างไว้ให้ แถวสุดท้ายเลื่อนขึ้นมาพ้นแถบได้เสมอ · z-index ต่ำกว่าหน้าต่างซ้อน (50) และลิ้นชัก (70) */
+.sheetbar{position:fixed;left:16px;bottom:12px;z-index:40;display:flex;align-items:center;gap:6px;flex-wrap:wrap;
+  max-width:calc(100vw - 32px);padding:5px;background:var(--surface);border:1px solid var(--line);border-radius:12px;
+  box-shadow:0 8px 24px rgba(0,0,0,.55)}
+.sheetbar .st{border-radius:8px;border-top-width:1px;border-bottom:2px solid transparent}
+.sheetbar .st[aria-selected="true"]{border-top-color:var(--line);border-bottom-color:var(--accent)}
+.sheetbar .st.tmp[aria-selected="true"]{border-top-color:var(--line);border-bottom-color:var(--warn)}
+.sheetbar .sa{margin-left:6px}
+html[data-team] body[data-view="coord"] #coordBody{padding-bottom:70px}
+/* กล่องตารางสูงเกือบเต็มจอ (เลื่อนในกล่อง) — หักความสูงแถบแท็บออก แถวล่างสุดจะได้ไม่จมใต้แถบ */
+html[data-team]:not(.shortscreen) body[data-view="coord"] #coordBody .cwrap{max-height:calc(100vh - var(--stick2,160px) - 78px)}
 .sheetbar .st{background:var(--surface);border:1px solid var(--line);color:var(--mute);border-radius:0 0 8px 8px;
   border-top:2px solid transparent;padding:5px 14px;font-size:.82rem;font-weight:600;display:inline-flex;gap:6px;align-items:center}
 .sheetbar .st .n{font-size:.7rem;background:var(--surface2);border-radius:999px;padding:0 7px;color:var(--dim)}
