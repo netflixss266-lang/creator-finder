@@ -2814,6 +2814,10 @@ html[data-team] [data-nosheet]{display:none!important}
 .satpop .b{display:flex;gap:6px;margin-top:8px}
 .satpop .b button{flex:1;padding:6px 8px;font-size:.8rem}
 .maphead #mapFmtBtn{flex:none;padding:7px 12px;font-size:.8rem}
+.voicebtn.own{border-color:rgba(var(--accent-rgb),.6)}
+.voicebtn .vown{font-size:.66rem;color:var(--accent);margin-left:2px}
+.voicedef{flex:none;background:none;border:0;color:var(--dim);font-size:.72rem;padding:4px 6px;text-decoration:underline;cursor:pointer}
+.voicedef:hover{color:var(--ink)}
 </style>
 </head>
 <body>
@@ -3447,6 +3451,7 @@ html[data-team] [data-nosheet]{display:none!important}
       <h2 id="cmdTitle">Command</h2>
       <!-- หางเสียงของทุกกล่อง: ชาย (ครับ) / หญิง (ค่ะ) — จำแยกรายบัญชี -->
       <button type="button" class="voicebtn" id="voiceBtn"></button>
+      <button type="button" class="voicedef" id="voiceDef"></button>
       <button class="x" id="closeCmd" aria-label="ปิด">✕</button>
     </div>
     <!-- บอกล่วงหน้าว่ากด ←/→ แล้วจะไปเจอใคร ไม่ต้องกดแล้วเดาว่าใช่คนที่ต้องการไหม -->
@@ -8997,8 +9002,8 @@ function cmdOwn(proj, handle){
 function cmdOwnRead(proj, handle){
   const o = CMDOWN[cmdKey(proj, handle)];
   return o ? { blocks:o.blocks || {}, links:o.links || {}, sent:o.sent || {},
-               add:o.add || [], hide:o.hide || [], moved:o.moved || {}, ord:o.ord || {} }
-           : { blocks:{}, links:{}, sent:{}, add:[], hide:[], moved:{}, ord:{} };
+               add:o.add || [], hide:o.hide || [], moved:o.moved || {}, ord:o.ord || {}, voice:o.voice || null }
+           : { blocks:{}, links:{}, sent:{}, add:[], hide:[], moved:{}, ord:{}, voice:null };
 }
 // ลบทิ้งถ้าไม่เหลืออะไรที่ต่างจากต้นแบบ จะได้ไม่มีขยะค้าง
 function pruneCmdOwn(proj, handle){
@@ -9010,7 +9015,7 @@ function pruneCmdOwn(proj, handle){
   if (o.ord && !Object.keys(o.ord).length) delete o.ord;
   if (!Object.keys(o.blocks || {}).length && !Object.keys(o.links || {}).length
       && !Object.keys(o.sent || {}).length && !Object.keys(o.moved || {}).length
-      && !(o.add || []).length && !(o.hide || []).length && !Object.keys(o.ord || {}).length)
+      && !(o.add || []).length && !(o.hide || []).length && !Object.keys(o.ord || {}).length && !o.voice)
     delete CMDOWN[k];
 }
 
@@ -9194,6 +9199,7 @@ function cmdValues(r){
   // (เดิมทั้ง 3 Draft ใช้ตัวแปรเดียวกัน แก้ Draft 2 แล้ว Draft 1 เปลี่ยนตาม)
   const fb = n => own["feedback" + n] || "";
   return {
+    _voice: cmdOwnRead(r.project, r.handle).voice || VOICE,   // หางเสียงของคนนี้ (ไม่ใช่ตัวแปรในข้อความ)
     // ชื่อช่องของคนนี้ — ใช้ระบุตัวคนในข้อความที่ต้องเจาะจงว่าฉบับนี้ของใคร (หนังสือแจ้งเตือน)
     // ใช้ normId เพราะเป็นรูปแบบมาตรฐานที่ไม่มี @ นำหน้า ในข้อความจึงเขียน @{{handle}} ได้ตรงๆ
     handle: normId(r.handle),
@@ -9340,9 +9346,11 @@ try { VOICE = lsGet(LS_VOICE) === "f" ? "f" : "m"; } catch(e){}
 // ลงท้ายคำถาม → "คะ" (เสียงสูง) ไม่ใช่ "ค่ะ"
 // เขียนเป็น regex ตรงๆ ไม่ประกอบจาก template string — \s ใน `...` กลายเป็นตัว s เฉยๆ (เคยพลาดมาแล้ว)
 const VOICE_Q_RE = /(นะ|ไหม|มั้ย|มั๊ย|หรือเปล่า|รึเปล่า|เปล่า|เหรอ|หรอ|ไหน|อะไร|เท่าไหร่|เท่าไร|ไง|หรือยัง|รึยัง)(\s*)ครับ/g;
-function voiceText(s){
+// v = หางเสียงของครีเอเตอร์คนนั้น (ตั้งรายคนได้ — CMDOWN[…].voice) · ไม่ส่ง = ค่าเริ่มต้นของบัญชี
+const voiceOf = (proj, handle) => cmdOwnRead(proj, handle).voice || VOICE;
+function voiceText(s, v){
   s = String(s || "");
-  if (VOICE === "f") return s
+  if ((v || VOICE) === "f") return s
     .replace(/(🙇|🙋|💁|🙆|🙅|🤷|🤦)‍♂️/g, "$1‍♀️")
     .replace(/(?:คร้า+บ+|ค้า+บ+|คร๊า+บ+|ครัช)/g, "ค่าา")
     .replace(/ครับผม/g, "ค่ะ")
@@ -9355,17 +9363,26 @@ function voiceText(s){
     .replace(/คะ(?![฀-๿])/g, "ครับ")
     .replace(/ค่า(?![฀-๿0-9฿]|\s*[0-9฿])/g, "ครับ");
 }
+// ปุ่มใหญ่ = หางเสียงของครีเอเตอร์คนนี้ (กดสลับเฉพาะคนนี้ · ใช้ร่วมกันทั้งทีม) · ปุ่มเล็ก = ค่าเริ่มต้นของบัญชี (คนที่ไม่ได้ตั้ง + Format ขอเรท)
 function renderVoiceBtn(){
   const b = $("#voiceBtn");
   if (!b) return;
-  b.innerHTML = VOICE === "f" ? `♀ หญิง · <b>ค่ะ</b>` : `♂ ชาย · <b>ครับ</b>`;
-  b.title = `ตอนนี้ทุกกล่องลงท้ายแบบ${VOICE === "f" ? "หญิง (ค่ะ/คะ/ค่าา)" : "ชาย (ครับ/ค้าบบ)"} — กดเพื่อสลับ` +
-            ` · ใช้กับ Format ขอเรทด้วย · จำแยกรายบัญชี`;
+  const own = CMD_NOW ? cmdOwnRead(CMD_NOW.proj, CMD_NOW.handle).voice : null;
+  const v = own || VOICE;
+  b.innerHTML = (v === "f" ? `♀ หญิง · <b>ค่ะ</b>` : `♂ ชาย · <b>ครับ</b>`) + (own ? ` <span class="vown">เฉพาะคนนี้</span>` : "");
+  b.classList.toggle("own", !!own);
+  b.title = `${CMD_NOW ? normId(CMD_NOW.handle) : "คนนี้"} ลงท้ายแบบ${v === "f" ? "หญิง (ค่ะ/คะ/ค่าา)" : "ชาย (ครับ/ค้าบบ)"}` +
+    `${own ? " — ตั้งไว้เฉพาะคนนี้" : " — ตามค่าเริ่มต้น"} · กดเพื่อสลับเฉพาะคนนี้ (คนในทีมเห็นเหมือนกัน)`;
+  const d = $("#voiceDef");
+  if (d){
+    d.textContent = `ค่าเริ่มต้น: ${VOICE === "f" ? "ค่ะ" : "ครับ"}`;
+    d.title = `ครีเอเตอร์ที่ไม่ได้ตั้งเฉพาะคน + Format ขอเรท ลงท้ายแบบ${VOICE === "f" ? "หญิง" : "ชาย"} — กดเพื่อสลับ · จำแยกรายบัญชี`;
+  }
 }
 let CMD_NOW = null;     // { proj, handle } ที่เปิด Command อยู่ — สลับหางเสียงแล้ววาดคนเดิมใหม่
 
 function fillBlock(body, vals, clip){
-  body = voiceText(body);
+  body = voiceText(body, vals && vals._voice);
   let missing = 0;
   // แยกรายคลิป: เอกสาร · SKU · บรีฟ · ฟีดแบคแต่ละดราฟต์
   // ไม่แยก: เรท/รูปแบบภาษี/จ่ายจริง — ตกลงกันเป็นก้อนเดียวทั้งงาน ไม่ได้แยกตามคลิป
@@ -12715,19 +12732,33 @@ async function doLogout(){
 }
 
 $("#closeCmd").onclick = () => $("#cmdPanel").classList.remove("on");
-$("#voiceBtn").onclick = () => {
-  VOICE = VOICE === "f" ? "m" : "f";
-  try { lsSet(LS_VOICE, VOICE); } catch(e){}
+function voiceRedraw(){
   renderVoiceBtn();
-  vlog("voice", { d: { v: VOICE } });
-  // วาดคนเดิมใหม่ — กล่องที่เปิดค้าง (ลิงก์/หนังสือแจ้งเตือน/ฟีดแบค) ให้เปิดค้างไว้เหมือนเดิม
   if (CMD_NOW && $("#cmdPanel").classList.contains("on") && !CMD_EDITING){
     const box = { linkBox:"cmdLinkBtn", lawBox:"cmdLawBtn", fbBox:"cmdFbBtn" };
     const openId = Object.keys(box).find(id => { const el = $("#" + id); return el && !el.hidden; });
     openCmd(CMD_NOW.proj, CMD_NOW.handle);
     if (openId) $("#" + box[openId]).click();
   }
+}
+// ค่าเริ่มต้นของบัญชี
+$("#voiceDef").onclick = () => {
+  VOICE = VOICE === "f" ? "m" : "f";
+  try { lsSet(LS_VOICE, VOICE); } catch(e){}
+  vlog("voice", { d: { v: VOICE } });
+  voiceRedraw();
   if (!$("#fmtPanel").hidden) renderFormat();
+};
+// เฉพาะครีเอเตอร์คนนี้ — สลับกลับมาเท่าค่าเริ่มต้นเมื่อไหร่ ถอดที่ตั้งไว้ออก (กลับไปตามค่าเริ่มต้น)
+$("#voiceBtn").onclick = () => {
+  if (!CMD_NOW) return;
+  const o = cmdOwn(CMD_NOW.proj, CMD_NOW.handle);
+  const next = (o.voice || VOICE) === "f" ? "m" : "f";
+  if (next === VOICE) delete o.voice; else o.voice = next;
+  pruneCmdOwn(CMD_NOW.proj, CMD_NOW.handle);
+  saveCmdOwn();
+  vlog("voice", { p: CMD_NOW.proj, h: normId(CMD_NOW.handle), d: { v: next, own: true } });
+  voiceRedraw();
 };
 renderVoiceBtn();
 $("#cmdScrim").onclick = () => $("#cmdPanel").classList.remove("on");
@@ -14603,7 +14634,7 @@ const rvBuild = rd => { const pick = rd.pick || rvDefaultPick(rd);
 function rvCmdText(r, n, text){
   const b = cmdBlocksFor(r.project, r.handle).find(x => (x.b || "").includes(`{{feedback${n}}}`));
   const body = b ? b.b : `แอดมินขออนุญาตส่ง Feedback Draft#${n} นะครับ😀\n📦สำหรับ: {{sku}}\n📌📌\n\n{{feedback${n}}}`;
-  return { title: b ? b.t : `Feedback Draft #${n}`, body: voiceText(body).replace(/\{\{sku\??\}\}/g, r.sku || "…..ยังไม่มี SKU…..")
+  return { title: b ? b.t : `Feedback Draft #${n}`, body: voiceText(body, voiceOf(r.project, r.handle)).replace(/\{\{sku\??\}\}/g, r.sku || "…..ยังไม่มี SKU…..")
     .replace(`{{feedback${n}}}`, text || "…..ยังไม่มีฟีดแบค…..").replace(/\{\{brandname\??\}\}/g, brandOf(r.project)) };
 }
 function rvRoundHTML(r, rd, live){
