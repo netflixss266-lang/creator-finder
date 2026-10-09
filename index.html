@@ -11375,6 +11375,11 @@ function satDays(r){
   const now = new Date(); now.setHours(0, 0, 0, 0);
   return Math.max(0, Math.round((now - d0) / 86400000));
 }
+// เรียงใบในขั้นเดียวกัน: อยู่ในขั้นนี้นานที่สุดขึ้นก่อน · ไม่รู้วันที่ไว้ท้าย · เท่ากันคงลำดับเดิม (ลำดับในตาราง)
+function satSort(list){
+  const t = r => { const x = r && r._sat ? Date.parse(r._sat) : NaN; return isFinite(x) ? x : Infinity; };
+  return list.slice().sort((a, b) => t(a) - t(b));
+}
 function shipDays(r){
   if (!TEAM_MODE || !r || !r.status || !r._sat) return "";
   const n = satDays(r); if (n == null) return "";
@@ -11877,7 +11882,7 @@ function mapFlowSheet(proj){
       <div class="mapstages">${stages.map(st =>
         `<div class="mapstage${st.list.length ? "" : " zero"}" data-drop="${esc(st.drop)}">
           <div class="lab">${esc(mapStatusLabel(st.v))} <i>${st.list.length}</i></div>
-          <div class="mapleaves">${st.list.map(r => mapLeaf(r, proj, p.c, true)).join("")}</div>
+          <div class="mapleaves">${satSort(st.list).map(r => mapLeaf(r, proj, p.c, true)).join("")}</div>
         </div>`).join("")}</div>
     </div>`;
   };
