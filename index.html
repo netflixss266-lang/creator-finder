@@ -2818,6 +2818,18 @@ html[data-team] [data-nosheet]{display:none!important}
 .voicebtn .vown{font-size:.66rem;color:var(--accent);margin-left:2px}
 .voicedef{flex:none;background:none;border:0;color:var(--dim);font-size:.72rem;padding:4px 6px;text-decoration:underline;cursor:pointer}
 .voicedef:hover{color:var(--ink)}
+.fmtextra{margin-top:16px;border-top:1px solid var(--line);padding-top:12px}
+.fmtextra .fxhead{display:flex;flex-direction:column;gap:2px;margin-bottom:8px;font-size:.84rem}
+.fmtextra .fxhead span{font-size:.72rem;color:var(--dim)}
+.fxbox{background:var(--surface);border:1px solid var(--line);border-radius:9px;padding:8px;margin-bottom:8px}
+.fxtop{display:flex;gap:6px;align-items:center;margin-bottom:6px}
+.fxt{flex:1;min-width:0;background:var(--bg);border:1px solid var(--line);color:var(--ink);border-radius:6px;padding:5px 8px;font:inherit;font-size:.82rem;font-weight:600}
+.fxb{width:100%;background:var(--bg);border:1px solid var(--line);color:var(--ink);border-radius:6px;padding:7px 9px;font:inherit;font-size:.82rem;line-height:1.6;resize:vertical}
+.fxt:focus,.fxb:focus{outline:none;border-color:var(--accent)}
+.fxbtn{flex:none;background:var(--surface2);border:1px solid var(--line);color:var(--ink);border-radius:6px;padding:4px 9px;font-size:.74rem}
+.fxbtn:hover{border-color:var(--accent)}
+.fxbtn.del{color:var(--lo)}
+.fxadd{width:100%;text-align:center}
 </style>
 </head>
 <body>
@@ -6453,6 +6465,16 @@ function loadFormats(){
   try { FMT_SKU_BY = JSON.parse(lsGet(LS_FMTSKU) || "{}") || {}; } catch(e){}
   try { FMT_VID_BY = JSON.parse(lsGet(LS_FMTVID) || "{}") || {}; } catch(e){}
   try { FMT_DRAFT = JSON.parse(lsGet(LS_FMTDRAFT) || "{}") || {}; } catch(e){}
+  loadFmtExtra();
+}
+// ── กล่องข้อความเพิ่มเติมใต้ตัวเลือก (ทักซ้ำ · ตอบกลับ · ขอบคุณ ฯลฯ) — แยกรายโปรเจกต์ × KOL/KOC ──
+// แก้ได้ทั้งหัวข้อและข้อความ · เพิ่ม/ลบกล่องเอง · ใช้ตัวแปรชุดเดียวกับ format หลัก · ใช้ร่วมกันทั้งทีม (team_kv ns=fmt)
+const LS_FMTEXTRA = "cf_fmtextra_v1";     // { "โปรเจกต์|budget": [ {id, t, b} ] }
+let FMT_EXTRA = {};
+function loadFmtExtra(){ try { FMT_EXTRA = JSON.parse(lsGet(LS_FMTEXTRA) || "{}") || {}; } catch(e){ FMT_EXTRA = {}; } }
+function saveFmtExtra(){
+  for (const k in FMT_EXTRA) if (!(FMT_EXTRA[k] || []).length) delete FMT_EXTRA[k];
+  try { lsSet(LS_FMTEXTRA, JSON.stringify(FMT_EXTRA)); } catch(e){}
 }
 function saveFormats(){
   try { lsSet(LS_FORMAT, JSON.stringify(FORMATS)); } catch(e){}
@@ -6544,6 +6566,18 @@ function renderFormat(){
          ${mine ? `<button type="button" class="export ghost" id="fmtReset">คืนค่าตั้งต้น</button>` : ""}
        </div>
        <p class="picksum fmtsrc">${esc(K.th)} · ${mine ? "ใช้ต้นแบบที่แก้ไว้ของโปรเจกต์นี้" : "ใช้ต้นแบบตั้งต้น"}</p>
+       <div class="fmtextra">
+         <div class="fxhead"><b>ข้อความเพิ่มเติม</b>
+           <span>ทักซ้ำ · ตอบกลับ · ขอบคุณ — แก้ได้ทั้งหมด ใช้ตัวแปรเดียวกัน · ทั้งทีมเห็นเหมือนกัน</span></div>
+         ${(FMT_EXTRA[fmtDraftKey(proj, K.k)] || []).map(x => `<div class="fxbox" data-fx="${esc(x.id)}">
+             <div class="fxtop"><input class="fxt" value="${esc(x.t || "")}" placeholder="หัวข้อ เช่น ทักซ้ำครั้งที่ 2">
+               <button type="button" class="fxbtn" data-fxcopy="1" title="คัดลอก (เติมตัวแปรให้แล้ว)">คัดลอก</button>
+               <button type="button" class="fxbtn del" data-fxdel="1" title="ลบกล่องนี้">🗑</button></div>
+             <textarea class="fxb" rows="${Math.min(10, Math.max(3, String(x.b || "").split("\n").length + 1))}"
+               placeholder="พิมพ์ข้อความ — ใส่ {{brandname}} {{sku}} {{videos}} {{commission}} ได้">${esc(x.b || "")}</textarea>
+           </div>`).join("")}
+         <button type="button" class="export fxadd" id="fxAdd">＋ เพิ่มกล่องข้อความ</button>
+       </div>
      </div>
      <div class="fmtmain">
        <div class="fmthint" id="fmtHint">คลิกที่ข้อความ = คลุมทั้งหมด แล้วกด <kbd>Ctrl</kbd>+<kbd>C</kbd> · ลากคลุมบางส่วนเองก็ได้</div>
@@ -6628,6 +6662,38 @@ function renderFormat(){
       }).catch(() => { btn.textContent = "ก๊อปไม่ได้"; });
     };
     $("#fmtEdit").onclick = () => { FMT_EDIT = true; rerender(); };
+    // ── กล่องข้อความเพิ่มเติม ── บันทึกทุกตัวอักษร (ไม่วาดใหม่ระหว่างพิมพ์ เคอร์เซอร์ไม่หลุด)
+    const xkey = fmtDraftKey(proj, K.k);
+    const xlist = () => FMT_EXTRA[xkey] || (FMT_EXTRA[xkey] = []);
+    const xfill = t => voiceText(t).replace(/\{\{([\w฀-๿]+)\}\}/g, (_, k) => {
+      const v = k === "sku" ? fmtSkuText(proj) : vals[k];
+      return v != null && v !== "" ? v : `…..ยังไม่มี${FMT_GAP[k] || k}…..`; });
+    let xT = null;
+    body.querySelectorAll(".fxbox").forEach(box => {
+      const id = box.dataset.fx, item = () => xlist().find(x => x.id === id);
+      const save = () => { clearTimeout(xT); xT = setTimeout(saveFmtExtra, 400); };
+      box.querySelector(".fxt").addEventListener("input", e => { const it = item(); if (it){ it.t = e.target.value; save(); } });
+      box.querySelector(".fxb").addEventListener("input", e => { const it = item(); if (it){ it.b = e.target.value; save(); } });
+      box.querySelector("[data-fxcopy]").onclick = e => {
+        const it = item(); if (!it) return;
+        const btn = e.currentTarget;
+        navigator.clipboard.writeText(xfill(it.b || "")).then(() => {
+          btn.textContent = "คัดลอกแล้ว ✓"; setTimeout(() => { btn.textContent = "คัดลอก"; }, 1500);
+        }).catch(() => { btn.textContent = "ก๊อปไม่ได้"; });
+        vlog("format:extra", { p: proj, d: it.t || "" });
+      };
+      box.querySelector("[data-fxdel]").onclick = () => {
+        const it = item(); if (!it) return;
+        if ((it.b || it.t) && !confirm(`ลบกล่อง "${it.t || "ไม่มีหัวข้อ"}"?`)) return;
+        FMT_EXTRA[xkey] = xlist().filter(x => x.id !== id); saveFmtExtra(); rerender();
+      };
+    });
+    $("#fxAdd").onclick = () => {
+      xlist().push({ id: "f" + Date.now().toString(36) + Math.random().toString(36).slice(2, 5), t: "", b: "" });
+      saveFmtExtra(); rerender();
+      const boxes = body.querySelectorAll(".fxbox"); const last = boxes[boxes.length - 1];
+      if (last){ last.scrollIntoView({ block: "nearest", behavior: "smooth" }); last.querySelector(".fxt").focus(); }
+    };
     // ── คลิกที่ข้อความ = คลุมทั้งหมด ── พร้อมกด Ctrl+C ทันที ไม่ต้องลากจากบนสุดลงล่างสุดเอง
     // ลากคลุมบางส่วนเองยังได้ — ถ้าตอนปล่อยเมาส์มีส่วนที่คลุมอยู่ในข้อความแล้ว ไม่ไปทับ
     const pre = $("#fmtPrev"), hint = $("#fmtHint");
@@ -21033,6 +21099,23 @@ const TS = {
   links: tsObj(() => CMDLINKS, () => true, () => lsSet(LS_CMDLINKS, JSON.stringify(CMDLINKS))),
   own:   tsObj(() => CMDOWN, k => isTeamProj(k.slice(0, k.lastIndexOf("|"))), () => lsSet(LS_CMDOWN, JSON.stringify(CMDOWN))),
   sku:   tsObj(() => SKUGUIDE, () => true, () => lsSet(LS_SKUGUIDE, JSON.stringify(SKUGUIDE))),
+  fmt: {
+    // main|โปรเจกต์|kind = ต้นแบบหลัก (FORMATS / FORMATS_NB) · extra|โปรเจกต์|kind = กล่องเพิ่มเติม
+    all: () => {
+      const o = {};
+      for (const p in FORMATS) if (FORMATS[p] != null) o["main|" + p + "|budget"] = FORMATS[p];
+      for (const p in FORMATS_NB) if (FORMATS_NB[p] != null) o["main|" + p + "|nobudget"] = FORMATS_NB[p];
+      for (const k in FMT_EXTRA) if ((FMT_EXTRA[k] || []).length) o["extra|" + k] = FMT_EXTRA[k];
+      return o;
+    },
+    ok: k => { const a = k.indexOf("|"), b = k.lastIndexOf("|"); return a > 0 && b > a && isTeamProj(k.slice(a + 1, b)); },
+    put: (k, v) => { const a = k.indexOf("|"), b = k.lastIndexOf("|"), t = k.slice(0, a), p = k.slice(a + 1, b), kd = k.slice(b + 1);
+      if (t === "main") (kd === "nobudget" ? FORMATS_NB : FORMATS)[p] = v; else if (t === "extra") FMT_EXTRA[p + "|" + kd] = v; },
+    drop: k => { const a = k.indexOf("|"), b = k.lastIndexOf("|"), t = k.slice(0, a), p = k.slice(a + 1, b), kd = k.slice(b + 1);
+      if (t === "main") delete (kd === "nobudget" ? FORMATS_NB : FORMATS)[p]; else if (t === "extra") delete FMT_EXTRA[p + "|" + kd]; },
+    save: () => { try { lsSet(LS_FORMAT, JSON.stringify(FORMATS)); lsSet(LS_FORMAT_NB, JSON.stringify(FORMATS_NB));
+                        lsSet(LS_FMTEXTRA, JSON.stringify(FMT_EXTRA)); } catch(e){} },
+  },
   tpl: {
     all: () => {
       const o = {};
@@ -21052,7 +21135,7 @@ const TS_T = {};
 function tsLastLoad(){
   let j = null;
   try { j = JSON.parse(lsGet(LS_TS_LAST) || "null"); } catch(e){}
-  TS_LAST = j && j.team === TEAM.id && j.ns ? j.ns : { links:{}, own:{}, sku:{}, tpl:{} };
+  TS_LAST = j && j.team === TEAM.id && j.ns ? j.ns : { links:{}, own:{}, sku:{}, tpl:{}, fmt:{} };
 }
 function tsLastSave(){ try { lsSet(LS_TS_LAST, JSON.stringify({ team: TEAM.id, ns: TS_LAST })); } catch(e){} }
 async function tsPull(force){
@@ -21064,9 +21147,9 @@ async function tsPull(force){
     const r = await sbAuthed(SB_URL + "/rest/v1/team_kv?select=ns,k,v&team_id=eq." + encodeURIComponent(TEAM.id));
     if (!r.ok) return;
     const rows = await r.json();
-    loadCmdLinks(); loadCmdOwn(); loadSkuGuide(); loadCmdEdit();
+    loadCmdLinks(); loadCmdOwn(); loadSkuGuide(); loadCmdEdit(); loadFormats();
     tsLastLoad();
-    const srv = { links:{}, own:{}, sku:{}, tpl:{} };
+    const srv = { links:{}, own:{}, sku:{}, tpl:{}, fmt:{} };
     rows.forEach(x => { if (srv[x.ns]) srv[x.ns][x.k] = x.v; });
     const push = [];
     for (const ns in TS){
@@ -21125,7 +21208,7 @@ async function tsPush(ns){
   tsLastSave();
 }
 // ── หน้าเช็ค: ในเครื่องนี้ vs ขึ้นทีมแล้ว ──
-const TS_TH = { links: "ลิงก์ที่ใช้ร่วมกัน", own: "ลิงก์/ข้อความรายคน", sku: "คู่มือตาม SKU", tpl: "ต้นแบบข้อความ" };
+const TS_TH = { links: "ลิงก์ที่ใช้ร่วมกัน", own: "ลิงก์/ข้อความรายคน", sku: "คู่มือตาม SKU", tpl: "ต้นแบบข้อความ", fmt: "Format ขอเรท" };
 async function renderTsStat(){
   const el = $("#tsStat");
   if (!el) return;
@@ -21135,7 +21218,7 @@ async function renderTsStat(){
     const r = await sbAuthed(SB_URL + "/rest/v1/team_kv?select=ns,k&team_id=eq." + encodeURIComponent(TEAM.id));
     rows = r.ok ? await r.json() : [];
   } catch(e){ el.textContent = "เช็คไม่ได้: " + e.message; return; }
-  loadCmdLinks(); loadCmdOwn(); loadSkuGuide(); loadCmdEdit();
+  loadCmdLinks(); loadCmdOwn(); loadSkuGuide(); loadCmdEdit(); loadFormats();
   const srv = {}; rows.forEach(x => (srv[x.ns] || (srv[x.ns] = new Set())).add(x.k));
   const line = ns => {
     const S = TS[ns], loc = Object.keys(S.all()).filter(k => S.ok(k) && S.all()[k] != null);
@@ -21147,11 +21230,13 @@ async function renderTsStat(){
   const fields = CMD_LINK_FIELDS.map(([k, th]) =>
     `<span style="color:${up.has(k) && L[k] ? "var(--hi)" : "var(--dim)"}">${up.has(k) && L[k] ? "✓" : "–"} ${esc(th)} <code>{{${esc(k.replace(/KO[LC]$/, ""))}}}</code></span>`).join("<br>");
   el.innerHTML = `<table class="tstab"><tr><th>หมวด</th><th>ในเครื่องนี้</th><th>ขึ้นทีมแล้ว</th><th></th></tr>
-    ${["links", "own", "sku", "tpl"].map(line).join("")}</table>
+    ${["links", "own", "sku", "tpl", "fmt"].map(line).join("")}</table>
     <details style="margin-top:8px"><summary>ลิงก์ที่ใช้ร่วมกันทีละช่อง (✓ = ทีมมีแล้ว)</summary><div style="margin-top:6px;line-height:1.8">${fields}</div></details>`;
 }
 // ของทีมเปลี่ยน → วาดกล่อง Command ที่เปิดอยู่ใหม่ (ไม่ทับตอนกำลังพิมพ์/แก้ข้อความ)
 function tsRedraw(){
+  const fp = $("#fmtPanel"), fa = document.activeElement;
+  if (fp && !fp.hidden && !FMT_EDIT && !(fa && fp.contains(fa) && /^(INPUT|TEXTAREA)$/.test(fa.tagName))) renderFormat();
   const p = $("#cmdPanel");
   if (!p || !p.classList.contains("on") || !CMD_NOW || CMD_EDITING) return;
   const a = document.activeElement;
@@ -21165,6 +21250,9 @@ if (TEAM_MODE){
   saveCmdLinks = tsAfter(saveCmdLinks, () => tsSoon("links"));
   saveCmdOwn = tsAfter(saveCmdOwn, () => tsSoon("own"));
   saveSkuGuide = tsAfter(saveSkuGuide, () => tsSoon("sku"));
+  saveFormats = tsAfter(saveFormats, () => tsSoon("fmt"));
+  saveFmtExtra = tsAfter(saveFmtExtra, () => tsSoon("fmt"));
+  openFormat = tsAfter(openFormat, () => tsPull());
   saveCmdEditRaw = saveCmdEdit;
   saveCmdEdit = tsAfter(saveCmdEdit, () => tsSoon("tpl"));
   openCmd = tsAfter(openCmd, () => tsPull());
