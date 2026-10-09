@@ -20962,6 +20962,11 @@ foldSummaries();
 // ยังเก็บในเครื่องเหมือนเดิม (ใช้งานได้ตอนเน็ตหลุด) + ซิงก์กับทีมเป็นรายการย่อย ไม่ใช่ทั้งก้อน — สองคนแก้คนละคนไม่ทับกัน
 // รายคนเฉพาะโปรเจกต์ของทีม · โปรเจกต์ส่วนตัวยังอยู่ในเครื่องอย่างเดียว
 // กติกาตอนดึง: ทีมมี = ใช้ของทีม · ทีมไม่มีแต่เคยมี (TS_LAST) = มีคนลบ → ลบในเครื่อง · ไม่เคยมี = ของใหม่ในเครื่อง → ส่งขึ้น
+// ⚠️ jsonb ในฐานข้อมูลเรียงคีย์ใหม่ ({"sent","links"…}) — เทียบด้วย JSON.stringify ตรงๆ = "เปลี่ยน" ทุกรอบ
+//   → เขียนทับในเครื่อง + วาดกล่อง Command ใหม่ทุกครั้งที่ดึง กล่องลิงก์/ไทม์ไลน์ที่กำลังกรอกเลยเด้งปิด
+//   เทียบแบบเรียงคีย์ก่อนเสมอ
+const tsStr = v => JSON.stringify(v, (k, x) => x && typeof x === "object" && !Array.isArray(x)
+  ? Object.keys(x).sort().reduce((o, kk) => (o[kk] = x[kk], o), {}) : x);
 const LS_TS_LAST = "cf_ts_last_v1";
 const tsObj = (get, ok, save) => ({ all: get, ok, save,
   put: (k, v) => { get()[k] = v; }, drop: k => { delete get()[k]; } });
@@ -21014,8 +21019,8 @@ async function tsPull(force){
       const S = TS[ns], obj = S.all(), last = TS_LAST[ns] || (TS_LAST[ns] = {});
       let changed = false, mine = false;
       for (const k in srv[ns]){
-        const sv = JSON.stringify(srv[ns][k]);
-        if (JSON.stringify(obj[k]) !== sv){ S.put(k, srv[ns][k]); changed = true; }
+        const sv = tsStr(srv[ns][k]);
+        if (tsStr(obj[k]) !== sv){ S.put(k, srv[ns][k]); changed = true; }
         last[k] = sv;
       }
       for (const k of Object.keys(obj)){
@@ -21045,7 +21050,7 @@ async function tsPush(ns){
   const up = [], del = [];
   for (const k in obj){
     if (!S.ok(k) || obj[k] == null) continue;
-    const v = JSON.stringify(obj[k]);
+    const v = tsStr(obj[k]);
     if (last[k] !== v) up.push([k, v]);
   }
   for (const k in last) if (obj[k] == null || !S.ok(k)) del.push(k);
@@ -21097,6 +21102,8 @@ function tsRedraw(){
   if (!p || !p.classList.contains("on") || !CMD_NOW || CMD_EDITING) return;
   const a = document.activeElement;
   if (a && p.contains(a) && /^(INPUT|TEXTAREA|SELECT)$/.test(a.tagName)) return;
+  // เปิดกล่องลิงก์/ฟีดแบค/หนังสือแจ้งเตือนค้างอยู่ = กำลังกรอก — ไม่วาดทับ (เดี๋ยวเปิดคนใหม่ก็เห็นของล่าสุดเอง)
+  if (["linkBox", "fbBox", "lawBox"].some(id => { const el = $("#" + id); return el && !el.hidden; })) return;
   openCmd(CMD_NOW.proj, CMD_NOW.handle);
 }
 if (TEAM_MODE){
