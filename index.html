@@ -2794,6 +2794,8 @@ html[data-team] [data-nosheet]{display:none!important}
 .tstab{border-collapse:collapse;font-size:.82rem;min-width:320px}
 .tstab th,.tstab td{padding:4px 10px;border-bottom:1px solid var(--line);text-align:left}
 .tstab th{color:var(--dim);font-weight:600}
+.mapleaf .shipd{display:block;margin-top:3px;font-size:.68rem;font-weight:700;color:var(--info);letter-spacing:.01em}
+.mapleaf .shipd.late{color:var(--warn)}
 </style>
 </head>
 <body>
@@ -5355,7 +5357,8 @@ const STAGES = [
   { v:"Waiting Confirm",          th:"รอคอนเฟิร์มร่วมงาน", c:"s-wait", a:/รอคอนเฟิร์ม|ส่งบรีฟ|บรีฟแล้ว/i },
   { v:"Confirmed",                th:"คอนเฟิร์มแล้ว",       c:"s-done", a:/คอนเฟิร์มแล้ว/i },
   { v:"Waiting Delivery",         th:"รอส่งของ",            c:"s-wait", a:/รอส่งของ/i },
-  { v:"Already Delivered",        th:"ส่งของแล้ว",          c:"s-done", a:/ส่งของแล้ว/i },
+  // โชว์ว่า Shipping (2026-10-09) — ค่าที่เก็บยังเป็น "Already Delivered" · Map นับวันตั้งแต่เข้าขั้นนี้ (coord.status_at)
+  { v:"Already Delivered", show:"Shipping", th:"กำลังส่งของ (ส่งของแล้ว)", c:"s-done", a:/ส่งของแล้ว|shipping/i },
   { v:"Waiting Sent to SG",       th:"รอส่งไป SG",          c:"s-wait", a:/รอส่ง.{0,3}sg/i },
   { v:"Already Sent to SG",       th:"ส่ง SG แล้ว",         c:"s-done", a:/ส่ง\s*sg\s*แล้ว/i },
   { v:"Waiting Script",           th:"รอสคริป",             c:"s-wait", a:/รอสคริป/i },
@@ -5488,7 +5491,7 @@ function payOf(rate, type){
 // ป้ายที่โชว์ = ค่าจริงที่ลงชีต จะได้ตรงกับที่ทีมเห็นในชีตเป๊ะ ส่วนคำไทยอยู่ใน tooltip
 // ค่าเดิมยังโชว์คำไทยเหมือนเดิม เพราะชื่ออังกฤษของมันยาวจนอ่านในช่องแคบไม่ไหว
 const ST_TH = Object.assign({ "":"—" },
-  Object.fromEntries(STAGES.map(s => [s.v, s.v])),
+  Object.fromEntries(STAGES.map(s => [s.v, s.show || s.v])),
   { [ST_CANCEL]: ST_CANCEL,
     "Cancel":"(เดิม) ยกเลิก", "ยกเลิก":"(เดิม) ยกเลิก", "ยกเลิกงาน":"(เดิม) ยกเลิกงาน" },
   { "Waiting to post":"(เดิม) รอโพสต์", "Waiting 1st Draft":"(เดิม) รอ Draft 1",
@@ -5539,7 +5542,7 @@ function statusOptions(cur){
   // ยกเลิกแยกกลุ่มไว้ท้ายสุด ไม่ปนกับลำดับขั้น — มันไม่ใช่ขั้นถัดไปของใคร
   // และไม่มีเลขนำหน้า เพราะเลขในเมนูนี้แปลว่า "ขั้นที่เท่าไหร่ของเส้นทาง"
   return `<option value=""${!cur ? " selected" : ""}>— ยังไม่เริ่ม —</option>` +
-    STAGES.map((s, i) => one(s.v, s.v, i + 1)).join("") +
+    STAGES.map((s, i) => one(s.v, s.show || s.v, i + 1)).join("") +
     `<optgroup label="ออกจากงาน">${one(ST_CANCEL, ST_CANCEL, 0)}</optgroup>` +
     (legacy.length ? `<optgroup label="ค่าเดิมในชีต">${
       legacy.map(v => one(v, ST_TH[v] || v, 0)).join("")}</optgroup>` : "");
@@ -6221,7 +6224,8 @@ async function loadCoordData(force){
         brief: o.brief || "", note: o.note || "",
         commission: o.commission || "", script: o.script || "", rate_all: [],
         tracking: o.tracking || "",
-        ...(TEAM_MODE ? { assignee: o.assignee || null, _id: o.id, temp: !!o.temp } : {}),
+        ...(TEAM_MODE ? { assignee: o.assignee || null, _id: o.id, temp: !!o.temp,
+                          _sat: o.status_at || null, _sate: !!o.status_at_est } : {}),
       }));
       if (TEAM_MODE && BASE_PROJ) setCoordBase(mapped);
       shapeCoord(mapped);
@@ -8176,6 +8180,7 @@ function setFieldRaw(r, f, raw){
     r[f] = raw;
   }
   if (f === "rate") r.rate_all = [];        // ยืนยันด้วยมือแล้ว ธงลง
+  if (f === "status"){ r._sat = new Date().toISOString(); r._sate = false; }
   // จ่ายจริงคิดจากเรท+รูปแบบภาษีเสมอ เก็บไว้ด้วยเพื่อให้ชีตมีตัวเลขให้อ่าน
   if (f === "rate" || f === "paytype") r.net3 = payOf(r.rate, r.paytype);
   const k = ekey(r);
@@ -11354,6 +11359,19 @@ function mapBar(s, small){
 // sub = อะไรอยู่บรรทัดที่สองในใบ · ค่าเริ่มต้น "info" (กลุ่ม + เรท + จำนวนชุด) เหมือนเดิม
 // "sku" ใช้กับแผ่นปฏิทิน — บนไทม์ไลน์คำถามคือ "วันนี้ใครไลฟ์ขายอะไร" เรทกับกลุ่มไม่ได้ตอบตรงนั้น
 // ส่วนแผ่นขั้นตอนงานยังเป็นเรื่องเงิน/ความพร้อม เลยคงบรรทัดเดิมไว้ ไม่เปลี่ยนตามกัน
+// Shipping (Already Delivered) — ส่งของไปกี่วันแล้ว นับจากวันที่เปลี่ยนเข้าขั้นนี้
+// เวลาโดยประมาณ (ไม่มีประวัติการเปลี่ยนสถานะ) โชว์ "N+" = อย่างน้อย N วัน · 7 วันขึ้นไปเป็นสีส้ม
+function shipDays(r){
+  if (!r || r.status !== "Already Delivered" || !r._sat) return "";
+  const t = Date.parse(r._sat);
+  if (!isFinite(t)) return "";
+  const d0 = new Date(t); d0.setHours(0, 0, 0, 0);
+  const now = new Date(); now.setHours(0, 0, 0, 0);
+  const n = Math.max(0, Math.round((now - d0) / 86400000));
+  const when = new Date(t).toLocaleDateString("th-TH", { day:"numeric", month:"short" });
+  return `<span class="shipd${n >= 7 ? " late" : ""}" title="เปลี่ยนเป็น Shipping ${r._sate ? "ประมาณ" : "เมื่อ"} ${esc(when)}${
+    r._sate ? " — ไม่มีประวัติการเปลี่ยนสถานะ ส่งจริงอาจนานกว่านี้" : ""}">🚚 ${n}${r._sate ? "+" : ""} Day${n === 1 && !r._sate ? "" : "s"}</span>`;
+}
 function mapLeaf(r, proj, color, drag, sub){
   const flags = mapFlags(r);
   const clips = clipCount(r);
@@ -11382,7 +11400,7 @@ function mapLeaf(r, proj, color, drag, sub){
           : r.rate != null ? mBaht(r.rate) : `<span class="flag">ไม่มีเรท</span>`}
         ${clips > 1 && !cancel ? `· ${clips} ชุด` : ""}
         ${flags.length ? `<span class="flag" title="${esc(flags.join(" · "))}">⚑${flags.length}</span>` : ""}
-      </span>`}</button>
+      </span>`}${shipDays(r)}</button>
     <button class="mapst" data-mapst="${esc(r.handle)}" data-mapproj="${esc(proj)}"
       title="เปลี่ยนสถานะของ ${esc(r.handle)}">▾</button>
   </span>`;
@@ -13271,7 +13289,8 @@ function sbRowToCoord(o){
     net3: o.net3 == null ? null : Number(o.net3), paytype: o.paytype || "", sku: o.sku || "",
     postdate: o.postdate || "", deadline: o.deadline || "", brief: o.brief || "", note: o.note || "",
     commission: o.commission || "", script: o.script || "", rate_all: [], tracking: o.tracking || "",
-    assignee: o.assignee || null, _id: o.id, temp: !!o.temp };
+    assignee: o.assignee || null, _id: o.id, temp: !!o.temp,
+    _sat: o.status_at || null, _sate: !!o.status_at_est };
 }
 // คืน true = จัดการแล้ว · false = ไม่แน่ใจ ให้โหลดใหม่ทั้งหมดแทน (ปลอดภัยกว่าเดา)
 function rtApplyCoord(d){
@@ -13309,7 +13328,7 @@ function rtApplyCoord(d){
     const mine = EDITS[ekey(cur)] || {};             // ช่องที่เครื่องนี้แก้ค้าง ยังไม่ได้ส่ง — ของเราชนะ
     Object.keys(row).forEach(f => {
       if (f in mine) return;
-      if (f !== "_id" && f !== "rate_all" && JSON.stringify(cur[f] ?? null) !== JSON.stringify(row[f] ?? null)) changed.push(f);
+      if (f[0] !== "_" && f !== "rate_all" && JSON.stringify(cur[f] ?? null) !== JSON.stringify(row[f] ?? null)) changed.push(f);
       cur[f] = row[f];
     });
     if (oldKey !== coordKey(cur)) base.delete(oldKey);
@@ -14881,7 +14900,7 @@ async function sbFetchCoord(){
   // ตารางนี้โตตามจำนวนคน×โปรเจกต์ ตอนนี้ยังไม่ถึงพัน แต่โดนเพดานเดียวกับ pool แน่ๆ ถ้าปล่อยไว้
   // แล้วอาการจะร้ายกว่า เพราะเว็บซิงก์แบบ "เขียนทับทั้งชุด" — อ่านมาไม่ครบแล้วเขียนกลับ = ของหายจริง
   const cols = ((await trackColProbe()) ? SB_COORD_COLS + ",tracking" : SB_COORD_COLS) +
-               (TEAM_MODE ? ",assignee,id,temp" : "");
+               (TEAM_MODE ? ",assignee,id,temp,status_at,status_at_est" : "");
   return await sbFetchAll("/rest/v1/coord?select=" + cols +
                           "&order=project.asc&order=ord.asc", "อ่านงาน Coordinate ไม่ได้");
 }
