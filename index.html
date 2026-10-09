@@ -6481,8 +6481,23 @@ function loadFormats(){
 const LS_FMTEXTRA = "cf_fmtextra_v1";     // { "โปรเจกต์": [ {id, t, b} ] }  (เดิม "โปรเจกต์|budget" — รวมให้ตอนโหลด)
 // ข้อความเขียนเป็นเสียงชาย — ตอนคัดลอกแปลงครับ/ค่ะตามปุ่มหางเสียงให้เอง
 const FMT_EXTRA_DEFAULT = [
-  { id: "d_rate", t: "รับเรท", b: "ขอบคุณมากครับ แอดมินส่งรายละเอียดให้ทางแบรนด์พิจารณานะครับ😊🙏" },
+  { id: "d_rate", t: "รับเรท", b: "ขอบคุณมากครับ แอดมินส่งรายละเอียดให้ทางแบรนด์พิจารณานะครับ" },
 ];
+// รับเรทมีได้ฉบับเดียว (ไม่มีอีโมจิ — 2026-10-09) — กล่อง "ส่งรายละเอียดให้ทางแบรนด์พิจารณา" ฉบับอื่นที่ค้างในโปรเจกต์ถูกถอดออก
+const FX_RATE_RE = /ส่งรายละเอียดให้ทางแบรนด์พิจารณา/;
+function fxOneRate(list){
+  if (!Array.isArray(list)) return false;
+  let ch = false;
+  const def = FMT_EXTRA_DEFAULT[0];
+  const keep = list.filter(x => {
+    if (x.id === def.id){ if (x.b !== def.b){ x.b = def.b; ch = true; } return true; }
+    if (FX_RATE_RE.test(x.b || "")){ ch = true; return false; }
+    return true;
+  });
+  if (!keep.some(x => x.id === def.id) && list.some(x => FX_RATE_RE.test(x.b || ""))){ keep.unshift(Object.assign({}, def)); ch = true; }
+  if (ch){ list.length = 0; keep.forEach(x => list.push(x)); }
+  return ch;
+}
 let FMT_EXTRA = {};
 function loadFmtExtra(){
   try { FMT_EXTRA = JSON.parse(lsGet(LS_FMTEXTRA) || "{}") || {}; } catch(e){ FMT_EXTRA = {}; }
@@ -6495,6 +6510,7 @@ function loadFmtExtra(){
     (FMT_EXTRA[k] || []).forEach(x => { if (!cur.some(y => y.id === x.id)) cur.push(x); });
     delete FMT_EXTRA[k]; moved = true;
   }
+  for (const k in FMT_EXTRA) if (fxOneRate(FMT_EXTRA[k])) moved = true;
   if (moved) try { lsSet(LS_FMTEXTRA, JSON.stringify(FMT_EXTRA)); } catch(e){}
 }
 const fmtExtraOf = proj => FMT_EXTRA[proj] || FMT_EXTRA_DEFAULT;
