@@ -2794,8 +2794,16 @@ html[data-team] [data-nosheet]{display:none!important}
 .tstab{border-collapse:collapse;font-size:.82rem;min-width:320px}
 .tstab th,.tstab td{padding:4px 10px;border-bottom:1px solid var(--line);text-align:left}
 .tstab th{color:var(--dim);font-weight:600}
-.mapleaf .shipd{display:block;margin-top:3px;font-size:.68rem;font-weight:700;color:var(--info);letter-spacing:.01em}
+.mapleaf .shipd{display:block;margin-top:3px;font-size:.68rem;font-weight:600;color:var(--dim);letter-spacing:.01em;cursor:pointer;width:max-content}
+.mapleaf .shipd:hover{color:var(--ink);text-decoration:underline}
+.mapleaf .shipd.ship{color:var(--info);font-weight:700}
 .mapleaf .shipd.late{color:var(--warn)}
+.satpop{position:fixed;z-index:500;width:240px;background:var(--surface);border:1px solid var(--line);border-radius:10px;
+  box-shadow:var(--shadow);padding:10px 12px;font-size:.8rem}
+.satpop .t{color:var(--mute);margin-bottom:8px;line-height:1.4}
+.satpop input{width:100%;background:var(--bg);border:1px solid var(--line);color:var(--ink);border-radius:7px;padding:7px 9px;font:inherit;color-scheme:dark}
+.satpop .b{display:flex;gap:6px;margin-top:8px}
+.satpop .b button{flex:1;padding:6px 8px;font-size:.8rem}
 </style>
 </head>
 <body>
@@ -11359,19 +11367,69 @@ function mapBar(s, small){
 // sub = อะไรอยู่บรรทัดที่สองในใบ · ค่าเริ่มต้น "info" (กลุ่ม + เรท + จำนวนชุด) เหมือนเดิม
 // "sku" ใช้กับแผ่นปฏิทิน — บนไทม์ไลน์คำถามคือ "วันนี้ใครไลฟ์ขายอะไร" เรทกับกลุ่มไม่ได้ตอบตรงนั้น
 // ส่วนแผ่นขั้นตอนงานยังเป็นเรื่องเงิน/ความพร้อม เลยคงบรรทัดเดิมไว้ ไม่เปลี่ยนตามกัน
-// Shipping (Already Delivered) — ส่งของไปกี่วันแล้ว นับจากวันที่เปลี่ยนเข้าขั้นนี้
-// เวลาโดยประมาณ (ไม่มีประวัติการเปลี่ยนสถานะ) โชว์ "N+" = อย่างน้อย N วัน · 7 วันขึ้นไปเป็นสีส้ม
-function shipDays(r){
-  if (!r || r.status !== "Already Delivered" || !r._sat) return "";
-  const t = Date.parse(r._sat);
-  if (!isFinite(t)) return "";
+// วันที่เข้าขั้นปัจจุบัน — ทุกขั้น (coord.status_at) · Shipping ใช้ 🚚 ขั้นอื่น 📅
+// ประมาณ (ไม่มีประวัติการเปลี่ยนสถานะ) ขึ้น "~" นำหน้า · ชี้ค้าง = วันที่เต็ม + ผ่านมากี่วัน · กดที่วันที่ = แก้วันที่
+function satDays(r){
+  const t = Date.parse(r._sat); if (!isFinite(t)) return null;
   const d0 = new Date(t); d0.setHours(0, 0, 0, 0);
   const now = new Date(); now.setHours(0, 0, 0, 0);
-  const n = Math.max(0, Math.round((now - d0) / 86400000));
-  const when = new Date(t).toLocaleDateString("th-TH", { day:"numeric", month:"short" });
-  return `<span class="shipd${n >= 7 ? " late" : ""}" title="เปลี่ยนเป็น Shipping ${r._sate ? "ประมาณ" : "เมื่อ"} ${esc(when)}${
-    r._sate ? " — ไม่มีประวัติการเปลี่ยนสถานะ ส่งจริงอาจนานกว่านี้" : ""}">🚚 ${n}${r._sate ? "+" : ""} Day${n === 1 && !r._sate ? "" : "s"}</span>`;
+  return Math.max(0, Math.round((now - d0) / 86400000));
 }
+function shipDays(r){
+  if (!TEAM_MODE || !r || !r.status || !r._sat) return "";
+  const n = satDays(r); if (n == null) return "";
+  const d = new Date(Date.parse(r._sat));
+  const txt = n === 0 ? "วันนี้" : d.toLocaleDateString("th-TH", { day:"numeric", month:"short" });
+  const full = d.toLocaleDateString("th-TH", { day:"numeric", month:"long", year:"numeric" });
+  const ship = r.status === "Already Delivered";
+  return `<span class="shipd${ship ? " ship" : ""}${ship && n >= 7 ? " late" : ""}" data-satedit="1" role="button" tabindex="0"
+    title="เข้าขั้น ${esc(ST_TH[r.status] || r.status)} ${r._sate ? "ประมาณ" : "เมื่อ"} ${esc(full)} · ผ่านมา ${n} วัน${
+      r._sate ? " — ไม่มีประวัติการเปลี่ยนสถานะ วันจริงอาจก่อนหน้านี้" : ""}
+กดเพื่อแก้วันที่">${ship ? "🚚" : "📅"} ${
+      r._sate ? "~" : ""}${esc(txt)}</span>`;
+}
+// แก้วันที่เข้าขั้น — เขียน coord.status_at ตรง (ไม่ผ่านซิงก์ตาราง เพราะไม่ใช่ช่องที่ทีมกรอกในตาราง)
+function satEditOpen(el, r){
+  document.querySelectorAll(".satpop").forEach(x => x.remove());
+  const cur = r._sat ? new Date(Date.parse(r._sat)) : new Date();
+  const ymd = `${cur.getFullYear()}-${String(cur.getMonth() + 1).padStart(2, "0")}-${String(cur.getDate()).padStart(2, "0")}`;
+  const pop = document.createElement("div");
+  pop.className = "satpop";
+  pop.innerHTML = `<div class="t">วันที่เข้าขั้น <b>${esc(ST_TH[r.status] || r.status)}</b> · ${esc(r.handle)}</div>
+    <input type="date" value="${ymd}" max="${new Date().toISOString().slice(0, 10)}">
+    <div class="b"><button type="button" class="run" data-go="1">บันทึก</button><button type="button" class="export" data-x="1">ยกเลิก</button></div>
+    <div class="addmsg"></div>`;
+  document.body.appendChild(pop);
+  const rc = el.getBoundingClientRect();
+  pop.style.left = Math.min(innerWidth - 250, Math.max(8, rc.left)) + "px";
+  pop.style.top = Math.min(innerHeight - 150, rc.bottom + 6) + "px";
+  const inp = pop.querySelector("input"); inp.focus();
+  const close = () => { pop.remove(); document.removeEventListener("pointerdown", off, true); };
+  const off = e => { if (!pop.contains(e.target)) close(); };
+  setTimeout(() => document.addEventListener("pointerdown", off, true), 0);
+  pop.querySelector("[data-x]").onclick = close;
+  pop.querySelector("[data-go]").onclick = async () => {
+    if (!inp.value) return;
+    if (!r._id){ pop.querySelector(".addmsg").className = "addmsg on err";
+      pop.querySelector(".addmsg").textContent = "แถวนี้ยังไม่ได้ซิงก์ขึ้นฐานข้อมูล — ซิงก์ก่อนแล้วค่อยแก้วันที่"; return; }
+    const iso = new Date(inp.value + "T12:00:00").toISOString();
+    try {
+      await sbSend(SB_URL + "/rest/v1/coord?id=eq." + encodeURIComponent(r._id), "PATCH",
+        { status_at: iso, status_at_est: false }, "บันทึกวันที่ไม่ได้");
+      r._sat = iso; r._sate = false;
+      vlog("status_at", { p: r.project, h: normId(r.handle), d: inp.value });
+      close(); renderMap();
+    } catch(e){ pop.querySelector(".addmsg").className = "addmsg on err"; pop.querySelector(".addmsg").textContent = e.message; }
+  };
+}
+document.addEventListener("click", e => {
+  const el = e.target.closest && e.target.closest("#mapBody [data-satedit]");
+  if (!el) return;
+  e.preventDefault(); e.stopPropagation();
+  const leaf = el.closest("[data-mapwho]");
+  const r = leaf && (COORD[leaf.dataset.mapproj] || []).find(x => normId(x.handle) === normId(leaf.dataset.mapwho));
+  if (r) satEditOpen(el, r);
+}, true);
 function mapLeaf(r, proj, color, drag, sub){
   const flags = mapFlags(r);
   const clips = clipCount(r);
