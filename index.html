@@ -2813,6 +2813,7 @@ html[data-team] [data-nosheet]{display:none!important}
 .satpop input{width:100%;background:var(--bg);border:1px solid var(--line);color:var(--ink);border-radius:7px;padding:7px 9px;font:inherit;color-scheme:dark}
 .satpop .b{display:flex;gap:6px;margin-top:8px}
 .satpop .b button{flex:1;padding:6px 8px;font-size:.8rem}
+.maphead #mapFmtBtn{flex:none;padding:7px 12px;font-size:.8rem}
 </style>
 </head>
 <body>
@@ -3378,6 +3379,8 @@ html[data-team] [data-nosheet]{display:none!important}
       <div class="mapmodes" id="mapModes" role="tablist"></div>
       <!-- รูปแบบของแผ่น "ขั้นตอนงาน" — ตั้งแยกรายโปรเจกต์ จำไว้ในเครื่อง -->
       <div class="mapfmt" id="mapFmt" role="tablist"></div>
+      <!-- ปุ่มเดียวกับข้างปุ่ม Map ในหน้าตาราง — เปิดซ้อนบนแผนผัง ปิดแล้วกลับมาที่แผนผังเดิม -->
+      <button class="mapbtn" id="mapFmtBtn" title="ข้อความขอเรทสำหรับทักครีเอเตอร์ครั้งแรก">✉ Format ขอเรท</button>
       <button class="x" id="closeMap" aria-label="ปิด">✕</button>
     </div>
     <div class="mapbody" id="mapBody"></div>
@@ -12675,6 +12678,11 @@ function mapMoneySheet(proj){
 
 $("#mapBtn").onclick = () => openMap(PROJ);
 $("#fmtBtn").onclick = openFormat;
+// จากหน้า Map: ใช้โปรเจกต์ที่เปิดดูอยู่ (หน้าทุกโปรเจกต์ = โปรเจกต์ล่าสุดในตาราง)
+$("#mapFmtBtn").onclick = () => {
+  if (MAP_PROJ && MAP_PROJ !== PROJ && PROJECTS.includes(MAP_PROJ)){ PROJ = MAP_PROJ; MINE_VIEW = false; renderProjTabs(); }
+  openFormat();
+};
 $("#closeFmt").onclick = () => { $("#fmtPanel").hidden = true; };
 // ปิดเมื่อ "กดและปล่อย" บนพื้นหลังเท่านั้น — ลากคลุมข้อความจากข้างในแล้วปล่อยเมาส์ข้างนอก
 // เบราว์เซอร์ยิง click ที่ตัวแม่ร่วม (พื้นหลัง) กล่องเลยปิดกลางคันทั้งที่แค่กำลังคลุมข้อความ
