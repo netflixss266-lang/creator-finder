@@ -2836,6 +2836,9 @@ html[data-team] [data-nosheet]{display:none!important}
 .fxprev:hover{border-color:rgba(var(--accent-rgb),.5)}
 .fxbox.copied{border-color:var(--hi)}
 .fxbox.copied .fxtt::after{content:" · คัดลอกแล้ว ✓";color:var(--hi);font-weight:600}
+.sentbar{display:flex;align-items:center;gap:8px;font-size:.78rem;color:var(--hi);padding:6px 10px;margin-bottom:10px;
+  border:1px dashed rgba(var(--hi-rgb),.4);border-radius:8px;background:rgba(var(--hi-rgb),.06)}
+.sentbar .cmdbtn{margin-left:auto}
 </style>
 </head>
 <body>
@@ -9179,6 +9182,14 @@ function showOwnBlock(proj, handle, id){
 // 15 บล็อกส่งคนละวัน คนละรอบ พอกลับมาเปิดอีกทีจำไม่ได้ว่าค้างที่ไหน
 // เก็บรายคน เพราะแต่ละคนเดินคนละจังหวะ · คลิป 2 นับแยกจากคลิป 1
 const sentKey = (i, clip) => clip > 1 ? `${i}:${clip}` : String(i);
+// กล่องที่กด "ส่งแล้ว" ก่อนเปิดหน้านี้ = ซ่อน (แค่ซ่อน ไม่ลบ · กดแสดงได้) — ที่เพิ่งกดในรอบนี้ยังเห็นอยู่จนกว่าจะรีเฟรช
+// เทียบกับเวลาเปิดหน้า ไม่ใช่ซ่อนทันทีที่กด จะได้ไม่หายไปต่อหน้าตอนกดพลาด
+const PAGE_T0 = Date.now();
+let CMD_SHOW_SENT = false;
+const sentOld = (proj, handle, i, clip) => {
+  const v = cmdOwnRead(proj, handle).sent[sentKey(i, clip)];
+  return !!v && !(Number(v) >= PAGE_T0);
+};
 const isSent = (proj, handle, i, clip) =>
   !!cmdOwnRead(proj, handle).sent[sentKey(i, clip)];
 // ─── กดส่ง Command แล้วสถานะเดินตาม ───
@@ -10333,7 +10344,7 @@ function openCmd(proj, handle){
           mine: bl.mine, id, custom: bl.custom, law:false,
           // sentKey ยุบรอบ 1 กับ 0 เป็นคีย์เดียวกันอยู่แล้ว — มีรอบเดียวจึงไม่ต้องขึ้นเลข ".1" ให้รก
           clip: sls.length > 1 ? i + 1 : 0,
-          sent: isSent(proj, handle, id, i + 1) },
+          sent: isSent(proj, handle, id, i + 1), old: sentOld(proj, handle, id, i + 1) },
         // clip = 0 เสมอ: {{sku}} ของบล็อกนี้ต้องเป็นของทั้งดีล ไม่ใช่ SKU ชุดที่ i
         fillBlock(bl.b, Object.assign({}, vals, liveVals(sl)), 0))));
       return;
@@ -10346,7 +10357,7 @@ function openCmd(proj, handle){
         mine: bl.mine, id, custom: bl.custom, clip:n, law: !!bl.law,
         // ขั้นที่กล่องนี้พาไปเมื่อกดส่ง — มาจากต้นแบบเท่านั้น กล่องที่เพิ่มเองไม่มี
         to: (bl.base && bl.base.to) || null,
-        sent: isSent(proj, handle, id, n) },
+        sent: isSent(proj, handle, id, n), old: sentOld(proj, handle, id, n) },
       fillBlock(bl.b, vals, n))));
   });
   // ลำดับที่คนนี้จะได้รับจริง — บล็อกที่แยกชุดนับเป็นขั้นเดียวกัน (5.1 / 5.2)
@@ -10481,9 +10492,13 @@ function openCmd(proj, handle){
        <div id="lawRows"></div>
      </div>
      <div class="cmdlist">` +
+    (blocks.some(b => b.old) ? `<div class="sentbar">✓ ส่งไปแล้ว ${blocks.filter(b => b.old).length} กล่อง${
+      CMD_SHOW_SENT ? "" : " — ซ่อนไว้"} <button type="button" class="cmdbtn" id="cmdShowSent">${
+      CMD_SHOW_SENT ? "ซ่อนที่ส่งแล้ว" : "แสดง"}</button></div>` : "") +
     // เลขที่โชว์คือลำดับที่ส่งจริงของคนนี้ ไม่ใช่เลขบล็อกในต้นแบบ
     // (KOL กับ KOC ใช้บล็อกคนละใบในตำแหน่งเดียวกัน เลขต้นแบบเลยไม่เรียงกัน)
-    blocks.map((b, j) => `<div class="cmdblk${b.mine ? " edited" : ""}${b.sent ? " sent" : ""}${
+    // ซ่อน = ไม่วาด แต่ index (j) ยังตรงกับ blocks เดิม ปุ่มคัดลอก/ส่งแล้วจึงชี้ถูกกล่อง
+    blocks.map((b, j) => b.old && !CMD_SHOW_SENT ? "" : `<div class="cmdblk${b.mine ? " edited" : ""}${b.sent ? " sent" : ""}${
       b.law ? " lawblk" : ""}">
       ${b.law ? `<div class="lawblkhint">⚖ ฉบับนี้อ้างสิทธิตามสัญญาจริง ส่งไปแล้วเรียกคืนไม่ได้ —
         ${lawMissingFor(proj, handle).length
@@ -10510,6 +10525,12 @@ function openCmd(proj, handle){
           : ""}</header>
       <pre>${b.html}</pre></div>`).join("") + `</div>`;
 
+  if ($("#cmdShowSent")) $("#cmdShowSent").onclick = () => {
+    CMD_SHOW_SENT = !CMD_SHOW_SENT;
+    const sc = $("#cmdBody").scrollTop;
+    openCmd(proj, handle);
+    $("#cmdBody").scrollTop = sc;
+  };
   document.querySelectorAll("#cmdBody [data-copy]").forEach(btn => btn.onclick = () => {
     navigator.clipboard.writeText(blocks[+btn.dataset.copy].text).then(() => {
       btn.textContent = "คัดลอกแล้ว ✓"; btn.classList.add("done");
