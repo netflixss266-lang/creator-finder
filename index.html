@@ -9391,7 +9391,7 @@ function cmdValues(r){
     commission: commPct(r.commission),
     tracking: r.tracking || "",
     carrier: (carrierOf(r) || {}).th || "",
-    trackurl: (carrierOf(r) || {}).url || "",
+    trackurl: trackLinks(r),
     // ชื่อแบรนด์มาจากโปรเจกต์ ไม่ใช่จากแถว — โปรเจกต์ใหม่ต้องกรอกตอนสร้าง
     brandname: brandOf(r.project),
     // บล็อก 5 ส่ง {{brief}} เป็นคู่มือถ่ายทำ — ชีตไม่ได้กรอกบรีฟไว้ก็ตกมาใช้คู่มือของ SKU
@@ -19291,17 +19291,35 @@ function isTrackNo(t){
 // เดาขนส่งจากรูปแบบเลข — ใส่เฉพาะแบบที่รูปแบบชัดจริง เดาไม่ได้คืนค่าว่าง ดีกว่าเดาผิด
 // ขนส่ง — ชื่อ · หน้าเว็บติดตามพัสดุ ({{trackurl}} ใน Command) · รูปแบบเลข (เดาให้เมื่อยังไม่ได้เลือกเอง)
 // เลือกเองเก็บรายคน (CMDOWN[…].links.carrier — ใช้ร่วมกันทั้งทีม) · เลือกเองชนะเดาเสมอ
+// link(n) = ลิงก์ที่เปิดแล้วเจอเลขนั้นเลย (ทดสอบเปิดจริงทุกเจ้าแล้ว 2026-10-12 — เลขขึ้นในช่องค้นหาเอง)
+//   Flash ?se= · ไปรษณีย์ไทย ?trackNumber= (ค้นให้ทันที) · J&T ?waybillNo= (ชื่อจากโค้ดหน้าเว็บ J&T — billcode ไม่ทำงาน)
+//   SF #search/bill-number/ · Shopee ?เลข · Kerry ยังไม่มี (หน้าเว็บไม่ตอบตอนเช็ค)
 const CARRIERS = [
-  { k:"flash",    th:"Flash Express",  url:"https://www.flashexpress.co.th/fle/tracking", re:/^TH\d{9,}[A-Z0-9]*$/ },
-  { k:"jt",       th:"J&T Express",    url:"https://www.jtexpress.co.th/service/track",   re:/^\d{12,15}$/ },
-  { k:"sf",       th:"SF Express",     url:"https://www.sf-international.com/th/th/dynamic_function/waybill/", re:/^SF\d{10,15}$/ },
-  { k:"thaipost", th:"ไปรษณีย์ไทย",    url:"https://track.thailandpost.co.th/",           re:/^[A-Z]{2}\d{9}TH$/ },
-  { k:"shopee",   th:"Shopee Express", url:"https://spx.co.th/",                          re:/^SPXTH/ },
-  { k:"kerry",    th:"Kerry Express",  url:"",                                            re:/^KER/ },
+  { k:"flash",    th:"Flash Express",  url:"https://www.flashexpress.co.th/fle/tracking",
+    link: n => "https://www.flashexpress.co.th/fle/tracking?se=" + encodeURIComponent(n),   re:/^TH[0-9A-Z]{8,}$/ },
+  { k:"jt",       th:"J&T Express",    url:"https://www.jtexpress.co.th/service/track",
+    link: n => "https://www.jtexpress.co.th/service/track?waybillNo=" + encodeURIComponent(n), re:/^\d{12,15}$/ },
+  { k:"sf",       th:"SF Express",     url:"https://www.sf-international.com/th/th/support/querySupport/waybill",
+    link: n => "https://www.sf-international.com/th/th/support/querySupport/waybill#search/bill-number/" + encodeURIComponent(n), re:/^SF\d{10,15}$/ },
+  { k:"thaipost", th:"ไปรษณีย์ไทย",    url:"https://track.thailandpost.co.th/",
+    link: n => "https://track.thailandpost.co.th/?trackNumber=" + encodeURIComponent(n),     re:/^[A-Z]{2}\d{9}TH$/ },
+  { k:"shopee",   th:"Shopee Express", url:"https://spx.co.th/",
+    link: n => "https://spx.co.th/track?" + encodeURIComponent(n),                            re:/^SPXTH/ },
+  { k:"kerry",    th:"Kerry Express",  url:"", link: null,                                     re:/^KER/ },
 ];
+// เลขพัสดุทีละกล่อง (คั่นด้วย + หรือ , หรือขึ้นบรรทัด) — ตัดช่องว่างกลางเลข ตัวพิมพ์ใหญ่
+const trackNums = t => String(t || "").split(/[+,\n]/).map(x => x.replace(/\s+/g, "").toUpperCase()).filter(Boolean);
+// ลิงก์ติดตามของแถวนี้ — ทีละกล่องคนละบรรทัด · ขนส่งที่ไม่มีลิงก์ใส่เลข = หน้าแรกของการติดตาม
+function trackLinks(r){
+  const c = carrierOf(r);
+  if (!c) return "";
+  const ns = trackNums(r && r.tracking);
+  if (!c.link || !ns.length) return c.url || "";
+  return ns.map(n => c.link(n)).join("\n");
+}
 const CARRIER_BY = Object.fromEntries(CARRIERS.map(c => [c.k, c]));
 function carrierGuess(t){
-  const s = String(t || "").split("+")[0].trim().toUpperCase();
+  const s = trackNums(t)[0] || "";
   if (!s) return null;
   // ไปรษณีย์ไทย (..TH ท้าย) ต้องเช็คก่อน Flash (TH.. หน้า) — ไม่งั้นเลขที่ขึ้นต้น TH แล้วลงท้าย TH จะถูกเดาผิด
   return ["thaipost", "shopee", "sf", "flash", "kerry", "jt"].map(k => CARRIER_BY[k]).find(c => c.re.test(s)) || null;
