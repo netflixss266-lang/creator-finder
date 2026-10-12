@@ -2839,6 +2839,9 @@ html[data-team] [data-nosheet]{display:none!important}
 .sentbar{display:flex;align-items:center;gap:8px;font-size:.78rem;color:var(--hi);padding:6px 10px;margin-bottom:10px;
   border:1px dashed rgba(var(--hi-rgb),.4);border-radius:8px;background:rgba(var(--hi-rgb),.06)}
 .sentbar .cmdbtn{margin-left:auto}
+.mapnav{display:flex;gap:4px;flex:none;background:var(--surface);border:1px solid var(--line);border-radius:999px;padding:3px}
+.mapnav button{background:none;border:0;color:var(--mute);padding:5px 12px;border-radius:999px;font-size:.8rem;font-weight:600;white-space:nowrap;position:relative}
+.mapnav button:hover{background:var(--surface2);color:var(--ink)}
 </style>
 </head>
 <body>
@@ -3395,6 +3398,12 @@ html[data-team] [data-nosheet]{display:none!important}
   <div class="modal" role="dialog" aria-modal="true" aria-labelledby="mapTitle">
     <div class="modal-head maphead">
       <h2 id="mapTitle">แผนผังภาพรวม</h2>
+      <!-- โหมดทีม: ไปหน้าอื่นจากแผนผังได้เลย (หัวเว็บถูกบังอยู่) — ชุดเดียวกับเมนูหัวเว็บ -->
+      <div class="mapnav teamonly" role="navigation" aria-label="ไปหน้าอื่น">
+        <button type="button" data-mapgo="coord" title="ปิดแผนผัง ไปที่ตาราง Coordinator">▦ Coordinator</button>
+        <button type="button" data-mapgo="review" title="ไปห้องตรวจดราฟต์">ตรวจดราฟต์<span class="nbadge" id="rvBadgeMap" hidden></span></button>
+        <button type="button" data-mapgo="quick" title="เปิดคำสั่งด่วน (ซ้อนบนแผนผัง)">⚡ คำสั่งด่วน</button>
+      </div>
       <div class="tabs sub" id="mapTabs" role="tablist"></div>
       <!-- KOL กับ KOC เดินคนละกระบวนการแล้ว (11 บล็อก vs 15) ดูรวมกันบางทีก็ไม่ตอบอะไร -->
       <div class="tabs sub mapkind" id="mapKind" role="tablist"></div>
@@ -7537,9 +7546,12 @@ function renderDetail(){
         <textarea data-pnote rows="2" placeholder="เช่น ต่อรองเรทได้อีก · ตอบช้าช่วงเย็น">${
           esc(PNOTES[pnKey(r.project, r.handle)] || "")}</textarea></div>` : ""}
       <!-- เลขพัสดุ — ใส่ทีละหลายคนได้จากช่องคำสั่ง: บรรทัดแรก "เลขพัสดุ" แล้ววาง ชื่อ+เลข -->
-      <div class="dfield wide2"><label>เลขพัสดุ${trackCarrier(r.tracking) ? ` — ${esc(trackCarrier(r.tracking))}` : ""}</label>
-        <input class="mono" data-d="tracking" value="${esc(r.tracking || "")}"
-               placeholder="ยังไม่มี — หลายกล่องคั่นด้วย +">
+      <div class="dfield wide2"><label>เลขพัสดุ${carrierOf(r) ? ` — ${esc(carrierOf(r).th)}` : ""}</label>
+        <div style="display:flex;gap:6px">
+        <select data-carrier style="flex:none;width:auto" title="ขนส่ง — อัตโนมัติ = เดาจากรูปแบบเลข">${
+          carrierOpts((cmdOwnRead(r.project, r.handle).links || {}).carrier || "")}</select>
+        <input class="mono" data-d="tracking" value="${esc(r.tracking || "")}" style="flex:1;min-width:0"
+               placeholder="ยังไม่มี — หลายกล่องคั่นด้วย +"></div>
         <div class="hint">ใช้ใน Command เป็น {{tracking}} · ไม่ขึ้นชีต${
           TRACK_COL === false ? " · ฐานข้อมูลยังไม่มีช่องนี้ (ต้องรัน SQL) ตอนนี้จึงเก็บแค่ในเครื่องนี้" : ""}</div></div>
 
@@ -7597,6 +7609,8 @@ function renderDetail(){
   });
   const pn = body.querySelector("[data-pnote]");
   if (pn) pn.onchange = () => { savePNote(r.project, r.handle, pn.value); renderCoord(); };
+  const cs = body.querySelector("[data-carrier]");
+  if (cs) cs.onchange = () => { loadCmdOwn(); setCmdOwnLink(r.project, r.handle, "carrier", cs.value || null); renderDetail(); };
   const rateIn = body.querySelector('[data-f="rate"]');
   if (rateIn){
     rateIn.onfocus = () => rateIn.select();
@@ -8574,6 +8588,7 @@ const LAW_CMD_BODY = [
 // ═══ Command — ข้อความสำเร็จรูปที่ส่งให้ครีเอเตอร์ ═══
 // แยกเป็นบล็อกตามที่ส่งจริงทีละข้อความ ช่องไหนยังไม่มีข้อมูลจะขึ้นแดงให้เห็น
 // ไม่เติมเดาให้ เพราะข้อความพวกนี้ส่งให้คนนอกทีมอ่าน ผิดแล้วแก้ยาก
+const CMD_ADDR_ORD = 3;   // ลำดับ (index) ของ "4. ขอที่อยู่จัดส่ง" ใน CMD_BLOCKS
 const CMD_BLOCKS = [
   // ไม่แยกรายชุด — ข้อความนี้ถือเรทรวมของทั้งดีล แยกเมื่อไหร่จะกลายเป็นแจ้งเรทเต็มสองรอบ
   // ครีเอเตอร์ได้กี่ SKU ก็ขึ้นครบในบรรทัดเดียว จำนวน video เดินตามช่องในตาราง
@@ -8746,6 +8761,13 @@ Hashtag:📱
   { t:"แจ้งเตือนวันไลฟ์", live:true, ord:90, b:
 `สวัสดีครับครีเอเตอร์ แอดมินขออนุญาตแจ้งสำหรับวันนี้มีไลฟ์ {{sku}}
 ช่วง {{liveslot}} ({{livehours}}) นะครับ🙇‍♂️` },
+  // อัปเดตเลขจัดส่ง — ต่อจากบล็อกขอที่อยู่ (ord ระหว่าง 4 กับ 5) · กดส่งแล้ว = Shipping
+  // ⚠️ ต่อท้าย array เสมอ ห้ามแทรกกลาง — เลขบล็อก (id) คือลำดับใน array ของทุกคนที่แก้/กดส่งไว้แขวนอยู่
+  { t:"อัปเดตเลขที่จัดส่ง", to:"Already Delivered", ord:CMD_ADDR_ORD + 0.5, b:
+`แอดมินขออนุญาตอัปเดตเลขที่จัดส่งนะครับ🙇‍♂️
+{{trackurl}}
+
+{{tracking}}` },
 ];
 
 // ─── ต้นแบบรุ่นก่อนหน้า ───
@@ -9368,6 +9390,8 @@ function cmdValues(r){
     // KOC ตกลงกันเป็นส่วนแบ่ง ไม่ใช่เรทเหมา — เก็บเป็นข้อความอิสระ ("10%" · "12% + ค่าตัว 2,000")
     commission: commPct(r.commission),
     tracking: r.tracking || "",
+    carrier: (carrierOf(r) || {}).th || "",
+    trackurl: (carrierOf(r) || {}).url || "",
     // ชื่อแบรนด์มาจากโปรเจกต์ ไม่ใช่จากแถว — โปรเจกต์ใหม่ต้องกรอกตอนสร้าง
     brandname: brandOf(r.project),
     // บล็อก 5 ส่ง {{brief}} เป็นคู่มือถ่ายทำ — ชีตไม่ได้กรอกบรีฟไว้ก็ตกมาใช้คู่มือของ SKU
@@ -9396,6 +9420,8 @@ const CMD_GAP = Object.assign(
   { sku:"ยังไม่มี SKU", rate:"ยังไม่มีเรท", paytype:"ยังไม่เลือกรูปแบบภาษี",
     videos:"ยังไม่มีจำนวนวิดีโอ", commission:"ยังไม่มี Commission",
     tracking:"ยังไม่มีเลขพัสดุ",
+    carrier:"ยังไม่ได้เลือกขนส่ง",
+    trackurl:"ยังไม่ได้เลือกขนส่ง",
     brandname:"ยังไม่ได้ตั้งชื่อแบรนด์ของโปรเจกต์นี้",
     net:"คิดไม่ได้ ต้องมีเรท+รูปแบบภาษี", brief:"ยังไม่มีลิงก์บรีฟ",
     feedback:"ยังไม่มีฟีดแบค", feedback1:"ยังไม่มีฟีดแบค Draft 1",
@@ -12854,6 +12880,14 @@ function mapMoneySheet(proj){
 $("#mapBtn").onclick = () => openMap(PROJ);
 $("#fmtBtn").onclick = openFormat;
 // จากหน้า Map: ใช้โปรเจกต์ที่เปิดดูอยู่ (หน้าทุกโปรเจกต์ = โปรเจกต์ล่าสุดในตาราง)
+document.querySelectorAll("#mapView [data-mapgo]").forEach(b => b.onclick = async () => {
+  const g = b.dataset.mapgo;
+  if (g === "quick") return openQoPop();
+  const p = MAP_PROJ;
+  // เข้าหน้า Coordinator = เปิดแผนผังให้เป็นค่าตั้งต้น → สลับหน้าก่อน แล้วค่อยปิดแผนผังไปที่ตาราง
+  if (g === "review"){ openTable(p); await setView("review"); }
+  else { if (document.body.dataset.view !== "coord") await setView("coord"); openTable(p); }
+});
 $("#mapFmtBtn").onclick = () => {
   if (MAP_PROJ && MAP_PROJ !== PROJ && PROJECTS.includes(MAP_PROJ)){ PROJ = MAP_PROJ; MINE_VIEW = false; renderProjTabs(); }
   openFormat();
@@ -13973,7 +14007,9 @@ function renderQO2(){
           QO2_ALL ? `<option value="__less">− ย่อ: โชว์เฉพาะที่โปรเจกต์นี้ใช้</option>`
             : qo2HiddenN() ? `<option value="__all">＋ แสดงคำสั่งทั้งหมด (อีก ${qo2HiddenN()})</option>` : ""}</select></div>` +
       (!c ? "" : c === "track"
-        ? `<span class="qo2step"><b>②</b> วางลิสต์</span>
+        ? `<span class="qo2step"><b>②</b> ขนส่ง</span>
+           <select id="qo2Carrier" class="qo2s" title="ใช้กับทุกคนในลิสต์ · อัตโนมัติ = เดาจากรูปแบบเลขรายคน">${carrierOpts(QO_CARRIER)}</select>
+           <span class="qo2step"><b>③</b> วางลิสต์</span>
            <div class="qo2line"><textarea id="qo2Val" rows="3" class="qo2new qo2track"
              placeholder="วางลิสต์จากลูกค้า — บรรทัดละคน: ชื่อ + เลขพัสดุ (สลับข้างได้)&#10;nana.review   TH0124578963A"></textarea>
              <button class="run qo2run" id="qo2Go">ตรวจก่อนใช้ ▶</button></div>`
@@ -14144,6 +14180,7 @@ function wireQO2Form(c){
     let text;
     if (c === "track"){
       if (!val){ msg("วางลิสต์ชื่อ + เลขพัสดุก่อน"); return $("#qo2Val").focus(); }
+      QO_CARRIER = ($("#qo2Carrier") || {}).value || "";
       text = "เลขพัสดุ\n" + val;
     } else {
       const names = c === "add"
@@ -14743,6 +14780,8 @@ function rvBadge(){
   const n = PROJECTS.reduce((s, p) => s + (COORD[p] || []).filter(r => !isCancelled(r) && rvTurn(r).role === role &&
     (!isTeamProj(p) || !r.assignee || r.assignee === sbUid() || role === "pm")).length, 0);
   b.textContent = n || ""; b.hidden = !n;
+  const bm = $("#rvBadgeMap");                 // ตัวเลขเดียวกันบนปุ่มในหน้า Map
+  if (bm){ bm.textContent = n || ""; bm.hidden = !n; }
 }
 
 function renderReviewDetail(){
@@ -19250,15 +19289,31 @@ function isTrackNo(t){
   return true;
 }
 // เดาขนส่งจากรูปแบบเลข — ใส่เฉพาะแบบที่รูปแบบชัดจริง เดาไม่ได้คืนค่าว่าง ดีกว่าเดาผิด
-function trackCarrier(t){
+// ขนส่ง — ชื่อ · หน้าเว็บติดตามพัสดุ ({{trackurl}} ใน Command) · รูปแบบเลข (เดาให้เมื่อยังไม่ได้เลือกเอง)
+// เลือกเองเก็บรายคน (CMDOWN[…].links.carrier — ใช้ร่วมกันทั้งทีม) · เลือกเองชนะเดาเสมอ
+const CARRIERS = [
+  { k:"flash",    th:"Flash Express",  url:"https://www.flashexpress.co.th/fle/tracking", re:/^TH\d{9,}[A-Z0-9]*$/ },
+  { k:"jt",       th:"J&T Express",    url:"https://www.jtexpress.co.th/service/track",   re:/^\d{12,15}$/ },
+  { k:"sf",       th:"SF Express",     url:"https://www.sf-international.com/th/th/dynamic_function/waybill/", re:/^SF\d{10,15}$/ },
+  { k:"thaipost", th:"ไปรษณีย์ไทย",    url:"https://track.thailandpost.co.th/",           re:/^[A-Z]{2}\d{9}TH$/ },
+  { k:"shopee",   th:"Shopee Express", url:"https://spx.co.th/",                          re:/^SPXTH/ },
+  { k:"kerry",    th:"Kerry Express",  url:"",                                            re:/^KER/ },
+];
+const CARRIER_BY = Object.fromEntries(CARRIERS.map(c => [c.k, c]));
+function carrierGuess(t){
   const s = String(t || "").split("+")[0].trim().toUpperCase();
-  if (!s) return "";
-  if (/^SPXTH/.test(s)) return "Shopee Express";
-  if (/^[A-Z]{2}\d{9}TH$/.test(s)) return "ไปรษณีย์ไทย";
-  if (/^TH\d{9,}[A-Z0-9]*$/.test(s)) return "Flash Express";
-  if (/^KER/.test(s)) return "Kerry Express";
-  return "";
+  if (!s) return null;
+  // ไปรษณีย์ไทย (..TH ท้าย) ต้องเช็คก่อน Flash (TH.. หน้า) — ไม่งั้นเลขที่ขึ้นต้น TH แล้วลงท้าย TH จะถูกเดาผิด
+  return ["thaipost", "shopee", "sf", "flash", "kerry", "jt"].map(k => CARRIER_BY[k]).find(c => c.re.test(s)) || null;
 }
+// ขนส่งของแถวนี้: เลือกเอง > เดาจากเลข
+function carrierOf(r){
+  const k = r ? (cmdOwnRead(r.project, r.handle).links || {}).carrier : "";
+  return CARRIER_BY[k] || carrierGuess(r && r.tracking);
+}
+function trackCarrier(t){ const c = carrierGuess(t); return c ? c.th : ""; }
+const carrierOpts = cur => `<option value="">อัตโนมัติจากเลข</option>` +
+  CARRIERS.map(c => `<option value="${c.k}"${c.k === cur ? " selected" : ""}>${esc(c.th)}</option>`).join("");
 function trackSplit(line){
   return line.replace(/\s+[-–—]+\s+/g, " ")
     .split(/[\s,;|:：]+/).map(t => t.replace(/^@/, "").replace(/[.)]+$/, "")).filter(Boolean);
@@ -19366,9 +19421,16 @@ function parseTrackingText(text){
   return out;
 }
 
+let QO_CARRIER = "";    // ขนส่งที่เลือกในคำสั่งด่วน "เลขพัสดุ" — ใส่ให้ทุกคนในลิสต์ตอนกดใช้
 function parseCmdText(text){
   const trk = parseTrackingText(text);
-  if (trk) return trk;
+  if (trk){
+    // ขนส่งไปกับรายการ — หน้าตรวจโชว์ · ตอนกดใช้เขียนลงข้อมูลรายคน (ไม่ใช่ช่องในตาราง)
+    trk.forEach(q => { if (q.ok && q.changes && "tracking" in q.changes){
+      const c = CARRIER_BY[QO_CARRIER] || carrierGuess(q.changes.tracking);
+      if (c) q.changes.carrier = c.k + (QO_CARRIER ? "" : "?"); } });
+    return trk;
+  }
   const out = [];
   let pending = [];      // ชื่อที่ยังไม่มีคำสั่ง
   let pendingLines = [];
@@ -20029,7 +20091,7 @@ $("#qoParse").onclick = async () => {
         (q.moveTo ? [`<b style="color:var(--accent)">ย้ายไป ${esc(q.moveTo)}</b>`] : [])
         // net3 คิดจากเรท×ภาษีเสมอ ไม่ใช่สิ่งที่คนสั่ง เอาออกจากรายการที่โชว์
         .concat(Object.entries(q.changes)
-          .filter(([k]) => k !== "rateFrom" && k !== "net3" && k !== "trackFrom").map(([k, v]) =>
+          .filter(([k]) => k !== "rateFrom" && k !== "net3" && k !== "trackFrom" && k !== "carrier").map(([k, v]) =>
           // เลขพัสดุทับของเดิมได้ — ต้องเห็นเลขเดิมคู่กันเสมอ
           k === "tracking" && q.changes.trackFrom != null
             ? `เลขพัสดุ: <b>${q.changes.trackFrom ? `<s style="color:var(--dim)">${esc(q.changes.trackFrom)}</s> → `
@@ -20071,6 +20133,11 @@ function applyQuickOrder(){
     const ch = Object.assign({}, q.changes);
     delete ch.rateFrom;                      // ใช้โชว์ในหน้าตรวจอย่างเดียว ไม่ใช่ค่าของแถว
     delete ch.trackFrom;
+    // ขนส่ง: เลือกเองในคำสั่งด่วน = เก็บรายคน · เดาจากเลข ("?" ท้าย) = ไม่ต้องเก็บ (เดาใหม่ได้ทุกครั้ง)
+    if (ch.carrier != null){
+      if (!String(ch.carrier).endsWith("?")){ loadCmdOwn(); setCmdOwnLink(q.row.project, q.row.handle, "carrier", ch.carrier); }
+      delete ch.carrier;
+    }
     Object.assign(q.row, ch);
     if ("rate" in ch) q.row.rate_all = [];
     if (q.moveTo){
