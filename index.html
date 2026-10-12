@@ -8765,9 +8765,7 @@ Hashtag:📱
   // ⚠️ ต่อท้าย array เสมอ ห้ามแทรกกลาง — เลขบล็อก (id) คือลำดับใน array ของทุกคนที่แก้/กดส่งไว้แขวนอยู่
   { t:"อัปเดตเลขที่จัดส่ง", to:"Already Delivered", ord:CMD_ADDR_ORD + 0.5, b:
 `แอดมินขออนุญาตอัปเดตเลขที่จัดส่งนะครับ🙇‍♂️
-{{trackurl}}
-
-{{tracking}}` },
+{{tracklist}}` },
 ];
 
 // ─── ต้นแบบรุ่นก่อนหน้า ───
@@ -9392,6 +9390,7 @@ function cmdValues(r){
     tracking: r.tracking || "",
     carrier: (carrierOf(r) || {}).th || "",
     trackurl: trackLinks(r),
+    tracklist: trackList(r),
     // ชื่อแบรนด์มาจากโปรเจกต์ ไม่ใช่จากแถว — โปรเจกต์ใหม่ต้องกรอกตอนสร้าง
     brandname: brandOf(r.project),
     // บล็อก 5 ส่ง {{brief}} เป็นคู่มือถ่ายทำ — ชีตไม่ได้กรอกบรีฟไว้ก็ตกมาใช้คู่มือของ SKU
@@ -9422,6 +9421,7 @@ const CMD_GAP = Object.assign(
     tracking:"ยังไม่มีเลขพัสดุ",
     carrier:"ยังไม่ได้เลือกขนส่ง",
     trackurl:"ยังไม่ได้เลือกขนส่ง",
+    tracklist:"ยังไม่มีเลขพัสดุ",
     brandname:"ยังไม่ได้ตั้งชื่อแบรนด์ของโปรเจกต์นี้",
     net:"คิดไม่ได้ ต้องมีเรท+รูปแบบภาษี", brief:"ยังไม่มีลิงก์บรีฟ",
     feedback:"ยังไม่มีฟีดแบค", feedback1:"ยังไม่มีฟีดแบค Draft 1",
@@ -19309,13 +19309,26 @@ const CARRIERS = [
 ];
 // เลขพัสดุทีละกล่อง (คั่นด้วย + หรือ , หรือขึ้นบรรทัด) — ตัดช่องว่างกลางเลข ตัวพิมพ์ใหญ่
 const trackNums = t => String(t || "").split(/[+,\n]/).map(x => x.replace(/\s+/g, "").toUpperCase()).filter(Boolean);
-// ลิงก์ติดตามของแถวนี้ — ทีละกล่องคนละบรรทัด · ขนส่งที่ไม่มีลิงก์ใส่เลข = หน้าแรกของการติดตาม
+// ขนส่งรายกล่อง: เลือกเองไว้ = ใช้กับทุกกล่อง · ไม่ได้เลือก = เดาแยกทีละเลข (2 กล่องคนละขนส่งได้)
+function trackItems(r){
+  const own = CARRIER_BY[r ? (cmdOwnRead(r.project, r.handle).links || {}).carrier : ""];
+  return trackNums(r && r.tracking).map(n => {
+    const c = own || carrierGuess(n);
+    return { n, c, url: c ? (c.link ? c.link(n) : c.url) : "" };
+  });
+}
+// {{trackurl}} — ลิงก์ของทุกกล่อง บรรทัดละลิงก์ (ลำดับเดียวกับเลข)
 function trackLinks(r){
-  const c = carrierOf(r);
-  if (!c) return "";
-  const ns = trackNums(r && r.tracking);
-  if (!c.link || !ns.length) return c.url || "";
-  return ns.map(n => c.link(n)).join("\n");
+  const it = trackItems(r);
+  if (!it.length){ const c = carrierOf(r); return c ? c.url || "" : ""; }
+  return it.map(x => x.url).filter(Boolean).join("\n");
+}
+// {{tracklist}} — ลิงก์คู่กับเลขของมัน · กล่องเดียว = ลิงก์ เว้นบรรทัด เลข · หลายกล่อง = กล่องที่ 1, 2 … แต่ละกล่องมีเลข + ลิงก์ของตัวเอง
+function trackList(r){
+  const it = trackItems(r);
+  if (!it.length) return "";
+  if (it.length === 1) return it[0].url ? `${it[0].url}\n\n${it[0].n}` : it[0].n;
+  return it.map((x, i) => [`📦 กล่องที่ ${i + 1}${x.c ? " · " + x.c.th : ""}`, x.n, x.url].filter(Boolean).join("\n")).join("\n\n");
 }
 const CARRIER_BY = Object.fromEntries(CARRIERS.map(c => [c.k, c]));
 function carrierGuess(t){
