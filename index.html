@@ -19293,7 +19293,7 @@ function isTrackNo(t){
 // เลือกเองเก็บรายคน (CMDOWN[…].links.carrier — ใช้ร่วมกันทั้งทีม) · เลือกเองชนะเดาเสมอ
 // link(n) = ลิงก์ที่เปิดแล้วเจอเลขนั้นเลย (ทดสอบเปิดจริงทุกเจ้าแล้ว 2026-10-12 — เลขขึ้นในช่องค้นหาเอง)
 //   Flash ?se= · ไปรษณีย์ไทย ?trackNumber= (ค้นให้ทันที) · J&T ?waybillNo= (ชื่อจากโค้ดหน้าเว็บ J&T — billcode ไม่ทำงาน)
-//   SF #search/bill-number/ · Shopee ?เลข · Kerry ยังไม่มี (หน้าเว็บไม่ตอบตอนเช็ค)
+//   SF #search/bill-number/ · Shopee ?เลข · KEX (เดิม Kerry) ?track=
 const CARRIERS = [
   { k:"flash",    th:"Flash Express",  url:"https://www.flashexpress.co.th/fle/tracking",
     link: n => "https://www.flashexpress.co.th/fle/tracking?se=" + encodeURIComponent(n),   re:/^TH[0-9A-Z]{8,}$/ },
@@ -19305,7 +19305,9 @@ const CARRIERS = [
     link: n => "https://track.thailandpost.co.th/?trackNumber=" + encodeURIComponent(n),     re:/^[A-Z]{2}\d{9}TH$/ },
   { k:"shopee",   th:"Shopee Express", url:"https://spx.co.th/",
     link: n => "https://spx.co.th/track?" + encodeURIComponent(n),                            re:/^SPXTH/ },
-  { k:"kerry",    th:"Kerry Express",  url:"", link: null,                                     re:/^KER/ },
+  // Kerry Express เปลี่ยนชื่อเป็น KEX Express — เลขขึ้นต้น KER/KEX · ?track= (ทดสอบเปิดจริงแล้ว เลขขึ้นในช่องค้นหา)
+  { k:"kex",      th:"KEX Express",    url:"https://th.kex-express.com/th/track/",
+    link: n => "https://th.kex-express.com/th/track/?track=" + encodeURIComponent(n),         re:/^(KER|KEX)/ },
 ];
 // เลขพัสดุทีละกล่อง (คั่นด้วย + หรือ , หรือขึ้นบรรทัด) — ตัดช่องว่างกลางเลข ตัวพิมพ์ใหญ่
 const trackNums = t => String(t || "").split(/[+,\n]/).map(x => x.replace(/\s+/g, "").toUpperCase()).filter(Boolean);
@@ -19331,11 +19333,12 @@ function trackList(r){
   return it.map((x, i) => [`📦 กล่องที่ ${i + 1}${x.c ? " · " + x.c.th : ""}`, x.n, x.url].filter(Boolean).join("\n")).join("\n\n");
 }
 const CARRIER_BY = Object.fromEntries(CARRIERS.map(c => [c.k, c]));
+CARRIER_BY.kerry = CARRIER_BY.kex;    // คนที่เคยเลือก Kerry ไว้ = KEX
 function carrierGuess(t){
   const s = trackNums(t)[0] || "";
   if (!s) return null;
   // ไปรษณีย์ไทย (..TH ท้าย) ต้องเช็คก่อน Flash (TH.. หน้า) — ไม่งั้นเลขที่ขึ้นต้น TH แล้วลงท้าย TH จะถูกเดาผิด
-  return ["thaipost", "shopee", "sf", "flash", "kerry", "jt"].map(k => CARRIER_BY[k]).find(c => c.re.test(s)) || null;
+  return ["thaipost", "shopee", "sf", "flash", "kex", "jt"].map(k => CARRIER_BY[k]).find(c => c.re.test(s)) || null;
 }
 // ขนส่งของแถวนี้: เลือกเอง > เดาจากเลข
 function carrierOf(r){
@@ -19344,7 +19347,7 @@ function carrierOf(r){
 }
 function trackCarrier(t){ const c = carrierGuess(t); return c ? c.th : ""; }
 const carrierOpts = cur => `<option value="">อัตโนมัติจากเลข</option>` +
-  CARRIERS.map(c => `<option value="${c.k}"${c.k === cur ? " selected" : ""}>${esc(c.th)}</option>`).join("");
+  CARRIERS.map(c => `<option value="${c.k}"${c.k === (cur === "kerry" ? "kex" : cur) ? " selected" : ""}>${esc(c.th)}</option>`).join("");
 function trackSplit(line){
   return line.replace(/\s+[-–—]+\s+/g, " ")
     .split(/[\s,;|:：]+/).map(t => t.replace(/^@/, "").replace(/[.)]+$/, "")).filter(Boolean);
