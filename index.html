@@ -25,6 +25,7 @@
 <title>Creator Finder — KOL Sourcing</title>
 <link rel="icon" href="favicon.svg" type="image/svg+xml">
 <meta name="theme-color" content="#0B0B0B">
+<script>try{var t=localStorage.getItem("cf_theme_last");if(t&&t!=="dark")document.documentElement.dataset.theme=t;}catch(e){}</script>
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Thai:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&family=Bebas+Neue&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
@@ -52,7 +53,43 @@
   --info:#7EB6FF; --info-rgb:126,182,255;  /* หัก ณ ที่จ่าย */
   --pay:#C79CFF;                            /* ช่วงทำเรื่องจ่าย */
   --shadow:0 12px 34px rgba(0,0,0,.7);
+  --bg-rgb:11,11,11;
+  --hover:rgba(255,255,255,.06);          /* ไฮไลต์จางๆ/เส้นคั่นบางๆ — โทนสว่างกลับเป็นเงาดำจางๆ */
+  --tint-info:#0e1520;                    /* พื้นกล่องแจ้งเตือนไลฟ์ */
+  --law1:#141210; --law2:#0E0D0C;         /* พื้นหนังสือแจ้งเตือน */
+  color-scheme:dark;
 }
+/* ══ โทนสีของเว็บ ══ (ตั้งค่าเว็บ → โทนสีของเว็บ · จำแยกรายบัญชี)
+   แต่ละโทนตั้งครบทั้งพื้น · ตัวหนังสือ · เส้น · สีบอกความหมาย — สีบอกความหมายในโทนสว่างเข้มขึ้นให้อ่านบนพื้นขาวได้
+   สีหลัก (--accent) ตั้งแยกที่ "สีหลักของเว็บ" — โทนสว่างระบบเข้มสีหลักให้เองถ้าอ่านไม่ชัดบนพื้น */
+html[data-theme="dim"]{
+  --bg:#1B1E24; --bg-rgb:27,30,36; --surface:#242831; --surface2:#2D323C; --line:#3A404C;
+  --ink:#E7E9EE; --mute:#B1B7C3; --dim:#808898;
+  --hi:#5DCB7E; --hi-rgb:93,203,126; --lo:#F07272; --lo-rgb:240,114,114;
+  --warn:#E9B45A; --warn-rgb:233,180,90; --info:#86B4F2; --info-rgb:134,180,242; --pay:#BFA2F2;
+  --shadow:0 12px 30px rgba(0,0,0,.45); --hover:rgba(255,255,255,.06);
+  --tint-info:#1E2A3A; --law1:#242831; --law2:#1F232B; color-scheme:dark }
+html[data-theme="warm"]{
+  --bg:#1A1714; --bg-rgb:26,23,20; --surface:#24201B; --surface2:#2E2922; --line:#3F382E;
+  --ink:#EFE7DB; --mute:#BDB2A1; --dim:#8E8474;
+  --hi:#8CC27A; --hi-rgb:140,194,122; --lo:#E6866F; --lo-rgb:230,134,111;
+  --warn:#E5B062; --warn-rgb:229,176,98; --info:#8FB6C9; --info-rgb:143,182,201; --pay:#C9A3C2;
+  --shadow:0 12px 30px rgba(0,0,0,.5); --hover:rgba(255,240,220,.06);
+  --tint-info:#22282A; --law1:#2A241D; --law2:#221D17; color-scheme:dark }
+html[data-theme="light"]{
+  --bg:#F4F5F7; --bg-rgb:244,245,247; --surface:#FFFFFF; --surface2:#ECEEF2; --line:#D6DAE1;
+  --ink:#16191F; --mute:#4A5260; --dim:#646C7A;
+  --hi:#177A34; --hi-rgb:23,122,52; --lo:#C62E26; --lo-rgb:198,46,38;
+  --warn:#975700; --warn-rgb:151,87,0; --info:#1A66D2; --info-rgb:26,102,210; --pay:#7B4FD6;
+  --shadow:0 10px 26px rgba(20,25,35,.14); --hover:rgba(15,20,30,.05);
+  --tint-info:#EAF2FE; --law1:#FFFDF8; --law2:#F6F1E7; color-scheme:light }
+html[data-theme="earth"]{
+  --bg:#F1EBE1; --bg-rgb:241,235,225; --surface:#FBF8F2; --surface2:#E9E1D3; --line:#D5C8B4;
+  --ink:#2F2A23; --mute:#5F5547; --dim:#726754;
+  --hi:#3E6A2C; --hi-rgb:62,106,44; --lo:#A63B27; --lo-rgb:166,59,39;
+  --warn:#8A4F12; --warn-rgb:138,79,18; --info:#3C6E8D; --info-rgb:60,110,141; --pay:#8A589B;
+  --shadow:0 10px 26px rgba(70,50,20,.16); --hover:rgba(70,50,20,.06);
+  --tint-info:#E7EEF0; --law1:#FFFCF5; --law2:#F3EBDD; color-scheme:light }
 *{box-sizing:border-box;margin:0;padding:0}
 /* ขนาดตัวอักษรทั้งเว็บคุมจากตรงนี้ที่เดียว — ทุกอย่างในไฟล์เป็น rem
    ปุ่ม A บนหัวเว็บสลับ 3 ระดับ เก็บไว้ในเครื่อง */
@@ -69,8 +106,8 @@ button{font-family:inherit;cursor:pointer}
    และทับเมนูเลือกสถานะ (z20) จนกดไม่ได้ */
 body > header{display:flex;align-items:center;gap:18px;position:sticky;top:0;z-index:40;
   padding:12px 26px;flex-wrap:wrap;
-  background:linear-gradient(180deg,#0B0B0B 0%,rgba(11,11,11,.94) 70%,rgba(11,11,11,.72) 100%);
-  border-bottom:1px solid rgba(255,255,255,.06)}
+  background:linear-gradient(180deg,var(--bg) 0%,rgba(var(--bg-rgb),.94) 70%,rgba(var(--bg-rgb),.72) 100%);
+  border-bottom:1px solid var(--hover)}
 /* สีโลโก้มาจากตัวแปรเดียวกับทั้งเว็บ — เดิมฝัง hex ไว้ในแอตทริบิวต์ของ <path>
    เปลี่ยนสีหลักแล้วโลโก้ค้างเป็นสีเดิมอยู่ชิ้นเดียว */
 .brand .mark path{fill:var(--accent)}
@@ -138,7 +175,7 @@ body[data-view="home"] .nav{display:none}
 .srcchip.bad{color:var(--lo);border-color:rgba(var(--lo-rgb),.4);background:rgba(var(--lo-rgb),.12)}
 body[data-view="home"] .srcchip{display:none}
 
-.gear{background:rgba(255,255,255,.06);border:1px solid transparent;color:var(--mute);
+.gear{background:var(--hover);border:1px solid transparent;color:var(--mute);
   border-radius:5px;padding:6px 13px;font-size:.8rem;font-weight:600;transition:all .13s}
 .gear:hover{background:rgba(255,255,255,.14);color:var(--ink)}
 .uibtn{font-family:'Space Grotesk',sans-serif;font-weight:700;min-width:2.2rem}
@@ -146,7 +183,7 @@ body[data-view="home"] .srcchip{display:none}
 .gear.accent{background:var(--accent);color:var(--accent-ink)}
 .gear.accent:hover{background:#F6121D;color:var(--accent-ink)}
 /* ── ประตูรหัส ── */
-.lock{position:fixed;inset:0;z-index:90;background:#000;
+.lock{position:fixed;inset:0;z-index:90;background:var(--bg);
   display:flex;align-items:center;justify-content:center;padding:24px}
 /* แสงแดงเบาๆ หลังกล่องรหัส ให้จอดำล้วนไม่ดูเหมือนเว็บค้าง */
 .lock::before{content:"";position:absolute;inset:0;pointer-events:none;
@@ -1016,7 +1053,7 @@ select.st-sel optgroup{background:#141414;color:var(--dim);font-style:normal}
 /* ── ช่องเรท เน้นให้เห็นชัด ──
    ตัวเลขเป็นสีขาวสว่าง ไม่ใช้แดง เพราะแดงในหน้านี้แปลว่า "ผิด/ต้องแก้"
    ที่เน้นคือขีดแดงด้านซ้ายกับพื้นจางๆ แทน */
-.ctable td .mono[data-f="rate"]{color:#fff;font-weight:400;font-size:.86rem;
+.ctable td .mono[data-f="rate"]{color:var(--ink);font-weight:400;font-size:.86rem;
   border-color:var(--line);border-left:3px solid var(--accent);
   background:rgba(var(--accent-rgb),.08)}
 .ctable td .mono[data-f="rate"]:focus{border-color:var(--accent);
@@ -1330,20 +1367,20 @@ body[data-crew] .crewhide{display:none !important}
   border-radius:8px;padding:6px 10px;font-size:.8rem;cursor:pointer}
 .livewarn .lw .act button:hover{border-color:var(--accent);color:var(--ink)}
 .livewarn .lw .act button.x:hover{border-color:#E50914;color:#ff8a8f}
-.livewarn .lw.day{background:#0e1520;border-color:rgba(84,160,255,.45);border-left-color:#54A0FF}
+.livewarn .lw.day{background:var(--tint-info);border-color:rgba(84,160,255,.45);border-left-color:#54A0FF}
 .livewarn .lw.day .dot{background:#54A0FF;animation:none}
 .livewarn .lw.day ul{max-height:240px}
-.livewarn .lw.day li{padding:4px 0;border-top:1px solid rgba(255,255,255,.06)}
+.livewarn .lw.day li{padding:4px 0;border-top:1px solid var(--hover)}
 .livewarn .lw.day li:first-child{border-top:0}
 .livewarn .lw.day li .w{font-size:.76rem;color:var(--mute);margin-top:1px}
 .livewarn .lw.day li.past{opacity:.45}
 .poolsync{position:fixed;left:16px;bottom:16px;z-index:390;width:min(360px,calc(100vw - 32px));
-  background:#0e1520;border:1px solid rgba(84,160,255,.45);border-left:4px solid #54A0FF;border-radius:12px;
+  background:var(--tint-info);border:1px solid rgba(84,160,255,.45);border-left:4px solid #54A0FF;border-radius:12px;
   padding:12px 14px;color:var(--ink);box-shadow:0 14px 40px rgba(0,0,0,.55)}
 .poolsync .t{font-weight:700;font-size:.92rem}
 .poolsync .p{font-size:.78rem;color:var(--mute);margin:3px 0 7px}
 .poolsync ul{margin:0;padding:0;list-style:none;font-size:.82rem;max-height:190px;overflow:auto}
-.poolsync li{display:flex;justify-content:space-between;gap:10px;padding:3px 0;border-top:1px solid rgba(255,255,255,.06)}
+.poolsync li{display:flex;justify-content:space-between;gap:10px;padding:3px 0;border-top:1px solid var(--hover)}
 .poolsync li:first-child{border-top:0}
 .poolsync li span{color:var(--mute);font-size:.76rem;text-align:right;flex:none}
 .poolsync .act{display:flex;gap:8px;margin-top:10px}
@@ -1837,7 +1874,7 @@ body.locked{overflow:hidden}
    โทนอำพันของ --warn ไม่ใช่แดง --lo เพราะนี่คือคำเตือนตามสิทธิ ไม่ใช่ข้อผิดพลาดของระบบ */
 /* ── ปุ่มในคอลัมน์ซ้ายของแผนผัง — แค่ทางเข้า ตัวเอกสารจริงอยู่เต็มจอ ── */
 .lawopen{width:100%;display:flex;align-items:center;gap:10px;text-align:left;
-  background:linear-gradient(180deg,#141210,#0F0E0D);
+  background:linear-gradient(180deg,var(--law1),var(--law2));
   border:1px solid rgba(var(--warn-rgb),.42);border-radius:12px;padding:12px 13px}
 .lawopen:hover{border-color:var(--warn);background:rgba(var(--warn-rgb),.1)}
 .lawseal{flex:none;width:2rem;height:2rem;border-radius:50%;display:grid;place-items:center;
@@ -1870,7 +1907,7 @@ body.locked{overflow:hidden}
 .lawpv:empty::before{content:"—";color:var(--dim)}
 
 /* ── ตัวเอกสาร ── */
-.lawsheet{background:linear-gradient(180deg,#141210,#0E0D0C);
+.lawsheet{background:linear-gradient(180deg,var(--law1),var(--law2));
   border:1px solid rgba(var(--warn-rgb),.3);border-radius:14px;padding:26px 30px 30px}
 .lawhead{display:flex;align-items:center;gap:13px;padding-bottom:16px;
   border-bottom:2px double rgba(var(--warn-rgb),.45);margin-bottom:22px}
@@ -2344,7 +2381,7 @@ main{padding:22px 24px;overflow-y:auto;max-height:calc(100vh - 62px)}
 .tag{font-size:.79rem;background:var(--surface2);border:1px solid var(--line);
   border-radius:5px;padding:2px 8px;color:var(--mute)}
 .tag.fol{font-family:'IBM Plex Mono',monospace}
-.tag.rate{font-family:'IBM Plex Mono',monospace;color:#fff;
+.tag.rate{font-family:'IBM Plex Mono',monospace;color:var(--ink);
   border-color:rgba(var(--accent-rgb),.45);background:rgba(var(--accent-rgb),.14);font-weight:600}
 .tag.norate{color:var(--dim);font-style:italic}
 .dpool{display:flex;flex-wrap:wrap;gap:6px;margin:2px 0 12px}
@@ -2842,6 +2879,20 @@ html[data-team] [data-nosheet]{display:none!important}
 .mapnav{display:flex;gap:4px;flex:none;background:var(--surface);border:1px solid var(--line);border-radius:999px;padding:3px}
 .mapnav button{background:none;border:0;color:var(--mute);padding:5px 12px;border-radius:999px;font-size:.8rem;font-weight:600;white-space:nowrap;position:relative}
 .mapnav button:hover{background:var(--surface2);color:var(--ink)}
+.themegrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px;margin-top:6px}
+.themecard{display:flex;flex-direction:column;align-items:flex-start;gap:3px;text-align:left;padding:8px 8px 10px;
+  background:var(--surface2);border:1px solid var(--line);border-radius:10px;color:var(--ink);cursor:pointer}
+.themecard:hover{border-color:rgba(var(--accent-rgb),.6)}
+.themecard.on{border-color:var(--accent);box-shadow:0 0 0 2px rgba(var(--accent-rgb),.35)}
+.themecard .tprev{position:relative;display:block;width:100%;height:62px;border-radius:7px;background:var(--tbg);
+  border:1px solid rgba(128,128,128,.25);overflow:hidden;margin-bottom:5px}
+.themecard .tbar{position:absolute;left:8px;right:8px;top:8px;height:14px;border-radius:4px;background:var(--tsf)}
+.themecard .tline{position:absolute;left:8px;height:5px;border-radius:3px}
+.themecard .tline.l1{top:30px;width:62%;background:var(--tink)}
+.themecard .tline.l2{top:40px;width:44%;background:var(--tmute);opacity:.8}
+.themecard .tdot{position:absolute;right:10px;bottom:9px;width:14px;height:14px;border-radius:50%;background:var(--accent)}
+.themecard b{font-size:.84rem}
+.themecard .tsub{font-size:.7rem;color:var(--dim)}
 </style>
 </head>
 <body>
@@ -3999,6 +4050,12 @@ html[data-team] [data-nosheet]{display:none!important}
       <div class="addmsg" id="coordPinMsg"></div>
     </details>
 
+    <section class="sect mkeep" id="themeSect">
+      <h3>โทนสีของเว็บ</h3>
+      <p class="sect-sub">เปลี่ยนพื้น · ตัวหนังสือ · เส้น · สีบอกสถานะ ทั้งเว็บพร้อมกัน — เลือกแล้วเห็นผลทันที · จำแยกรายบัญชี<br>
+        <span style="color:var(--dim)">สีหลักตั้งต่อได้ที่หัวข้อถัดไป — โทนสว่างจะปรับสีหลักให้เข้มพอจะอ่านออกเอง</span></p>
+      <div class="themegrid" id="themeGrid"></div>
+    </section>
     <details class="sect mkeep" id="accentSect">
       <summary><h3>สีหลักของเว็บ</h3></summary>
       <p class="sect-sub">
@@ -16499,6 +16556,7 @@ function openSettings(tab){
   }
   renderSheetList();
   renderSkuGuide();
+  renderTheme();
   renderAccent();
   renderHist();
   renderLiveSound();
@@ -18077,9 +18135,56 @@ const ACCENT_TAKEN = [["#FF5C5C", "ข้อมูลผิด"], ["#46D369", "�
                       ["#F5B546", "รอดำเนินการ"], ["#7EB6FF", "หัก ณ ที่จ่าย"]];
 
 let ACCENT = ACCENT_DEFAULT;
+// ═══ โทนสีของเว็บ ═══
+const THEMES = [
+  { k:"dark",  th:"มืด",          sub:"ค่าเดิม · ดำสนิท",          bg:"#0B0B0B", sf:"#181818", ink:"#FFFFFF", mute:"#B3B3B3" },
+  { k:"dim",   th:"มืดนุ่ม",       sub:"เทาน้ำเงิน ไม่ตัดจัด",       bg:"#1B1E24", sf:"#242831", ink:"#E7E9EE", mute:"#B1B7C3" },
+  { k:"warm",  th:"มืดโทนอุ่น",    sub:"น้ำตาลเข้ม แสงน้อยสบายตา",  bg:"#1A1714", sf:"#24201B", ink:"#EFE7DB", mute:"#BDB2A1" },
+  { k:"light", th:"สว่าง",        sub:"พื้นขาว ตัวหนังสือเข้ม",     bg:"#F4F5F7", sf:"#FFFFFF", ink:"#16191F", mute:"#4A5260" },
+  { k:"earth", th:"เอิร์ธโทน",     sub:"ครีม · น้ำตาลอ่อน นุ่มตา",   bg:"#F1EBE1", sf:"#FBF8F2", ink:"#2F2A23", mute:"#5F5547" },
+];
+const LS_THEME = "cf_theme_v1";
+let THEME = "dark";
+const themeBg = () => (THEMES.find(t => t.k === THEME) || THEMES[0]).bg;
+function applyTheme(k){
+  THEME = THEMES.some(t => t.k === k) ? k : "dark";
+  const de = document.documentElement;
+  if (THEME === "dark") delete de.dataset.theme; else de.dataset.theme = THEME;
+  const m = document.querySelector('meta[name="theme-color"]');
+  if (m) m.setAttribute("content", themeBg());
+  try { localStorage.setItem("cf_theme_last", THEME); } catch(e){}   // ไว้ใช้ตอนเปิดหน้า ก่อนรู้ว่าบัญชีไหน
+  applyAccent(ACCENT);                                               // สีหลักต้องอ่านออกบนพื้นใหม่
+}
+function renderTheme(){
+  const g = $("#themeGrid");
+  if (!g) return;
+  g.innerHTML = THEMES.map(t => `<button type="button" class="themecard${t.k === THEME ? " on" : ""}" data-theme-k="${t.k}"
+      style="--tbg:${t.bg};--tsf:${t.sf};--tink:${t.ink};--tmute:${t.mute}" aria-pressed="${t.k === THEME}">
+      <span class="tprev"><span class="tbar"></span><span class="tline l1"></span><span class="tline l2"></span><span class="tdot"></span></span>
+      <b>${esc(t.th)}</b><span class="tsub">${esc(t.sub)}</span></button>`).join("");
+  g.querySelectorAll("[data-theme-k]").forEach(b => b.onclick = () => {
+    applyTheme(b.dataset.themeK);
+    try { lsSet(LS_THEME, THEME); } catch(e){}
+    vlog("theme", { d: THEME });
+    renderTheme(); renderAccent();
+  });
+}
+// สีหลักบนพื้นสว่าง: มิ้นต์/เหลืองที่อ่านชัดบนดำ จะจางจนอ่านไม่ออกบนขาว — เข้มลงทีละนิดจน contrast ≥ 4 (ไม่แตะสีที่เลือกไว้)
+function accentFor(h){
+  const bg = themeBg();
+  if (contrast(h, bg) >= 4.5) return h;
+  let [r, g, b] = hex2rgb(h);
+  const dark = contrast("#000000", bg) > contrast("#FFFFFF", bg);   // พื้นสว่าง = ไล่ไปทางดำ
+  for (let i = 0; i < 40 && contrast("#" + [r, g, b].map(x => Math.round(x).toString(16).padStart(2, "0")).join(""), bg) < 4.5; i++){
+    const t = dark ? 0 : 255;
+    r += (t - r) * .08; g += (t - g) * .08; b += (t - b) * .08;
+  }
+  return "#" + [r, g, b].map(x => Math.round(x).toString(16).padStart(2, "0")).join("");
+}
 function applyAccent(hex){
-  const h = /^#[0-9a-f]{6}$/i.test(hex || "") ? hex : ACCENT_DEFAULT;
-  ACCENT = h;
+  const h0 = /^#[0-9a-f]{6}$/i.test(hex || "") ? hex : ACCENT_DEFAULT;
+  ACCENT = h0;
+  const h = accentFor(h0);
   const st = document.documentElement.style;
   st.setProperty("--accent", h);
   st.setProperty("--accent-rgb", hex2rgb(h).join(","));
@@ -18092,15 +18197,16 @@ function saveAccent(){ try { lsSet(LS_ACCENT, ACCENT); } catch(e){} }
 function renderAccent(){
   const box = $("#accentSwatches");
   if (!box) return;
-  const c = contrast(ACCENT, "#0B0B0B");
+  const c = contrast(accentFor(ACCENT), themeBg());
   $("#accentPick").value = ACCENT;
   $("#accentHex").textContent = ACCENT.toUpperCase();
   $("#accentMeta").innerHTML = `contrast <b style="color:${
-    c >= 4.5 ? "var(--hi)" : "var(--lo)"}">${c.toFixed(2)}</b> บนพื้นดำ` +
+    c >= 4.5 ? "var(--hi)" : "var(--lo)"}">${c.toFixed(2)}</b> บนพื้นของโทนนี้${
+      accentFor(ACCENT).toLowerCase() !== ACCENT.toLowerCase() ? ` (ปรับเข้มให้เป็น ${accentFor(ACCENT).toUpperCase()})` : ""}` +
     (c >= 4.5 ? "" : ` — <span style="color:var(--lo)">ต่ำกว่าเกณฑ์ อ่านยาก</span>`);
   box.innerHTML = ACCENT_PRESETS.map(([v, name]) =>
     `<button type="button" class="accsw${v.toLowerCase() === ACCENT.toLowerCase() ? " on" : ""}"
-       data-acc="${v}" title="${esc(name)} — contrast ${contrast(v, "#0B0B0B").toFixed(2)}"
+       data-acc="${v}" title="${esc(name)} — contrast ${contrast(accentFor(v), themeBg()).toFixed(2)}"
        ><i style="background:${v}"></i>${esc(name)}</button>`).join("");
   box.querySelectorAll("[data-acc]").forEach(b => b.onclick = () => {
     applyAccent(b.dataset.acc); saveAccent(); renderAccent();
@@ -18118,7 +18224,9 @@ function renderAccent(){
 }
 
 try { const v = lsGet(LS_ACCENT); if (v) ACCENT = v; } catch(e){}
-applyAccent(ACCENT);
+// โทนที่จำไว้ของบัญชีนี้ — ตั้งก่อนสีหลัก (สีหลักปรับความเข้มตามพื้นของโทน)
+try { const t = lsGet(LS_THEME); if (t) THEME = t; else { const l = localStorage.getItem("cf_theme_last"); if (l) THEME = l; } } catch(e){}
+applyTheme(THEME);
 
 // input จะยิง input ถี่มากระหว่างลากในวงสี — ทาสีทันทีให้เห็นผลสด แต่เพิ่งบันทึกตอนปล่อย
 // บันทึกทุกครั้งที่ขยับ = เขียน localStorage เป็นร้อยครั้งต่อการเลือกสีหนึ่งครั้ง
