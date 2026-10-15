@@ -2893,6 +2893,34 @@ html[data-team] [data-nosheet]{display:none!important}
 .themecard .tdot{position:absolute;right:10px;bottom:9px;width:14px;height:14px;border-radius:50%;background:var(--accent)}
 .themecard b{font-size:.84rem}
 .themecard .tsub{font-size:.7rem;color:var(--dim)}
+html[data-no-review] [data-go="review"],html[data-no-review] [data-mapgo="review"]{display:none!important}
+html[data-no-quick] #qoNavBtn,html[data-no-quick] [data-mapgo="quick"]{display:none!important}
+html[data-no-map] #mapBtn,html[data-no-map] .open[data-mapgo]{display:none!important}
+html[data-no-format] #fmtBtn,html[data-no-format] #mapFmtBtn{display:none!important}
+html[data-no-tpl] .cmdscope [data-scope]:not([data-scope="mine"]),html[data-no-tpl] #fmtEdit,html[data-no-tpl] #fmtReset,
+html[data-no-tpl] .fxbox [data-fxedit],html[data-no-tpl] .fxbox [data-fxdel],html[data-no-tpl] #fxAdd{display:none!important}
+html[data-no-delrow] .delrow,html[data-no-delrow] #dDel,html[data-no-delrow] [data-sheetact="wipe"]{display:none!important}
+html[data-no-export] #coordExport,html[data-no-export] #xferOut{display:none!important}
+html[data-no-assign] select.asg{pointer-events:none;opacity:.55}
+.mirow{cursor:default}
+.mirow .uisel{margin-left:auto;width:auto;background:var(--surface2);border:1px solid var(--line);color:var(--ink);border-radius:6px;padding:3px 6px;font:inherit;font-size:.78rem}
+/* ── จัดการผู้ใช้ (admin) ── */
+.ucard{border:1px solid var(--line);border-radius:10px;padding:10px 12px;margin-top:8px;background:var(--surface2)}
+.ucard.off{opacity:.65}
+.ucard .uh{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.ucard .uh b{font-size:.9rem}
+.ucard .uh .em{font-size:.78rem;color:var(--mute);font-family:'IBM Plex Mono',monospace}
+.ucard .uh .seen{margin-left:auto;font-size:.74rem;color:var(--dim)}
+.ucard .uctl{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin-top:8px;font-size:.8rem}
+.ucard .uctl select{width:auto;padding:4px 8px;font-size:.8rem}
+.ucard .ufeat{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:2px 12px;margin-top:8px;font-size:.78rem}
+.ucard .ufeat label{display:flex;gap:7px;align-items:center;justify-content:flex-start;text-align:left;color:var(--mute);
+  font-size:.78rem;text-transform:none;letter-spacing:0;margin:0;padding:3px 0;cursor:pointer}
+.ucard input[type=checkbox]{width:auto;flex:none;margin:0;accent-color:var(--accent)}
+.ucard .uctl label{display:inline-flex;gap:6px;align-items:center;text-transform:none;letter-spacing:0;margin:0;font-size:.8rem;color:var(--mute)}
+.ucard .ufeat label.chg{color:var(--ink);font-weight:600}
+.ucard .uact{display:flex;gap:8px;align-items:center;margin-top:8px}
+.ucard .uact .addmsg{margin:0}
 </style>
 </head>
 <body>
@@ -2932,7 +2960,7 @@ html[data-team] [data-nosheet]{display:none!important}
   <div class="am-head" id="amHead"></div>
   <button type="button" class="mi" role="menuitem" data-am="profile"><span class="ic">👤</span>บัญชีของฉัน<span class="rt">ชื่อเล่น · อีเมล · รหัสผ่าน</span></button>
   <button type="button" class="mi" role="menuitem" data-am="settings"><span class="ic">⚙</span>ตั้งค่าเว็บ</button>
-  <button type="button" class="mi" role="menuitem" data-am="ui"><span class="ic">A</span>ขนาดตัวอักษร<span class="rt" id="uiBtn"></span></button>
+  <label class="mi mirow"><span class="ic">A</span>ขนาดตัวอักษร<select id="uiSel" class="uisel" aria-label="ขนาดตัวอักษร"></select></label>
   <button type="button" class="mi" role="menuitem" data-am="tour"><span class="ic">📖</span>คู่มือการใช้งาน</button>
   <div class="sep"></div>
   <button type="button" class="mi out" role="menuitem" data-am="logout" id="lockBtn"><span class="ic">⎋</span>ออกจากระบบ</button>
@@ -4022,8 +4050,8 @@ html[data-team] [data-nosheet]{display:none!important}
       <summary><h3>คนที่เข้าใช้เว็บนี้</h3></summary>
       <p class="sect-sub">
         ใครสมัครเองก็ขึ้นตรงนี้ — เรียงตามคนที่เข้าใช้ล่าสุด
-        <br><span style="color:var(--dim)">สมัครใหม่จะได้สิทธิ์ <b>editor</b> (เพิ่ม/แก้ครีเอเตอร์ได้ แต่ลบไม่ได้)
-        · เปลี่ยนสิทธิ์หรือระงับบัญชีทำที่ Supabase Dashboard → Table editor → app_users</span>
+        <br><span style="color:var(--dim)">สมัครใหม่จะได้สิทธิ์ <b>editor</b> · admin เปลี่ยนสิทธิ์ · ระงับบัญชี ·
+        เลือกฟีเจอร์ที่แต่ละคนใช้ได้ ได้จากตรงนี้เลย (กดบันทึกรายคน)</span>
       </p>
       <button type="button" class="export" id="usersReload">โหลดรายชื่อ</button>
       <div id="usersList"></div>
@@ -6865,6 +6893,7 @@ function renderFormat(){
   };
 }
 function openFormat(){
+  if (!can("format")) return;
   vlog("format", { p: PROJ });
   loadFormats();
   FMT_EDIT = false;
@@ -7597,7 +7626,7 @@ function renderDetail(){
         <div class="hint">เก็บในเครื่องนี้เท่านั้น — ชีตยังไม่มีคอลัมน์นี้ จึงไม่ขึ้นชีตตอนซิงก์</div></div>
 
       ${TEAM_MODE && TEAM && isTeamProj(r.project) ? `<div class="dfield wide2"><label>ผู้ดูแล</label>
-        <select data-d="assignee"><option value="">— ยังไม่มีผู้ดูแล —</option>${TEAM.members.map(m =>
+        <select data-d="assignee"${can("assign") ? "" : " disabled title=\"ไม่มีสิทธิ์เปลี่ยนผู้ดูแล\""}><option value="">— ยังไม่มีผู้ดูแล —</option>${TEAM.members.map(m =>
           `<option value="${esc(m.id)}"${m.id === r.assignee ? " selected" : ""}>${esc(m.name || m.email)}${
             memLabels(m).length ? " · " + esc(memLabels(m).join(", ")) : ""}</option>`).join("")}</select>
         <div class="hint">ใช้กรอง “ของใคร” เหนือตาราง · แถวใหม่ตั้งเป็นคนเพิ่มให้เอง</div></div>` : ""}
@@ -8089,6 +8118,7 @@ function sheetMoveMain(rows){
   renderProjTabs(); renderCoord();
 }
 function sheetWipe(){
+  if (!can("delrow")) return;
   const rows = tempRows(PROJ);
   if (!rows.length) return;
   if (!confirm(`ลบทั้งแท็บชั่วคราวของ ${PROJ}?\n\n${rows.length} คน: ${rows.slice(0, 8).map(r => "@" + normId(r.handle)).join(", ")}${
@@ -8225,6 +8255,7 @@ function renderCoord(){
     sel.onchange = () => {
       const r = (COORD[PROJ] || [])[+sel.dataset.asg];
       if (!r) return;
+      if (!can("assign")){ renderCoord(); return; }
       setField(r, "assignee", sel.value || null);
       renderCoord();
     };
@@ -8292,7 +8323,7 @@ function renderCoord(){
   // ลบคนออกจากโปรเจกต์ — ถามก่อนเสมอ กดพลาดแล้วเรียกคืนจากชีตได้แต่เสียเวลา
   document.querySelectorAll("#coordBody [data-del]").forEach(b => b.onclick = () => {
     const r = (COORD[PROJ] || [])[+b.dataset.del];
-    if (!r) return;
+    if (!r || !can("delrow")) return;
     if (!confirm(`ลบ ${r.handle} ออกจาก ${PROJ}?\nจะหายจากชีตด้วยตอนซิงก์รอบถัดไป`)) return;
     histBegin(PROJ, `ลบ ${normId(r.handle)} ออกจาก ${PROJ}`);
     histTouch(r);
@@ -10078,6 +10109,7 @@ function pickPop(host, title, items, onPick){
 let CMD_STEP = null;
 
 function renderCmdEditor(proj, handle){
+  if (!can("tpl")) CMD_SCOPE = "mine";        // ไม่มีสิทธิ์แก้ต้นแบบทีม = แก้ได้เฉพาะข้อความของคนนี้
   const mine = CMD_SCOPE === "mine";
   const ks = CMD_SCOPE === "KOL" || CMD_SCOPE === "KOC" ? CMD_SCOPE : "";   // แท็บกลุ่ม
   const gs = CMD_SCOPE === "global";                                         // แท็บทุกโปรเจกต์
@@ -11349,6 +11381,7 @@ const mapRows = proj => (COORD[proj] || [])
   .filter(r => passMember(r, true));
 
 function openMap(proj){
+  if (!can("map")) return;
   vlog("map", { p: proj === undefined ? PROJ : proj });
   loadCmdLinks(); loadSkuGuide();
   MAP_PROJ = proj === undefined ? PROJ : proj;
@@ -13144,14 +13177,19 @@ async function sbTouchSeen(){
   catch(e){}
 }
 let SB_NET_FAIL = false;   // โหลดโปรไฟล์ไม่ได้เพราะเน็ต/เซิร์ฟเวอร์ (ไม่ใช่เพราะบัญชีไม่มีสิทธิ์)
+var PERMS_COL = null;      // ฐานข้อมูลมีคอลัมน์ app_users.perms ไหม (team-mode-13.sql) — null = ยังไม่รู้
 async function sbProfile(){
   SB_NET_FAIL = false;
   if (!SESSION || !SESSION.user) return null;
   const uid = SESSION.user.id;
   const get = () => fetch(SB_URL + "/rest/v1/app_users?id=eq." + encodeURIComponent(uid) +
-    "&select=display_name,role,is_active", { headers: sbHeaders(true) });
+    "&select=display_name,role,is_active" + (PERMS_COL === false ? "" : ",perms"), { headers: sbHeaders(true) });
   let r;
   try { r = await get(); } catch(e){ SB_NET_FAIL = true; return null; }
+  if (r.status === 400 && PERMS_COL !== false){            // ยังไม่มีคอลัมน์ perms (ยังไม่ได้รัน SQL)
+    PERMS_COL = false;
+    try { r = await get(); } catch(e){ SB_NET_FAIL = true; return null; }
+  } else if (r.ok) PERMS_COL = true;
   if (r.status === 401 && (await sbRefresh()) === true){
     try { r = await get(); } catch(e){ SB_NET_FAIL = true; return null; }
   }
@@ -14121,6 +14159,7 @@ function qoPopProj(){
 }
 function closeQoPop(){ $("#qoPop").hidden = true; $("#qoNavBtn").setAttribute("aria-expanded", "false"); }
 async function openQoPop(){
+  if (!can("quick")) return;
   if (!COORD_READY) await setView("coord");
   QO2_FOLD = false; renderQO2(); qoPopProj();
   $("#qoPop").hidden = false; $("#qoNavBtn").setAttribute("aria-expanded", "true");
@@ -14603,6 +14642,7 @@ function applyColumns(){
     sel.onchange = () => {
       const r = (COORD[PROJ] || [])[+sel.dataset.asg];
       if (!r) return;
+      if (!can("assign")){ renderCoord(); return; }
       setField(r, "assignee", sel.value || null);
       renderCoord();
     };
@@ -16046,6 +16086,7 @@ const LS_VIEW = "cf_view_v1";
 let COORD_READY = false;
 
 async function setView(v){
+  if (v === "review" && !can("review")) v = "coord";
   vlog("view", { d: { v } });
   if (v === "find" && isCrew()) v = "coord";   // ปุ่มถูกซ่อนไปแล้ว แต่ยังเข้าถึงได้ทางคำสั่ง/หน้าที่ค้างไว้
   // โหมดทีม: ล็อกอินแล้วเข้าได้เลย ไม่มีรหัสชั้นในอีก (ขอเลิกใช้ 2026-10-03)
@@ -18078,27 +18119,105 @@ const seenText = t => {
   if (diff < 43200) return `${Math.floor(diff / 1440)} วันที่แล้ว`;
   return d.toLocaleDateString("th-TH", { day:"numeric", month:"short", year:"2-digit" });
 };
+const ROLE_DESC = { admin:"ทุกอย่าง รวมถึงตั้งค่าทีมและสิทธิ์คนอื่น", manager:"จัดการโปรเจกต์ได้ (สร้าง/ลบ/ย้าย)",
+  editor:"เพิ่ม/แก้ครีเอเตอร์ในงาน", viewer:"ดูอย่างเดียว (ค่าตั้งต้นปิดการแก้ต้นแบบ/ลบ/ส่งออก)" };
 async function renderUsers(){
   const box = $("#usersList");
   if (!box) return;
   box.innerHTML = `<p class="hint">กำลังโหลด...</p>`;
+  const isAdmin = (PROFILE || {}).role === "admin";
   try {
-    const r = await sbAuthed(SB_URL +
-      "/rest/v1/app_users?select=email,display_name,role,is_active,created_at,last_seen_at" +
+    const cols = "id,email,display_name,role,is_active,created_at,last_seen_at,team_id";
+    let r = await sbAuthed(SB_URL + "/rest/v1/app_users?select=" + cols + (PERMS_COL === false ? "" : ",perms") +
       "&order=last_seen_at.desc.nullslast", { cache:"no-store" });
+    if (r.status === 400 && PERMS_COL !== false){
+      PERMS_COL = false;
+      r = await sbAuthed(SB_URL + "/rest/v1/app_users?select=" + cols + "&order=last_seen_at.desc.nullslast", { cache:"no-store" });
+    }
     if (!r.ok) throw new Error("HTTP " + r.status);
     const rows = await r.json();
-    box.innerHTML = rows.length ? rows.map(u => `<div class="skugrow">
-        <b>${esc(u.display_name || "(ไม่มีชื่อ)")}</b>
-        <span class="n${u.is_active ? "" : " none"}">${u.is_active ? esc(u.role) : "ถูกระงับ"}</span>
-        <span style="flex:1;min-width:12em;font-size:.82rem;color:var(--mute);
-          font-family:'IBM Plex Mono',monospace;overflow:hidden;text-overflow:ellipsis"
-          >${esc(u.email || "—")}</span>
-        <span style="font-size:.78rem;color:var(--dim);white-space:nowrap"
-          title="สมัคร ${esc(new Date(u.created_at).toLocaleString("th-TH"))}"
-          >เข้าใช้ ${esc(seenText(u.last_seen_at))}</span>
-      </div>`).join("")
-      : `<p class="hint">ยังไม่มีใครในระบบ</p>`;
+    const me = sbUid();
+    const teamName = id => (TEAM && TEAM.id === id) ? TEAM.name : id ? "ทีมอื่น" : "ยังไม่มีทีม";
+    box.innerHTML = (isAdmin && PERMS_COL === false ? `<p class="hint" style="color:var(--warn)">⚠ ฐานข้อมูลเว็บนี้ยังไม่ได้เปิดสิทธิ์รายฟีเจอร์ —
+        เปลี่ยน role/ระงับบัญชีได้แล้ว แต่ช่องติ๊กฟีเจอร์ต้องรัน <code>kol-tools/team-mode-13.sql</code> ที่ Supabase ก่อน</p>` : "") +
+      (rows.length ? rows.map(u => {
+        const self = u.id === me, perms = u.perms || {};
+        const feats = FEATS.map(f => {
+          const def = featDefault(u.role, f), on = u.role === "admin" ? true : (typeof perms[f.k] === "boolean" ? perms[f.k] : def);
+          return `<label class="${typeof perms[f.k] === "boolean" && perms[f.k] !== def ? "chg" : ""}" title="ค่าตั้งต้นของ ${esc(u.role)}: ${def ? "ใช้ได้" : "ปิด"}">
+            <input type="checkbox" data-uf="${f.k}"${on ? " checked" : ""}${!isAdmin || u.role === "admin" || PERMS_COL === false ? " disabled" : ""}> ${esc(f.th)}</label>`;
+        }).join("");
+        return `<div class="ucard${u.is_active ? "" : " off"}" data-uid="${esc(u.id)}">
+          <div class="uh"><b>${esc(u.display_name || "(ไม่มีชื่อ)")}${self ? " (คุณ)" : ""}</b>
+            <span class="em">${esc(u.email || "—")}</span>
+            <span class="n">${esc(teamName(u.team_id))}</span>
+            <span class="seen" title="สมัคร ${esc(new Date(u.created_at).toLocaleString("th-TH"))}">เข้าใช้ ${esc(seenText(u.last_seen_at))}</span></div>
+          ${isAdmin ? `<div class="uctl">
+              <label>สิทธิ์ <select data-urole${self ? " disabled title=\"เปลี่ยนสิทธิ์ตัวเองไม่ได้\"" : ""}>${["admin", "manager", "editor", "viewer"].map(x =>
+                `<option value="${x}"${x === u.role ? " selected" : ""}>${x}</option>`).join("")}</select></label>
+              <span class="hint" data-urdesc>${esc(ROLE_DESC[u.role] || "")}</span>
+              <label class="chk"><input type="checkbox" data-uactive${u.is_active ? " checked" : ""}${self ? " disabled" : ""}> ใช้งานได้ (เอาติ๊กออก = ระงับบัญชี)</label>
+            </div>
+            <div class="ufeat">${u.role === "admin" ? `<span class="hint">admin ใช้ได้ทุกฟีเจอร์เสมอ</span>` : feats}</div>
+            <div class="uact"><button type="button" class="run" data-usave style="width:auto;padding:6px 16px" disabled>บันทึก</button>
+              <button type="button" class="export ghost" data-ureset style="padding:6px 12px"${u.role === "admin" || PERMS_COL === false ? " hidden" : ""}
+                title="ล้างที่ติ๊กเอง กลับไปใช้ค่าตั้งต้นของ role">คืนค่าตั้งต้นของสิทธิ์</button>
+              <span class="addmsg" data-umsg></span></div>`
+          : `<div class="uctl"><span class="n">${u.is_active ? esc(u.role) : "ถูกระงับ"}</span></div>`}
+        </div>`;
+      }).join("") : `<p class="hint">ยังไม่มีใครในระบบ</p>`);
+    if (!isAdmin) return;
+    box.querySelectorAll(".ucard[data-uid]").forEach(card => {
+      const u = rows.find(x => x.id === card.dataset.uid);
+      const save = card.querySelector("[data-usave]"), msg = card.querySelector("[data-umsg]");
+      const dirty = () => { save.disabled = false; msg.className = "addmsg"; };
+      card.querySelectorAll("input,select").forEach(el => el.addEventListener("change", dirty));
+      const rs = card.querySelector("[data-urole]");
+      rs.onchange = () => {
+        dirty();
+        card.querySelector("[data-urdesc]").textContent = ROLE_DESC[rs.value] || "";
+        // ติ๊กที่ยังไม่ได้ตั้งเอง ขยับตามค่าตั้งต้นของ role ใหม่
+        card.querySelectorAll("[data-uf]").forEach(cb => {
+          const f = FEATS.find(x => x.k === cb.dataset.uf);
+          if (typeof (u.perms || {})[f.k] !== "boolean") cb.checked = featDefault(rs.value, f);
+          cb.disabled = rs.value === "admin" || PERMS_COL === false;
+        });
+      };
+      const rst = card.querySelector("[data-ureset]");
+      if (rst) rst.onclick = () => { u.perms = {}; card.querySelectorAll("[data-uf]").forEach(cb => {
+        cb.checked = featDefault(rs.value, FEATS.find(x => x.k === cb.dataset.uf)); cb.closest("label").classList.remove("chg"); }); dirty(); };
+      save.onclick = async () => {
+        const role = rs.value, active = card.querySelector("[data-uactive]").checked;
+        // เก็บเฉพาะที่ต่างจากค่าตั้งต้นของ role — เปลี่ยน role ทีหลังแล้วสิทธิ์ที่ไม่ได้ตั้งเองขยับตามได้
+        const perms = {};
+        card.querySelectorAll("[data-uf]").forEach(cb => {
+          const f = FEATS.find(x => x.k === cb.dataset.uf);
+          if (cb.checked !== featDefault(role, f)) perms[f.k] = cb.checked;
+        });
+        if (!active && !confirm(`ระงับบัญชี ${u.display_name || u.email}?\n\nเข้าเว็บไม่ได้จนกว่าจะเปิดกลับ · ข้อมูลที่เขาทำไว้ไม่หาย`)) return;
+        save.disabled = true; msg.className = "addmsg on"; msg.textContent = "กำลังบันทึก…";
+        try {
+          let ok, err;
+          if (PERMS_COL !== false){
+            const j = await sbRpc("admin_set_user", { p_id: u.id, p_role: role, p_active: active, p_perms: perms });
+            ok = j && j.ok; err = j && j.error;
+          } else {
+            // ฐานที่ยังไม่ได้รัน SQL รอบ 13 — เปลี่ยน role/ระงับได้ตรงๆ (นโยบายให้ admin แก้ตาราง app_users อยู่แล้ว)
+            if (u.id === sbUid()){ ok = false; err = "เปลี่ยนสิทธิ์ตัวเองไม่ได้"; }
+            else {
+              await sbSend(SB_URL + "/rest/v1/app_users?id=eq." + encodeURIComponent(u.id), "PATCH",
+                { role, is_active: active }, "บันทึกไม่ได้");
+              ok = true;
+            }
+          }
+          if (!ok) throw new Error(err || "บันทึกไม่สำเร็จ");
+          msg.className = "addmsg on ok"; msg.textContent = "✓ บันทึกแล้ว — มีผลตอนเขาเปิดหน้าเว็บใหม่";
+          vlog("admin:user", { d: `${u.email} ${role} ${active ? "on" : "off"}` });
+          u.role = role; u.is_active = active; u.perms = perms;
+          card.classList.toggle("off", !active);
+        } catch(e){ msg.className = "addmsg on err"; msg.textContent = e.message; save.disabled = false; }
+      };
+    });
   } catch(e){
     box.innerHTML = `<p class="hint" style="color:var(--lo)">โหลดไม่สำเร็จ — ${esc(e.message || "")}</p>`;
   }
@@ -18263,7 +18382,11 @@ const LS_UI = "cf_ui_v2";
 let UI_I = 3;
 function applyUI(){
   document.documentElement.style.setProperty("--ui", UI_SIZES[UI_I][1] + "px");
-  $("#uiBtn").textContent = UI_SIZES[UI_I][0] + " ›";
+  const sel = $("#uiSel");
+  if (sel){
+    if (!sel.options.length) sel.innerHTML = UI_SIZES.map(([th, px], i) => `<option value="${i}">${esc(th)} · ${px}px</option>`).join("");
+    sel.value = String(UI_I);
+  }
   measureStick();
 }
 try {
@@ -18272,6 +18395,11 @@ try {
   const i = UI_SIZES.findIndex(x => x[1] === px);
   if (i >= 0) UI_I = i;
 } catch(e){}
+$("#uiSel").onchange = e => {
+  UI_I = Math.max(0, Math.min(UI_SIZES.length - 1, Number(e.target.value) || 0));
+  try { lsSet(LS_UI, UI_SIZES[UI_I][1]); } catch(err){}
+  applyUI();
+};
 function cycleUI(){
   UI_I = (UI_I + 1) % UI_SIZES.length;
   try { lsSet(LS_UI, UI_SIZES[UI_I][1]); } catch(e){}
@@ -21127,12 +21255,40 @@ document.querySelector("aside").addEventListener("input", e => {
 // ซ่อนไว้เพื่อไม่ให้เจอปุ่มที่กดแล้วโดนปฏิเสธ ไม่ได้ซ่อนเพื่อกันคนที่ตั้งใจงัด
 const FULL_ROLES = ["admin", "manager"];
 function isCrew(){ return !FULL_ROLES.includes((PROFILE || {}).role); }
+// ═══ สิทธิ์รายฟีเจอร์ (app_users.perms — admin ตั้งที่ ตั้งค่าเว็บ → คนที่เข้าใช้เว็บนี้) ═══
+// ไม่ได้ตั้ง = ตามค่าตั้งต้นของ role · admin ใช้ได้ทุกอย่างเสมอ · หน้าเว็บซ่อน/ปิดปุ่มตาม
+// ⚠️ เป็นการจัดหน้าจอ — ข้อมูลยังเปิดตาม RLS ของ role (เหมือนการซ่อนตาม role เดิม)
+const FEATS = [
+  { k:"review", th:"ห้องตรวจดราฟต์" },
+  { k:"quick",  th:"คำสั่งด่วน" },
+  { k:"map",    th:"Map แผนผัง" },
+  { k:"format", th:"Format ขอเรท" },
+  { k:"tpl",    th:"แก้ต้นแบบข้อความ (Command / Format) ที่ใช้ทั้งทีม", viewer:false },
+  { k:"assign", th:"เปลี่ยนผู้ดูแลครีเอเตอร์", viewer:false },
+  { k:"delrow", th:"ลบครีเอเตอร์ออกจากโปรเจกต์", viewer:false },
+  { k:"export", th:"ส่งออก CSV / ส่งออกการตั้งค่า", viewer:false },
+];
+const featDefault = (role, f) => role === "viewer" ? f.viewer !== false : true;
+function can(k){
+  if (!TEAM_MODE) return true;
+  const p = PROFILE || {};
+  if (p.role === "admin") return true;
+  const f = FEATS.find(x => x.k === k);
+  if (!f) return true;
+  const v = (p.perms || {})[k];
+  return typeof v === "boolean" ? v : featDefault(p.role, f);
+}
+function applyPerms(){
+  const de = document.documentElement;
+  FEATS.forEach(f => de.toggleAttribute("data-no-" + f.k, !can(f.k)));
+}
 function applyRole(){
   if (isCrew()) document.body.dataset.crew = "1";
   else delete document.body.dataset.crew;
   const de = document.documentElement;
   if ((PROFILE || {}).role === "admin") de.dataset.admin = "1"; else delete de.dataset.admin;
   if (canManageProjects()) de.dataset.pm = "1"; else delete de.dataset.pm;
+  applyPerms();
   renderAcctBtn();
 }
 
