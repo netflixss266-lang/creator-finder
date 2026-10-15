@@ -21701,7 +21701,23 @@ let saveCmdEditRaw = null;
 const TS = {
   links: tsObj(() => CMDLINKS, () => true, () => lsSet(LS_CMDLINKS, JSON.stringify(CMDLINKS))),
   own:   tsObj(() => CMDOWN, k => isTeamProj(k.slice(0, k.lastIndexOf("|"))), () => lsSet(LS_CMDOWN, JSON.stringify(CMDOWN))),
-  sku:   tsObj(() => SKUGUIDE, () => true, () => lsSet(LS_SKUGUIDE, JSON.stringify(SKUGUIDE))),
+  // ตาม SKU: คู่มือ (คีย์ตรงๆ — ของเดิม) + แฮชแท็ก/ตะกร้า (คีย์ขึ้นต้น hashtag:: / cart::) อยู่ ns เดียวกัน
+  // เดิมซิงก์แค่คู่มือ แฮชแท็ก/ตะกร้าตาม SKU ค้างอยู่ในเบราว์เซอร์ของคนที่ตั้ง (2026-10-15 แก้)
+  sku: {
+    all: () => {
+      const o = Object.assign({}, SKUGUIDE);
+      ["hashtag", "cart"].forEach(t => { const st = SKUBIND[t] || {};
+        for (const k in st) if (st[k] != null && st[k] !== "") o[t + "::" + k] = st[k]; });
+      return o;
+    },
+    ok: () => true,
+    put: (k, v) => { const m = k.match(/^(hashtag|cart)::(.*)$/s);
+      if (m) (SKUBIND[m[1]] || (SKUBIND[m[1]] = {}))[m[2]] = v; else SKUGUIDE[k] = v; },
+    drop: k => { const m = k.match(/^(hashtag|cart)::(.*)$/s);
+      if (m){ if (SKUBIND[m[1]]) delete SKUBIND[m[1]][m[2]]; } else delete SKUGUIDE[k]; },
+    save: () => { try { lsSet(LS_SKUGUIDE, JSON.stringify(SKUGUIDE));
+      ["hashtag", "cart"].forEach(t => lsSet(SKU_BIND_BY[t].ls, JSON.stringify(SKUBIND[t] || {}))); } catch(e){} },
+  },
   fmt: {
     // main|โปรเจกต์|kind = ต้นแบบหลัก (FORMATS / FORMATS_NB) · extra|โปรเจกต์|kind = กล่องเพิ่มเติม
     all: () => {
@@ -21857,7 +21873,7 @@ async function migrateSentTracking(){
   }
 }
 // ── หน้าเช็ค: ในเครื่องนี้ vs ขึ้นทีมแล้ว ──
-const TS_TH = { links: "ลิงก์ที่ใช้ร่วมกัน", own: "ลิงก์/ข้อความรายคน", sku: "คู่มือตาม SKU", tpl: "ต้นแบบข้อความ", fmt: "Format ขอเรท" };
+const TS_TH = { links: "ลิงก์ที่ใช้ร่วมกัน", own: "ลิงก์/ข้อความรายคน", sku: "คู่มือ · แฮชแท็ก · ตะกร้า ตาม SKU", tpl: "ต้นแบบข้อความ", fmt: "Format ขอเรท" };
 async function renderTsStat(){
   const el = $("#tsStat");
   if (!el) return;
@@ -21899,6 +21915,7 @@ if (TEAM_MODE){
   saveCmdLinks = tsAfter(saveCmdLinks, () => tsSoon("links"));
   saveCmdOwn = tsAfter(saveCmdOwn, () => tsSoon("own"));
   saveSkuGuide = tsAfter(saveSkuGuide, () => tsSoon("sku"));
+  saveSkuBind = tsAfter(saveSkuBind, () => tsSoon("sku"));
   saveFormats = tsAfter(saveFormats, () => tsSoon("fmt"));
   saveFmtExtra = tsAfter(saveFmtExtra, () => tsSoon("fmt"));
   openFormat = tsAfter(openFormat, () => tsPull());
