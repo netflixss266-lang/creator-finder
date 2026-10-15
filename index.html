@@ -2933,6 +2933,9 @@ html[data-no-assign] select.asg{pointer-events:none;opacity:.55}
 .invrow.dead{opacity:.55}
 .invrow .invst{margin-left:auto;font-size:.74rem;color:var(--dim)}
 .invrow [data-invcopy]{margin-left:auto}
+.skuover{border:1px solid rgba(var(--warn-rgb),.5);background:rgba(var(--warn-rgb),.08);color:var(--ink);border-radius:8px;
+  padding:8px 11px;margin:0 0 10px;font-size:.8rem;line-height:1.6}
+.skuover .cmdbtn{margin-left:6px}
 </style>
 </head>
 <body>
@@ -3910,6 +3913,7 @@ html[data-no-assign] select.asg{pointer-events:none;opacity:.55}
       </p>
       <div class="tabs sub" id="skuBindTabs" style="margin-bottom:10px"></div>
       <p class="sect-sub" id="skuBindNote" style="margin-top:0"></p>
+      <div class="skuover" id="skuOverNote" hidden></div>
       <div id="skuGuideList"></div>
 
       <!-- เลือก SKU ได้ทีละหลายอันพร้อมกัน แทนที่จะพึ่งชื่อไลน์ครอบอย่างเดียว —
@@ -17180,6 +17184,41 @@ function renderSkuGuide(){
     : `เข้าไปที่ <code>{{${esc(kind)}}}</code> ใน Command · คนทำหลายคลิปจะได้
        <code>{{${esc(kind)}1}}</code> <code>{{${esc(kind)}2}}</code> แยกตาม SKU ของคลิปนั้น`;
   $("#skuGuideUrl").placeholder = meta.ph;
+
+  // ── ค่าเฉพาะคนที่ทับค่าตาม SKU อยู่ ──
+  // ลำดับใน Command: ที่ตั้งเฉพาะคน (หน้า 🔗 ลิงก์ / คำสั่งด่วน) ชนะค่าตาม SKU เสมอ
+  // ตั้งตาม SKU ใหม่แล้วคนที่เคยตั้งเฉพาะตัวไว้ยังได้ของเก่า = "ตั้งแล้วไม่ขึ้น" — บอกจำนวน + ปุ่มล้างให้กลับมาใช้ตาม SKU
+  loadCmdOwn();
+  const over = [];
+  PROJECTS.forEach(p => (COORD[p] || []).forEach(r => {
+    const L = (cmdOwnRead(p, r.handle).links) || {};
+    const n = Math.max(1, clipCount(r));
+    for (let c = 1; c <= n; c++){
+      const sk = bindForSku(kind, r.sku, c);
+      if (!sk) continue;
+      const mine = L[kind + c] != null ? L[kind + c] : (c === 1 ? L[kind] : null);
+      if (mine != null && String(mine).trim() !== String(sk).trim()){ over.push({ p, h: r.handle }); break; }
+    }
+  }));
+  const ov = $("#skuOverNote");
+  if (ov){
+    ov.hidden = !over.length;
+    ov.innerHTML = over.length ? `⚠ มี <b>${over.length}</b> คนตั้ง${esc(meta.th)}เฉพาะตัวไว้ — <b>ทับค่าตาม SKU อยู่</b>
+        (Command ของคนพวกนี้ยังใช้ค่าเก่า) <span class="hint">${esc(over.slice(0, 6).map(x => "@" + normId(x.h)).join(" "))}${over.length > 6 ? " …" : ""}</span>
+        <button type="button" class="cmdbtn" id="skuOverClear">ล้างค่าเฉพาะตัว ให้ใช้ตาม SKU</button>` : "";
+    const b = $("#skuOverClear");
+    if (b) b.onclick = () => {
+      if (!confirm(`ล้าง${meta.th}ที่ตั้งเฉพาะตัวของ ${over.length} คน ให้ใช้ค่าตาม SKU แทน?\n\nเฉพาะคนที่มีค่าตาม SKU อยู่แล้วเท่านั้น · ชนิดอื่น (คู่มือ/ตะกร้า/แฮชแท็ก) ไม่ถูกแตะ`)) return;
+      over.forEach(({ p, h }) => {
+        const o = cmdOwn(p, h);
+        Object.keys(o.links || {}).forEach(k => { if (k === kind || new RegExp("^" + kind + "\\d+$").test(k)) delete o.links[k]; });
+        pruneCmdOwn(p, h);
+      });
+      saveCmdOwn();
+      vlog("sku:clear-own", { d: kind + " " + over.length });
+      renderSkuGuide();
+    };
+  }
 
   const all = PROJECTS.flatMap(p => (COORD[p] || []));
   const isDone = p => !!(projMeta(p) || {}).done;
