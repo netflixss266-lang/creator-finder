@@ -2921,6 +2921,18 @@ html[data-no-assign] select.asg{pointer-events:none;opacity:.55}
 .ucard .ufeat label.chg{color:var(--ink);font-weight:600}
 .ucard .uact{display:flex;gap:8px;align-items:center;margin-top:8px}
 .ucard .uact .addmsg{margin:0}
+.invbox{border:1px dashed rgba(var(--accent-rgb),.45);border-radius:10px;padding:10px 12px;margin:10px 0 12px}
+.invbox h4{font-size:.88rem;margin-bottom:2px}
+.invform{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-top:6px;font-size:.8rem}
+.invform label{display:inline-flex;gap:6px;align-items:center;text-transform:none;letter-spacing:0;margin:0;font-size:.8rem;color:var(--mute)}
+.invform select{width:auto;padding:4px 8px;font-size:.8rem}
+.invform input{flex:1;min-width:180px;width:auto;padding:6px 9px;font-size:.8rem}
+.invurl{display:block;word-break:break-all;margin-top:4px;font-size:.74rem;user-select:all}
+.invrow{display:flex;flex-wrap:wrap;gap:8px;align-items:center;padding:6px 0;border-top:1px solid var(--line);font-size:.8rem}
+.invrow .invn{font-weight:600}
+.invrow.dead{opacity:.55}
+.invrow .invst{margin-left:auto;font-size:.74rem;color:var(--dim)}
+.invrow [data-invcopy]{margin-left:auto}
 </style>
 </head>
 <body>
@@ -4053,6 +4065,22 @@ html[data-no-assign] select.asg{pointer-events:none;opacity:.55}
         <br><span style="color:var(--dim)">สมัครใหม่จะได้สิทธิ์ <b>editor</b> · admin เปลี่ยนสิทธิ์ · ระงับบัญชี ·
         เลือกฟีเจอร์ที่แต่ละคนใช้ได้ ได้จากตรงนี้เลย (กดบันทึกรายคน)</span>
       </p>
+      <div class="invbox adminonly" id="invBox">
+        <h4>📨 ลิงก์เชิญเข้าทีม</h4>
+        <p class="sect-sub">ส่งลิงก์ให้คนใหม่ — กดแล้วสมัครและเข้าทีมทันทีพร้อมสิทธิ์ที่ตั้ง ไม่ต้องบอกรหัสทีม · คนมีบัญชีแล้ว (ยังไม่มีทีม) กดแล้วล็อกอินก็เข้าทีมได้</p>
+        <div class="invform">
+          <label>สิทธิ์ <select id="invRole"><option value="editor" selected>editor</option><option value="viewer">viewer</option>
+            <option value="manager">manager</option><option value="admin">admin</option></select></label>
+          <label>หมดอายุ <select id="invDays"><option value="1">1 วัน</option><option value="7" selected>7 วัน</option>
+            <option value="30">30 วัน</option><option value="0">ไม่หมดอายุ</option></select></label>
+          <label>ใช้ได้ <select id="invUses"><option value="1" selected>1 คน</option><option value="5">5 คน</option>
+            <option value="20">20 คน</option><option value="0">ไม่จำกัด</option></select></label>
+          <input id="invNote" maxlength="80" placeholder="บันทึก เช่น ชื่อคนที่จะเชิญ (ไม่บังคับ)">
+          <button type="button" class="run" id="invCreate" style="width:auto;padding:7px 16px">สร้างลิงก์</button>
+        </div>
+        <div class="addmsg" id="invMsg"></div>
+        <div id="invList"></div>
+      </div>
       <button type="button" class="export" id="usersReload">โหลดรายชื่อ</button>
       <div id="usersList"></div>
     </details>
@@ -13217,6 +13245,7 @@ function spaceOf(name){ return isTeamProj(name) ? TEAM.id : sbUid(); }
 // ล็อกอินผ่านแล้ว — ยังไม่มีทีมก็ให้เลือกทีมต่อ (ข้ามได้ จำไว้ไม่ถามอีก เข้าทีมทีหลังที่ ⚙ ตั้งค่า)
 // มีคำขอเข้าทีมค้างอยู่ = ไม่ต้องถามซ้ำ รอหัวทีมอนุมัติ (ใช้แบบส่วนตัวไปก่อน)
 async function teamGate(){
+  if (await acceptInviteIfAny()) return;
   let bad = false;
   try { TEAM = await sbRpc("my_team"); } catch(e){ TEAM = null; bad = true; }
   if (TEAM || bad) return;            // อ่านไม่ได้ = อย่าถาม
@@ -15639,6 +15668,11 @@ async function loadSignupTeams(){
   } catch(e){ sel.innerHTML = `<option value="">โหลดรายชื่อทีมไม่ได้ — ลองรีเฟรช</option>`; }
 }
 function askLogin(){
+  if (TEAM_MODE && inviteToken() && !INVITE) return loadInvite().then(() => {
+    if (INVITE && INVITE.ok && !askLogin.swapped) LOCK_MODE = "signup";
+    return askLogin();
+  });
+  const inv = TEAM_MODE && INVITE && INVITE.ok ? INVITE : null;
   const signup = LOCK_MODE === "signup";
   $("#lockTitle").textContent = signup ? "สมัครใช้งาน" : "เข้าสู่ระบบ";
   $("#lockHint").textContent  = signup
@@ -15649,8 +15683,8 @@ function askLogin(){
   $("#lockEmail").hidden = false;
   $("#lockName").hidden = !signup;
   $("#lockCoord").hidden = !signup || TEAM_MODE;
-  $("#lockTeamSel").hidden = !(signup && TEAM_MODE);
-  $("#lockTeamCode").hidden = !(signup && TEAM_MODE);
+  $("#lockTeamSel").hidden = !(signup && TEAM_MODE) || !!inv;
+  $("#lockTeamCode").hidden = !(signup && TEAM_MODE) || !!inv;
   $("#lockTeamCode").value = "";
   $("#lockTeamCode").placeholder = "รหัสทีม 6 หลัก (ขอจากหัวทีม)";
   if (signup && TEAM_MODE) loadSignupTeams();
@@ -15671,6 +15705,13 @@ function askLogin(){
   $("#lockMsg").className = LOCK_NOTE ? "lockmsg err" : "lockmsg";
   $("#lockMsg").textContent = LOCK_NOTE;
   LOCK_NOTE = "";
+  // คำเชิญ: บอกว่าจะเข้าทีมไหน สิทธิ์อะไร · ลิงก์ใช้ไม่ได้ = บอกเหตุผล แล้วสมัครแบบปกติ (เลือกทีม + รหัส)
+  if (TEAM_MODE && INVITE){
+    $("#lockHint").innerHTML = INVITE.ok
+      ? `📨 คำเชิญเข้าทีม <b>${esc(INVITE.team)}</b> · สิทธิ์ ${esc(ROLE_TH_INV[INVITE.role] || INVITE.role)}<br>${
+          signup ? "สมัครแล้วเข้าทีมทันที ไม่ต้องใช้รหัสทีม" : "ล็อกอินแล้วเข้าทีมให้เลย (บัญชีที่ยังไม่มีทีม)"}`
+      : `<span style="color:var(--lo)">${esc(INVITE.why || "ลิงก์เชิญใช้ไม่ได้")}</span> — ขอลิงก์ใหม่จากแอดมิน หรือสมัครด้วยรหัสทีม`;
+  }
   $("#lockView").hidden = false;
   applyGateShow();
   setTimeout(() => $("#lockEmail").focus(), 50);
@@ -15705,6 +15746,7 @@ function askLogin(){
     // สลับโหมดแล้ววาดใหม่ แต่ต้องส่งต่อ resolve ตัวเดิม ไม่งั้นคนที่รอ requireLogin อยู่จะค้าง
     $("#lockSwap").onclick = () => {
       LOCK_MODE = signup ? "login" : "signup";
+      askLogin.swapped = true;
       askLogin().then(resolve);
     };
     $("#lockForm").onsubmit = async e => {
@@ -15716,7 +15758,8 @@ function askLogin(){
       // รหัส Coordinator ตั้งพร้อมกันตรงนี้เลย จะได้ไม่ต้องไปหาใครขอทีหลัง
       // โหมดทีมยกเลิกรหัส Coordinator แล้ว (ช่องถูกซ่อน) — เดิมยังเช็คอยู่ สมัครไม่ผ่านทั้งที่ไม่มีช่องให้กรอก
       const tsel = $("#lockTeamSel").value, tcode = $("#lockTeamCode").value.replace(/\D/g, "");
-      if (signup && TEAM_MODE && (!tsel || tcode.length !== 6)){
+      const viaInvite = TEAM_MODE && INVITE && INVITE.ok;
+      if (signup && TEAM_MODE && !viaInvite && (!tsel || tcode.length !== 6)){
         $("#lockMsg").className = "lockmsg err";
         $("#lockMsg").textContent = !tsel ? "เลือกทีมก่อน" : "ใส่รหัสทีม 6 หลัก (ขอจากหัวทีม)";
         (!tsel ? $("#lockTeamSel") : $("#lockTeamCode")).focus();
@@ -15745,7 +15788,7 @@ function askLogin(){
         // เพิ่งพิมพ์รหัสนี้เองสดๆ ไม่ต้องถามซ้ำทันที — คู่มือที่กำลังจะเปิดจะได้พาเข้า Coordinator ได้เลย
         if (signup && !TEAM_MODE){ await coordPinSet(cpin); GATE_OK.coord = true; }
         // สมัครแล้วเข้าทีมทันทีด้วยรหัสที่ใส่ — ผิด = บัญชีมีแล้วแต่ยังไม่เห็นอะไร ไปลองใหม่ที่ขั้นเลือกทีม
-        if (signup && TEAM_MODE){
+        if (signup && TEAM_MODE && !viaInvite){
           try {
             const j = await sbRpc("join_team_id", { p_team: tsel, p_code: tcode });
             if (!(j && j.ok)) TEAM_GATE_NOTE = "สมัครแล้ว แต่ " + ((j && j.error) || "เข้าทีมไม่สำเร็จ") + " — เลือกทีมแล้วใส่รหัสอีกครั้ง";
@@ -15889,6 +15932,50 @@ async function requireLogin(){
   const ok = await requireLogin0();
   if (TEAM_MODE) await teamGate();
   return ok;
+}
+// ═══ ลิงก์เชิญ (team-mode-14.sql) ═══
+// admin สร้างที่ ตั้งค่าเว็บ → คนที่เข้าใช้เว็บนี้ → ลิงก์เชิญ · คนกดลิงก์สมัคร/ล็อกอินแล้วเข้าทีมทันที ไม่ต้องใช้รหัสทีม
+const SS_INVITE = "cf_invite";
+let INVITE = null;                 // { token, ok, team, role, why } — ข้อมูลลิงก์ที่กดเข้ามา
+(function readInvite(){
+  const m = location.hash.match(/(?:^#|&)invite=([A-Za-z0-9_-]{16,})/);
+  if (m){
+    try { sessionStorage.setItem(SS_INVITE, m[1]); } catch(e){}
+    try { history.replaceState(null, "", location.pathname + location.search); } catch(e){}
+  }
+})();
+const inviteToken = () => { try { return sessionStorage.getItem(SS_INVITE) || ""; } catch(e){ return ""; } };
+async function loadInvite(){
+  const t = inviteToken();
+  if (!TEAM_MODE || !t) return (INVITE = null);
+  if (INVITE && INVITE.token === t) return INVITE;
+  try {
+    const r = await fetch(SB_URL + "/rest/v1/rpc/invite_info", { method:"POST", headers: sbHeaders(false),
+      body: JSON.stringify({ p_token: t }) });
+    const j = r.ok ? await r.json() : { ok:false, why:"ตรวจลิงก์เชิญไม่ได้ (" + r.status + ")" };
+    INVITE = Object.assign({ token: t }, j || {});
+  } catch(e){ INVITE = { token: t, ok:false, why:"ตรวจลิงก์เชิญไม่ได้ — เช็คอินเทอร์เน็ต" }; }
+  return INVITE;
+}
+const ROLE_TH_INV = { admin:"แอดมิน", manager:"ผู้จัดการ", editor:"สมาชิก (แก้ไขได้)", viewer:"ดูอย่างเดียว" };
+// รับคำเชิญหลังล็อกอิน (ทั้งคนสมัครใหม่และคนมีบัญชีแล้ว) — ใช้ไม่ได้ = บอกเหตุผล แล้วไปขั้นเลือกทีมตามปกติ
+async function acceptInviteIfAny(){
+  const t = inviteToken();
+  if (!TEAM_MODE || !t) return false;
+  try {
+    const j = await sbRpc("accept_invite", { p_token: t });
+    try { sessionStorage.removeItem(SS_INVITE); } catch(e){}
+    INVITE = null;
+    if (j && j.ok){
+      TEAM = j.team;
+      if (!j.already) try { PROFILE = await sbProfile() || PROFILE; } catch(e){}
+      return true;
+    }
+    TEAM_GATE_NOTE = "ลิงก์เชิญใช้ไม่ได้: " + ((j && j.error) || "ไม่ทราบสาเหตุ");
+  } catch(e){
+    TEAM_GATE_NOTE = "รับคำเชิญไม่สำเร็จ: " + e.message;
+  }
+  return false;
 }
 async function requireLogin0(){
   const rec = recoveryFromHash();
@@ -18121,7 +18208,62 @@ const seenText = t => {
 };
 const ROLE_DESC = { admin:"ทุกอย่าง รวมถึงตั้งค่าทีมและสิทธิ์คนอื่น", manager:"จัดการโปรเจกต์ได้ (สร้าง/ลบ/ย้าย)",
   editor:"เพิ่ม/แก้ครีเอเตอร์ในงาน", viewer:"ดูอย่างเดียว (ค่าตั้งต้นปิดการแก้ต้นแบบ/ลบ/ส่งออก)" };
+// ── ลิงก์เชิญ (admin) ──
+const inviteUrl = t => SB_RESET_TO + "#invite=" + t;
+async function renderInvites(){
+  const box = $("#invList");
+  if (!box || (PROFILE || {}).role !== "admin") return;
+  let list = [];
+  try { list = await sbRpc("list_invites") || []; }
+  catch(e){
+    box.innerHTML = /404|not find|Could not find/i.test(e.message)
+      ? `<p class="hint" style="color:var(--warn)">⚠ ฐานข้อมูลเว็บนี้ยังไม่มีระบบลิงก์เชิญ — รัน <code>kol-tools/team-mode-14.sql</code> ที่ Supabase ก่อน</p>`
+      : `<p class="hint" style="color:var(--lo)">โหลดลิงก์ไม่ได้ — ${esc(e.message)}</p>`;
+    $("#invCreate").disabled = true;
+    return;
+  }
+  const now = Date.now();
+  const state = i => i.revoked ? "ยกเลิกแล้ว" : i.expires_at && Date.parse(i.expires_at) <= now ? "หมดอายุ"
+    : i.max_uses && i.uses >= i.max_uses ? "ใช้ครบแล้ว" : "";
+  box.innerHTML = list.length ? list.slice(0, 30).map(i => {
+    const st = state(i);
+    return `<div class="invrow${st ? " dead" : ""}">
+      <span class="n">${esc(i.role)}</span>
+      <span class="invn">${esc(i.note || "ไม่มีบันทึก")}</span>
+      <span class="hint">ใช้แล้ว ${i.uses}${i.max_uses ? "/" + i.max_uses : ""} · ${i.expires_at ? "หมด " + esc(new Date(i.expires_at).toLocaleDateString("th-TH", { day:"numeric", month:"short" })) : "ไม่หมดอายุ"}${
+        i.by ? " · โดย " + esc(i.by) : ""}</span>
+      ${st ? `<span class="invst">${st}</span>` : `<button type="button" class="cmdbtn" data-invcopy="${esc(i.token)}">คัดลอกลิงก์</button>
+        <button type="button" class="cmdbtn" data-invrevoke="${esc(i.token)}" style="color:var(--lo)">ยกเลิก</button>`}
+    </div>`; }).join("") : `<p class="hint">ยังไม่มีลิงก์เชิญ</p>`;
+  box.querySelectorAll("[data-invcopy]").forEach(b => b.onclick = () => {
+    navigator.clipboard.writeText(inviteUrl(b.dataset.invcopy)).then(() => { b.textContent = "คัดลอกแล้ว ✓"; }).catch(() => {});
+  });
+  box.querySelectorAll("[data-invrevoke]").forEach(b => b.onclick = async () => {
+    if (!confirm("ยกเลิกลิงก์นี้? คนที่ยังไม่ได้กดจะใช้ไม่ได้อีก (คนที่เข้าทีมไปแล้วไม่โดนอะไร)")) return;
+    try { await sbRpc("revoke_invite", { p_token: b.dataset.invrevoke }); } catch(e){ alert(e.message); }
+    renderInvites();
+  });
+}
+$("#invCreate").onclick = async () => {
+  const msg = $("#invMsg"), btn = $("#invCreate");
+  btn.disabled = true; msg.className = "addmsg on"; msg.textContent = "กำลังสร้าง…";
+  try {
+    const j = await sbRpc("create_invite", { p_role: $("#invRole").value, p_days: Number($("#invDays").value),
+      p_max_uses: Number($("#invUses").value), p_perms: {}, p_note: $("#invNote").value.trim() });
+    if (!j || !j.ok) throw new Error((j && j.error) || "สร้างไม่สำเร็จ");
+    const url = inviteUrl(j.token);
+    let copied = false;
+    try { await navigator.clipboard.writeText(url); copied = true; } catch(e){}
+    msg.className = "addmsg on ok";
+    msg.innerHTML = `${copied ? "✓ สร้างแล้ว คัดลอกลิงก์ให้แล้ว" : "✓ สร้างแล้ว"} — ส่งให้คนที่จะเชิญได้เลย<br><code class="invurl">${esc(url)}</code>`;
+    $("#invNote").value = "";
+    vlog("admin:invite", { d: $("#invRole").value });
+    renderInvites();
+  } catch(e){ msg.className = "addmsg on err"; msg.textContent = e.message; }
+  btn.disabled = false;
+};
 async function renderUsers(){
+  renderInvites();
   const box = $("#usersList");
   if (!box) return;
   box.innerHTML = `<p class="hint">กำลังโหลด...</p>`;
