@@ -1584,7 +1584,11 @@ body.locked{overflow:hidden}
 /* เต็มจอ: ซ้ายช่องปรับค่า (ตรึงไว้ตอนเลื่อน) · ขวาข้อความยาวเต็มความสูง คลุมง่าย ไม่ต้องเลื่อนในกล่องเล็ก */
 #fmtPanel .fmtwrap{max-width:1240px;width:100%;margin:0 auto;padding:14px 26px 40px}
 .fmtlayout{display:grid;grid-template-columns:minmax(0,380px) minmax(0,1fr);gap:22px;align-items:start}
-.fmtside{position:sticky;top:84px}
+/* format หลัก (ขวา) ตรึงไว้ให้เห็นตลอด — ฝั่งตัวเลือก+กล่องข้อความเพิ่มเติม (ซ้าย) ยาวได้ เลื่อนตามหน้าปกติ (2026-10-22)
+   เดิมตรึงฝั่งซ้าย พอกล่องเพิ่มเติมเยอะ ฝั่งซ้ายสูงเกินจอ เลื่อนลงแล้ว format หลักหลุดจอ */
+.fmtside{position:static}
+.fmtmain{position:sticky;top:84px;align-self:start}
+.fmtmain .fmtprev{max-height:calc(100vh - 150px)!important;min-height:0!important;overflow:auto}
 .fmtside .fmtgrid{margin-top:0}
 .fmtact{margin-top:14px;flex-wrap:wrap}
 .fmtvidnote{grid-column:1/-1;margin:-4px 0 0;font-size:.74rem;line-height:1.6;color:var(--warn)}
@@ -1605,6 +1609,8 @@ body.locked{overflow:hidden}
 @media(max-width:860px){
   .fmtlayout{grid-template-columns:1fr}
   .fmtside{position:static}
+  .fmtmain{order:-1;position:static}            /* จอแคบ: format หลักขึ้นก่อน ตัวเลือกตามมา */
+  .fmtmain .fmtprev{max-height:none!important}
   #fmtPanel .fmtprev{min-height:0}
 }
 /* คอมมิชชั่น % — กินเต็มแถว เลขลัดต้องมีที่วาง ช่องกว้าง 8em ของคอลัมน์ขวาใส่ไม่พอ */
