@@ -14169,7 +14169,12 @@ function renderQO2(){
           QO2_ALL ? `<option value="__less">− ย่อ: โชว์เฉพาะที่โปรเจกต์นี้ใช้</option>`
             : qo2HiddenN() ? `<option value="__all">＋ แสดงคำสั่งทั้งหมด (อีก ${qo2HiddenN()})</option>` : ""}</select></div>` +
       (!c ? "" : c === "track"
-        ? `<span class="qo2step"><b>②</b> ขนส่ง</span>
+        ? `<span class="qo2step"><b>②</b> ลงโปรเจกต์</span>
+           <select id="qo2TrackProj" class="qo2s" title="เลขพัสดุในลิสต์จะลงเฉพาะครีเอเตอร์ในโปรเจกต์นี้">${
+             [`<option value="">ทุกโปรเจกต์ (หาให้เอง)</option>`].concat(PROJECTS.map(p =>
+               `<option value="${esc(p)}"${p === (QO_TRACK_PROJ == null ? PROJ : QO_TRACK_PROJ) ? " selected" : ""}>${
+                 isTeamProj(p) ? "👥 " : ""}${esc(p)}</option>`)).join("")}</select>
+           <span class="qo2step">ขนส่ง</span>
            <select id="qo2Carrier" class="qo2s" title="ใช้กับทุกคนในลิสต์ · อัตโนมัติ = เดาจากรูปแบบเลขรายคน">${carrierOpts(QO_CARRIER)}</select>
            <span class="qo2step"><b>③</b> วางลิสต์</span>
            <div class="qo2line"><textarea id="qo2Val" rows="3" class="qo2new qo2track"
@@ -14344,6 +14349,7 @@ function wireQO2Form(c){
     if (c === "track"){
       if (!val){ msg("วางลิสต์ชื่อ + เลขพัสดุก่อน"); return $("#qo2Val").focus(); }
       QO_CARRIER = ($("#qo2Carrier") || {}).value || "";
+      QO_TRACK_PROJ = $("#qo2TrackProj") ? $("#qo2TrackProj").value : null;
       text = "เลขพัสดุ\n" + val;
     } else {
       const names = c === "add"
@@ -19875,8 +19881,15 @@ function parseTrackingText(text){
       why:`${names[0].h} — ไม่เจอเลขพัสดุในบรรทัดนี้` });
     const h = names[0].h;
     let e = idx.get(h) || [];
+    // เลือกโปรเจกต์ไว้ในคำสั่งด่วน = ลงเฉพาะโปรเจกต์นั้น (ชื่อโปรเจกต์ท้ายบรรทัดยังชนะ)
     const pj = findProjects(line).map(p => p.proj);
     if (pj.length) e = e.filter(x => pj.includes(x.proj));
+    else if (QO_TRACK_PROJ){
+      const inP = e.filter(x => x.proj === QO_TRACK_PROJ);
+      if (!inP.length) return out.push({ line, ok:false, changes:{},
+        why:`ไม่เจอ ${h} ใน ${QO_TRACK_PROJ}${e.length ? ` (อยู่ใน ${e.map(x => x.proj).join(", ")})` : ""}` });
+      e = inP;
+    }
     // อยู่หลายโปรเจกต์ → เอาโปรเจกต์ของแท็บที่เปิดอยู่ ถ้าแท็บนี้ไม่มีค่อยให้ระบุ
     if (e.length > 1 && e.some(x => x.proj === PROJ)) e = e.filter(x => x.proj === PROJ);
     if (!e.length) return out.push({ line, ok:false, changes:{}, why:`ไม่เจอ ${h} ใน ${pj.join(", ")}` });
@@ -19908,6 +19921,7 @@ function parseTrackingText(text){
 }
 
 let QO_CARRIER = "";    // ขนส่งที่เลือกในคำสั่งด่วน "เลขพัสดุ" — ใส่ให้ทุกคนในลิสต์ตอนกดใช้
+let QO_TRACK_PROJ = null;   // โปรเจกต์ที่เลือกให้ลงเลขพัสดุ · "" = ทุกโปรเจกต์ · null = ยังไม่เคยเลือก (ใช้แท็บที่เปิดอยู่)
 function parseCmdText(text){
   const trk = parseTrackingText(text);
   if (trk){
