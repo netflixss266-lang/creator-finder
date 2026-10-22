@@ -2993,12 +2993,12 @@ html[data-no-assign] select.asg{pointer-events:none;opacity:.55}
 <div class="qopop" id="openPop" hidden>
   <div class="qopop-in openpop-in" role="dialog" aria-label="เปิดโปรไฟล์ทีละหลายคน">
     <div class="qopop-head"><b>🔗 เปิดโปรไฟล์ทีละหลายคน</b>
-      <span class="hint" style="margin-left:auto">โปรไฟล์ TikTok · ทีละ 10 แท็บ · ไม่เก็บรายชื่อ</span>
+      <span class="hint" style="margin-left:auto">โปรไฟล์ TikTok · กดครั้งเดียวเปิดทั้งหมด · ไม่เก็บรายชื่อ</span>
       <button type="button" class="x" id="openPopClose" aria-label="ปิด">✕</button></div>
     <textarea id="qoOpenList" rows="8" class="qo2new qo2track" style="width:100%!important"
       placeholder="วางรายชื่อ บรรทัดละคน — ชื่อ · @ชื่อ · หรือลิงก์ TikTok ก็ได้&#10;nana.review&#10;@mintmint_&#10;https://www.tiktok.com/@cenakims"></textarea>
     <div class="openact">
-      <button class="run" id="qoOpenGo" style="width:auto;padding:8px 18px">เปิด 10 คนแรก ▶</button>
+      <button class="run" id="qoOpenGo" style="width:auto;padding:8px 18px">เปิดทั้งหมด ▶</button>
       <button type="button" class="export ghost" id="qoOpenClear">ล้างรายชื่อ</button>
       <span class="qo2sum" id="openSum"></span>
     </div>
@@ -14327,7 +14327,7 @@ function qo2SheetRows(){
 // ═══ เปิดโปรไฟล์ TikTok ทีละหลายคน ═══
 // วางรายชื่อ → เปิดแท็บใหม่ทีละ 10 คน (กดอีกที = 10 คนถัดไป) · ไม่บันทึกรายชื่อ ไม่ลงตาราง ไม่จดประวัติชื่อ
 // เบราว์เซอร์กันป๊อปอัป: กดครั้งเดียวเปิดหลายแท็บ Chrome ปล่อยแค่แท็บแรก — ต้องกด "อนุญาตป๊อปอัปจากเว็บนี้" ครั้งเดียวต่อเครื่อง
-const OPEN_BATCH = 10;
+const OPEN_BATCH = 9999;          // กดครั้งเดียวเปิดทั้งหมด (2026-10-22) — เกิน 15 คนถามยืนยันก่อน
 let OPEN_Q = [], OPEN_I = 0, OPEN_SRC = "";
 function openManyParse(text){
   const seen = new Set(), out = [];
@@ -14345,8 +14345,8 @@ function wireOpenMany(){
     if (ta.value !== OPEN_SRC){ OPEN_Q = openManyParse(ta.value); OPEN_I = 0; OPEN_SRC = ta.value; }
     const left = OPEN_Q.length - OPEN_I, nxt = Math.min(OPEN_BATCH, left);
     go.disabled = !left;
-    go.textContent = !OPEN_Q.length ? "เปิด 10 คนแรก ▶" : !left ? "เปิดครบแล้ว ✓"
-      : OPEN_I ? `เปิด ${nxt} คนถัดไป ▶ (${OPEN_I + 1}–${OPEN_I + nxt} จาก ${OPEN_Q.length})` : `เปิด ${nxt} คนแรก ▶ (จาก ${OPEN_Q.length})`;
+    go.textContent = !OPEN_Q.length ? "เปิดทั้งหมด ▶" : !left ? "เปิดครบแล้ว ✓"
+      : OPEN_I ? `เปิดที่เหลือ ${left} คน ▶` : `เปิดทั้งหมด ${OPEN_Q.length} คน ▶`;
     $("#openSum").innerHTML = OPEN_Q.length
       ? `เจอ <b>${OPEN_Q.length}</b> คน · เปิดแล้ว ${OPEN_I} · เหลือ ${left}`
       : `ชื่อซ้ำ/บรรทัดที่อ่านไม่ออกตัดทิ้งให้`;
@@ -14356,6 +14356,9 @@ function wireOpenMany(){
     sum();
     const batch = OPEN_Q.slice(OPEN_I, OPEN_I + OPEN_BATCH);
     if (!batch.length) return;
+    if (batch.length > 15 && !confirm(`เปิด ${batch.length} แท็บพร้อมกัน?
+
+เปิดเยอะเครื่องอาจหน่วง และ TikTok อาจขึ้นยืนยันว่าไม่ใช่บอท`)) return;
     batch.forEach(h => window.open("https://www.tiktok.com/@" + encodeURIComponent(h), "_blank", "noopener"));
     OPEN_I += batch.length;
     vlog("openmany", { d: String(batch.length) });              // จดแค่จำนวน ไม่จดชื่อ
