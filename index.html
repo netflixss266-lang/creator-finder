@@ -2936,6 +2936,12 @@ html[data-no-assign] select.asg{pointer-events:none;opacity:.55}
 .skuover{border:1px solid rgba(var(--warn-rgb),.5);background:rgba(var(--warn-rgb),.08);color:var(--ink);border-radius:8px;
   padding:8px 11px;margin:0 0 10px;font-size:.8rem;line-height:1.6}
 .skuover .cmdbtn{margin-left:6px}
+.openpop-in{width:min(640px,100%)}
+.openact{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin-top:10px}
+.openact .qo2sum{font-size:.8rem;color:var(--mute)}
+#navBar > button{cursor:pointer}
+#navBar > button.navdrag{opacity:.45}
+#navBar > button.navover{box-shadow:inset 0 0 0 2px var(--accent)}
 </style>
 </head>
 <body>
@@ -2954,6 +2960,7 @@ html[data-no-assign] select.asg{pointer-events:none;opacity:.55}
     <!-- โหมดทีม: ห้องตรวจดราฟต์ (หน้าของตัวเอง) · คำสั่งด่วน (แผงลอย ใช้ได้จากทุกหน้า) -->
     <button data-go="review" class="teamonly">ตรวจดราฟต์<span class="nbadge" id="rvBadge" hidden></span></button>
     <button type="button" id="qoNavBtn" class="teamonly" aria-expanded="false" aria-controls="qoPop">⚡ คำสั่งด่วน</button>
+    <button type="button" id="openNavBtn" class="teamonly" aria-expanded="false" aria-controls="openPop">🔗 เปิดโปรไฟล์</button>
   </nav>
   <div class="hgroup">
     <button class="gear crewhide" id="foldBtn" aria-expanded="true"
@@ -2982,6 +2989,22 @@ html[data-no-assign] select.asg{pointer-events:none;opacity:.55}
 </div>
 
 <!-- ═══ คำสั่งด่วน — แผงลอยใต้หัวเว็บ (กล่องคำสั่ง/ผลตรวจถูกย้ายมาไว้ในนี้ตอนเปิดเว็บ) ═══ -->
+<!-- ═══ เปิดโปรไฟล์ TikTok ทีละหลายคน — แผงลอย (ไม่เก็บรายชื่อ) ═══ -->
+<div class="qopop" id="openPop" hidden>
+  <div class="qopop-in openpop-in" role="dialog" aria-label="เปิดโปรไฟล์ทีละหลายคน">
+    <div class="qopop-head"><b>🔗 เปิดโปรไฟล์ทีละหลายคน</b>
+      <span class="hint" style="margin-left:auto">โปรไฟล์ TikTok · ทีละ 10 แท็บ · ไม่เก็บรายชื่อ</span>
+      <button type="button" class="x" id="openPopClose" aria-label="ปิด">✕</button></div>
+    <textarea id="qoOpenList" rows="8" class="qo2new qo2track" style="width:100%!important"
+      placeholder="วางรายชื่อ บรรทัดละคน — ชื่อ · @ชื่อ · หรือลิงก์ TikTok ก็ได้&#10;nana.review&#10;@mintmint_&#10;https://www.tiktok.com/@cenakims"></textarea>
+    <div class="openact">
+      <button class="run" id="qoOpenGo" style="width:auto;padding:8px 18px">เปิด 10 คนแรก ▶</button>
+      <button type="button" class="export ghost" id="qoOpenClear">ล้างรายชื่อ</button>
+      <span class="qo2sum" id="openSum"></span>
+    </div>
+    <div class="qo2msg" id="openMsg"></div>
+  </div>
+</div>
 <div class="qopop" id="qoPop" hidden>
   <div class="qopop-in" role="dialog" aria-label="คำสั่งด่วน">
     <div class="qopop-head"><b>⚡ คำสั่งด่วน</b>
@@ -3497,6 +3520,7 @@ html[data-no-assign] select.asg{pointer-events:none;opacity:.55}
         <button type="button" data-mapgo="coord" title="ปิดแผนผัง ไปที่ตาราง Coordinator">▦ Coordinator</button>
         <button type="button" data-mapgo="review" title="ไปห้องตรวจดราฟต์">ตรวจดราฟต์<span class="nbadge" id="rvBadgeMap" hidden></span></button>
         <button type="button" data-mapgo="quick" title="เปิดคำสั่งด่วน (ซ้อนบนแผนผัง)">⚡ คำสั่งด่วน</button>
+        <button type="button" data-mapgo="open" title="เปิดโปรไฟล์ TikTok ทีละหลายคน (ซ้อนบนแผนผัง)">🔗 เปิดโปรไฟล์</button>
       </div>
       <div class="tabs sub" id="mapTabs" role="tablist"></div>
       <!-- KOL กับ KOC เดินคนละกระบวนการแล้ว (11 บล็อก vs 15) ดูรวมกันบางทีก็ไม่ตอบอะไร -->
@@ -13039,6 +13063,7 @@ $("#fmtBtn").onclick = openFormat;
 document.querySelectorAll("#mapView [data-mapgo]").forEach(b => b.onclick = async () => {
   const g = b.dataset.mapgo;
   if (g === "quick") return openQoPop();
+  if (g === "open") return openOpenPop();
   const p = MAP_PROJ;
   // เข้าหน้า Coordinator = เปิดแผนผังให้เป็นค่าตั้งต้น → สลับหน้าก่อน แล้วค่อยปิดแผนผังไปที่ตาราง
   if (g === "review"){ openTable(p); await setView("review"); }
@@ -14043,8 +14068,7 @@ let QO2_FOLD = false;
 try { QO2_FOLD = lsGet(LS_QO2FOLD) === "1"; } catch(e){}
 const QO2_ACT = [
   { c:"add",   th:"＋ เพิ่มคนใหม่" }, { c:"del", th:"ลบออกจากโปรเจกต์" }, { c:"move", th:"ย้ายโปรเจกต์" },
-  { c:"clear", th:"ล้างค่า" }, { c:"track", th:"📦 เลขพัสดุทีละหลายคน" }, { c:"bulk", th:"⇥ วางจากชีตหลายคน" },
-  { c:"openmany", th:"🔗 เปิดโปรไฟล์ทีละหลายคน" } ];
+  { c:"clear", th:"ล้างค่า" }, { c:"track", th:"📦 เลขพัสดุทีละหลายคน" }, { c:"bulk", th:"⇥ วางจากชีตหลายคน" } ];
 // ชื่อคำสั่งในเมนูแบบ "ทำอะไร" ให้อ่านแล้วรู้เลย (ทะเบียนเดิมเป็นชื่อช่อง เช่น "เรท" "SKU")
 // ทุกคำสั่งเป็นการตั้งค่าใหม่ทับของเดิม — หน้าตรวจโชว์ เดิม → ใหม่ ให้ดูก่อนกดใช้เสมอ
 const QO2_TH = { rate:"เพิ่ม/แก้เรท", video:"ตั้งจำนวนคลิป", status:"เปลี่ยนสถานะ", pay:"ตั้งรูปแบบภาษี",
@@ -14055,7 +14079,7 @@ const qo2Label = x => QO2_TH[x.c] || (x.doc ? "เพิ่ม/แก้ " + x.t
 // ที่เหลือซ่อนไว้หลัง "＋ แสดงคำสั่งทั้งหมด" (ใช้ตอนจะใส่ของที่โปรเจกต์ยังไม่เคยมี)
 let QO2_ALL = false;
 const QO2_CORE = new Set(["rate", "status", "sku", "cart", "hashtag", "note", "due", "post", "fb1",
-                          "add", "del", "move", "track", "bulk", "openmany"]);
+                          "add", "del", "move", "track", "bulk"]);
 function qo2GroupsAll(){
   const pick = list => list.map(c => SLASH_BY[c]).filter(Boolean);
   const g = [
@@ -14169,13 +14193,7 @@ function renderQO2(){
             `<option value="${esc(x.c)}"${x.c === c ? " selected" : ""}>${esc(qo2Label(x))}</option>`).join("")}</optgroup>`).join("")}${
           QO2_ALL ? `<option value="__less">− ย่อ: โชว์เฉพาะที่โปรเจกต์นี้ใช้</option>`
             : qo2HiddenN() ? `<option value="__all">＋ แสดงคำสั่งทั้งหมด (อีก ${qo2HiddenN()})</option>` : ""}</select></div>` +
-      (!c ? "" : c === "openmany"
-        ? `<span class="qo2step"><b>②</b> วางรายชื่อ</span>
-           <div class="qo2line"><textarea id="qoOpenList" rows="4" class="qo2new qo2track"
-             placeholder="บรรทัดละคน — ชื่อ · @ชื่อ · หรือลิงก์ TikTok ก็ได้&#10;nana.review&#10;@mintmint_&#10;https://www.tiktok.com/@cenakims"></textarea>
-             <button class="run qo2run" id="qoOpenGo">เปิด 10 คนแรก ▶</button>
-             <button type="button" class="qo2x" id="qo2X" title="ยกเลิกคำสั่งนี้">✕</button></div>`
-        : c === "track"
+      (!c ? "" : c === "track"
         ? `<span class="qo2step"><b>②</b> ลงโปรเจกต์</span>
            <select id="qo2TrackProj" class="qo2s" title="เลขพัสดุในลิสต์จะลงเฉพาะครีเอเตอร์ในโปรเจกต์นี้">${
              [`<option value="">ทุกโปรเจกต์ (หาให้เอง)</option>`].concat(PROJECTS.map(p =>
@@ -14217,7 +14235,7 @@ function renderQO2(){
   box.querySelectorAll("[data-qc]").forEach(b => b.onclick = () => pickCmd(QO2_CMD === b.dataset.qc ? "" : b.dataset.qc));
   $("#qo2Cmd").onchange = e => pickCmd(e.target.value);
   if ($("#qo2X")) $("#qo2X").onclick = () => { QO2_CMD = null; renderQO2(); };
-  if (c){ wireQO2Form(c); if (c !== "openmany") qo2Sum(c); }
+  if (c){ wireQO2Form(c); qo2Sum(c); }
 }
 // ── แผงลอยคำสั่งด่วน (ปุ่มบนหัวเว็บ) ──
 function qoPopProj(){
@@ -14322,40 +14340,82 @@ function openManyParse(text){
   return out;
 }
 function wireOpenMany(){
-  const ta = $("#qoOpenList"), go = $("#qoOpenGo"), msg = t => { $("#qo2Msg").innerHTML = t || ""; };
+  const ta = $("#qoOpenList"), go = $("#qoOpenGo"), msg = t => { $("#openMsg").innerHTML = t || ""; };
   const sum = () => {
-    const list = openManyParse(ta.value);
-    if (ta.value !== OPEN_SRC){ OPEN_Q = list; OPEN_I = 0; OPEN_SRC = ta.value; }
+    if (ta.value !== OPEN_SRC){ OPEN_Q = openManyParse(ta.value); OPEN_I = 0; OPEN_SRC = ta.value; }
     const left = OPEN_Q.length - OPEN_I, nxt = Math.min(OPEN_BATCH, left);
     go.disabled = !left;
     go.textContent = !OPEN_Q.length ? "เปิด 10 คนแรก ▶" : !left ? "เปิดครบแล้ว ✓"
       : OPEN_I ? `เปิด ${nxt} คนถัดไป ▶ (${OPEN_I + 1}–${OPEN_I + nxt} จาก ${OPEN_Q.length})` : `เปิด ${nxt} คนแรก ▶ (จาก ${OPEN_Q.length})`;
-    const s = $("#qo2Sum");
-    if (s) s.innerHTML = OPEN_Q.length
-      ? `เจอ <b>${OPEN_Q.length}</b> คน · เปิดแล้ว ${OPEN_I} · เหลือ ${left} — เปิดทีละ ${OPEN_BATCH} แท็บ (โปรไฟล์ TikTok) · ไม่เก็บรายชื่อไว้`
-      : `วางรายชื่อแล้วกดเปิด — ชื่อซ้ำ/บรรทัดที่อ่านไม่ออกตัดทิ้งให้`;
+    $("#openSum").innerHTML = OPEN_Q.length
+      ? `เจอ <b>${OPEN_Q.length}</b> คน · เปิดแล้ว ${OPEN_I} · เหลือ ${left}`
+      : `ชื่อซ้ำ/บรรทัดที่อ่านไม่ออกตัดทิ้งให้`;
   };
-  ta.value = OPEN_SRC;
-  ta.addEventListener("input", sum);
+  ta.oninput = sum;
   go.onclick = () => {
     sum();
     const batch = OPEN_Q.slice(OPEN_I, OPEN_I + OPEN_BATCH);
     if (!batch.length) return;
-    let opened = 0;
-    batch.forEach(h => { const w = window.open("https://www.tiktok.com/@" + encodeURIComponent(h), "_blank", "noopener"); if (w || opened === 0) opened++; });
-    // window.open คืน null เมื่อโดนกัน (noopener ก็คืน null บางเบราว์เซอร์) — เช็คจากแท็บที่ 2 เป็นต้นไปไม่ได้แน่นอน เลยบอกวิธีไว้เสมอ
+    batch.forEach(h => window.open("https://www.tiktok.com/@" + encodeURIComponent(h), "_blank", "noopener"));
     OPEN_I += batch.length;
     vlog("openmany", { d: String(batch.length) });              // จดแค่จำนวน ไม่จดชื่อ
     msg(`เปิด ${batch.length} แท็บแล้ว — ถ้าขึ้นแค่แท็บเดียว กดไอคอนกันป๊อปอัปท้ายแถบที่อยู่ → <b>อนุญาตป๊อปอัปจากเว็บนี้เสมอ</b> แล้วกดอีกครั้ง`);
     sum();
   };
-  const x = $("#qo2X");
-  if (x) x.onclick = () => { QO2_CMD = null; OPEN_Q = []; OPEN_I = 0; OPEN_SRC = ""; renderQO2(); };
+  $("#qoOpenClear").onclick = () => { ta.value = ""; OPEN_Q = []; OPEN_I = 0; OPEN_SRC = ""; msg(""); sum(); ta.focus(); };
   sum();
-  setTimeout(() => ta.focus(), 30);
 }
+function openOpenPop(){
+  closeQoPop && closeQoPop();
+  $("#openPop").hidden = false; $("#openNavBtn").setAttribute("aria-expanded", "true");
+  wireOpenMany();
+  setTimeout(() => $("#qoOpenList").focus(), 30);
+}
+function closeOpenPop(){ $("#openPop").hidden = true; $("#openNavBtn").setAttribute("aria-expanded", "false"); }
+$("#openNavBtn").onclick = () => $("#openPop").hidden ? openOpenPop() : closeOpenPop();
+$("#openPopClose").onclick = closeOpenPop;
+$("#openPop").onclick = e => { if (e.target.id === "openPop") closeOpenPop(); };
+document.addEventListener("keydown", e => { if (e.key === "Escape" && !$("#openPop").hidden) closeOpenPop(); });
+
+// ═══ ลำดับปุ่มบนหัวเว็บ ลากสลับได้ (จำรายบัญชี) ═══
+const LS_NAVORDER = "cf_navorder_v1";
+const navKey = b => b.dataset.go || b.id;
+function applyNavOrder(){
+  const nav = $("#navBar");
+  if (!nav) return;
+  let order = [];
+  try { order = JSON.parse(lsGet(LS_NAVORDER) || "[]") || []; } catch(e){}
+  const btns = [...nav.querySelectorAll(":scope > button")];
+  btns.sort((a, b) => {
+    const ia = order.indexOf(navKey(a)), ib = order.indexOf(navKey(b));
+    return (ia < 0 ? 999 + btns.indexOf(a) : ia) - (ib < 0 ? 999 + btns.indexOf(b) : ib);
+  }).forEach(b => nav.appendChild(b));
+}
+(function wireNavDrag(){
+  const nav = $("#navBar");
+  if (!nav) return;
+  let drag = null;
+  nav.querySelectorAll(":scope > button").forEach(b => {
+    b.draggable = true;
+    b.title = (b.title ? b.title + " · " : "") + "ลากเพื่อสลับลำดับ";
+    b.addEventListener("dragstart", e => { drag = b; b.classList.add("navdrag"); e.dataTransfer.effectAllowed = "move";
+      try { e.dataTransfer.setData("text/plain", navKey(b)); } catch(err){} });
+    b.addEventListener("dragend", () => { if (drag) drag.classList.remove("navdrag"); drag = null;
+      nav.querySelectorAll(".navover").forEach(x => x.classList.remove("navover")); });
+    b.addEventListener("dragover", e => { if (!drag || drag === b) return; e.preventDefault(); b.classList.add("navover"); });
+    b.addEventListener("dragleave", () => b.classList.remove("navover"));
+    b.addEventListener("drop", e => {
+      e.preventDefault(); b.classList.remove("navover");
+      if (!drag || drag === b) return;
+      const r = b.getBoundingClientRect();
+      nav.insertBefore(drag, e.clientX > r.left + r.width / 2 ? b.nextSibling : b);
+      try { lsSet(LS_NAVORDER, JSON.stringify([...nav.querySelectorAll(":scope > button")].map(navKey))); } catch(err){}
+      vlog("nav:order");
+    });
+  });
+})();
+applyNavOrder();
 function wireQO2Form(c){
-  if (c === "openmany") return wireOpenMany();
   const msg = t => { $("#qo2Msg").textContent = t || ""; };
   // ── ใคร ──
   const btn = $("#qo2DdBtn"), pan = $("#qo2Pan"), list = $("#qo2List");
@@ -21492,7 +21552,8 @@ document.addEventListener("keydown", e => {
   }
 }, true);
 
-document.querySelectorAll(".hcard,.nav button").forEach(b =>
+// เฉพาะปุ่มที่ไปหน้าอื่น (data-go) — ปุ่มแผงลอย (คำสั่งด่วน / เปิดโปรไฟล์) ผูก onclick ของตัวเอง
+document.querySelectorAll(".hcard,.nav button[data-go]").forEach(b =>
   b.onclick = () => setView(b.dataset.go));
 $("#brandBtn").onclick = () => setView("home");
 
