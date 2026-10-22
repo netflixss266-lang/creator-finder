@@ -5543,6 +5543,11 @@ const STAGES = [
   { v:"Feedback Draft 2",         th:"ฟีดแบค Draft 2 แล้ว", c:"s-fb",   a:/ฟีดแบค\s*draft\s*2/i },
   { v:"Waiting Draft 3",          th:"รอ Draft 3",          c:"s-wait", a:/รอ\s*draft\s*3/i },
   { v:"Feedback Draft 3",         th:"ฟีดแบค Draft 3 แล้ว", c:"s-fb",   a:/ฟีดแบค\s*draft\s*3/i },
+  // Draft 4–5 (2026-10-22) — งานที่แก้เกิน 3 รอบ
+  { v:"Waiting Draft 4",          th:"รอ Draft 4",          c:"s-wait", a:/รอ\s*draft\s*4/i },
+  { v:"Feedback Draft 4",         th:"ฟีดแบค Draft 4 แล้ว", c:"s-fb",   a:/ฟีดแบค\s*draft\s*4/i },
+  { v:"Waiting Draft 5",          th:"รอ Draft 5",          c:"s-wait", a:/รอ\s*draft\s*5/i },
+  { v:"Feedback Draft 5",         th:"ฟีดแบค Draft 5 แล้ว", c:"s-fb",   a:/ฟีดแบค\s*draft\s*5/i },
   { v:"Waiting to Post",          th:"รอโพสต์",             c:"s-wait", a:/รอโพสต์/i },
   { v:"Already Posted",           th:"โพสต์แล้ว",           c:"s-done", a:/โพสต์แล้ว/i },
   { v:"Waiting Gencode",          th:"รอ Gencode",          c:"s-pay",  a:/gencode/i },
@@ -8786,21 +8791,22 @@ const CMD_BLOCKS = [
 
 หากเกิดปัญหาในการเข้า Doc รบกวนแจ้งครีเอเตอร์นะครับ😊` },
 
-  { t:"10. Feedback Draft #1", to:"Feedback Draft 1", clip:true, b:
+  // กด "ส่งแล้ว" ที่กล่องฟีดแบค = ย้ายไปรอดราฟต์ถัดไปเลย (2026-10-22) · เดิมค้างที่ "ฟีดแบค Draft N แล้ว"
+  { t:"10. Feedback Draft #1", to:"Waiting Draft 2", clip:true, b:
 `แอดมินขออนุญาตส่ง Feedback Draft#1 นะครับ😀
 📦สำหรับ: {{sku}}
 📌📌
 
 {{feedback1}}` },
 
-  { t:"11. Feedback Draft #2", to:"Feedback Draft 2", clip:true, b:
+  { t:"11. Feedback Draft #2", to:"Waiting Draft 3", clip:true, b:
 `แอดมินขออนุญาตส่ง Feedback Draft#2 นะครับ😀
 📦สำหรับ: {{sku}}
 📌📌
 
 {{feedback2}}` },
 
-  { t:"12. Feedback Draft #3", to:"Feedback Draft 3", clip:true, b:
+  { t:"12. Feedback Draft #3", to:"Waiting Draft 4", clip:true, b:
 `แอดมินขออนุญาตส่ง Feedback Draft#3 นะครับ😀
 📦สำหรับ: {{sku}}
 📌📌
@@ -8888,6 +8894,20 @@ Hashtag:📱
   { t:"อัปเดตเลขที่จัดส่ง", to:"Sent Tracking", ord:CMD_ADDR_ORD + 0.5, b:
 `แอดมินขออนุญาตอัปเดตเลขที่จัดส่งนะครับ🙇‍♂️
 {{tracklist}}` },
+  // Draft 4–5 — ต่อท้าย array (ห้ามแทรกกลาง เลขบล็อกคือ index) · ord ต่อจาก "12. Feedback Draft #3"
+  // late = โชว์เฉพาะคนที่ถึงรอบนั้นแล้ว (สถานะเลย Draft 3 / มีฟีดแบคค้างในช่อง) — คนส่วนใหญ่ไม่ต้องเห็นกล่องเกินมา
+  { t:"Feedback Draft #4", to:"Waiting Draft 5", clip:true, late:4, ord:11.3, b:
+`แอดมินขออนุญาตส่ง Feedback Draft#4 นะครับ😀
+📦สำหรับ: {{sku}}
+📌📌
+
+{{feedback4}}` },
+  { t:"Feedback Draft #5", to:"Feedback Draft 5", clip:true, late:5, ord:11.6, b:
+`แอดมินขออนุญาตส่ง Feedback Draft#5 นะครับ😀
+📦สำหรับ: {{sku}}
+📌📌
+
+{{feedback5}}` },
 ];
 
 // ─── ต้นแบบรุ่นก่อนหน้า ───
@@ -9467,7 +9487,7 @@ function cmdValues(r){
   for (let n = 1; n <= clips; n++) perClip["sku" + n] = skuOf(r, n) || r.sku || "";
   // ฟีดแบคแยกทั้ง "ดราฟต์ที่เท่าไหร่" และ "ของชุดไหน" — คนละคลิปคือคนละงาน
   // ชุดแรกใช้คีย์เดิม (feedback1) ของเก่าจะได้ไม่ต้องย้าย
-  for (let d = 1; d <= 3; d++)
+  for (let d = 1; d <= 5; d++)
     for (let n = 2; n <= clips; n++)
       perClip[`feedback${d}_${n}`] = own[`feedback${d}_${n}`] || "";
   // 🔥 ลิงก์เฉพาะคนนี้ที่หน้า "ลิงก์" ต้องใหญ่ที่สุดเสมอ — ต้องแทนที่ "ข้อมูลเก่า" ได้ด้วย ไม่ใช่แค่
@@ -9518,7 +9538,7 @@ function cmdValues(r){
     // บล็อก 5 ส่ง {{brief}} เป็นคู่มือถ่ายทำ — ชีตไม่ได้กรอกบรีฟไว้ก็ตกมาใช้คู่มือของ SKU
     // แต่ถ้าหน้าลิงก์เฉพาะคนนี้ตั้งไว้แล้ว (guideMine(1)) ต้องชนะของในชีตด้วยเสมอ (ดูเหตุผลด้านบน)
     brief: guideMine(1) != null ? guideMine(1) : (briefList[0] || guide),
-    feedback1: fb(1), feedback2: fb(2), feedback3: fb(3),
+    feedback1: fb(1), feedback2: fb(2), feedback3: fb(3), feedback4: fb(4), feedback5: fb(5),
     feedback: fb(1),                       // ชื่อเดิม เผื่อมีคนแก้ต้นแบบไว้เองแล้วยังใช้อยู่
     // เอกสารทุกชนิดใน DOCS ใช้เป็นตัวแปรใน Command ได้หมด {{sg}} {{agreement}} ฯลฯ
     ...Object.fromEntries(DOCS.map(d => [d.k, L(d.k)])),
@@ -9548,6 +9568,7 @@ const CMD_GAP = Object.assign(
     net:"คิดไม่ได้ ต้องมีเรท+รูปแบบภาษี", brief:"ยังไม่มีลิงก์บรีฟ",
     feedback:"ยังไม่มีฟีดแบค", feedback1:"ยังไม่มีฟีดแบค Draft 1",
     feedback2:"ยังไม่มีฟีดแบค Draft 2", feedback3:"ยังไม่มีฟีดแบค Draft 3",
+    feedback4:"ยังไม่มีฟีดแบค Draft 4", feedback5:"ยังไม่มีฟีดแบค Draft 5",
     docs:"ยังไม่มีลิงก์เอกสารของกลุ่มนี้",
     liveslot:"ยังไม่ได้ลงวันไลฟ์", livedate:"ยังไม่ได้ลงวันไลฟ์",
     livetime:"ยังไม่ได้ลงเวลาไลฟ์", livehours:"ยังไม่ได้ลงเวลาไลฟ์" });
@@ -9583,12 +9604,12 @@ function liveVals(sl){
 const clipKey = (k, clip) => {
   if (!(clip >= 1)) return k;
   if (DOC_BY_KEY[k] || k === "sku" || k === "brief") return k + clip;
-  const m = String(k).match(/^feedback([123])?$/);
+  const m = String(k).match(/^feedback([1-5])?$/);
   return m ? fbKey(Number(m[1] || 1), clip) : k;
 };
 // แยกคีย์ฟีดแบครายคลิปกลับเป็น {ดราฟต์, คลิป}
 const fbSplit = k => {
-  const m = String(k).match(/^feedback([123])(?:_(\d+))?$/);
+  const m = String(k).match(/^feedback([1-5])(?:_(\d+))?$/);
   return m ? { d: Number(m[1]), n: Number(m[2] || 1) } : null;
 };
 // ป้ายของช่องว่าง — รวมช่องรายคลิปที่สร้างขึ้นตอนรัน ({{cart2}} = ตะกร้าของชุด 2)
@@ -9611,7 +9632,7 @@ function gapLabel(k){
 }
 
 // ─── ฟีดแบครายคน รายดราฟต์ (และรายชุด ถ้าได้หลาย SKU) ───
-const FB_ROUNDS = [1, 2, 3];
+const FB_ROUNDS = [1, 2, 3, 4, 5];
 // set = ชุดที่เท่าไหร่ (1 หรือไม่ใส่ = ชุดแรก ใช้คีย์เดิม)
 const fbKey = (n, set) => "feedback" + n + (set > 1 ? "_" + set : "");
 function fbCount(proj, handle, clips){
@@ -9859,7 +9880,7 @@ function cmdBlocksAll(proj, kind, level){
              t: up === 1 ? gt : up === 2 ? pt : ((ke && ke.t) || pt),
              b: up === 1 ? gb : up === 2 ? pb : ((ke && ke.b != null) ? ke.b : pb),
              pt, pb, gt, gb, kindEdited: !!ke, split, globalEdited: !!ge,
-             clip: !!def.clip, kind: def.kind || "", law: !!def.law, live: !!def.live,
+             clip: !!def.clip, kind: def.kind || "", law: !!def.law, live: !!def.live, late: def.late || 0,
              // null = ได้ทุกคน · ต้องส่งต่อจากต้นแบบ ไม่งั้นตัวกรอง "มีเรทชำระไหม" จะไม่เห็นค่านี้เลย
              pay: def.pay == null ? null : !!def.pay,
              ord, custom, from, edited: !!ed, hidden: !!hidBy, hidBy, base: def };
@@ -9935,10 +9956,19 @@ function setCmdOwnBlock(proj, handle, rawId, key, val){
 // เลขบล็อกคือคีย์ที่ของทุกคนแขวนอยู่ — เพิ่ม/ย้ายใช้ ord เศษส่วน ไม่ขยับเลขของใครเลย
 // แท็บรายคนเห็นเฉพาะบล็อกที่คนนี้ได้จริง (ตามเรทชำระ · กลุ่ม · ไลฟ์) — ไม่งั้นย้ายลำดับข้ามบล็อกที่เขาไม่ได้รับ
 // เช่น "1. (ไม่มีเรทชำระ)" แล้วดูเหมือนกดไม่ติด
+// กล่องฟีดแบค Draft 4–5 โชว์เมื่อ: สถานะถึง "รอ Draft N" แล้ว · หรือมีฟีดแบครอบนั้นพิมพ์ไว้ · หรือเคยกดส่งไปแล้ว
+function lateOk(bl, r){
+  if (!bl.late) return true;
+  if (r && mapStage(r.status) >= stageAt("Waiting Draft " + bl.late)) return true;
+  const o = r ? cmdOwnRead(r.project, r.handle) : null;
+  if (!o) return false;
+  if (Object.keys(o.links || {}).some(k => k === "feedback" + bl.late || k.startsWith("feedback" + bl.late + "_"))) return true;
+  return Object.keys(o.sent || {}).some(k => k.split(":")[0] === String(bl.id));
+}
 function cmdForCreator(proj, handle){
   const r = (COORD[proj] || []).find(x => normId(x.handle) === normId(handle));
   const paid = hasPayRate(r), K = cmdRowKind(proj, handle), liveProj = mapFmt(proj) === "cal";
-  return cmdBlocksFor(proj, handle).filter(b => b.onlyMine || (blockForPay(b, paid, K) && (!b.live || liveProj)));
+  return cmdBlocksFor(proj, handle).filter(b => b.onlyMine || (blockForPay(b, paid, K) && (!b.live || liveProj) && lateOk(b, r)));
 }
 function cmdScopeView(scope, proj, handle){
   if (scope === "mine") return cmdForCreator(proj, handle);
@@ -10470,7 +10500,7 @@ function openCmd(proj, handle){
   // ถ้าโชว์ทุกโปรเจกต์ ทุกคนจะได้บล็อกที่ขึ้นช่องแดง "ยังไม่ได้ลงวันไลฟ์" ค้างไว้ตลอดกาล
   const liveProj = mapFmt(proj) === "cal";
   cmdBlocksFor(proj, handle)
-    .filter(bl => blockForPay(bl, paid, K) && (!bl.live || liveProj))
+    .filter(bl => blockForPay(bl, paid, K) && (!bl.live || liveProj) && lateOk(bl, r))
     .forEach(bl => {
     const id = bl.id;
     // บล็อก 5 ไม่มี {{guide}} ตรงๆ ในตัวข้อความเลย — พูดถึงคู่มือถ่ายทำผ่าน {{brief}} เท่านั้น
@@ -10886,7 +10916,7 @@ function openCmd(proj, handle){
   // ⚠️ ช่องที่ยังมีค่าอยู่ต้องไม่ซ่อน — ซ่อนของที่มีค่า = ลบไม่ได้ ล้างไม่ได้ ไม่รู้ด้วยซ้ำว่ามีค้างอยู่
   //    โชว์ต่อพร้อมป้าย "ไม่มีบล็อกไหนใช้" ให้ตัดสินใจเองว่าจะล้างหรือเก็บไว้
   const usedMine = () => cmdKeysUsed(cmdBlocksFor(proj, handle)
-    .filter(bl => blockForPay(bl, paid, K) && (!bl.live || liveProj)));
+    .filter(bl => blockForPay(bl, paid, K) && (!bl.live || liveProj) && lateOk(bl, r)));
   const usedAll = () => cmdKeysUsed(cmdBlocks(proj).concat(cmdBlocks(proj, "KOL"), cmdBlocks(proj, "KOC")));
   // ── ตารางไลฟ์ในหน้าลิงก์ ──
   // วัน–เวลาไลฟ์เป็นข้อมูลรายคนเหมือนลิงก์อื่น แต่ "ที่เก็บ" คือช่องโพสต์ในตาราง ไม่ใช่ถังลิงก์
@@ -11305,7 +11335,7 @@ const stIx = v => STAGES.findIndex(x => x.v === v);
 const MAP_PHASES = [
   { k:"start", th:"เริ่มงาน", sub:"คอนเฟิร์มร่วมงาน",   from:stIx("Waiting Confirm"),  to:stIx("Confirmed"),          c:"#8B8BFF" },
   { k:"ship",  th:"ส่งของ",   sub:"จัดส่ง + ส่ง SG",     from:stIx("Waiting Delivery"), to:stIx("Already Sent to SG"), c:"#4FB3D9" },
-  { k:"make",  th:"ทำคลิป",   sub:"สคริป + Draft 1-3",  from:stIx("Waiting Script"),   to:stIx("Feedback Draft 3"),   c:"#F5B546" },
+  { k:"make",  th:"ทำคลิป",   sub:"สคริป + Draft 1-5",  from:stIx("Waiting Script"),   to:stIx("Feedback Draft 5"),   c:"#F5B546" },
   { k:"post",  th:"โพสต์",    sub:"ขึ้นคลิป",            from:stIx("Waiting to Post"),  to:stIx("Already Posted"),     c:"#46D369" },
   { k:"pay",   th:"ทำจ่าย",   sub:"Gencode + เบิกจ่าย",  from:stIx("Waiting Gencode"),  to:STAGES.length - 1,          c:"#E50914" },
 ];
@@ -14797,7 +14827,7 @@ const RV_ROLES = {
   brand:   { th:"แบรนด์",     c:"var(--rv-brand)" },
   creator: { th:"ครีเอเตอร์", c:"var(--rv-creator)" },
 };
-const RV_STEPS = [["cf","แบรนด์ CF"],["ship","ของถึง"],["pre","SG · สคริป"],["d1","Draft 1"],["d2","Draft 2"],["d3","Draft 3"],["canpost","โพสต์ได้"],["posted","โพสต์แล้ว"]];
+const RV_STEPS = [["cf","แบรนด์ CF"],["ship","ของถึง"],["pre","SG · สคริป"],["d1","Draft 1"],["d2","Draft 2"],["d3","Draft 3"],["d4","Draft 4"],["d5","Draft 5"],["canpost","โพสต์ได้"],["posted","โพสต์แล้ว"]];
 const rvMe = () => (PROFILE || {}).display_name || "ฉัน";
 const rvRole = () => RV_ROLE || (["admin", "manager"].includes((PROFILE || {}).role) ? "pm" : "ibd");
 const rvKey = r => cmdKey(r.project, r.handle);
@@ -15038,7 +15068,7 @@ function rvWire(r, rd){
     if (a === "pm-no"){ rvSay(rd, "pm", "ขอแก้ก่อนส่งแบรนด์", "reject", "", true); rd.stage = "relay"; }
     if (a === "br-ok"){ rvSay(rd, "brand", "ผ่าน โพสต์ได้", "ok", "", true); rd.stage = "done"; rvSetStatus(r, "Waiting to Post"); }
     if (a === "br-edit"){ rvSay(rd, "brand", "ขอแก้", "edit", "", true); rd.stage = "relay"; }
-    if (a === "next"){ rd.stage = "done"; rd.open = false; rvSetStatus(r, rd.n < 3 ? `Waiting Draft ${rd.n + 1}` : "Waiting Draft 3"); }
+    if (a === "next"){ rd.stage = "done"; rd.open = false; rvSetStatus(r, rd.n < 5 ? `Waiting Draft ${rd.n + 1}` : "Waiting Draft 5"); }
     vlog("review", { p: r.project, h: normId(r.handle), d: { a } });
     redraw();
   });
@@ -15070,7 +15100,8 @@ function rvWire(r, rd){
       setCmdOwnLink(r.project, r.handle, fbKey(rd.n), ta.value.trim());
       rd.draft = ta.value.trim(); rd.stage = "sent";
       rvLog(rd, `ส่งเข้า Command · Feedback Draft ${rd.n}`);
-      rvSetStatus(r, `Feedback Draft ${rd.n}`);
+      // ส่งฟีดแบคแล้ว = รอดราฟต์ถัดไปเลย (รอบสุดท้าย Draft 5 ค้างที่ "ฟีดแบค Draft 5 แล้ว")
+      rvSetStatus(r, rd.n < 5 ? `Waiting Draft ${rd.n + 1}` : `Feedback Draft ${rd.n}`);
       vlog("review", { p: r.project, h: normId(r.handle), d: { a: "send-cmd", n: rd.n } });
       redraw();
     };
@@ -19497,7 +19528,7 @@ function readCmdOps(text){
   for (const [k, re] of CLEAR_DOC_RE) if (re.test(text)) ops.clear.push(k);
   if (ops.clear.length) return ops;
   // ฟีดแบคสั้นๆ สั่งจากช่องนี้ได้ ยาวๆ ให้ไปพิมพ์ในกล่อง ✎ Feedback
-  const mf = text.match(/(?:feedback|ฟีดแบค|ฟีดแบก)\s*(?:draft\s*)?([123])\s*[:：=]?\s*([\s\S]+)$/i);
+  const mf = text.match(/(?:feedback|ฟีดแบค|ฟีดแบก)\s*(?:draft\s*)?([1-5])\s*[:：=]?\s*([\s\S]+)$/i);
   if (mf && mf[2].trim()) ops.links[fbKey(+mf[1])] = mf[2].trim();
   const mb = text.match(/(?:command|คอมมานด์|คอมมาน|ข้อความ)\s*(?:ที่\s*)?(\d{1,2})\s*[:：=]\s*([\s\S]+)$/i);
   if (mb){
@@ -20176,7 +20207,7 @@ const ADMIN_CMDS = [
   { k:"cols",   re:/^(?:ทุกคอลัมน์|คอลัมน์หลัก|columns?)$/i,        label:"สลับโหมดคอลัมน์" },
   { k:"help",   re:/^(?:ช่วย|help|\?)$/i,                           label:"เปิดคู่มือคำสั่ง" },
   // ล้างฟีดแบคทีเดียวทุกคน — ฟีดแบครอบเก่าค้างไว้แล้วส่งซ้ำคือเรื่องใหญ่กว่าพิมพ์ใหม่
-  { k:"fbclear",re:/^(?:ล้าง|เคลียร์|clear)\s*(?:feedback|ฟีดแบค|ฟีดแบก)\s*(?:draft\s*)?([123]|ทั้งหมด|all)?\s*$/i,
+  { k:"fbclear",re:/^(?:ล้าง|เคลียร์|clear)\s*(?:feedback|ฟีดแบค|ฟีดแบก)\s*(?:draft\s*)?([1-5]|ทั้งหมด|all)?\s*$/i,
     label:"ล้าง Feedback ของทุกคน" },
 ];
 
@@ -20278,7 +20309,7 @@ function parseSlashLine(line, pending){
   }
   if (word === "reset"){
     const what = (whoRaw + " " + value).trim().toLowerCase();
-    const mf = what.match(/^fb\s*([123])$/) || what.match(/^feedback\s*([123])$/);
+    const mf = what.match(/^fb\s*([1-5])$/) || what.match(/^feedback\s*([1-5])$/);
     if (mf) return [{ line, ok:true, admin:"fbclear", rounds:[Number(mf[1])], changes:{},
       note:`ล้าง Feedback Draft ${mf[1]} ของทุกคน` }];
     if (/^fb|^feedback/.test(what))
@@ -20486,7 +20517,8 @@ function parseAdminLine(line){
 
 const CMD_LINK_TH = Object.assign(
   Object.fromEntries(DOCS.map(d => [d.k, d.th])),
-  { feedback1:"Feedback Draft 1", feedback2:"Feedback Draft 2", feedback3:"Feedback Draft 3" });
+  { feedback1:"Feedback Draft 1", feedback2:"Feedback Draft 2", feedback3:"Feedback Draft 3",
+    feedback4:"Feedback Draft 4", feedback5:"Feedback Draft 5" });
 // สรุปว่าคำสั่งนี้ไปแตะ Command ของคนนี้ตรงไหนบ้าง
 function cmdOpsText(o){
   return Object.keys(o.blocks).map(i =>
@@ -20741,7 +20773,7 @@ function setAiMsg(t, k){ const e = $("#aiMsg"); e.className = "addmsg on " + k; 
 // รายชื่อที่ AI ตอบกลับได้ — นอกลิสต์นี้ถือว่าไม่ถูกต้อง ตัดทิ้ง
 const AI_FIELDS = ["rate","videos","status","paytype","kind","sku","code",
                    "note","postdate","deadline","brief"];
-const AI_LINKS = DOCS.map(d => d.k).concat("feedback1","feedback2","feedback3");
+const AI_LINKS = DOCS.map(d => d.k).concat("feedback1","feedback2","feedback3","feedback4","feedback5");
 
 function aiPrompt(lines){
   const handles = [...handleIndex().keys()].slice(0, 250);
@@ -21888,7 +21920,6 @@ async function migrateSentTracking(){
     const at = Number(sent[TRACK_BLOCK_ID] || sent[TRACK_BLOCK_ID + ":1"] || 0);
     if (at) todo.push({ r, at });
   }));
-  if (!todo.length) return;
   let n = 0;
   for (const { r, at } of todo){
     try {
@@ -21903,6 +21934,22 @@ async function migrateSentTracking(){
       if (b) b.status = "Sent Tracking";            // ฐานรู้แล้ว — ซิงก์รอบหน้าไม่ต้องส่งซ้ำ
       n++;
     } catch(e){ console.warn("sent-tracking", e); }
+  }
+  // ── ฟีดแบค Draft N แล้ว (N = 1–4) → รอ Draft N+1 (process ใหม่ 2026-10-22: ส่งฟีดแบคแล้วรอดราฟต์ถัดไปเลย) ──
+  //    วันที่คงเดิม = วันที่ส่งฟีดแบค (นับว่ารอดราฟต์ถัดไปมาตั้งแต่ตอนนั้น)
+  for (const p of PROJECTS.filter(isTeamProj)) for (const r of (COORD[p] || [])){
+    const m = String(r.status || "").match(/^Feedback Draft ([1-4])$/);
+    if (!m || !r._id) continue;
+    const to = "Waiting Draft " + (Number(m[1]) + 1), keepAt = r._sat, keepEst = !!r._sate;
+    try {
+      await sbSend(SB_URL + "/rest/v1/coord?id=eq." + encodeURIComponent(r._id) + "&status=eq." + encodeURIComponent(r.status),
+        "PATCH", { status: to }, "ย้ายสถานะไม่ได้");
+      if (keepAt) await sbSend(SB_URL + "/rest/v1/coord?id=eq." + encodeURIComponent(r._id), "PATCH",
+        { status_at: keepAt, status_at_est: keepEst }, "ตั้งวันที่ไม่ได้");
+      const b = BASE && BASE[r.project] && BASE[r.project].get(coordKey(r));
+      r.status = to; if (b) b.status = to;
+      n++;
+    } catch(e){ console.warn("feedback→waiting", e); }
   }
   if (n){
     vlog("migrate:sent-tracking", { d: String(n) });
