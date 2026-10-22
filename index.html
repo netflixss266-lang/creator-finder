@@ -2948,6 +2948,17 @@ html[data-no-assign] select.asg{pointer-events:none;opacity:.55}
 #navBar > button{cursor:pointer}
 #navBar > button.navdrag{opacity:.45}
 #navBar > button.navover{box-shadow:inset 0 0 0 2px var(--accent)}
+.openrate{margin-top:10px;font-size:.78rem;color:var(--mute)}
+.openrate .orrow{display:flex;flex-wrap:wrap;gap:6px;align-items:center}
+.openrate .orw{border:1px solid var(--line);border-radius:999px;padding:2px 9px}
+.openrate .orw.warn{border-color:#E0A13A;color:#E0A13A}
+.openrate .orw.red{border-color:#E5484D;color:#E5484D}
+.openrate .orbtn{background:none;border:1px solid var(--line);color:var(--mute);border-radius:6px;padding:2px 8px;font-size:.75rem;cursor:pointer}
+.openrate .orbtn:hover{color:var(--ink);border-color:var(--ink)}
+.openrate .orstop{color:#fff;background:#C62F35;border-radius:8px;padding:8px 11px;margin-bottom:8px;font-size:.88rem;font-weight:600}
+.openrate .orwarn{color:#E0A13A;border:1px solid #E0A13A;border-radius:8px;padding:6px 10px;margin-bottom:8px}
+.openrate .orhint{margin-top:5px;font-size:.72rem;opacity:.8}
+#qoOpenGo.orblock{background:#C62F35!important;color:#fff!important;opacity:1}
 </style>
 </head>
 <body>
@@ -3008,6 +3019,7 @@ html[data-no-assign] select.asg{pointer-events:none;opacity:.55}
       <button type="button" class="export ghost" id="qoOpenClear">ล้างรายชื่อ</button>
       <span class="qo2sum" id="openSum"></span>
     </div>
+    <div class="openrate" id="openRate"></div>
     <div class="qo2msg" id="openMsg"></div>
   </div>
 </div>
@@ -14345,17 +14357,90 @@ function openManyParse(text){
   });
   return out;
 }
+// ── กันโดน TikTok "Access Denied" ──
+// TikTok ไม่ประกาศเพดาน — เกณฑ์ข้างล่างเป็นค่าประมาณแบบระวังไว้ก่อน (นับต่อเครื่อง/เบราว์เซอร์ เพราะ TikTok จำกัดตาม IP+เบราว์เซอร์)
+// จดแค่ "เวลาที่เปิด" ไม่จดชื่อ · กด "โดน Access denied แล้ว" = เรียนรู้: ลดเพดานเหลือ 70% ของที่เปิดไปจริงตอนโดน + พัก 30 นาที
+const LS_OPENRATE = "cf_openrate_v1";
+const OPEN_WIN = [
+  { k:"m1",  ms:60e3,     th:"1 นาที",   lim:20 },
+  { k:"m10", ms:600e3,    th:"10 นาที",  lim:40 },
+  { k:"h1",  ms:3600e3,   th:"1 ชั่วโมง", lim:80 },
+  { k:"d1",  ms:86400e3,  th:"24 ชั่วโมง", lim:300 } ];
+const OPEN_COOL = 30 * 60e3;
+function openRateRead(){
+  let o = {};
+  try { o = JSON.parse(lsGet(LS_OPENRATE) || "{}") || {}; } catch(e){}
+  const now = Date.now();
+  o.t = (o.t || []).filter(x => now - x < 86400e3);
+  o.lim = o.lim || {};
+  return o;
+}
+function openRateSave(o){ try { lsSet(LS_OPENRATE, JSON.stringify(o)); } catch(e){} }
+// สถานะตอนนี้: เปิดได้อีกกี่คน · ติดหน้าต่างไหน · ต้องรอนานเท่าไร
+function openRateState(){
+  const o = openRateRead(), now = Date.now();
+  if (o.cool && now < o.cool) return { o, left:0, cool:o.cool - now, lvl:"red", rows:[] };
+  let left = Infinity, wait = 0, lvl = "ok";
+  const rows = OPEN_WIN.map(w => {
+    const ts = o.t.filter(x => now - x < w.ms), lim = o.lim[w.k] || w.lim, n = ts.length;
+    const room = Math.max(0, lim - n);
+    if (room < left) left = room;
+    if (!room && ts.length) wait = Math.max(wait, w.ms - (now - ts[ts.length - lim < 0 ? 0 : ts.length - lim]));
+    const r = n / lim;
+    if (r >= 1) lvl = "red"; else if (r >= .7 && lvl !== "red") lvl = "warn";
+    return { w, n, lim, r };
+  });
+  return { o, left, wait, lvl, rows };
+}
+const fmtWait = ms => ms >= 3600e3 ? `${Math.ceil(ms / 3600e3)} ชม.` : ms >= 60e3 ? `${Math.ceil(ms / 60e3)} นาที` : `${Math.ceil(ms / 1e3)} วินาที`;
 function wireOpenMany(){
   const ta = $("#qoOpenList"), go = $("#qoOpenGo"), msg = t => { $("#openMsg").innerHTML = t || ""; };
+  const rate = () => {
+    const st = openRateState(), el = $("#openRate");
+    const bars = st.rows.map(x => `<span class="orw ${x.r >= 1 ? "red" : x.r >= .7 ? "warn" : ""}" title="เพดานโดยประมาณ ${x.lim} คน/${x.w.th}">
+        ${x.w.th} <b>${x.n}</b>/${x.lim}</span>`).join("");
+    el.className = "openrate " + st.lvl;
+    el.innerHTML = (st.lvl === "red"
+        ? `<div class="orstop">⛔ ห้ามเปิดต่อ — เสี่ยงโดน TikTok Access denied · รออีก <b>${fmtWait(st.cool || st.wait)}</b></div>`
+        : st.lvl === "warn" ? `<div class="orwarn">⚠ ใกล้เพดานแล้ว — เปิดได้อีกราว <b>${st.left}</b> คน ควรพักก่อน</div>` : "")
+      + `<div class="orrow">${bars}
+          <button type="button" class="orbtn" id="openDenied" title="กดเมื่อ TikTok ขึ้น Access denied / ให้ยืนยันว่าไม่ใช่บอท — เว็บจะลดเพดานให้อัตโนมัติ">🚫 โดน Access denied แล้ว</button>
+          ${Object.keys(st.o.lim).length || st.o.cool ? `<button type="button" class="orbtn" id="openRateReset" title="คืนเพดานเริ่มต้น + ยกเลิกการพัก">คืนค่าเริ่มต้น</button>` : ""}</div>
+        <div class="orhint">ตัวเลขเป็นค่าประมาณ (TikTok ไม่ประกาศเพดาน) · นับเฉพาะเครื่องนี้ · ไม่จดชื่อ</div>`;
+    $("#openDenied").onclick = () => {
+      const o = openRateRead(), now = Date.now();
+      OPEN_WIN.forEach(w => {
+        const n = o.t.filter(x => now - x < w.ms).length;
+        if (n >= 5) o.lim[w.k] = Math.max(5, Math.min(o.lim[w.k] || w.lim, Math.floor(n * .7)));
+      });
+      // โดนเพราะเปิดรัวช่วงสั้น ไม่ได้แปลว่าทั้งวันเปิดได้แค่นั้น — หน้าต่างยาวต้องไม่ต่ำกว่าหน้าต่างสั้น ×2 / ×2 / ×3
+      [["m10","m1",2],["h1","m10",2],["d1","h1",3]].forEach(([a, b, x]) => {
+        const lb = o.lim[b] || OPEN_WIN.find(w => w.k === b).lim, la = o.lim[a] || OPEN_WIN.find(w => w.k === a).lim;
+        if (la < lb * x) o.lim[a] = Math.min(OPEN_WIN.find(w => w.k === a).lim, lb * x);
+      });
+      o.cool = now + OPEN_COOL;
+      openRateSave(o);
+      vlog("openmany:denied");
+      msg(`จดไว้แล้ว — พัก 30 นาที และลดเพดานลงให้ต่ำกว่าที่โดนครั้งนี้ · ระหว่างนี้ปิดแท็บ TikTok ที่ค้างอยู่ก่อน`);
+      sum();
+    };
+    const rs = $("#openRateReset");
+    if (rs) rs.onclick = () => { const o = openRateRead(); o.lim = {}; delete o.cool; openRateSave(o); sum(); };
+    return st;
+  };
   const sum = () => {
     if (ta.value !== OPEN_SRC){ OPEN_Q = openManyParse(ta.value); OPEN_I = 0; OPEN_SRC = ta.value; }
-    const left = OPEN_Q.length - OPEN_I, nxt = Math.min(OPEN_BATCH, left);
-    go.disabled = !left;
-    go.textContent = !OPEN_Q.length ? "เปิดทั้งหมด ▶" : !left ? "เปิดครบแล้ว ✓"
+    const left = OPEN_Q.length - OPEN_I, st = rate();
+    const cap = Math.min(left, st.left);
+    go.disabled = !left || !cap;
+    go.classList.toggle("orblock", !!left && !cap);
+    go.textContent = !OPEN_Q.length ? "เปิดทั้งหมด ▶" : !left ? "เปิดครบแล้ว ✓" : !cap ? "⛔ ห้ามเปิดต่อ"
+      : cap < left ? `เปิดได้แค่ ${cap} คน ▶ (กันโดนบล็อก)`
       : OPEN_I ? `เปิดที่เหลือ ${left} คน ▶` : `เปิดทั้งหมด ${OPEN_Q.length} คน ▶`;
     $("#openSum").innerHTML = OPEN_Q.length
       ? `เจอ <b>${OPEN_Q.length}</b> คน · เปิดแล้ว ${OPEN_I} · เหลือ ${left}`
       : `ชื่อซ้ำ/บรรทัดที่อ่านไม่ออกตัดทิ้งให้`;
+    return cap;
   };
   ta.oninput = sum;
   // Enter = เปิดเลย · Shift+Enter = ขึ้นบรรทัดใหม่ (วางลิสต์ไม่โดน — การวางไม่ใช่การกด Enter)
@@ -14363,13 +14448,16 @@ function wireOpenMany(){
     if (e.key === "Enter" && !e.shiftKey && !e.isComposing){ e.preventDefault(); go.click(); }
   };
   go.onclick = () => {
-    sum();
-    const batch = OPEN_Q.slice(OPEN_I, OPEN_I + OPEN_BATCH);
+    const cap = sum();
+    const batch = OPEN_Q.slice(OPEN_I, OPEN_I + Math.min(OPEN_BATCH, cap));
     if (!batch.length) return;
     if (batch.length > 15 && !confirm(`เปิด ${batch.length} แท็บพร้อมกัน?
 
 เปิดเยอะเครื่องอาจหน่วง และ TikTok อาจขึ้นยืนยันว่าไม่ใช่บอท`)) return;
     batch.forEach(h => window.open("https://www.tiktok.com/@" + encodeURIComponent(h), "_blank", "noopener"));
+    const ro = openRateRead(), now = Date.now();
+    batch.forEach(() => ro.t.push(now));
+    openRateSave(ro);
     OPEN_I += batch.length;
     vlog("openmany", { d: String(batch.length) });              // จดแค่จำนวน ไม่จดชื่อ
     msg(`เปิด ${batch.length} แท็บแล้ว — ถ้าขึ้นแค่แท็บเดียว กดไอคอนกันป๊อปอัปท้ายแถบที่อยู่ → <b>อนุญาตป๊อปอัปจากเว็บนี้เสมอ</b> แล้วกดอีกครั้ง`);
@@ -14377,7 +14465,11 @@ function wireOpenMany(){
   };
   $("#qoOpenClear").onclick = () => { ta.value = ""; OPEN_Q = []; OPEN_I = 0; OPEN_SRC = ""; msg(""); sum(); ta.focus(); };
   sum();
+  // นับถอยหลังสด ระหว่างเปิดแผงอยู่
+  clearInterval(OPEN_TICK);
+  OPEN_TICK = setInterval(() => { if ($("#openPop").hidden) return clearInterval(OPEN_TICK); sum(); }, 5000);
 }
+let OPEN_TICK = 0;
 function openOpenPop(){
   closeQoPop && closeQoPop();
   $("#openPop").hidden = false; $("#openNavBtn").setAttribute("aria-expanded", "true");
