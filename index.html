@@ -14043,7 +14043,8 @@ let QO2_FOLD = false;
 try { QO2_FOLD = lsGet(LS_QO2FOLD) === "1"; } catch(e){}
 const QO2_ACT = [
   { c:"add",   th:"＋ เพิ่มคนใหม่" }, { c:"del", th:"ลบออกจากโปรเจกต์" }, { c:"move", th:"ย้ายโปรเจกต์" },
-  { c:"clear", th:"ล้างค่า" }, { c:"track", th:"📦 เลขพัสดุทีละหลายคน" }, { c:"bulk", th:"⇥ วางจากชีตหลายคน" } ];
+  { c:"clear", th:"ล้างค่า" }, { c:"track", th:"📦 เลขพัสดุทีละหลายคน" }, { c:"bulk", th:"⇥ วางจากชีตหลายคน" },
+  { c:"openmany", th:"🔗 เปิดโปรไฟล์ทีละหลายคน" } ];
 // ชื่อคำสั่งในเมนูแบบ "ทำอะไร" ให้อ่านแล้วรู้เลย (ทะเบียนเดิมเป็นชื่อช่อง เช่น "เรท" "SKU")
 // ทุกคำสั่งเป็นการตั้งค่าใหม่ทับของเดิม — หน้าตรวจโชว์ เดิม → ใหม่ ให้ดูก่อนกดใช้เสมอ
 const QO2_TH = { rate:"เพิ่ม/แก้เรท", video:"ตั้งจำนวนคลิป", status:"เปลี่ยนสถานะ", pay:"ตั้งรูปแบบภาษี",
@@ -14054,7 +14055,7 @@ const qo2Label = x => QO2_TH[x.c] || (x.doc ? "เพิ่ม/แก้ " + x.t
 // ที่เหลือซ่อนไว้หลัง "＋ แสดงคำสั่งทั้งหมด" (ใช้ตอนจะใส่ของที่โปรเจกต์ยังไม่เคยมี)
 let QO2_ALL = false;
 const QO2_CORE = new Set(["rate", "status", "sku", "cart", "hashtag", "note", "due", "post", "fb1",
-                          "add", "del", "move", "track", "bulk"]);
+                          "add", "del", "move", "track", "bulk", "openmany"]);
 function qo2GroupsAll(){
   const pick = list => list.map(c => SLASH_BY[c]).filter(Boolean);
   const g = [
@@ -14168,7 +14169,13 @@ function renderQO2(){
             `<option value="${esc(x.c)}"${x.c === c ? " selected" : ""}>${esc(qo2Label(x))}</option>`).join("")}</optgroup>`).join("")}${
           QO2_ALL ? `<option value="__less">− ย่อ: โชว์เฉพาะที่โปรเจกต์นี้ใช้</option>`
             : qo2HiddenN() ? `<option value="__all">＋ แสดงคำสั่งทั้งหมด (อีก ${qo2HiddenN()})</option>` : ""}</select></div>` +
-      (!c ? "" : c === "track"
+      (!c ? "" : c === "openmany"
+        ? `<span class="qo2step"><b>②</b> วางรายชื่อ</span>
+           <div class="qo2line"><textarea id="qoOpenList" rows="4" class="qo2new qo2track"
+             placeholder="บรรทัดละคน — ชื่อ · @ชื่อ · หรือลิงก์ TikTok ก็ได้&#10;nana.review&#10;@mintmint_&#10;https://www.tiktok.com/@cenakims"></textarea>
+             <button class="run qo2run" id="qoOpenGo">เปิด 10 คนแรก ▶</button>
+             <button type="button" class="qo2x" id="qo2X" title="ยกเลิกคำสั่งนี้">✕</button></div>`
+        : c === "track"
         ? `<span class="qo2step"><b>②</b> ลงโปรเจกต์</span>
            <select id="qo2TrackProj" class="qo2s" title="เลขพัสดุในลิสต์จะลงเฉพาะครีเอเตอร์ในโปรเจกต์นี้">${
              [`<option value="">ทุกโปรเจกต์ (หาให้เอง)</option>`].concat(PROJECTS.map(p =>
@@ -14210,7 +14217,7 @@ function renderQO2(){
   box.querySelectorAll("[data-qc]").forEach(b => b.onclick = () => pickCmd(QO2_CMD === b.dataset.qc ? "" : b.dataset.qc));
   $("#qo2Cmd").onchange = e => pickCmd(e.target.value);
   if ($("#qo2X")) $("#qo2X").onclick = () => { QO2_CMD = null; renderQO2(); };
-  if (c){ wireQO2Form(c); qo2Sum(c); }
+  if (c){ wireQO2Form(c); if (c !== "openmany") qo2Sum(c); }
 }
 // ── แผงลอยคำสั่งด่วน (ปุ่มบนหัวเว็บ) ──
 function qoPopProj(){
@@ -14299,7 +14306,56 @@ function qo2SheetRows(){
   const tmp = sheetOf(PROJ) === "temp";
   return (COORD[PROJ] || []).filter(r => !TEAM_MODE || !!r.temp === tmp);
 }
+// ═══ เปิดโปรไฟล์ TikTok ทีละหลายคน ═══
+// วางรายชื่อ → เปิดแท็บใหม่ทีละ 10 คน (กดอีกที = 10 คนถัดไป) · ไม่บันทึกรายชื่อ ไม่ลงตาราง ไม่จดประวัติชื่อ
+// เบราว์เซอร์กันป๊อปอัป: กดครั้งเดียวเปิดหลายแท็บ Chrome ปล่อยแค่แท็บแรก — ต้องกด "อนุญาตป๊อปอัปจากเว็บนี้" ครั้งเดียวต่อเครื่อง
+const OPEN_BATCH = 10;
+let OPEN_Q = [], OPEN_I = 0, OPEN_SRC = "";
+function openManyParse(text){
+  const seen = new Set(), out = [];
+  String(text || "").split(/[\r\n,;]+/).forEach(line => {
+    const t = line.trim();
+    if (!t) return;
+    const h = qo2Handle(t.split(/\s+/).find(w => /tiktok\.com\/@|^@?[A-Za-z0-9._]{2,24}$/.test(w)) || "");
+    if (h && /^[a-z0-9._]{2,24}$/i.test(h) && !seen.has(h)){ seen.add(h); out.push(h); }
+  });
+  return out;
+}
+function wireOpenMany(){
+  const ta = $("#qoOpenList"), go = $("#qoOpenGo"), msg = t => { $("#qo2Msg").innerHTML = t || ""; };
+  const sum = () => {
+    const list = openManyParse(ta.value);
+    if (ta.value !== OPEN_SRC){ OPEN_Q = list; OPEN_I = 0; OPEN_SRC = ta.value; }
+    const left = OPEN_Q.length - OPEN_I, nxt = Math.min(OPEN_BATCH, left);
+    go.disabled = !left;
+    go.textContent = !OPEN_Q.length ? "เปิด 10 คนแรก ▶" : !left ? "เปิดครบแล้ว ✓"
+      : OPEN_I ? `เปิด ${nxt} คนถัดไป ▶ (${OPEN_I + 1}–${OPEN_I + nxt} จาก ${OPEN_Q.length})` : `เปิด ${nxt} คนแรก ▶ (จาก ${OPEN_Q.length})`;
+    const s = $("#qo2Sum");
+    if (s) s.innerHTML = OPEN_Q.length
+      ? `เจอ <b>${OPEN_Q.length}</b> คน · เปิดแล้ว ${OPEN_I} · เหลือ ${left} — เปิดทีละ ${OPEN_BATCH} แท็บ (โปรไฟล์ TikTok) · ไม่เก็บรายชื่อไว้`
+      : `วางรายชื่อแล้วกดเปิด — ชื่อซ้ำ/บรรทัดที่อ่านไม่ออกตัดทิ้งให้`;
+  };
+  ta.value = OPEN_SRC;
+  ta.addEventListener("input", sum);
+  go.onclick = () => {
+    sum();
+    const batch = OPEN_Q.slice(OPEN_I, OPEN_I + OPEN_BATCH);
+    if (!batch.length) return;
+    let opened = 0;
+    batch.forEach(h => { const w = window.open("https://www.tiktok.com/@" + encodeURIComponent(h), "_blank", "noopener"); if (w || opened === 0) opened++; });
+    // window.open คืน null เมื่อโดนกัน (noopener ก็คืน null บางเบราว์เซอร์) — เช็คจากแท็บที่ 2 เป็นต้นไปไม่ได้แน่นอน เลยบอกวิธีไว้เสมอ
+    OPEN_I += batch.length;
+    vlog("openmany", { d: String(batch.length) });              // จดแค่จำนวน ไม่จดชื่อ
+    msg(`เปิด ${batch.length} แท็บแล้ว — ถ้าขึ้นแค่แท็บเดียว กดไอคอนกันป๊อปอัปท้ายแถบที่อยู่ → <b>อนุญาตป๊อปอัปจากเว็บนี้เสมอ</b> แล้วกดอีกครั้ง`);
+    sum();
+  };
+  const x = $("#qo2X");
+  if (x) x.onclick = () => { QO2_CMD = null; OPEN_Q = []; OPEN_I = 0; OPEN_SRC = ""; renderQO2(); };
+  sum();
+  setTimeout(() => ta.focus(), 30);
+}
 function wireQO2Form(c){
+  if (c === "openmany") return wireOpenMany();
   const msg = t => { $("#qo2Msg").textContent = t || ""; };
   // ── ใคร ──
   const btn = $("#qo2DdBtn"), pan = $("#qo2Pan"), list = $("#qo2List");
