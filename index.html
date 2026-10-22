@@ -2996,7 +2996,7 @@ html[data-no-assign] select.asg{pointer-events:none;opacity:.55}
       <span class="hint" style="margin-left:auto">โปรไฟล์ TikTok · กดครั้งเดียวเปิดทั้งหมด · ไม่เก็บรายชื่อ</span>
       <button type="button" class="x" id="openPopClose" aria-label="ปิด">✕</button></div>
     <textarea id="qoOpenList" rows="8" class="qo2new qo2track" style="width:100%!important"
-      placeholder="วางรายชื่อ บรรทัดละคน — ชื่อ · @ชื่อ · หรือลิงก์ TikTok ก็ได้&#10;nana.review&#10;@mintmint_&#10;https://www.tiktok.com/@cenakims"></textarea>
+      placeholder="วางรายชื่อ บรรทัดละคน — ชื่อ · @ชื่อ · หรือลิงก์ TikTok ก็ได้ · กด Enter = เปิดเลย (Shift+Enter ขึ้นบรรทัดใหม่)&#10;nana.review&#10;@mintmint_&#10;https://www.tiktok.com/@cenakims"></textarea>
     <div class="openact">
       <button class="run" id="qoOpenGo" style="width:auto;padding:8px 18px">เปิดทั้งหมด ▶</button>
       <button type="button" class="export ghost" id="qoOpenClear">ล้างรายชื่อ</button>
@@ -14352,6 +14352,10 @@ function wireOpenMany(){
       : `ชื่อซ้ำ/บรรทัดที่อ่านไม่ออกตัดทิ้งให้`;
   };
   ta.oninput = sum;
+  // Enter = เปิดเลย · Shift+Enter = ขึ้นบรรทัดใหม่ (วางลิสต์ไม่โดน — การวางไม่ใช่การกด Enter)
+  ta.onkeydown = e => {
+    if (e.key === "Enter" && !e.shiftKey && !e.isComposing){ e.preventDefault(); go.click(); }
+  };
   go.onclick = () => {
     sum();
     const batch = OPEN_Q.slice(OPEN_I, OPEN_I + OPEN_BATCH);
