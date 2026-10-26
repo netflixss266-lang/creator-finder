@@ -1517,7 +1517,9 @@ body[data-crew] .crewhide{display:none !important}
   .party,.party-card,.party-title{animation:none}
   .party canvas{display:none}
 }
-.coach{position:fixed;inset:0;z-index:150}
+/* อยู่เหนือทุกแผง (แผนผัง/Command/แผงลอย 9400) — ไม่งั้นการ์ดคู่มือจมอยู่ใต้แผนผัง */
+.coach{position:fixed;inset:0;z-index:9500;pointer-events:none}
+.coach.hubon{pointer-events:auto}
 .coach[hidden]{display:none}
 .coach-mask{position:fixed;pointer-events:none;border-radius:14px;
   box-shadow:0 0 0 9999px rgba(6,7,9,.82);
@@ -3015,6 +3017,27 @@ html[data-theme="light"] .mapcard-img,html[data-theme="warm"] .mapcard-img,html[
 .mapcard:has(.mapstamp) > *:not(.mapstamp){filter:grayscale(1) brightness(.78)}
 html[data-theme="light"] .mapstamp .ms-in,html[data-theme="warm"] .mapstamp .ms-in,html[data-theme="earth"] .mapstamp .ms-in{color:#B01E25;opacity:.92}
 html[data-theme="light"] .mapcard:has(.mapstamp) > *:not(.mapstamp),html[data-theme="warm"] .mapcard:has(.mapstamp) > *:not(.mapstamp),html[data-theme="earth"] .mapcard:has(.mapstamp) > *:not(.mapstamp){filter:grayscale(1) opacity(.7)}
+/* คู่มือ — หน้าสารบัญ */
+.coach.hubon .coach-card{width:min(520px,92vw);padding:20px 22px 16px}
+.coach-hub[hidden],#coachStepBox[hidden]{display:none}
+.coach-hub .ch-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:6px}
+.coach-hub .ch-x{background:none;border:0;color:var(--dim);font-size:1rem;cursor:pointer}
+.coach-hub .ch-x:hover{color:var(--ink)}
+.coach-hub h3{font-size:1.2rem;margin-bottom:4px}
+.coach-hub .ch-sub{font-size:.8rem;color:var(--dim);margin-bottom:14px}
+.coach-hub .ch-list{display:flex;flex-direction:column;gap:8px;max-height:min(56vh,440px);overflow:auto}
+.coach-hub .ch-item{display:flex;align-items:center;gap:12px;text-align:left;width:100%;
+  background:var(--surface2);border:1px solid var(--line);border-radius:12px;padding:11px 14px;cursor:pointer;color:var(--ink);font-family:inherit}
+.coach-hub .ch-item:hover{border-color:var(--accent)}
+.coach-hub .ch-item.next{border-color:rgba(var(--accent-rgb),.6);box-shadow:0 0 0 3px rgba(var(--accent-rgb),.12)}
+.coach-hub .ch-item.done{opacity:.72}
+.coach-hub .ch-ic{font-size:1.35rem;width:34px;height:34px;flex:none;display:grid;place-items:center;
+  background:rgba(var(--accent-rgb),.1);border-radius:9px}
+.coach-hub .ch-tx{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px}
+.coach-hub .ch-tx b{font-size:.92rem}
+.coach-hub .ch-tx small{font-size:.74rem;color:var(--dim)}
+.coach-hub .ch-st{flex:none;font-size:.8rem;font-weight:700;color:var(--accent)}
+.coach-hub .ch-item.done .ch-st{color:var(--hi,#4ade80)}
 </style>
 </head>
 <body>
@@ -3175,6 +3198,9 @@ html[data-theme="light"] .mapcard:has(.mapstamp) > *:not(.mapstamp),html[data-th
   <div class="coach-mask" id="coachMask"></div>
   <div class="coach-ring" id="coachRing"></div>
   <div class="coach-card" id="coachCard" role="dialog" aria-modal="true" aria-labelledby="coachTitle">
+    <!-- สารบัญ — เลือกบทที่อยากดู (2026-10-26) -->
+    <div class="coach-hub" id="coachHub" hidden></div>
+    <div id="coachStepBox">
     <div class="coach-bar"><i id="coachFill"></i></div>
     <div class="coach-top">
       <span class="coach-kick" id="coachKick"></span>
@@ -3184,9 +3210,10 @@ html[data-theme="light"] .mapcard:has(.mapstamp) > *:not(.mapstamp),html[data-th
     <p id="coachText"></p>
     <div class="coach-wait" id="coachWait" hidden><i></i><span id="coachWaitText"></span></div>
     <div class="coach-foot">
-      <button type="button" class="coachbtn skip" id="coachSkip">ข้ามคู่มือ</button>
+      <button type="button" class="coachbtn skip" id="coachSkip">☰ สารบัญ</button>
       <button type="button" class="coachbtn" id="coachBack">ย้อน</button>
       <button type="button" class="coachbtn go" id="coachNext">ถัดไป</button>
+    </div>
     </div>
   </div>
 </div>
@@ -21974,64 +22001,175 @@ function applyRole(){
 // บางขั้น "รอ" ให้ทำจริงก่อนถึงจะไปต่อเอง เหมือนคู่มือเกม — ไม่ใช่แค่บอกให้ฟัง
 const LS_TOUR = "cf_tour_v1";
 
-const COACH = [
-  { kick: "เริ่มต้น", t: "พาไปทีละจุดบนหน้าจอจริง",
-    text: `คู่มือนี้จะชี้ตรงปุ่มจริงบนเว็บทีละจุด บางขั้นจะรอให้กดจริงก่อนถึงจะไปต่อ —
-      กด <b>ถัดไป</b> เพื่อเริ่ม หรือข้ามได้ตลอดที่มุมขวาล่าง` },
-
-  { kick: "ขั้นแรก", t: "สร้างโปรเจกต์แรกของคุณ",
-    text: `กระดานของคุณเริ่มจากศูนย์ ไม่มีงานของใครปนมา —
-      <b>กดปุ่มที่ไฮไลต์อยู่</b>เพื่อเริ่มสร้างโปรเจกต์แรก`,
-    target: () => $("#coordFirstProj") || document.querySelector("#projTabs [data-manageproj]"),
-    skip: () => PROJECTS.length > 0 || !canManageProjects(),
-    onEnter: async () => {
-      if (document.body.dataset.view !== "coord") await setView("coord");
-      // กดยกเลิกตอนใส่รหัส Coordinator — ที่เหลือของคู่มือไม่มีความหมายถ้าเข้าไม่ได้ ปิดไปเลย
-      if (document.body.dataset.view !== "coord") closeCoach();
-    },
-    done: () => !$("#projPanel").hidden,
-    waitText: "รอคุณกดปุ่มนั้นอยู่..." },
-
-  { kick: "กรอกรายละเอียด", t: "ตั้งชื่องานกับชื่อแบรนด์",
-    text: `ใส่<b>ชื่อโปรเจกต์</b>กับ<b>ชื่อแบรนด์</b>ที่ช่องซึ่งไฮไลต์ไว้ แล้วกด เพิ่ม —
-      ชื่อแบรนด์จะไปโผล่ในข้อความที่ส่งหาครีเอเตอร์อัตโนมัติทีหลัง`,
-    target: () => document.querySelector("#projBody .prow.add"),
-    skip: () => PROJECTS.length > 0 || !canManageProjects(),
-    done: () => PROJECTS.length > 0,
-    waitText: "รอคุณกรอกแล้วกดเพิ่มอยู่..." },
-
-  { kick: "หัวใจของหน้านี้", t: "ช่องคำสั่ง — พิมพ์เป็นภาษาคนได้เลย",
-    text: `เพิ่มคนใหม่หรือแก้ข้อมูลก็พิมพ์ที่นี่ช่องเดียว เช่น
-      <b>«เพิ่ม @noonnyy 5000 ชำระ3%»</b> — วางหลายชื่อแล้วสั่งทีเดียวก็ได้<br>
-      <b>ทุกคำสั่งมีหน้าตรวจก่อนเสมอ</b> ไม่มีอะไรทำงานทันทีที่พิมพ์`,
-    target: () => TEAM_MODE ? $("#qo2") : $("#qoText"),
-    onEnter: () => { if (!$("#projPanel").hidden) $("#projPanel").hidden = true; } },
-
-  { kick: "ดูงานทั้งกอง", t: "◈ Map — เห็นทุกคนอยู่ขั้นไหนในหน้าเดียว",
-    text: `คำถามแรกของวันมักไม่ใช่ "แถวที่ 14 เขียนว่าอะไร" แต่เป็น "งานทั้งกองไปถึงไหนแล้ว"
-      ปุ่มนี้ตอบให้ทันที มี 3 มุมมอง: <b>ขั้นตอนงาน</b> · <b>ข้อมูลที่ยังขาด</b> · <b>เงิน</b>`,
-    target: () => $("#mapBtn") },
-
-  { kick: "ก่อนรู้เรท", t: "✉ Format ขอเรท — ข้อความทักครั้งแรก",
-    text: `ก่อนจะรู้เรทของครีเอเตอร์ กดปุ่มนี้เพื่อเปิดข้อความสำเร็จรูปสำหรับทักถามเรทได้เลย
-      ไม่ต้องพิมพ์เอง`,
-    target: () => $("#fmtBtn") },
-
-  { kick: "ค้นหาข้ามโปรเจกต์", t: "ช่องนี้เห็นทุกงานของคนคนเดียว",
-    text: `พิมพ์ชื่อครีเอเตอร์ เห็นประวัติทุกโปรเจกต์ที่เขาเคยทำกับทีม ไม่ต้องสลับแท็บไปหาทีละที่`,
-    target: () => $("#coordFind"), skip: () => TEAM_MODE },
-
-  { kick: "ลืมรหัสไหม", t: "ตั้งรหัส Coordinator ใหม่ได้เอง", skip: () => TEAM_MODE,
-    text: `รหัส 6 หลักที่ตั้งไว้ตอนสมัคร ใช้ทุกครั้งที่เข้าหน้านี้ — ลืมเมื่อไหร่ก็ตั้งใหม่ได้ตรงนี้เลย
-      ไม่ต้องขอใคร`,
-    target: () => $("#coordPinSect"),
-    onEnter: () => { $("#settings").hidden = false; $("#coordPinSect").open = true; },
-    onExit: () => { $("#settings").hidden = true; } },
-
-  { kick: "เสร็จแล้ว", t: "พร้อมใช้งานจริงแล้ว",
-    text: `เปิดคู่มือนี้ซ้ำได้ตลอดที่ <b>⚙ ตั้งค่า → คู่มือเริ่มต้นใช้งาน</b> — ลุยได้เลย` },
+// ── คู่มือแบบแบ่งบท (ออกแบบใหม่ 2026-10-26) ──
+// เดิมเป็นทางเดียวยาวๆ และเก่าแล้ว (รหัส 6 หลัก · ชีต · ปุ่มที่ไม่มีแล้ว)
+// ตอนนี้: หน้าสารบัญเลือกบท → แต่ละบทพาไปชี้ปุ่มจริงทีละจุด · จบบทติ๊ก ✓ (จำในเครื่อง) · กลับสารบัญได้ตลอด
+// ขั้นที่ไม่มีของให้ชี้ (ยังไม่มีโปรเจกต์/ครีเอเตอร์) ข้ามเองด้วย skip
+const LS_TOUR_CH = "cf_tour_ch_v1";
+const coachRow = () => (COORD[PROJ] || [])[0] || null;
+const coachVis = el => el && el.getClientRects().length ? el : null;
+const coachCloseCmd = () => $("#cmdPanel").classList.remove("on");
+const coachCloseMap = () => { if (!$("#mapView").hidden) $("#closeMap").click(); };
+const COACH_CHAPTERS = [
+  { k:"screen", ic:"🧭", t:"รู้จักหน้าจอ", sub:"เมนูหลัก · คำสั่งด่วน · เปิดโปรไฟล์ · บัญชี", steps:[
+    { kick:"เมนูหลัก", t:"แถบเมนูด้านบน",
+      text:`<b>Coordinator</b> = ตารางงานของทุกโปรเจกต์ · <b>ตรวจดราฟต์</b> = ห้องตรวจงานกับทีม<br>
+        ปุ่มบนแถบนี้<b>ลากสลับลำดับได้</b> ตามที่ใช้บ่อย — เว็บจำให้`,
+      target: () => $("#navBar"),
+      onEnter: async () => { coachCloseMap(); coachCloseCmd(); if (document.body.dataset.view !== "coord") await setView("coord"); } },
+    { kick:"เร็วที่สุด", t:"⚡ คำสั่งด่วน",
+      text:`เพิ่มคน · เปลี่ยนสถานะ · ใส่เลขพัสดุ · วางจากชีตทีละหลายคน — เลือกคำสั่ง เลือกโปรเจกต์ แล้วกรอก<br>
+        <b>ทุกคำสั่งมีหน้าตรวจก่อนเสมอ</b> ไม่มีอะไรเปลี่ยนทันทีที่พิมพ์`,
+      target: () => coachVis($("#qoNavBtn")) },
+    { kick:"เปิดทีละหลายคน", t:"🔗 เปิดโปรไฟล์ TikTok",
+      text:`วางรายชื่อ (ชื่อ / @ชื่อ / ลิงก์) แล้วกด Enter = เปิดทุกคนเป็นแท็บใหม่<br>
+        มี<b>ตัวนับกันโดน Access denied</b> — ขึ้นแดงเมื่อไหร่ให้พักก่อน · โดนแล้วกด "🚫 โดน Access denied" เว็บจะลดเพดานให้`,
+      target: () => coachVis($("#openNavBtn")) },
+    { kick:"ของส่วนตัว", t:"เมนูบัญชี (มุมขวาบน)",
+      text:`เปลี่ยนชื่อเล่น/รหัสผ่าน · <b>โทนสีเว็บ</b> (มืด/หม่น/อุ่น/สว่าง/เอิร์ธโทน) · <b>ขนาดตัวอักษร</b> ·
+        ตั้งค่าเว็บ · เปิดคู่มือนี้ซ้ำ`,
+      target: () => $("#acctBtn") },
+  ]},
+  { k:"table", ic:"📋", t:"ลงงานในโปรเจกต์", sub:"แท็บโปรเจกต์ · งานหลัก/ชั่วคราว · เพิ่มคน · สถานะ", steps:[
+    { kick:"ขั้นแรก", t:"สร้างโปรเจกต์แรก",
+      text:`ยังไม่มีโปรเจกต์ — <b>กดปุ่มที่ไฮไลต์อยู่</b>เพื่อสร้าง`,
+      target: () => $("#coordFirstProj") || document.querySelector("#projTabs [data-manageproj]"),
+      skip: () => PROJECTS.length > 0 || !canManageProjects(),
+      onEnter: async () => { coachCloseMap(); coachCloseCmd(); if (document.body.dataset.view !== "coord") await setView("coord"); },
+      done: () => !$("#projPanel").hidden, waitText:"รอคุณกดปุ่มนั้นอยู่..." },
+    { kick:"กรอกรายละเอียด", t:"ตั้งชื่องานกับชื่อแบรนด์",
+      text:`ใส่<b>ชื่อโปรเจกต์</b>กับ<b>ชื่อแบรนด์</b>แล้วกด เพิ่ม — ชื่อแบรนด์จะไปอยู่ในข้อความหาครีเอเตอร์เอง`,
+      target: () => document.querySelector("#projBody .prow.add"),
+      skip: () => PROJECTS.length > 0 || !canManageProjects(),
+      done: () => PROJECTS.length > 0, waitText:"รอคุณกรอกแล้วกดเพิ่มอยู่..." },
+    { kick:"โปรเจกต์", t:"แท็บโปรเจกต์ของทีม",
+      text:`กดสลับโปรเจกต์ตรงนี้ · ตัวเลขคือจำนวนครีเอเตอร์ · โปรเจกต์ที่ปิดแล้วซ่อนไว้ (กดแสดงได้)`,
+      target: () => $("#projTabs"),
+      onEnter: async () => { coachCloseMap(); coachCloseCmd(); if (!$("#projPanel").hidden) $("#projPanel").hidden = true;
+        if (document.body.dataset.view !== "coord") await setView("coord"); },
+      skip: () => !PROJECTS.length },
+    { kick:"สองกอง", t:"📋 งานหลัก / ⏳ ชั่วคราว",
+      text:`แท็บล่างซ้าย — <b>ชั่วคราว</b> ไว้รับงานคนอื่นมาทำต่อ ลบทั้งกองได้ทีเดียวโดยไม่แตะงานหลัก`,
+      target: () => coachVis(document.querySelector('button[data-sheet="main"]')) && document.querySelector('button[data-sheet="main"]').parentElement,
+      skip: () => !TEAM_MODE || !coachVis(document.querySelector('button[data-sheet="main"]')) },
+    { kick:"เพิ่มคน", t:"ช่องคำสั่ง — พิมพ์เป็นภาษาคน",
+      text:`เช่น <b>«เพิ่ม @noonnyy 5000 ชำระ3%»</b> · วางหลายชื่อแล้วสั่งทีเดียวก็ได้ — ตรวจก่อนบันทึกทุกครั้ง`,
+      target: () => coachVis($("#qo2")) || coachVis($("#qoText")) || coachVis($("#qoNavBtn")) },
+    { kick:"สถานะ", t:"เปลี่ยนสถานะในตาราง",
+      text:`เลือกจากช่องนี้ได้เลย · ปุ่ม <b>📥</b> ข้างๆ (ช่วงสคริป/ดราฟต์) = มาร์คว่าครีเอเตอร์ส่งงานมาแล้ว รอเราตรวจ<br>
+        สถานะ <span style="color:#5AB4FF;font-weight:600">กรอบฟ้า</span> = รอ PM ฟีดแบค`,
+      target: () => { const el = document.querySelector('#coordBody select[data-f="status"]'); return el && el.closest("td"); },
+      skip: () => !coachRow() },
+  ]},
+  { k:"cmd", ic:"💬", t:"คุยกับครีเอเตอร์ (Command)", sub:"ข้อความสำเร็จรูป · ส่งแล้วสถานะเดินเอง · ครับ/ค่ะ", steps:[
+    { kick:"ยังไม่มีข้อมูล", t:"เพิ่มครีเอเตอร์ก่อน",
+      text:`Command เปิดจากชื่อครีเอเตอร์ในตาราง/แผนผัง — โปรเจกต์นี้ยังไม่มีใคร เพิ่มก่อนแล้วกลับมาดูบทนี้`,
+      skip: () => !!coachRow() },
+    { kick:"เปิดจากชื่อ", t:"Command ของครีเอเตอร์หนึ่งคน",
+      text:`กดชื่อคนในตารางหรือแผนผัง = หน้านี้ · ข้อความทุกกล่องเติมชื่อ เรท SKU ลิงก์ ให้แล้ว<br>
+        ‹ › (หรือปุ่ม ←/→) = เดินไปคนก่อน/ถัดไปโดยไม่ต้องปิด`,
+      target: () => coachVis($("#cmdNav")) && $("#cmdNav").children.length ? $("#cmdNav") : $("#cmdTitle"),
+      skip: () => !coachRow(),
+      onEnter: async () => { coachCloseMap(); if (document.body.dataset.view !== "coord") await setView("coord");
+        const r = coachRow(); if (r && !$("#cmdPanel").classList.contains("on")) openCmd(PROJ, r.handle); } },
+    { kick:"หัว Command", t:"เปลี่ยนสถานะ + 📥 ได้จากตรงนี้",
+      text:`ไม่ต้องปิดไปหาในตาราง · <b>📥</b> = ส่งงานมาแล้วรอตรวจ → กดอีกที (ตรวจแล้ว) = ย้ายไป <b>รอ PM ฟีดแบค</b>`,
+      target: () => $("#cmdSt"), skip: () => !coachRow() },
+    { kick:"หางเสียง", t:"ครับ / ค่ะ",
+      text:`สลับทั้งหน้า หรือตั้ง<b>เฉพาะคนนี้</b>ก็ได้ — ข้อความทุกกล่องเปลี่ยนตาม`,
+      target: () => coachVis($("#voiceBtn")), skip: () => !coachRow() || !coachVis($("#voiceBtn")) },
+    { kick:"หัวใจของ Command", t:"กด “ส่งแล้ว” = สถานะเดินเอง",
+      text:`คัดลอกข้อความไปส่ง แล้วติ๊กปุ่มนี้ — สถานะขยับตามกล่อง (เช่น ส่งฟีดแบค Draft 1 → รอ Draft 2) มีปุ่มย้อนกลับในแจ้งเตือน<br>
+        กล่องที่ส่งแล้ว<b>ซ่อนให้หลังรีเฟรช</b> จะได้เห็นแต่ที่ยังไม่ได้ทำ`,
+      target: () => coachVis(document.querySelector("#cmdBody .mark[data-sent]")),
+      skip: () => !coachRow() || !document.querySelector("#cmdBody .mark[data-sent]") },
+    { kick:"ก่อนรู้เรท", t:"✉ Format ขอเรท",
+      text:`ข้อความทักครั้งแรก แยก KOL/KOC · <b>format หลักตรึงอยู่ข้างบน</b> · กล่องข้อความเพิ่มเติมใช้ทั้งทีม<br>
+        คลิกที่ข้อความ = คลุมทั้งหมด + คัดลอกให้`,
+      target: () => coachVis($("#fmtBtn")),
+      onEnter: () => { coachCloseCmd(); } },
+  ]},
+  { k:"map", ic:"◈", t:"ติดตามงานด้วย Map", sub:"ทุกคนอยู่ขั้นไหน · 📥 รอตรวจ → รอ PM · ภาพรวมทุกโปรเจกต์", steps:[
+    { kick:"แผนผัง", t:"เห็นทุกคนอยู่ขั้นไหนในหน้าเดียว",
+      text:`แต่ละช่วงแยกขั้นย่อย · ใบแสดง<b>วันที่เข้าขั้น + กี่วันแล้ว</b> (ค้างนานสุดอยู่บน)<br>
+        <b>ลากใบไปวางขั้นอื่น</b> = เปลี่ยนสถานะ · กดชื่อ = เปิด Command`,
+      target: () => document.querySelector("#mapBody .mapbranch:not(.empty)") || $("#mapBody"),
+      skip: () => !PROJECTS.length,
+      onEnter: () => { coachCloseCmd(); MAP_MODE = "flow"; openMap(PROJ); } },
+    { kick:"รอบตรวจงาน", t:"📥 → รอ PM → ส่งฟีดแบค",
+      text:`① ครีเอเตอร์ส่งสคริป/ดราฟต์มา → กด <b>📥</b> (ใบขึ้นก่อน + นับเวลารอ)<br>
+        ② ตรวจแล้ว กด 📥 อีกที → ย้ายไป <span style="color:#5AB4FF;font-weight:600">รอ PM ฟีดแบค (กรอบฟ้า)</span><br>
+        ③ ส่งฟีดแบคใน Command → ไป <b>รอดราฟต์ถัดไป</b> เอง`,
+      target: () => coachVis(document.querySelector("#mapBody .mapdr")) && document.querySelector("#mapBody .mapdr").closest(".mapleafwrap")
+        || document.querySelector("#mapBody .drnote") || $("#mapBody"),
+      skip: () => !PROJECTS.length },
+    { kick:"มุมมอง", t:"ขั้นตอนงาน · ข้อมูลที่ยังขาด · เงิน",
+      text:`<b>ข้อมูลที่ยังขาด</b> = ไล่เก็บเรท/SKU/สถานะที่ว่าง · <b>เงิน</b> = ยอดตามรูปแบบภาษีและ SKU`,
+      target: () => $("#mapModes"), skip: () => !PROJECTS.length },
+    { kick:"ภาพรวม", t:"ทุกโปรเจกต์ในหน้าเดียว",
+      text:`ชี้ที่การ์ดแล้วกด <b>🖼</b> (หรือลากรูปมาวาง) = ใส่รูปสินค้าจางๆ หลังการ์ด<br>
+        โปรเจกต์ที่ปิดแล้ว = การ์ดสีเทา + ตราปั๊ม <b style="color:#D8343A">CLOSED</b>`,
+      target: () => document.querySelector("#mapBody .mapcard") || $("#mapBody"),
+      skip: () => !PROJECTS.length,
+      onEnter: () => { MAP_PROJ = null; renderMap(); },
+      onExit: () => { if (COACH_DIR > 0) coachCloseMap(); } },
+  ]},
+  { k:"team", ic:"👥", t:"ทีมและสิทธิ์ (แอดมิน)", sub:"ลิงก์เชิญ · บทบาท · สิทธิ์รายเมนู", admin:true, steps:[
+    { kick:"แอดมิน", t:"จัดการคนในทีม",
+      text:`ส่ง<b>ลิงก์เชิญ</b>ให้คนใหม่เข้าทีม · ตั้งบทบาท · ระงับบัญชี · เลือกได้ว่าใคร<b>เห็น/ใช้เมนูไหน</b>`,
+      target: () => coachVis($("#teamSect")),
+      skip: () => (PROFILE || {}).role !== "admin",
+      onEnter: () => { coachCloseMap(); coachCloseCmd(); $("#settings").hidden = false; },
+      onExit: () => { $("#settings").hidden = true; } },
+  ]},
 ];
-
+let COACH = [];
+let COACH_CH = -1;
+function coachChDone(){ try { return JSON.parse(lsGet(LS_TOUR_CH) || "[]") || []; } catch(e){ return []; } }
+function coachChMark(k){ const d = coachChDone(); if (!d.includes(k)){ d.push(k); lsSet(LS_TOUR_CH, JSON.stringify(d)); } }
+const coachChapters = () => COACH_CHAPTERS.filter(c => !c.admin || (PROFILE || {}).role === "admin");
+// หน้าสารบัญ
+function coachHub(justDone){
+  coachClearPoll();
+  const cur = COACH[COACH_I];
+  if (cur && cur.onExit) cur.onExit();
+  COACH = []; COACH_I = 0;
+  const chs = coachChapters(), done = coachChDone();
+  const nextI = chs.findIndex(c => !done.includes(c.k));
+  $("#coachView").classList.add("hubon");
+  $("#coachStepBox").hidden = true;
+  const hub = $("#coachHub");
+  hub.hidden = false;
+  hub.innerHTML = `
+    <div class="ch-head">
+      <span class="coach-kick">${justDone ? "จบบทแล้ว ✓" : "คู่มือการใช้งาน"}</span>
+      <button type="button" class="ch-x" id="coachHubX" aria-label="ปิด">✕</button>
+    </div>
+    <h3>${nextI < 0 ? `ดูครบทุกบทแล้ว 🎉 — เปิดดูซ้ำบทไหนก็ได้` : justDone ? `เก่งมาก — ไปบทต่อไปเลยไหม?` : `อยากรู้เรื่องไหน เลือกบทได้เลย`}</h3>
+    <p class="ch-sub">แต่ละบทพาไปชี้ปุ่มจริงบนหน้าจอ · ${done.filter(k => chs.some(c => c.k === k)).length}/${chs.length} บทที่ดูแล้ว</p>
+    <div class="ch-list">${chs.map((c, i) => `
+      <button type="button" class="ch-item${done.includes(c.k) ? " done" : ""}${i === nextI ? " next" : ""}" data-ch="${i}">
+        <span class="ch-ic">${c.ic}</span>
+        <span class="ch-tx"><b>${i + 1}. ${esc(c.t)}</b><small>${esc(c.sub)}</small></span>
+        <span class="ch-st">${done.includes(c.k) ? "✓" : i === nextI ? "เริ่ม ›" : "›"}</span>
+      </button>`).join("")}</div>
+    <div class="coach-foot">
+      <button type="button" class="coachbtn skip" id="coachHubClose">ปิดคู่มือ</button>
+      ${nextI >= 0 ? `<button type="button" class="coachbtn go" id="coachHubGo">${justDone ? "บทต่อไป ›" : nextI ? "ดูต่อจากบทที่ค้าง ›" : "เริ่มบทแรก ›"}</button>` : ""}
+    </div>`;
+  hub.querySelectorAll("[data-ch]").forEach(b => b.onclick = () => coachStart(+b.dataset.ch));
+  $("#coachHubX").onclick = $("#coachHubClose").onclick = closeCoach;
+  const go = $("#coachHubGo"); if (go) go.onclick = () => coachStart(nextI);
+  coachPlaceOn(null);
+}
+function coachStart(i){
+  const ch = coachChapters()[i];
+  if (!ch) return coachHub();
+  COACH_CH = i; COACH = ch.steps; COACH_I = -1; COACH_DIR = 1;
+  $("#coachView").classList.remove("hubon");
+  $("#coachHub").hidden = true; $("#coachStepBox").hidden = false;
+  coachGoto(0);
+}
 let COACH_I = 0;
 let COACH_DIR = 1;
 let COACH_POLL = null;
@@ -22072,7 +22210,8 @@ function coachPlaceOn(rect){
 // เลื่อนให้เห็นก่อน แล้วรอจน rect นิ่ง (สูงสุด ~1.2 วิ) ค่อยวางแสง กันแสงไปวางผิดที่ระหว่างเลื่อน
 function coachSettle(el, cb){
   if (COACH_SETTLE) cancelAnimationFrame(COACH_SETTLE);
-  el.scrollIntoView({ block: "center", behavior: "smooth" });
+  // เลื่อนทันที (ไม่ smooth) — smooth ค้างกลางทางได้ถ้าแท็บพักหรือมีการวาดใหม่ระหว่างเลื่อน แสงจะไปวางผิดที่
+  el.scrollIntoView({ block: "center", behavior: "auto" });
   const start = performance.now();
   let last = "", stable = 0, done = false;
   const finish = r => { if (done) return; done = true; cb(r); };
@@ -22092,6 +22231,7 @@ function coachSettle(el, cb){
 function coachReflow(){
   if ($("#coachView").hidden) return;
   const st = COACH[COACH_I];
+  if (!st) return coachPlaceOn(null);
   const el = st.target && st.target();
   coachPlaceOn(el ? el.getBoundingClientRect() : null);
 }
@@ -22100,7 +22240,12 @@ window.addEventListener("scroll", coachReflow, true);
 
 async function coachGoto(i){
   coachClearPoll();
-  if (i < 0 || i >= COACH.length) return closeCoach();
+  if (i >= COACH.length){                       // จบบท
+    const ch = coachChapters()[COACH_CH];
+    if (ch) coachChMark(ch.k);
+    return coachHub(true);
+  }
+  if (i < 0) return coachHub();
   const prev = COACH[COACH_I];
   if (prev && prev.onExit) prev.onExit();
   const st = COACH[i];
@@ -22110,15 +22255,17 @@ async function coachGoto(i){
   if (st.onEnter) await st.onEnter();
   $("#coachView").classList.remove("busy");
 
-  $("#coachCount").textContent = `${COACH_I + 1} / ${COACH.length}`;
+  const live = COACH.filter(x => !(x.skip && x.skip())), at = live.indexOf(st);
+  $("#coachCount").textContent = `บท ${COACH_CH + 1} · ${at + 1} / ${live.length}`;
   $("#coachKick").textContent = st.kick;
   $("#coachTitle").textContent = st.t;
   $("#coachText").innerHTML = st.text;
-  $("#coachFill").style.width = ((COACH_I + 1) / COACH.length * 100) + "%";
-  $("#coachBack").disabled = !COACH_I;
-  const last = COACH_I === COACH.length - 1;
-  $("#coachNext").textContent = last ? "เริ่มใช้งาน" : (st.done ? "ข้ามขั้นนี้ →" : "ถัดไป");
-  $("#coachSkip").hidden = last;
+  $("#coachFill").style.width = ((at + 1) / live.length * 100) + "%";
+  $("#coachBack").disabled = false;
+  $("#coachBack").textContent = at <= 0 ? "‹ สารบัญ" : "ย้อน";
+  const last = at === live.length - 1;
+  $("#coachNext").textContent = last ? "จบบทนี้ ✓" : (st.done ? "ข้ามขั้นนี้ →" : "ถัดไป");
+  $("#coachSkip").hidden = false;
 
   const el = st.target && st.target();
   const showRing = () => { $("#coachRing").classList.toggle("wait", !!st.done); };
@@ -22137,7 +22284,7 @@ function coachBack(){ COACH_DIR = -1; coachGoto(COACH_I - 1); }
 function openCoach(){
   COACH_I = -1; COACH_DIR = 1;
   $("#coachView").hidden = false;
-  coachGoto(0);
+  coachHub();
   return new Promise(r => { COACH_DONE = r; });
 }
 function closeCoach(){
@@ -22148,9 +22295,9 @@ function closeCoach(){
   lsSet(LS_TOUR, "1");          // จบแล้วหรือข้ามก็นับว่าเห็นแล้ว ไม่ตามตื๊อ
   if (COACH_DONE){ const r = COACH_DONE; COACH_DONE = null; r(); }
 }
-$("#coachNext").onclick = () => { COACH_I === COACH.length - 1 ? closeCoach() : coachNext(); };
+$("#coachNext").onclick = coachNext;
 $("#coachBack").onclick = coachBack;
-$("#coachSkip").onclick = closeCoach;
+$("#coachSkip").onclick = () => coachHub();
 document.addEventListener("keydown", e => {
   if ($("#coachView").hidden) return;
   if (e.key === "Escape") closeCoach();
