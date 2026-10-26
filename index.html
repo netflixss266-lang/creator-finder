@@ -1038,6 +1038,16 @@ select.st-sel optgroup{background:#141414;color:var(--dim);font-style:normal}
 .st{font-size:.75rem;border-radius:6px;padding:3px 9px;border:1px solid var(--line)}
 .st.s-done{color:var(--hi);border-color:rgba(var(--hi-rgb),.4);background:rgba(var(--hi-rgb),.1)}
 .st.s-wait{color:var(--warn);border-color:rgba(var(--warn-rgb),.4);background:rgba(var(--warn-rgb),.1)}
+/* รอ PM Feedback (2026-10-26) — กรอบฟ้า แยกจาก "รอครีเอเตอร์" (เหลือง) ให้เห็นว่าลูกอยู่ที่ PM */
+.st.s-pm,.st-sel.s-pm{color:#5AB4FF;border-color:#3D9BFF;background:rgba(61,155,255,.12)}
+.st-sel.s-pm{border-width:1.5px}
+select.st-sel option.s-pm{color:#7CC4FF}
+html[data-theme="light"] .st.s-pm,html[data-theme="light"] .st-sel.s-pm,html[data-theme="warm"] .st.s-pm,html[data-theme="warm"] .st-sel.s-pm,
+html[data-theme="earth"] .st.s-pm,html[data-theme="earth"] .st-sel.s-pm{color:#1F6FC9;border-color:#2F80E0;background:rgba(47,128,224,.1)}
+.mapleafwrap.pmwait .mapleaf,.mapleafwrap.pmwait .mapst{border-color:#3D9BFF!important;box-shadow:inset 0 0 0 1px rgba(61,155,255,.45)}
+.mapleafwrap.pmwait .mapleaf{background:rgba(61,155,255,.08)}
+.mapleaf .pmtag{font-size:.68rem;font-weight:600;color:#5AB4FF}
+#coordBody tr:has(.st-sel.s-pm) > td:first-child{box-shadow:inset 3px 0 0 #3D9BFF}
 .st.s-fb{color:var(--info);border-color:rgba(var(--info-rgb),.4);background:rgba(var(--info-rgb),.1)}
 .st.s-pay{color:var(--pay);border-color:rgba(199,156,255,.45);background:rgba(199,156,255,.12)}
 .st.s-none{color:var(--dim)}
@@ -5627,23 +5637,23 @@ const STAGES = [
   { v:"Already Sent to SG",       th:"ส่ง SG แล้ว",         c:"s-done", a:/ส่ง\s*sg\s*แล้ว/i },
   { v:"Waiting Script",           th:"รอสคริป",             c:"s-wait", a:/รอสคริป/i },
   // รอ PM Feedback (2026-10-26) — ครีเอเตอร์ส่งมาแล้ว เราตรวจแล้ว รอ PM ให้ฟีดแบค · เข้าขั้นนี้ด้วยการเอามาร์ค 📥 ออก
-  { v:"Waiting PM Feedback Script", th:"รอ PM ฟีดแบคสคริป", c:"s-wait", a:/รอ\s*pm\s*(?:ฟีดแบค|feedback)\s*(?:สคริป|script)/i },
+  { v:"Waiting PM Feedback Script", th:"รอ PM ฟีดแบคสคริป", c:"s-pm", a:/รอ\s*pm\s*(?:ฟีดแบค|feedback)\s*(?:สคริป|script)/i },
   { v:"Already Feedback Script",  th:"ฟีดแบคสคริปแล้ว",     c:"s-done", a:/ฟีดแบคสคริป/i },
   { v:"Waiting Draft 1",          th:"รอ Draft 1",          c:"s-wait", a:/รอ\s*draft\s*1/i },
-  { v:"Waiting PM Feedback Draft 1", th:"รอ PM ฟีดแบค Draft 1", c:"s-wait", a:/รอ\s*pm\s*(?:ฟีดแบค|feedback)\s*draft\s*1/i },
+  { v:"Waiting PM Feedback Draft 1", th:"รอ PM ฟีดแบค Draft 1", c:"s-pm", a:/รอ\s*pm\s*(?:ฟีดแบค|feedback)\s*draft\s*1/i },
   { v:"Feedback Draft 1",         th:"ฟีดแบค Draft 1 แล้ว", c:"s-fb",   a:/ฟีดแบค\s*draft\s*1/i },
   { v:"Waiting Draft 2",          th:"รอ Draft 2",          c:"s-wait", a:/รอ\s*draft\s*2/i },
-  { v:"Waiting PM Feedback Draft 2", th:"รอ PM ฟีดแบค Draft 2", c:"s-wait", a:/รอ\s*pm\s*(?:ฟีดแบค|feedback)\s*draft\s*2/i },
+  { v:"Waiting PM Feedback Draft 2", th:"รอ PM ฟีดแบค Draft 2", c:"s-pm", a:/รอ\s*pm\s*(?:ฟีดแบค|feedback)\s*draft\s*2/i },
   { v:"Feedback Draft 2",         th:"ฟีดแบค Draft 2 แล้ว", c:"s-fb",   a:/ฟีดแบค\s*draft\s*2/i },
   { v:"Waiting Draft 3",          th:"รอ Draft 3",          c:"s-wait", a:/รอ\s*draft\s*3/i },
-  { v:"Waiting PM Feedback Draft 3", th:"รอ PM ฟีดแบค Draft 3", c:"s-wait", a:/รอ\s*pm\s*(?:ฟีดแบค|feedback)\s*draft\s*3/i },
+  { v:"Waiting PM Feedback Draft 3", th:"รอ PM ฟีดแบค Draft 3", c:"s-pm", a:/รอ\s*pm\s*(?:ฟีดแบค|feedback)\s*draft\s*3/i },
   { v:"Feedback Draft 3",         th:"ฟีดแบค Draft 3 แล้ว", c:"s-fb",   a:/ฟีดแบค\s*draft\s*3/i },
   // Draft 4–5 (2026-10-22) — งานที่แก้เกิน 3 รอบ
   { v:"Waiting Draft 4",          th:"รอ Draft 4",          c:"s-wait", a:/รอ\s*draft\s*4/i },
-  { v:"Waiting PM Feedback Draft 4", th:"รอ PM ฟีดแบค Draft 4", c:"s-wait", a:/รอ\s*pm\s*(?:ฟีดแบค|feedback)\s*draft\s*4/i },
+  { v:"Waiting PM Feedback Draft 4", th:"รอ PM ฟีดแบค Draft 4", c:"s-pm", a:/รอ\s*pm\s*(?:ฟีดแบค|feedback)\s*draft\s*4/i },
   { v:"Feedback Draft 4",         th:"ฟีดแบค Draft 4 แล้ว", c:"s-fb",   a:/ฟีดแบค\s*draft\s*4/i },
   { v:"Waiting Draft 5",          th:"รอ Draft 5",          c:"s-wait", a:/รอ\s*draft\s*5/i },
-  { v:"Waiting PM Feedback Draft 5", th:"รอ PM ฟีดแบค Draft 5", c:"s-wait", a:/รอ\s*pm\s*(?:ฟีดแบค|feedback)\s*draft\s*5/i },
+  { v:"Waiting PM Feedback Draft 5", th:"รอ PM ฟีดแบค Draft 5", c:"s-pm", a:/รอ\s*pm\s*(?:ฟีดแบค|feedback)\s*draft\s*5/i },
   { v:"Feedback Draft 5",         th:"ฟีดแบค Draft 5 แล้ว", c:"s-fb",   a:/ฟีดแบค\s*draft\s*5/i },
   { v:"Waiting to Post",          th:"รอโพสต์",             c:"s-wait", a:/รอโพสต์/i },
   { v:"Already Posted",           th:"โพสต์แล้ว",           c:"s-done", a:/โพสต์แล้ว/i },
@@ -11990,7 +12000,8 @@ function mapLeaf(r, proj, color, drag, sub){
   const clips = clipCount(r);
   const cancel = isCancelled(r);
   const done = !cancel && mapDone(r);
-  return `<span class="mapleafwrap${dr ? " drin" : ""}">
+  const pm = /^Waiting PM Feedback /.test(r.status || "");
+  return `<span class="mapleafwrap${dr ? " drin" : ""}${pm ? " pmwait" : ""}">
     <button class="mapleaf${flags.length ? " miss" : ""}${done ? " done" : ""}${
       TEAM_MODE && TEAM && isTeamProj(proj) && r.assignee !== sbUid() && MEMSEG === "all" ? " notmine" : ""}${
       cancel ? " cancelled" : ""}"
@@ -12013,7 +12024,7 @@ function mapLeaf(r, proj, color, drag, sub){
           : r.rate != null ? mBaht(r.rate) : `<span class="flag">ไม่มีเรท</span>`}
         ${clips > 1 && !cancel ? `· ${clips} ชุด` : ""}
         ${flags.length ? `<span class="flag" title="${esc(flags.join(" · "))}">⚑${flags.length}</span>` : ""}
-      </span>`}${dr ? `<span class="drtag" title="มาร์คว่าส่งดราฟต์มาแล้วเมื่อ ${esc(new Date(dr.at).toLocaleString("th-TH"))}">📥 รอตรวจ · ${drAgo(dr.at)}</span>` : ""}${shipDays(r)}</button>
+      </span>`}${pm ? `<span class="pmtag">🔷 รอ PM ฟีดแบค</span>` : ""}${dr ? `<span class="drtag" title="มาร์คว่าส่งดราฟต์มาแล้วเมื่อ ${esc(new Date(dr.at).toLocaleString("th-TH"))}">📥 รอตรวจ · ${drAgo(dr.at)}</span>` : ""}${shipDays(r)}</button>
     ${drCan ? `<button type="button" class="mapdr${dr ? " on" : ""}" data-drin="${esc(r.handle)}" data-mapproj="${esc(proj)}"
       title="${dr ? "ตรวจแล้ว — เอามาร์คออก = ย้ายไปรอ PM Feedback" : "มาร์คว่าส่งสคริป/ดราฟต์มาแล้ว รอตรวจ"} — ${esc(r.handle)}">📥</button>` : ""}
     <button class="mapst" data-mapst="${esc(r.handle)}" data-mapproj="${esc(proj)}"
