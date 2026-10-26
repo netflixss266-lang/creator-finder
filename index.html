@@ -2989,6 +2989,16 @@ html[data-theme="light"] .mapcard-img,html[data-theme="warm"] .mapcard-img,html[
   font-size:.75rem;padding:2px 6px;cursor:pointer}
 .mapcard-tools button:hover{color:var(--ink);border-color:var(--ink)}
 .mapcard.pimgover{outline:2px dashed var(--accent);outline-offset:-2px}
+/* ตราปั๊ม CLOSED — โปรเจกต์ที่ปิดงานแล้ว (หน้าแผนผังรวม) */
+.mapstamp{position:absolute!important;z-index:3!important;top:50%;left:50%;pointer-events:none;
+  transform:translate(-50%,-50%) rotate(-14deg)}
+.mapstamp span{display:block;font-family:'Space Grotesk',sans-serif;font-weight:800;font-size:2.5rem;letter-spacing:.14em;
+  color:#D8343A;border:4px solid #D8343A;border-radius:10px;padding:2px 18px 0;opacity:.72;
+  box-shadow:inset 0 0 0 3px transparent,inset 0 0 0 5px rgba(216,52,58,.55);
+  text-shadow:0 0 1px rgba(216,52,58,.6);mix-blend-mode:normal;
+  -webkit-mask-image:repeating-linear-gradient(115deg,#000 0 7px,rgba(0,0,0,.78) 7px 9px,#000 9px 15px);
+  mask-image:repeating-linear-gradient(115deg,#000 0 7px,rgba(0,0,0,.78) 7px 9px,#000 9px 15px)}
+html[data-theme="light"] .mapstamp span,html[data-theme="warm"] .mapstamp span,html[data-theme="earth"] .mapstamp span{color:#C4232A;border-color:#C4232A;opacity:.8}
 </style>
 </head>
 <body>
@@ -13069,6 +13079,7 @@ function mapAllSheet(){
       const img = PIMG[p];
       return `<div class="mapcard${p === PROJ ? " on" : ""}${img ? " hasimg" : ""}" data-pimgdrop="${esc(p)}">
         ${img ? `<div class="mapcard-img" style="background-image:url('${esc(img)}')"></div>` : ""}
+        ${(projMeta(p) || {}).done ? `<div class="mapstamp" aria-label="ปิดงานแล้ว"><span>CLOSED</span></div>` : ""}
         <div class="mapcard-tools">
           <button type="button" data-pimg="${esc(p)}" title="${img ? "เปลี่ยนรูปสินค้า" : "ใส่รูปสินค้า (โชว์จางๆ หลังการ์ด) — ลากรูปมาวางที่การ์ดก็ได้"}">🖼</button>
           ${img ? `<button type="button" data-pimgdel="${esc(p)}" title="ลบรูปสินค้า">✕</button>` : ""}
