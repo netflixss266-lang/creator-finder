@@ -2972,6 +2972,23 @@ html[data-no-assign] select.asg{pointer-events:none;opacity:.55}
 .mapdr.tbdr{border:1px solid var(--line);border-radius:6px;height:26px;padding:0 5px}
 #coordBody tr:has(.tbdr.on) > td{background:rgba(var(--accent-rgb),.07)}
 .drtag.tb{display:block;font-size:.66rem;font-weight:600;color:var(--accent);margin-top:2px;white-space:nowrap}
+.cmdst{display:flex;align-items:center;gap:6px;margin-left:10px;flex:0 1 auto;min-width:0}
+.cmdst .st-sel{max-width:230px;height:32px}
+.cmdst .cmddr{height:32px;white-space:nowrap}
+.cmdst .cmddr span{font-size:.72rem;font-weight:600;color:var(--accent)}
+@media(max-width:640px){ .cmdst .st-sel{max-width:150px} .cmdst .cmddr span{display:none} }
+.mapcard{position:relative;overflow:hidden}
+.mapcard > *:not(.mapcard-img){position:relative;z-index:1}
+.mapcard-img{position:absolute;inset:0 0 0 35%;z-index:0;pointer-events:none;
+  background-size:cover;background-position:center;opacity:.13;filter:saturate(.75);
+  -webkit-mask-image:linear-gradient(to right,transparent,#000 55%);mask-image:linear-gradient(to right,transparent,#000 55%)}
+html[data-theme="light"] .mapcard-img,html[data-theme="warm"] .mapcard-img,html[data-theme="earth"] .mapcard-img{opacity:.16}
+.mapcard-tools{position:absolute!important;top:8px;right:8px;display:flex;gap:4px;z-index:2!important;opacity:0;transition:opacity .15s}
+.mapcard:hover .mapcard-tools,.mapcard-tools:focus-within{opacity:1}
+.mapcard-tools button{background:var(--surface2);border:1px solid var(--line);color:var(--mute);border-radius:6px;
+  font-size:.75rem;padding:2px 6px;cursor:pointer}
+.mapcard-tools button:hover{color:var(--ink);border-color:var(--ink)}
+.mapcard.pimgover{outline:2px dashed var(--accent);outline-offset:-2px}
 </style>
 </head>
 <body>
@@ -3628,6 +3645,8 @@ html[data-no-assign] select.asg{pointer-events:none;opacity:.55}
       <!-- เดินดู Command ทีละคนได้จากตรงนี้ ไม่ต้องปิดหน้าแล้วไปกดในตารางใหม่ทุกครั้ง -->
       <div class="cmdnav" id="cmdNav"></div>
       <h2 id="cmdTitle">Command</h2>
+      <!-- เปลี่ยนสถานะได้จากหัว Command เลย (2026-10-26) ไม่ต้องปิดไปหาในตาราง/แผนผัง -->
+      <div class="cmdst" id="cmdSt"></div>
       <!-- หางเสียงของทุกกล่อง: ชาย (ครับ) / หญิง (ค่ะ) — จำแยกรายบัญชี -->
       <button type="button" class="voicebtn" id="voiceBtn"></button>
       <button type="button" class="voicedef" id="voiceDef"></button>
@@ -6663,6 +6682,7 @@ function loadFormats(){
   try { FMT_VID_BY = JSON.parse(lsGet(LS_FMTVID) || "{}") || {}; } catch(e){}
   try { FMT_DRAFT = JSON.parse(lsGet(LS_FMTDRAFT) || "{}") || {}; } catch(e){}
   loadFmtExtra();
+  loadPimg();
 }
 // ── กล่องข้อความเพิ่มเติมใต้ตัวเลือก (ทักซ้ำ · ตอบกลับ · ขอบคุณ ฯลฯ) — แยกรายโปรเจกต์ × KOL/KOC ──
 // แก้ได้ทั้งหัวข้อและข้อความ · เพิ่ม/ลบกล่องเอง · ใช้ตัวแปรชุดเดียวกับ format หลัก · ใช้ร่วมกันทั้งทีม (team_kv ns=fmt)
@@ -6689,6 +6709,11 @@ function fxOneRate(list){
   if (ch){ list.length = 0; keep.forEach(x => list.push(x)); }
   return ch;
 }
+const LS_PIMG = "cf_pimg_v1";          // { "โปรเจกต์": "data:image/jpeg;base64,…" }
+let PIMG = {};
+function loadPimg(){ try { PIMG = JSON.parse(lsGet(LS_PIMG) || "{}") || {}; } catch(e){ PIMG = {}; } }
+function savePimg(){ try { lsSet(LS_PIMG, JSON.stringify(PIMG)); } catch(e){ alert("เก็บรูปไม่ได้ — พื้นที่ในเบราว์เซอร์เต็ม"); } }
+loadPimg();
 let FMT_EXTRA = {};
 function loadFmtExtra(){
   try { FMT_EXTRA = JSON.parse(lsGet(LS_FMTEXTRA) || "{}") || {}; } catch(e){ FMT_EXTRA = {}; }
@@ -10519,6 +10544,20 @@ function openCmd(proj, handle){
   };
   $("#cmdTitle").innerHTML =
     `Command · <span style="color:var(--accent)">${esc(r.handle)}</span>`;
+  {
+    const d = drMark(r);
+    $("#cmdSt").innerHTML = `<select class="st-sel ${stClass(r.status)}" id="cmdStSel" title="เปลี่ยนสถานะของ ${esc(r.handle)}">${
+        statusOptions(r.status)}</select>${drOk(r) && !isCancelled(r)
+      ? `<button type="button" class="mapdr tbdr cmddr${d ? " on" : ""}" data-drin="${esc(r.handle)}" data-mapproj="${esc(proj)}"
+          title="${d ? "ยกเลิกมาร์ค (ยังไม่ได้ส่งดราฟต์ / ตรวจแล้ว)" : "มาร์คว่าส่งดราฟต์มาแล้ว รอตรวจ"}">📥${d ? ` <span>รอตรวจ · ${drAgo(d.at)}</span>` : ""}</button>` : ""}`;
+    $("#cmdStSel").onchange = e => {
+      const v = e.target.value;
+      if (mapSetStatus(proj, r.handle, v)){
+        vlog("status", { p: proj, h: normId(r.handle), d: v, via: "cmdhead" });
+        openCmd(proj, r.handle);            // สถานะเปลี่ยน กล่องที่โชว์ก็เปลี่ยน (ฟีดแบค 4–5 ฯลฯ)
+      }
+    };
+  }
   $("#cmdNav").innerHTML = nav.length > 1
     ? `<button id="cmdPrev" ${at <= 0 ? "disabled" : ""}
          title="คนก่อนหน้า${at > 0 ? " — " + esc(nav[at-1].handle) : ""} (←)">‹</button>
@@ -11902,6 +11941,7 @@ document.addEventListener("click", e => {
   drToggle(r);
   if (!$("#mapView").hidden) renderMap();
   if (b.classList.contains("tbdr")) renderCoord();
+  if (b.classList.contains("cmddr") && CMD_NOW) openCmd(CMD_NOW.proj, CMD_NOW.handle);
 }, true);
 function mapLeaf(r, proj, color, drag, sub){
   const flags = mapFlags(r);
@@ -13001,7 +13041,13 @@ function mapAllSheet(){
       const rows = mapRows(p);
       const s = mapStats(rows);
       const flagged = rows.filter(r => mapFlags(r).length).length;
-      return `<div class="mapcard${p === PROJ ? " on" : ""}">
+      const img = PIMG[p];
+      return `<div class="mapcard${p === PROJ ? " on" : ""}${img ? " hasimg" : ""}" data-pimgdrop="${esc(p)}">
+        ${img ? `<div class="mapcard-img" style="background-image:url('${esc(img)}')"></div>` : ""}
+        <div class="mapcard-tools">
+          <button type="button" data-pimg="${esc(p)}" title="${img ? "เปลี่ยนรูปสินค้า" : "ใส่รูปสินค้า (โชว์จางๆ หลังการ์ด) — ลากรูปมาวางที่การ์ดก็ได้"}">🖼</button>
+          ${img ? `<button type="button" data-pimgdel="${esc(p)}" title="ลบรูปสินค้า">✕</button>` : ""}
+        </div>
         <h4>${esc(p)}${(projMeta(p) || {}).done ? `<span class="done">ปิดงานแล้ว</span>` : ""}</h4>
         <div class="sub">${s.active} คน · ${s.clips} คลิป${
           MAP_KIND === "all" ? ` · KOL ${s.kol} / KOC ${s.koc}` : ` · เฉพาะ ${MAP_KIND}`}${
@@ -13020,6 +13066,68 @@ function mapAllSheet(){
         </div>
       </div>`; }).join("")}</div>`;
 }
+
+// ── รูปสินค้าของโปรเจกต์ ──
+// ย่อในเครื่องก่อนเก็บ: ด้านยาวสุด 480px · JPEG 0.72 — รูปจากมือถือ 4MB เหลือหลักสิบ KB ซิงก์ทั้งทีมได้สบาย
+function pimgShrink(file){
+  return new Promise((ok, bad) => {
+    if (!file || !/^image\//.test(file.type)) return bad(new Error("ไฟล์นี้ไม่ใช่รูป"));
+    // อ่านเป็น data: — CSP ของเว็บไม่เปิด blob: ให้รูป (img-src 'self' https: data:)
+    const im = new Image(), fr = new FileReader();
+    fr.onload = () => { im.src = fr.result; };
+    fr.onerror = () => bad(new Error("อ่านไฟล์รูปไม่ได้"));
+    im.onload = () => {
+      const k = Math.min(1, 480 / Math.max(im.width, im.height));
+      const c = document.createElement("canvas");
+      c.width = Math.round(im.width * k); c.height = Math.round(im.height * k);
+      const g = c.getContext("2d");
+      g.fillStyle = "#fff"; g.fillRect(0, 0, c.width, c.height);   // png ใส → พื้นขาว ไม่ใช่ดำ
+      g.drawImage(im, 0, 0, c.width, c.height);
+      ok(c.toDataURL("image/jpeg", .72));
+    };
+    im.onerror = () => bad(new Error("เปิดรูปนี้ไม่ได้"));
+    fr.readAsDataURL(file);
+  });
+}
+async function pimgSet(proj, file){
+  try {
+    PIMG[proj] = await pimgShrink(file);
+    savePimg();
+    vlog("pimg", { p: proj, d: "set" });
+    renderMap();
+  } catch(e){ alert(e.message); }
+}
+document.addEventListener("click", e => {
+  const a = e.target.closest && e.target.closest("#mapBody [data-pimg], #mapBody [data-pimgdel]");
+  if (!a) return;
+  e.preventDefault(); e.stopPropagation();
+  if (a.dataset.pimgdel != null){
+    const p = a.dataset.pimgdel;
+    if (!confirm(`ลบรูปสินค้าของ ${p}?`)) return;
+    delete PIMG[p]; savePimg(); vlog("pimg", { p, d: "del" }); renderMap();
+    return;
+  }
+  const inp = document.createElement("input");
+  inp.type = "file"; inp.accept = "image/*";
+  inp.onchange = () => inp.files[0] && pimgSet(a.dataset.pimg, inp.files[0]);
+  inp.click();
+}, true);
+// ลากไฟล์รูปมาวางที่การ์ด
+document.addEventListener("dragover", e => {
+  const c = e.target.closest && e.target.closest("#mapBody [data-pimgdrop]");
+  if (!c || ![...(e.dataTransfer.types || [])].includes("Files")) return;
+  e.preventDefault(); c.classList.add("pimgover");
+});
+document.addEventListener("dragleave", e => {
+  const c = e.target.closest && e.target.closest("#mapBody [data-pimgdrop]");
+  if (c && !c.contains(e.relatedTarget)) c.classList.remove("pimgover");
+});
+document.addEventListener("drop", e => {
+  const c = e.target.closest && e.target.closest("#mapBody [data-pimgdrop]");
+  if (!c || !e.dataTransfer.files.length) return;
+  e.preventDefault(); c.classList.remove("pimgover");
+  pimgSet(c.dataset.pimgdrop, e.dataTransfer.files[0]);
+});
 
 // ─── แผ่น: ข้อมูลที่ยังขาด ───
 // จัดกลุ่มตาม "อะไรที่ขาด" ไม่ใช่ตามคน เพราะงานที่ต้องทำคือไล่เก็บทีละชนิด
@@ -22098,19 +22206,22 @@ const TS = {
       for (const p in FORMATS) if (FORMATS[p] != null) o["main|" + p + "|budget"] = FORMATS[p];
       for (const p in FORMATS_NB) if (FORMATS_NB[p] != null) o["main|" + p + "|nobudget"] = FORMATS_NB[p];
       for (const k in FMT_EXTRA) if (Array.isArray(FMT_EXTRA[k])) o["extra|" + k] = FMT_EXTRA[k];
+      for (const p in PIMG) if (PIMG[p]) o["pimg|" + p] = PIMG[p];
       return o;
     },
     // extra|โปรเจกต์ · main|โปรเจกต์|budget
-    ok: k => k.startsWith("extra|") ? isTeamProj(k.slice(6))
+    ok: k => k.startsWith("pimg|") ? isTeamProj(k.slice(5)) : k.startsWith("extra|") ? isTeamProj(k.slice(6))
       : (() => { const a = k.indexOf("|"), b = k.lastIndexOf("|"); return a > 0 && b > a && isTeamProj(k.slice(a + 1, b)); })(),
-    put: (k, v) => { if (k.startsWith("extra|")) { FMT_EXTRA[k.slice(6)] = v; return; }
+    put: (k, v) => { if (k.startsWith("pimg|")) { PIMG[k.slice(5)] = v; return; }
+      if (k.startsWith("extra|")) { FMT_EXTRA[k.slice(6)] = v; return; }
       const a = k.indexOf("|"), b = k.lastIndexOf("|"), p = k.slice(a + 1, b), kd = k.slice(b + 1);
       if (k.startsWith("main|")) (kd === "nobudget" ? FORMATS_NB : FORMATS)[p] = v; },
-    drop: k => { if (k.startsWith("extra|")) { delete FMT_EXTRA[k.slice(6)]; return; }
+    drop: k => { if (k.startsWith("pimg|")) { delete PIMG[k.slice(5)]; return; }
+      if (k.startsWith("extra|")) { delete FMT_EXTRA[k.slice(6)]; return; }
       const a = k.indexOf("|"), b = k.lastIndexOf("|"), p = k.slice(a + 1, b), kd = k.slice(b + 1);
       if (k.startsWith("main|")) delete (kd === "nobudget" ? FORMATS_NB : FORMATS)[p]; },
     save: () => { try { lsSet(LS_FORMAT, JSON.stringify(FORMATS)); lsSet(LS_FORMAT_NB, JSON.stringify(FORMATS_NB));
-                        lsSet(LS_FMTEXTRA, JSON.stringify(FMT_EXTRA)); } catch(e){} },
+                        lsSet(LS_FMTEXTRA, JSON.stringify(FMT_EXTRA)); lsSet(LS_PIMG, JSON.stringify(PIMG)); } catch(e){} },
   },
   tpl: {
     all: () => {
@@ -22288,6 +22399,7 @@ async function renderTsStat(){
 }
 // ของทีมเปลี่ยน → วาดกล่อง Command ที่เปิดอยู่ใหม่ (ไม่ทับตอนกำลังพิมพ์/แก้ข้อความ)
 function tsRedraw(){
+  if (!$("#mapView").hidden && !MAP_PROJ) renderMap();
   const fp = $("#fmtPanel"), fa = document.activeElement;
   if (fp && !fp.hidden && !FMT_EDIT && !(fa && fp.contains(fa) && /^(INPUT|TEXTAREA)$/.test(fa.tagName))) renderFormat();
   const p = $("#cmdPanel");
@@ -22306,6 +22418,7 @@ if (TEAM_MODE){
   saveSkuBind = tsAfter(saveSkuBind, () => tsSoon("sku"));
   saveFormats = tsAfter(saveFormats, () => tsSoon("fmt"));
   saveFmtExtra = tsAfter(saveFmtExtra, () => tsSoon("fmt"));
+  savePimg = tsAfter(savePimg, () => tsSoon("fmt"));
   openFormat = tsAfter(openFormat, () => tsPull());
   saveCmdEditRaw = saveCmdEdit;
   saveCmdEdit = tsAfter(saveCmdEdit, () => tsSoon("tpl"));
