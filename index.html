@@ -2959,6 +2959,15 @@ html[data-no-assign] select.asg{pointer-events:none;opacity:.55}
 .openrate .orwarn{color:#E0A13A;border:1px solid #E0A13A;border-radius:8px;padding:6px 10px;margin-bottom:8px}
 .openrate .orhint{margin-top:5px;font-size:.72rem;opacity:.8}
 #qoOpenGo.orblock{background:#C62F35!important;color:#fff!important;opacity:1}
+.mapdr{background:var(--surface2);border:1px solid var(--line);border-right:0;border-left:0;color:var(--dim);
+  padding:0 6px;font-size:.8rem;cursor:pointer;filter:grayscale(1);opacity:.55}
+.mapdr:hover{opacity:1;filter:none}
+.mapdr.on{filter:none;opacity:1;background:rgba(var(--accent-rgb),.18);border-color:var(--accent)}
+.mapleafwrap.drin .mapleaf{border-color:var(--accent);background:rgba(var(--accent-rgb),.10)}
+.mapleafwrap.drin .mapst{border-color:var(--accent)}
+.mapleaf .drtag{font-size:.68rem;font-weight:600;color:var(--accent)}
+.mapstage .lab .drcount{font-style:normal;font-weight:600;color:var(--accent);margin-left:4px}
+.mapnote.drnote{border-color:rgba(var(--accent-rgb),.45)}
 </style>
 </head>
 <body>
@@ -9346,8 +9355,8 @@ function cmdOwn(proj, handle){
 function cmdOwnRead(proj, handle){
   const o = CMDOWN[cmdKey(proj, handle)];
   return o ? { blocks:o.blocks || {}, links:o.links || {}, sent:o.sent || {},
-               add:o.add || [], hide:o.hide || [], moved:o.moved || {}, ord:o.ord || {}, voice:o.voice || null }
-           : { blocks:{}, links:{}, sent:{}, add:[], hide:[], moved:{}, ord:{}, voice:null };
+               add:o.add || [], hide:o.hide || [], moved:o.moved || {}, ord:o.ord || {}, voice:o.voice || null, dr:o.dr || null }
+           : { blocks:{}, links:{}, sent:{}, add:[], hide:[], moved:{}, ord:{}, voice:null, dr:null };
 }
 // ลบทิ้งถ้าไม่เหลืออะไรที่ต่างจากต้นแบบ จะได้ไม่มีขยะค้าง
 function pruneCmdOwn(proj, handle){
@@ -9359,7 +9368,7 @@ function pruneCmdOwn(proj, handle){
   if (o.ord && !Object.keys(o.ord).length) delete o.ord;
   if (!Object.keys(o.blocks || {}).length && !Object.keys(o.links || {}).length
       && !Object.keys(o.sent || {}).length && !Object.keys(o.moved || {}).length
-      && !(o.add || []).length && !(o.hide || []).length && !Object.keys(o.ord || {}).length && !o.voice)
+      && !(o.add || []).length && !(o.hide || []).length && !Object.keys(o.ord || {}).length && !o.voice && !o.dr)
     delete CMDOWN[k];
 }
 
@@ -11787,9 +11796,35 @@ function satDays(r){
   return Math.max(0, Math.round((now - d0) / 86400000));
 }
 // เรียงใบในขั้นเดียวกัน: อยู่ในขั้นนี้นานที่สุดขึ้นก่อน · ไม่รู้วันที่ไว้ท้าย · เท่ากันคงลำดับเดิม (ลำดับในตาราง)
+// ═══ 📥 ดราฟต์เข้าแล้ว รอตรวจ ═══
+// คนที่อยู่ขั้น "รอสคริป / รอ Draft N" มีทั้งคนที่ยังไม่ส่ง และคนที่ส่งมาแล้วรอเราตรวจ — แยกด้วยตาเปล่าไม่ได้
+// กด 📥 ที่ใบในแผนผัง = มาร์คว่าส่งมาแล้ว · ใบที่มาร์คขึ้นก่อน (มาร์คนานสุดอยู่บน) · นับจำนวนให้ที่หัวขั้น
+// มาร์คผูกกับสถานะตอนกด (dr.s) — สถานะเปลี่ยนเมื่อไหร่ (ส่งฟีดแบค → รอดราฟต์ถัดไป) มาร์คหายเอง ไม่ต้องตามลบ
+// เก็บใน CMDOWN ของคนนั้น → ซิงก์ทั้งทีม
+const drOk = r => !!r && (r.status === "Waiting Script" || /^Waiting Draft \d$/.test(r.status || ""));
+function drMark(r){
+  if (!drOk(r)) return null;
+  const d = cmdOwnRead(r.project, r.handle).dr;
+  return d && d.s === r.status ? d : null;
+}
+function drToggle(r){
+  const o = cmdOwn(r.project, r.handle);
+  const on = !drMark(r);
+  if (on) o.dr = { s: r.status, at: Date.now() }; else delete o.dr;
+  pruneCmdOwn(r.project, r.handle);
+  saveCmdOwn();
+  vlog("draft:in", { p: r.project, h: normId(r.handle), d: on ? r.status : "off" });
+  return on;
+}
+function drAgo(at){
+  const m = Math.max(0, (Date.now() - at) / 60e3);
+  return m < 60 ? `${Math.round(m)} นาที` : m < 1440 ? `${Math.round(m / 60)} ชม.` : `${Math.floor(m / 1440)} วัน`;
+}
 function satSort(list){
   const t = r => { const x = r && r._sat ? Date.parse(r._sat) : NaN; return isFinite(x) ? x : Infinity; };
-  return list.slice().sort((a, b) => t(a) - t(b));
+  // มาร์ค 📥 ขึ้นก่อน (มาร์คนานสุดอยู่บน) แล้วค่อยเรียงตามวันที่เข้าขั้น
+  const d = r => { const m = drMark(r); return m ? m.at : Infinity; };
+  return list.slice().sort((a, b) => (d(a) - d(b)) || (t(a) - t(b)));
 }
 function shipDays(r){
   if (!TEAM_MODE || !r || !r.status || !r._sat) return "";
@@ -11847,12 +11882,22 @@ document.addEventListener("click", e => {
   const r = leaf && (COORD[leaf.dataset.mapproj] || []).find(x => normId(x.handle) === normId(leaf.dataset.mapwho));
   if (r) satEditOpen(el, r);
 }, true);
+document.addEventListener("click", e => {
+  const b = e.target.closest && e.target.closest("[data-drin]");
+  if (!b) return;
+  e.preventDefault(); e.stopPropagation();
+  const r = (COORD[b.dataset.mapproj] || []).find(x => normId(x.handle) === normId(b.dataset.drin));
+  if (!r) return;
+  drToggle(r);
+  if (!$("#mapView").hidden) renderMap();
+}, true);
 function mapLeaf(r, proj, color, drag, sub){
   const flags = mapFlags(r);
+  const dr = drMark(r), drCan = drOk(r) && !isCancelled(r);
   const clips = clipCount(r);
   const cancel = isCancelled(r);
   const done = !cancel && mapDone(r);
-  return `<span class="mapleafwrap">
+  return `<span class="mapleafwrap${dr ? " drin" : ""}">
     <button class="mapleaf${flags.length ? " miss" : ""}${done ? " done" : ""}${
       TEAM_MODE && TEAM && isTeamProj(proj) && r.assignee !== sbUid() && MEMSEG === "all" ? " notmine" : ""}${
       cancel ? " cancelled" : ""}"
@@ -11875,7 +11920,9 @@ function mapLeaf(r, proj, color, drag, sub){
           : r.rate != null ? mBaht(r.rate) : `<span class="flag">ไม่มีเรท</span>`}
         ${clips > 1 && !cancel ? `· ${clips} ชุด` : ""}
         ${flags.length ? `<span class="flag" title="${esc(flags.join(" · "))}">⚑${flags.length}</span>` : ""}
-      </span>`}${shipDays(r)}</button>
+      </span>`}${dr ? `<span class="drtag" title="มาร์คว่าส่งดราฟต์มาแล้วเมื่อ ${esc(new Date(dr.at).toLocaleString("th-TH"))}">📥 รอตรวจ · ${drAgo(dr.at)}</span>` : ""}${shipDays(r)}</button>
+    ${drCan ? `<button type="button" class="mapdr${dr ? " on" : ""}" data-drin="${esc(r.handle)}" data-mapproj="${esc(proj)}"
+      title="${dr ? "ยกเลิกมาร์ค (ยังไม่ได้ส่งดราฟต์ / ตรวจแล้ว)" : "มาร์คว่าส่งดราฟต์มาแล้ว รอตรวจ"} — ${esc(r.handle)}">📥</button>` : ""}
     <button class="mapst" data-mapst="${esc(r.handle)}" data-mapproj="${esc(proj)}"
       title="เปลี่ยนสถานะของ ${esc(r.handle)}">▾</button>
   </span>`;
@@ -12292,7 +12339,9 @@ function mapFlowSheet(proj){
       </header>
       <div class="mapstages">${stages.map(st =>
         `<div class="mapstage${st.list.length ? "" : " zero"}" data-drop="${esc(st.drop)}">
-          <div class="lab">${esc(mapStatusLabel(st.v))} <i>${st.list.length}</i></div>
+          <div class="lab">${esc(mapStatusLabel(st.v))} <i>${st.list.length}</i>${(() => {
+            const n = st.list.filter(drMark).length;
+            return n ? ` <b class="drcount" title="ส่งดราฟต์มาแล้ว รอตรวจ">📥 ${n}</b>` : ""; })()}</div>
           <div class="mapleaves">${satSort(st.list).map(r => mapLeaf(r, proj, p.c, true)).join("")}</div>
         </div>`).join("")}</div>
     </div>`;
@@ -12315,6 +12364,11 @@ function mapFlowSheet(proj){
         <div class="s">${flagged ? "ข้อมูลไม่ครบ — ดูแผ่นถัดไป" : "ข้อมูลครบทุกคน"}</div></div>
     </div>
     ${mapBar(s)}
+    ${(() => {
+      const ok = rows.filter(r => drOk(r) && !isCancelled(r)), n = ok.filter(drMark).length;
+      return ok.length ? `<div class="mapnote drnote">📥 <b>${n}</b> คนส่งดราฟต์/สคริปมาแล้ว รอตรวจ
+        <span class="hint">· จาก ${ok.length} คนที่อยู่ขั้นรอสคริป/รอดราฟต์ — กด 📥 ที่ใบเพื่อมาร์ค · ส่งฟีดแบคแล้วมาร์คหายเอง</span></div>` : "";
+    })()}
     ${s.oldSt ? `<div class="mapnote"><b>${s.oldSt}</b> คนยังใช้สถานะชุดเก่า —
       แผนผังอ่านให้เป็นขั้นใหม่ให้แล้ว แต่ในชีตยังเป็นคำเดิม
       กด <b>↻ สถานะชุดเก่า</b> เหนือตารางเพื่อแปลงจริง</div>` : ""}
