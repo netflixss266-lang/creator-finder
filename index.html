@@ -2968,6 +2968,10 @@ html[data-no-assign] select.asg{pointer-events:none;opacity:.55}
 .mapleaf .drtag{font-size:.68rem;font-weight:600;color:var(--accent)}
 .mapstage .lab .drcount{font-style:normal;font-weight:600;color:var(--accent);margin-left:4px}
 .mapnote.drnote{border-color:rgba(var(--accent-rgb),.45)}
+.stcell{display:flex;align-items:center;gap:4px}
+.mapdr.tbdr{border:1px solid var(--line);border-radius:6px;height:26px;padding:0 5px}
+#coordBody tr:has(.tbdr.on) > td{background:rgba(var(--accent-rgb),.07)}
+.drtag.tb{display:block;font-size:.66rem;font-weight:600;color:var(--accent);margin-top:2px;white-space:nowrap}
 </style>
 </head>
 <body>
@@ -8693,8 +8697,15 @@ function coordRow(r, i){
     <td class="opt"><select data-i="${i}" data-f="kind" style="width:72px">${
       ["", "KOL", "KOC"].map(k =>
         `<option value="${k}"${k === (r.kind||"") ? " selected" : ""}>${k || "—"}</option>`).join("")}</select></td>
-    <td class="w-status"><select class="st-sel ${stClass(r.status)}" data-i="${i}" data-f="status">${
-      statusOptions(r.status)}</select></td>
+    <td class="w-status"><div class="stcell"><select class="st-sel ${stClass(r.status)}" data-i="${i}" data-f="status">${
+      statusOptions(r.status)}</select>${(() => {
+        // 📥 ดราฟต์เข้าแล้ว รอตรวจ — ปุ่มเดียวกับในแผนผัง (ข้อมูลชุดเดียวกัน)
+        if (!drOk(r) || isCancelled(r)) return "";
+        const d = drMark(r);
+        return `<button type="button" class="mapdr tbdr${d ? " on" : ""}" data-drin="${esc(r.handle)}" data-mapproj="${esc(r.project || PROJ)}"
+          title="${d ? "ยกเลิกมาร์ค (ยังไม่ได้ส่งดราฟต์ / ตรวจแล้ว)" : "มาร์คว่าส่งดราฟต์มาแล้ว รอตรวจ"}">📥</button>`;
+      })()}</div>${(() => { const d = drMark(r);
+        return d ? `<span class="drtag tb" title="มาร์คเมื่อ ${esc(new Date(d.at).toLocaleString("th-TH"))}">📥 รอตรวจ · ${drAgo(d.at)}</span>` : ""; })()}</td>
     <td class="mono ${noRate&&!isKOC ? "warn" : amb ? "warn" : ""}">
       <input class="mono" data-i="${i}" data-f="rate" style="width:92px" inputmode="numeric"
              value="${rateText(r.rate)}"
@@ -11890,6 +11901,7 @@ document.addEventListener("click", e => {
   if (!r) return;
   drToggle(r);
   if (!$("#mapView").hidden) renderMap();
+  if (b.classList.contains("tbdr")) renderCoord();
 }, true);
 function mapLeaf(r, proj, color, drag, sub){
   const flags = mapFlags(r);
