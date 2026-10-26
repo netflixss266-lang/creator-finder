@@ -5610,17 +5610,24 @@ const STAGES = [
   { v:"Waiting Sent to SG",       th:"รอส่งไป SG",          c:"s-wait", a:/รอส่ง.{0,3}sg/i },
   { v:"Already Sent to SG",       th:"ส่ง SG แล้ว",         c:"s-done", a:/ส่ง\s*sg\s*แล้ว/i },
   { v:"Waiting Script",           th:"รอสคริป",             c:"s-wait", a:/รอสคริป/i },
+  // รอ PM Feedback (2026-10-26) — ครีเอเตอร์ส่งมาแล้ว เราตรวจแล้ว รอ PM ให้ฟีดแบค · เข้าขั้นนี้ด้วยการเอามาร์ค 📥 ออก
+  { v:"Waiting PM Feedback Script", th:"รอ PM ฟีดแบคสคริป", c:"s-wait", a:/รอ\s*pm\s*(?:ฟีดแบค|feedback)\s*(?:สคริป|script)/i },
   { v:"Already Feedback Script",  th:"ฟีดแบคสคริปแล้ว",     c:"s-done", a:/ฟีดแบคสคริป/i },
   { v:"Waiting Draft 1",          th:"รอ Draft 1",          c:"s-wait", a:/รอ\s*draft\s*1/i },
+  { v:"Waiting PM Feedback Draft 1", th:"รอ PM ฟีดแบค Draft 1", c:"s-wait", a:/รอ\s*pm\s*(?:ฟีดแบค|feedback)\s*draft\s*1/i },
   { v:"Feedback Draft 1",         th:"ฟีดแบค Draft 1 แล้ว", c:"s-fb",   a:/ฟีดแบค\s*draft\s*1/i },
   { v:"Waiting Draft 2",          th:"รอ Draft 2",          c:"s-wait", a:/รอ\s*draft\s*2/i },
+  { v:"Waiting PM Feedback Draft 2", th:"รอ PM ฟีดแบค Draft 2", c:"s-wait", a:/รอ\s*pm\s*(?:ฟีดแบค|feedback)\s*draft\s*2/i },
   { v:"Feedback Draft 2",         th:"ฟีดแบค Draft 2 แล้ว", c:"s-fb",   a:/ฟีดแบค\s*draft\s*2/i },
   { v:"Waiting Draft 3",          th:"รอ Draft 3",          c:"s-wait", a:/รอ\s*draft\s*3/i },
+  { v:"Waiting PM Feedback Draft 3", th:"รอ PM ฟีดแบค Draft 3", c:"s-wait", a:/รอ\s*pm\s*(?:ฟีดแบค|feedback)\s*draft\s*3/i },
   { v:"Feedback Draft 3",         th:"ฟีดแบค Draft 3 แล้ว", c:"s-fb",   a:/ฟีดแบค\s*draft\s*3/i },
   // Draft 4–5 (2026-10-22) — งานที่แก้เกิน 3 รอบ
   { v:"Waiting Draft 4",          th:"รอ Draft 4",          c:"s-wait", a:/รอ\s*draft\s*4/i },
+  { v:"Waiting PM Feedback Draft 4", th:"รอ PM ฟีดแบค Draft 4", c:"s-wait", a:/รอ\s*pm\s*(?:ฟีดแบค|feedback)\s*draft\s*4/i },
   { v:"Feedback Draft 4",         th:"ฟีดแบค Draft 4 แล้ว", c:"s-fb",   a:/ฟีดแบค\s*draft\s*4/i },
   { v:"Waiting Draft 5",          th:"รอ Draft 5",          c:"s-wait", a:/รอ\s*draft\s*5/i },
+  { v:"Waiting PM Feedback Draft 5", th:"รอ PM ฟีดแบค Draft 5", c:"s-wait", a:/รอ\s*pm\s*(?:ฟีดแบค|feedback)\s*draft\s*5/i },
   { v:"Feedback Draft 5",         th:"ฟีดแบค Draft 5 แล้ว", c:"s-fb",   a:/ฟีดแบค\s*draft\s*5/i },
   { v:"Waiting to Post",          th:"รอโพสต์",             c:"s-wait", a:/รอโพสต์/i },
   { v:"Already Posted",           th:"โพสต์แล้ว",           c:"s-done", a:/โพสต์แล้ว/i },
@@ -8728,7 +8735,7 @@ function coordRow(r, i){
         if (!drOk(r) || isCancelled(r)) return "";
         const d = drMark(r);
         return `<button type="button" class="mapdr tbdr${d ? " on" : ""}" data-drin="${esc(r.handle)}" data-mapproj="${esc(r.project || PROJ)}"
-          title="${d ? "ยกเลิกมาร์ค (ยังไม่ได้ส่ง / ตรวจแล้ว)" : "มาร์คว่าส่งสคริป/ดราฟต์มาแล้ว รอตรวจ"}">📥</button>`;
+          title="${d ? "ตรวจแล้ว — เอามาร์คออก = ย้ายไปรอ PM Feedback" : "มาร์คว่าส่งสคริป/ดราฟต์มาแล้ว รอตรวจ"}">📥</button>`;
       })()}</div>${(() => { const d = drMark(r);
         return d ? `<span class="drtag tb" title="มาร์คเมื่อ ${esc(new Date(d.at).toLocaleString("th-TH"))}">📥 รอตรวจ · ${drAgo(d.at)}</span>` : ""; })()}</td>
     <td class="mono ${noRate&&!isKOC ? "warn" : amb ? "warn" : ""}">
@@ -10549,7 +10556,7 @@ function openCmd(proj, handle){
     $("#cmdSt").innerHTML = `<select class="st-sel ${stClass(r.status)}" id="cmdStSel" title="เปลี่ยนสถานะของ ${esc(r.handle)}">${
         statusOptions(r.status)}</select>${drOk(r) && !isCancelled(r)
       ? `<button type="button" class="mapdr tbdr cmddr${d ? " on" : ""}" data-drin="${esc(r.handle)}" data-mapproj="${esc(proj)}"
-          title="${d ? "ยกเลิกมาร์ค (ยังไม่ได้ส่ง / ตรวจแล้ว)" : "มาร์คว่าส่งสคริป/ดราฟต์มาแล้ว รอตรวจ"}">📥${d ? ` <span>รอตรวจ · ${drAgo(d.at)}</span>` : ""}</button>` : ""}`;
+          title="${d ? "ตรวจแล้ว — เอามาร์คออก = ย้ายไปรอ PM Feedback" : "มาร์คว่าส่งสคริป/ดราฟต์มาแล้ว รอตรวจ"}">📥${d ? ` <span>รอตรวจ · ${drAgo(d.at)}</span>` : ""}</button>` : ""}`;
     $("#cmdStSel").onchange = e => {
       const v = e.target.value;
       if (mapSetStatus(proj, r.handle, v)){
@@ -11860,6 +11867,17 @@ function drMark(r){
   const d = cmdOwnRead(r.project, r.handle).dr;
   return d && d.s === r.status ? d : null;
 }
+// เอามาร์คออก = ตรวจแล้ว ส่งต่อให้ PM → ย้ายไป "รอ PM Feedback" ของรอบนั้น
+//   ช่วงสคริป → รอ PM ฟีดแบคสคริป · รอ Draft N → รอ PM ฟีดแบค Draft N
+//   ฟีดแบค Draft N แล้ว (แถวเก่า) → ของที่ส่งมาคือ Draft N+1
+function drPmOf(st){
+  if (["Already Sent to SG", "Waiting Script", "Already Feedback Script"].includes(st)) return "Waiting PM Feedback Script";
+  let m = String(st || "").match(/^Waiting Draft (\d)$/);
+  if (m) return `Waiting PM Feedback Draft ${m[1]}`;
+  m = String(st || "").match(/^Feedback Draft (\d)$/);
+  if (m) return `Waiting PM Feedback Draft ${Math.min(5, +m[1] + 1)}`;
+  return null;
+}
 function drToggle(r){
   const o = cmdOwn(r.project, r.handle);
   const on = !drMark(r);
@@ -11867,6 +11885,10 @@ function drToggle(r){
   pruneCmdOwn(r.project, r.handle);
   saveCmdOwn();
   vlog("draft:in", { p: r.project, h: normId(r.handle), d: on ? r.status : "off" });
+  if (!on){
+    const to = drPmOf(r.status);
+    if (to) mapSetStatus(r.project, r.handle, to);
+  }
   return on;
 }
 function drAgo(at){
@@ -11977,7 +11999,7 @@ function mapLeaf(r, proj, color, drag, sub){
         ${flags.length ? `<span class="flag" title="${esc(flags.join(" · "))}">⚑${flags.length}</span>` : ""}
       </span>`}${dr ? `<span class="drtag" title="มาร์คว่าส่งดราฟต์มาแล้วเมื่อ ${esc(new Date(dr.at).toLocaleString("th-TH"))}">📥 รอตรวจ · ${drAgo(dr.at)}</span>` : ""}${shipDays(r)}</button>
     ${drCan ? `<button type="button" class="mapdr${dr ? " on" : ""}" data-drin="${esc(r.handle)}" data-mapproj="${esc(proj)}"
-      title="${dr ? "ยกเลิกมาร์ค (ยังไม่ได้ส่ง / ตรวจแล้ว)" : "มาร์คว่าส่งสคริป/ดราฟต์มาแล้ว รอตรวจ"} — ${esc(r.handle)}">📥</button>` : ""}
+      title="${dr ? "ตรวจแล้ว — เอามาร์คออก = ย้ายไปรอ PM Feedback" : "มาร์คว่าส่งสคริป/ดราฟต์มาแล้ว รอตรวจ"} — ${esc(r.handle)}">📥</button>` : ""}
     <button class="mapst" data-mapst="${esc(r.handle)}" data-mapproj="${esc(proj)}"
       title="เปลี่ยนสถานะของ ${esc(r.handle)}">▾</button>
   </span>`;
@@ -15243,8 +15265,8 @@ function rvStep(r){
   if (isCancelled(r)) return "cancel";
   if (!s || s === "Waiting Confirm") return "cf";
   if (s === "Confirmed" || s === "Waiting Delivery") return "ship";
-  if (["Already Delivered", "Sent Tracking", "Waiting Sent to SG", "Already Sent to SG", "Waiting Script", "Already Feedback Script"].includes(s)) return "pre";
-  const m = s.match(/^(Waiting|Feedback) Draft (\d)$/);
+  if (["Already Delivered", "Sent Tracking", "Waiting Sent to SG", "Already Sent to SG", "Waiting Script", "Waiting PM Feedback Script", "Already Feedback Script"].includes(s)) return "pre";
+  const m = s.match(/^(Waiting|Feedback|Waiting PM Feedback) Draft (\d)$/);
   if (m) return "d" + m[2];
   if (s === "Waiting to Post") return "canpost";
   return "posted";
