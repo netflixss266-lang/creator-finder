@@ -3066,6 +3066,26 @@ html[data-theme="light"] .mapcard:has(.mapstamp) > *:not(.mapstamp),html[data-th
 .cmdlitwarn{margin-top:8px;padding:7px 10px;border:1px solid rgba(var(--warn-rgb),.5);background:rgba(var(--warn-rgb),.08);
   border-radius:8px;font-size:.78rem;color:var(--ink)}
 .cmdtagedit + .cmdtagedit{border-top:0;margin-top:4px;padding-top:4px}
+.skuaudit{border:1px solid var(--line);background:var(--surface2);border-radius:8px;padding:9px 12px;margin:0 0 10px;font-size:.8rem;line-height:1.6}
+.skuaudit .cmdbtn{margin-left:6px}
+.skuaudit .sa-head{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.skuaudit .sa-all{margin-left:auto;font-size:.76rem;color:var(--mute);display:flex;align-items:center;gap:4px}
+.skuaudit .sa-sum{display:flex;flex-wrap:wrap;gap:6px;margin:6px 0}
+.skuaudit .sa-chip{border:1px solid var(--line);border-radius:999px;padding:1px 9px;font-size:.74rem}
+.skuaudit .sa-chip.own,.skuaudit .sa-chip.lit{border-color:var(--warn);color:var(--warn)}
+.skuaudit .sa-chip.none{border-color:#E5484D;color:#E5484D}
+.skuaudit .sa-chip.fallback{color:var(--mute)}
+.skuaudit .sa-chip.ok{border-color:var(--accent);color:var(--accent)}
+.skuaudit .cmdbtn.go{margin:2px 0 6px;background:var(--accent);color:var(--accent-ink);border-color:var(--accent);font-weight:700}
+.skuaudit .sa-list{max-height:340px;overflow:auto;border-top:1px solid var(--line);margin-top:4px}
+.skuaudit .sa-row{display:grid;grid-template-columns:minmax(90px,1.1fr) 38px minmax(80px,1fr) minmax(90px,1.2fr) minmax(110px,1.4fr) minmax(120px,1.6fr);
+  gap:8px;align-items:center;padding:4px 0;border-bottom:1px solid var(--line);font-size:.75rem}
+.skuaudit .sa-who{background:none;border:0;color:var(--accent);text-align:left;cursor:pointer;padding:0;font:inherit;font-weight:600;overflow:hidden;text-overflow:ellipsis}
+.skuaudit .sa-k,.skuaudit .sa-p,.skuaudit .sa-s{color:var(--dim);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.skuaudit .sa-v{font-family:'IBM Plex Mono',monospace;font-size:.7rem;overflow:hidden;white-space:nowrap}
+.skuaudit .sa-i i{font-style:normal;display:inline-block;margin-right:4px}
+.skuaudit .sa-i i.own,.skuaudit .sa-i i.lit{color:var(--warn)} .skuaudit .sa-i i.none{color:#E5484D} .skuaudit .sa-i i.fallback{color:var(--mute)}
+@media(max-width:700px){ .skuaudit .sa-row{grid-template-columns:1fr 1fr} }
 </style>
 </head>
 <body>
@@ -4073,6 +4093,8 @@ html[data-theme="light"] .mapcard:has(.mapstamp) > *:not(.mapstamp),html[data-th
       <div class="skuover" id="skuOverNote" hidden></div>
       <!-- แยกข้อมูลเดิม (ก่อนมีชุด KOC) เป็น KOL/KOC — โชว์เฉพาะตอนชุด KOC ยังว่าง -->
       <div class="skusplit" id="skuSplitBox" hidden></div>
+      <!-- ตรวจตะกร้า/แฮชแท็กของทุกคน — ค่าที่ Command ใช้จริงมาจากไหน (2026-10-27) -->
+      <div class="skuaudit" id="skuAuditBox" hidden></div>
       <div id="skuGuideList"></div>
 
       <!-- เลือก SKU ได้ทีละหลายอันพร้อมกัน แทนที่จะพึ่งชื่อไลน์ครอบอย่างเดียว —
@@ -17812,6 +17834,88 @@ function skuSplitApply(plan){
   SKU_BIND.forEach(b => { saveSkuBind(b.k, "KOL"); saveSkuBind(b.k, "KOC"); });
   vlog("sku:split", { d: ["del", "move", "copy"].map(a => a + ":" + plan.filter(x => x.act === a).length).join(" ") });
 }
+// ═══ ตรวจทุกคน: Command ของแต่ละคนได้ตะกร้า/แฮชแท็กจากไหน ═══
+// ปัญหาที่เจอจริง: ตั้งตาม SKU ใหม่แล้ว Command ยังขึ้นค่าเก่า เพราะ (1) มีค่าตั้งเฉพาะคนค้างทับ
+// (2) KOC ยังไม่ได้ตั้งแยก ตกไปใช้ของ KOL (3) ข้อความกล่องพิมพ์ลิงก์ฝังไว้ตายตัว (4) ไม่มีค่าเลย
+const AUDIT_LIT = /https?:\/\/(?:affiliate\.tiktok\.com|vt\.tiktok\.com|vm\.tiktok\.com)\S*/;
+let SKU_AUDIT_ALL = false;              // false = เฉพาะงานที่ยังไม่ปิด (ไม่นับโพสต์แล้ว/จ่ายแล้ว/ยกเลิก)
+function skuAudit(kd){
+  const closed = r => isCancelled(r) || mapDone(r) || ["Already Posted", "Waiting Gencode", "Waiting Payment"].includes(r.status);
+  const out = [];
+  PROJECTS.filter(p => !TEAM_MODE || isTeamProj(p)).forEach(p => (COORD[p] || []).forEach(r => {
+    if (!r.project) r.project = p;
+    if (!SKU_AUDIT_ALL && closed(r)) return;
+    const blocks = cmdBlocksFor(p, r.handle);
+    const uses = blocks.some(b => new RegExp("\\{\\{" + kd + "\\d*\\}\\}").test(b.b || ""));
+    const lit = kd === "cart" && blocks.some(b => AUDIT_LIT.test(b.b || ""));
+    const n = Math.max(1, clipCount(r));
+    for (let c = 1; c <= n; c++){
+      const st = cmdTagState(r, n > 1 ? c : 0, kd);
+      const val = st.mine != null ? st.mine : (st.sku || st.shared);
+      const iss = [];
+      if (st.mine != null && st.sku && st.mine.trim() !== st.sku.trim()) iss.push("own");
+      if (st.ck === "KOC" && st.mine == null && st.sku && !st.fromKoc) iss.push("fallback");
+      if (!val) iss.push("none");
+      if (lit && c === 1) iss.push("lit");
+      if (!uses && !lit) continue;               // Command ของคนนี้ไม่มีกล่องที่ใช้ค่านี้ (เช่นซ่อนกล่องไว้)
+      out.push({ r, p, c: n > 1 ? c : 0, val, st, iss });
+    }
+  }));
+  return out;
+}
+function renderSkuAudit(){
+  const box = $("#skuAuditBox");
+  if (!box) return;
+  const kd = SKU_BIND_KIND;
+  box.hidden = !(kd === "cart" || kd === "hashtag");
+  if (box.hidden) return;
+  const th = kd === "cart" ? "ลิงก์ตะกร้า" : "แฮชแท็ก";
+  if (!box.dataset.open){
+    box.innerHTML = `🔎 <b>ตรวจ${th}ใน Command ของทุกคน</b> — ใครได้ค่าจากไหน ค้างค่าเก่าไหม
+      <button type="button" class="cmdbtn" id="skuAuditGo">ตรวจเลย</button>`;
+    $("#skuAuditGo").onclick = () => { box.dataset.open = "1"; renderSkuAudit(); };
+    return;
+  }
+  const list = skuAudit(kd);
+  const bad = list.filter(x => x.iss.length);
+  const LBL = { own:"⚠ ตั้งเฉพาะคน ทับค่าตาม SKU", fallback:"KOC ใช้ของ KOL (KOC ยังไม่ตั้ง SKU นี้)", none:"✕ ไม่มีค่า", lit:"⚠ ข้อความฝังลิงก์ตายตัว" };
+  const cnt = k => bad.filter(x => x.iss.includes(k)).length;
+  const tail = v => v ? esc(v.length > 42 ? "…" + v.slice(-36) : v) : `<span class="miss">—</span>`;
+  const nOwn = new Set(bad.filter(x => x.iss.includes("own")).map(x => x.p + "|" + normId(x.r.handle))).size;
+  box.innerHTML = `<div class="sa-head">🔎 <b>ตรวจ${th}ใน Command</b> · ${list.length} ช่อง จาก ${new Set(list.map(x => x.p + "|" + x.r.handle)).size} คน
+      <label class="sa-all"><input type="checkbox" id="skuAuditAll"${SKU_AUDIT_ALL ? " checked" : ""}> รวมงานที่ปิดแล้ว</label>
+      <button type="button" class="cmdbtn ghost" id="skuAuditClose">ปิด</button></div>
+    <div class="sa-sum">${bad.length ? Object.keys(LBL).filter(cnt).map(k => `<span class="sa-chip ${k}">${LBL[k]} · ${cnt(k)}</span>`).join("")
+      : `<span class="sa-chip ok">✓ ทุกคนได้ค่าตาม SKU ถูกต้อง</span>`}</div>
+    ${nOwn ? `<button type="button" class="cmdbtn go" id="skuAuditFix">↺ ให้ ${nOwn} คนที่ตั้งเฉพาะตัวไว้ ใช้ตาม SKU</button>` : ""}
+    <div class="sa-list">${(bad.length ? bad : list).slice(0, 300).map(x => `<div class="sa-row${x.iss.length ? " bad" : ""}">
+      <button type="button" class="sa-who" data-saopen="${esc(x.p)}|${esc(x.r.handle)}" title="เปิด Command">${esc(normId(x.r.handle))}</button>
+      <span class="sa-k">${esc(kindOf(x.r))}</span>
+      <span class="sa-p">${esc(x.p)}</span>
+      <span class="sa-s">${esc((skuParts(x.r.sku)[(x.c || 1) - 1]) || "ยังไม่มี SKU")}${x.c ? ` · ชุด ${x.c}` : ""}</span>
+      <span class="sa-v">${tail(x.val)}</span>
+      <span class="sa-i">${x.iss.map(k => `<i class="${k}">${LBL[k]}</i>`).join("") || (x.st.mine != null ? "เฉพาะคน (เท่ากับ SKU)" : x.st.fromKoc ? "SKU · KOC" : x.st.sku ? "SKU · KOL" : "ของกลาง")}</span>
+    </div>`).join("")}${!bad.length ? "" : `<p class="hint">โชว์เฉพาะที่มีปัญหา</p>`}</div>`;
+  $("#skuAuditAll").onchange = e => { SKU_AUDIT_ALL = e.target.checked; renderSkuAudit(); };
+  $("#skuAuditClose").onclick = () => { delete box.dataset.open; renderSkuAudit(); };
+  box.querySelectorAll("[data-saopen]").forEach(b => b.onclick = () => {
+    const v = b.dataset.saopen, i = v.indexOf("|");
+    closeSettings(); openCmd(v.slice(0, i), v.slice(i + 1));
+  });
+  const fx = $("#skuAuditFix");
+  if (fx) fx.onclick = () => {
+    const who = [...new Map(bad.filter(x => x.iss.includes("own")).map(x => [x.p + "|" + normId(x.r.handle), x])).values()];
+    if (!confirm(`ล้าง${th}ที่ตั้งเฉพาะตัวของ ${who.length} คน ให้ใช้ตาม SKU?\n\nเฉพาะคนที่ค่าเฉพาะตัวต่างจากค่าตาม SKU · ข้อมูลอื่นไม่ถูกแตะ`)) return;
+    who.forEach(({ p, r }) => {
+      const o = cmdOwn(p, r.handle);
+      Object.keys(o.links || {}).forEach(k => { if (new RegExp("^" + kd + "\\d*$").test(k)) delete o.links[k]; });
+      pruneCmdOwn(p, r.handle);
+    });
+    saveCmdOwn();
+    vlog("sku:audit-fix", { d: kd + " " + who.length });
+    renderSkuGuide();
+  };
+}
 function renderSkuSplit(){
   const box = $("#skuSplitBox");
   if (!box) return;
@@ -17915,6 +18019,7 @@ function renderSkuGuide(){
     }
   }));
   renderSkuSplit();
+  renderSkuAudit();
   const ov = $("#skuOverNote");
   if (ov){
     ov.hidden = !over.length;
