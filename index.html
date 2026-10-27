@@ -17811,17 +17811,24 @@ function skuSplitPlan(){
   const plan = [];
   SKU_BIND.forEach(b => {
     const M = SKUBIND[b.k] || {};
-    Object.keys(M).sort().forEach(k => {
-      const covers = pool.filter(x => bindKeyForOne(M, x) === k);
+    // ⚠️ เช็คซ้ำทีละใบกับ "ชุดที่ลบไปแล้ว" (W) ไม่ใช่กับชุดเต็มทุกรอบ — ไม่งั้นใบที่ค่าเหมือนกันหลายใบ
+    //    (Feather Eyeshadow + #FE300/800/900) ต่างคนต่างดูซ้ำกับอีกใบ แล้วโดนลบหมดทั้งกอง (เจอจริงกับข้อมูล ALTA 2026-10-27)
+    //    ลบระดับเฉดก่อน (ชื่อยาว/มีรหัสเฉด) เก็บระดับไลน์ไว้เป็นตัวหลัก
+    const W = Object.assign({}, M);
+    const order = Object.keys(M).sort((a, b) => (SKU_SHADE_RE.test(b) - SKU_SHADE_RE.test(a)) || (b.length - a.length) || a.localeCompare(b));
+    order.forEach(k => {
+      const covers = pool.filter(x => bindKeyForOne(W, x) === k);
       const kol = covers.reduce((a, x) => a + use[x].KOL, 0), koc = covers.reduce((a, x) => a + use[x].KOC, 0);
-      const M2 = Object.assign({}, M); delete M2[k];
-      const dup = covers.length > 0 && covers.every(x => { const k2 = bindKeyForOne(M2, x); return k2 && M2[k2] === M[k]; });
+      const M2 = Object.assign({}, W); delete M2[k];
+      const dup = covers.length > 0 && covers.every(x => { const k2 = bindKeyForOne(M2, x); return k2 && M2[k2] === W[k]; });
+      if (dup) delete W[k];
       // ย้าย/คัดลอกเฉพาะ "ระดับเฉด" — ของระดับไลน์/สินค้า (Earphone - J206 ฯลฯ) คงไว้ชุด KOL ถึงตอนนี้มีแต่ KOC ใช้
       const shade = SKU_SHADE_RE.test(k);
       const act = dup ? "del" : !covers.length ? "unused" : !shade || !koc ? "keep" : kol ? "copy" : "move";
       plan.push({ t: b.k, th: b.th, k, v: M[k], act, kol, koc });
     });
   });
+  plan.sort((a, b) => a.t.localeCompare(b.t) || a.k.localeCompare(b.k));
   return plan;
 }
 function skuSplitApply(plan){
