@@ -3051,6 +3051,18 @@ html[data-theme="light"] .mapcard:has(.mapstamp) > *:not(.mapstamp),html[data-th
 .ckn{font-size:.8rem}
 .ckn.koc{color:var(--accent)}
 .ckn .cmdbtn{margin-left:6px}
+.skusplit{border:1px solid rgba(var(--accent-rgb),.45);background:rgba(var(--accent-rgb),.06);border-radius:8px;
+  padding:9px 12px;margin:0 0 10px;font-size:.8rem;line-height:1.6}
+.skusplit .cmdbtn{margin-left:6px}
+.skusplit .ssg{margin-top:8px}
+.skusplit .ssg > b{display:block;font-size:.78rem;margin-bottom:2px}
+.skusplit .ssg.del > b{color:var(--lo,#e5484d)} .skusplit .ssg.move > b,.skusplit .ssg.copy > b{color:var(--accent)}
+.skusplit .ssg.unused > b,.skusplit .ssg.keep > b{color:var(--dim)}
+.skusplit .ssr{display:flex;gap:8px;font-size:.76rem;padding:1px 0 1px 10px}
+.skusplit .ssr .t{color:var(--dim);flex:none;width:6.5em}
+.skusplit .ssr .k{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.skusplit .ssr .c{color:var(--dim);flex:none}
+.skusplit .cmdbtn.go{margin:10px 8px 0 0;background:var(--accent);color:var(--accent-ink);border-color:var(--accent);font-weight:700}
 </style>
 </head>
 <body>
@@ -4056,6 +4068,8 @@ html[data-theme="light"] .mapcard:has(.mapstamp) > *:not(.mapstamp),html[data-th
       <div class="tabs sub" id="skuBindTabs" style="margin-bottom:10px"></div>
       <p class="sect-sub" id="skuBindNote" style="margin-top:0"></p>
       <div class="skuover" id="skuOverNote" hidden></div>
+      <!-- แยกข้อมูลเดิม (ก่อนมีชุด KOC) เป็น KOL/KOC — โชว์เฉพาะตอนชุด KOC ยังว่าง -->
+      <div class="skusplit" id="skuSplitBox" hidden></div>
       <div id="skuGuideList"></div>
 
       <!-- เลือก SKU ได้ทีละหลายอันพร้อมกัน แทนที่จะพึ่งชื่อไลน์ครอบอย่างเดียว —
@@ -9397,11 +9411,15 @@ function bindKeyForOne(MAP, one){
 // คู่มือถ่ายทำยังเรียกด้วยชื่อเดิม — ของเดิมอ้างชื่อนี้อยู่หลายที่ ไม่ต้องไล่แก้
 const guideKeyForOne = one => bindKeyForOne(SKUGUIDE, one);
 // คืนค่าของ SKU ก้อนเดียว (ไม่ใช่ทั้งช่องที่อาจมีหลายอันคั่นด้วย +)
-// ck = กลุ่มของครีเอเตอร์ (KOL/KOC) — KOC ดูชุดของตัวเองก่อน ไม่เจอค่อยตกไปใช้ของ KOL
+// ck = กลุ่มของครีเอเตอร์ (KOL/KOC)
+// KOC: เอาชื่อของทั้งสองชุดมาแข่งกันในกองเดียว แล้วใช้ค่าของ KOC ถ้าชื่อที่ชนะมีในชุด KOC
+// ⚠️ ห้าม "ดูชุด KOC ก่อน แล้วค่อยตกไป KOL" — ชุด KOC ที่มีไม่กี่ชื่อจะชนะแบบหลวมๆ
+//    (เจอจริง 2026-10-27: "Feather eyeshadow #FE300" ไปคุม "Eyeshadow - CP301" ทั้งที่ "eyeshadow" ของ KOL ตรงกว่า)
+const skuMergedFor = kind => Object.assign({}, SKUBIND[kind] || {}, SKUBIND_KOC[kind] || {});
 function bindValForOne(kind, one, ck){
   if (ck === "KOC"){
-    const KM = SKUBIND_KOC[kind] || {}, kk = bindKeyForOne(KM, one);
-    if (kk && KM[kk]) return KM[kk];
+    const KM = SKUBIND_KOC[kind] || {}, M = skuMergedFor(kind), kk = bindKeyForOne(M, one);
+    return kk ? ((kk in KM ? KM[kk] : M[kk]) || "") : "";
   }
   const MAP = SKUBIND[kind] || {};
   const k = bindKeyForOne(MAP, one);
@@ -9420,7 +9438,7 @@ function bindForSku(kind, sku, n, ck){
 function skusUnderKey(kind, key, ck){
   const all = [...new Set(PROJECTS.flatMap(p => (COORD[p] || []).flatMap(r => skuParts(r.sku))))];
   const pool = [...new Set(all.concat(projLibSkus(PROJECTS)))];
-  const MAP = ck ? skuMapOf(kind, ck) : (SKUBIND[kind] || {});
+  const MAP = ck === "KOC" ? skuMergedFor(kind) : (SKUBIND[kind] || {});
   return pool.filter(s => bindKeyForOne(MAP, s) === key).sort();
 }
 const skusUnderGuide = key => skusUnderKey("guide", key);
@@ -17735,6 +17753,76 @@ function saveSgHide(){ try { lsSet(LS_SGHIDE, JSON.stringify(SGHIDE)); } catch(e
 const SG_EYE = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7S1 12 1 12z"/><circle cx="12" cy="12" r="3"/></svg>`;
 const SG_EYEOFF = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17.9 17.9A10.4 10.4 0 0 1 12 19C5 19 1 12 1 12a18.4 18.4 0 0 1 5.1-5.9M9.9 5.2A9.1 9.1 0 0 1 12 5c7 0 11 7 11 7a18.5 18.5 0 0 1-2.2 3.2M14.1 14.1a3 3 0 1 1-4.2-4.2"/><path d="M1 1l22 22"/></svg>`;
 
+// ═══ แยกข้อมูลตาม SKU ที่ตั้งไว้ก่อนมีชุด KOC → KOL / KOC (2026-10-27) ═══
+// ทำครั้งเดียวต่อทีม · ไม่มีใครเสียของ: รายการที่ยังมี KOL ใช้อยู่ "คัดลอก" ไม่ใช่ "ย้าย"
+//   ซ้ำ    = เอาออกแล้วทุก SKU ยังได้ค่าเดิม (ชื่อไลน์ครอบให้อยู่แล้ว) → ลบ
+//   ย้าย   = ระดับเฉด และมีแต่ KOC ใช้ → ไปอยู่ชุด KOC อย่างเดียว
+//   คัดลอก = ระดับเฉด (มีรหัสเฉด เช่น RC302 · #FE300) แต่ KOL ก็ใช้ → ใส่ชุด KOC + เก็บของ KOL ไว้
+//   คงไว้  = ระดับไลน์/ใช้ร่วม → ชุด KOL (KOC ตกมาใช้เอง)
+//   ไม่มีใครใช้ = ไม่ตรงกับ SKU ของใครหรือคลังโปรเจกต์ไหน → ไม่แตะ (บอกให้รู้เฉยๆ)
+const SKU_SHADE_RE = /#?\b[A-Z]{2}\d{3}\b/;
+function skuSplitPlan(){
+  const rows = PROJECTS.flatMap(p => COORD[p] || []).filter(r => !isCancelled(r));
+  const use = {};
+  const bump = (s, k) => { const u = use[s] || (use[s] = { KOL:0, KOC:0 }); if (k) u[k]++; };
+  rows.forEach(r => skuParts(r.sku).forEach(x => bump(x, kindOf(r) === "KOC" ? "KOC" : kindOf(r) === "KOL" ? "KOL" : "")));
+  projLibSkus(PROJECTS).forEach(x => bump(x, ""));
+  const pool = Object.keys(use);
+  const plan = [];
+  SKU_BIND.forEach(b => {
+    const M = SKUBIND[b.k] || {};
+    Object.keys(M).sort().forEach(k => {
+      const covers = pool.filter(x => bindKeyForOne(M, x) === k);
+      const kol = covers.reduce((a, x) => a + use[x].KOL, 0), koc = covers.reduce((a, x) => a + use[x].KOC, 0);
+      const M2 = Object.assign({}, M); delete M2[k];
+      const dup = covers.length > 0 && covers.every(x => { const k2 = bindKeyForOne(M2, x); return k2 && M2[k2] === M[k]; });
+      // ย้าย/คัดลอกเฉพาะ "ระดับเฉด" — ของระดับไลน์/สินค้า (Earphone - J206 ฯลฯ) คงไว้ชุด KOL ถึงตอนนี้มีแต่ KOC ใช้
+      const shade = SKU_SHADE_RE.test(k);
+      const act = dup ? "del" : !covers.length ? "unused" : !shade || !koc ? "keep" : kol ? "copy" : "move";
+      plan.push({ t: b.k, th: b.th, k, v: M[k], act, kol, koc });
+    });
+  });
+  return plan;
+}
+function skuSplitApply(plan){
+  plan.forEach(x => {
+    const K = skuMapOf(x.t, "KOL"), C = skuMapOf(x.t, "KOC");
+    if (x.act === "del") delete K[x.k];
+    else if (x.act === "move"){ C[x.k] = x.v; delete K[x.k]; }
+    else if (x.act === "copy") C[x.k] = x.v;
+  });
+  SKU_BIND.forEach(b => { saveSkuBind(b.k, "KOL"); saveSkuBind(b.k, "KOC"); });
+  vlog("sku:split", { d: ["del", "move", "copy"].map(a => a + ":" + plan.filter(x => x.act === a).length).join(" ") });
+}
+function renderSkuSplit(){
+  const box = $("#skuSplitBox");
+  if (!box) return;
+  const nKoc = SKU_BIND.reduce((a, b) => a + Object.keys(SKUBIND_KOC[b.k] || {}).length, 0);
+  const nKol = SKU_BIND.reduce((a, b) => a + Object.keys(SKUBIND[b.k] || {}).length, 0);
+  box.hidden = !!nKoc || !nKol;
+  if (box.hidden) return;
+  box.innerHTML = `🔀 ข้อมูลที่ตั้งไว้ก่อนหน้านี้ยัง<b>ใช้ร่วม KOL/KOC</b> (${nKol} รายการ)
+    <button type="button" class="cmdbtn" id="skuSplitGo">ดูแผนแยก KOL / KOC</button><div id="skuSplitPrev"></div>`;
+  $("#skuSplitGo").onclick = () => {
+    const plan = skuSplitPlan();
+    const G = [["del", "🗑 ลบ — ซ้ำกับชื่อไลน์ (ค่าเหมือนกันเป๊ะ)"], ["move", "→ ย้ายไป KOC — ระดับเฉด มีแต่ KOC ใช้"],
+      ["copy", "⧉ ใส่ชุด KOC + เก็บของ KOL ไว้ — ระดับเฉด แต่ KOL ก็ใช้อยู่"], ["keep", "คงไว้ชุด KOL — ระดับไลน์ (KOC ใช้ร่วมได้)"],
+      ["unused", "ไม่มีใครใช้ — ไม่แตะ"]];
+    const n = plan.filter(x => ["del", "move", "copy"].includes(x.act)).length;
+    $("#skuSplitPrev").innerHTML = G.map(([a, h]) => { const L = plan.filter(x => x.act === a); return L.length ? `
+      <div class="ssg ${a}"><b>${h} · ${L.length}</b>${L.map(x => `<div class="ssr"><span class="t">${esc(x.th)}</span>
+        <span class="k">${esc(x.k)}</span><span class="c">KOL ${x.kol} · KOC ${x.koc}</span></div>`).join("")}</div>` : ""; }).join("")
+      + (n ? `<button type="button" class="cmdbtn go" id="skuSplitApply">ยืนยัน — ทำ ${n} รายการ</button>
+         <span class="hint">ไม่มีครีเอเตอร์คนไหนได้ค่าเปลี่ยน · ซิงก์ทั้งทีม</span>` : `<p class="hint">ไม่มีอะไรต้องย้าย</p>`);
+    const ap = $("#skuSplitApply");
+    if (ap) ap.onclick = () => {
+      if (!confirm(`แยกข้อมูลตาม SKU เป็น KOL / KOC — ${n} รายการ?\n\nลบที่ซ้ำ · ย้าย/คัดลอกของระดับเฉดไปชุด KOC`)) return;
+      skuSplitApply(plan);
+      renderSkuGuide();
+      const m = $("#skuGuideMsg"); m.className = "addmsg on ok"; m.textContent = `แยกแล้ว ${n} รายการ — ดูชุด KOC ได้ที่สวิตช์ “ตั้งให้” ข้างบน`;
+    };
+  };
+}
 function renderSkuGuide(){
   const box = $("#skuGuideList");
   if (!box) return;
@@ -17808,6 +17896,7 @@ function renderSkuGuide(){
       if (mine != null && String(mine).trim() !== String(sk).trim()){ over.push({ p, h: r.handle }); break; }
     }
   }));
+  renderSkuSplit();
   const ov = $("#skuOverNote");
   if (ov){
     ov.hidden = !over.length;
