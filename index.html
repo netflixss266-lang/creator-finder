@@ -4059,11 +4059,10 @@ html[data-theme="light"] .mapcard:has(.mapstamp) > *:not(.mapstamp),html[data-th
       <div id="skuGuideList"></div>
 
       <!-- เลือก SKU ได้ทีละหลายอันพร้อมกัน แทนที่จะพึ่งชื่อไลน์ครอบอย่างเดียว —
-           เลือกโปรเจกต์ + KOL/KOC ก่อนเพื่อย่อรายการให้เหลือแค่ SKU ที่ใช้จริงตรงนั้น -->
-      <p class="sect-sub" style="margin:14px 0 6px">เลือกได้หลาย SKU พร้อมกัน — จำกัดวงด้วยโปรเจกต์/กลุ่มก่อนได้</p>
+           เลือกโปรเจกต์ก่อนเพื่อย่อรายการ (กลุ่ม KOL/KOC ตามสวิตช์ “ตั้งให้” ข้างบน)ให้เหลือแค่ SKU ที่ใช้จริงตรงนั้น -->
+      <p class="sect-sub" style="margin:14px 0 6px">เลือกได้หลาย SKU พร้อมกัน — จำกัดวงด้วยโปรเจกต์ก่อนได้ · โชว์เฉพาะ SKU ของกลุ่มที่เลือกใน “ตั้งให้” ข้างบน</p>
       <div class="pickhead">
         <select id="skuGuideProj" title="จำกัดวงให้เหลือแค่ SKU ในโปรเจกต์นี้"></select>
-        <div class="tabs sub" id="skuGuideKindTabs" role="tablist"></div>
         <input id="skuGuideFind" placeholder="พิมพ์กรอง SKU ที่โชว์ด้านล่าง" autocomplete="off">
       </div>
       <div class="picklist" id="skuGuidePick"></div>
@@ -17679,21 +17678,21 @@ let SKU_CK = "KOL";                     // หน้าตั้งค่าก�
 // ตัวเลือกนี้ให้ติ๊กเลือกของจริงจากพูล แล้วเขียนเข้า MAP ทีละ SKU พร้อมกันในคลิกเดียว
 // (คีย์ที่ได้เป็น SKU เต็มเป๊ะ ไม่ใช่ชื่อไลน์ — ตรงตัวชนะเสมออยู่แล้วตามตัวจับคู่เดิม ไม่ต้องแก้ตรรกะ)
 let SG_PROJ = "";       // "" = ทุกโปรเจกต์
-let SG_KIND = "all";    // all | KOL | KOC
 let SG_FIND = "";
 let SG_PICK = new Set();
 
 function sgScope(){
   let list = SG_PROJ ? (COORD[SG_PROJ] || []) : PROJECTS.flatMap(p => COORD[p] || []);
-  if (SG_KIND !== "all") list = list.filter(r => (r.kind || "") === SG_KIND);
+  // กลุ่มตามสวิตช์ "ตั้งให้ KOL/KOC" ข้างบน (แถบ KOL/KOC ชุดล่างเอาออกแล้ว 2026-10-27 — ซ้ำกัน)
+  list = list.filter(r => kindOf(r) === SKU_CK);
   return list;
 }
 // SKU ในคลังของโปรเจกต์ (ที่เพิ่มไว้ใน SKU picker) — ยังไม่ได้แจกให้ใครก็ต้องตั้งคู่มือรอไว้ได้
 // เดิมหน้านี้ดูแค่ SKU ที่อยู่ในแถวครีเอเตอร์ = SKU ใหม่ไม่ขึ้นจนกว่าจะแจกให้ใครสักคน
 const projLibSkus = projs => [...new Set(projs.flatMap(p => (PROJ_SKU[p] || []).concat(skuListFor(p) || [])))];
 function sgOptionValues(){
-  // ตัวกรอง KOL/KOC ใช้กับคลังไม่ได้ (SKU ในคลังยังไม่ผูกกับใคร) — เอาคลังมารวมเฉพาะตอนดู "ทั้งหมด"
-  const lib = SG_KIND === "all" ? projLibSkus(SG_PROJ ? [SG_PROJ] : PROJECTS) : [];
+  // คลังของโปรเจกต์ยังไม่ผูกกับใคร (ไม่รู้ว่า KOL/KOC) — รวมให้ทั้งสองกลุ่ม จะได้ตั้งล่วงหน้าได้พาะตอนดู "ทั้งหมด"
+  const lib = projLibSkus(SG_PROJ ? [SG_PROJ] : PROJECTS);
   const used = [...new Set(sgScope().flatMap(r => skuParts(r.sku)).concat(lib))];
   const lines = [...new Set(used.map(s => s.split(/\s*-\s*/)[0].trim()).filter(Boolean))];
   return skuSort([...new Set(lines.concat(used))]);
@@ -17702,18 +17701,6 @@ function renderSgPick(){
   const projSel = $("#skuGuideProj");
   if (projSel) projSel.innerHTML = `<option value="">ทุกโปรเจกต์</option>` +
     PROJECTS.map(p => `<option value="${esc(p)}"${p === SG_PROJ ? " selected" : ""}>${esc(p)}</option>`).join("");
-
-  const kindTabs = $("#skuGuideKindTabs");
-  if (kindTabs){
-    const scope = SG_PROJ ? (COORD[SG_PROJ] || []) : PROJECTS.flatMap(p => COORD[p] || []);
-    const n = k => k === "all" ? scope.length : scope.filter(r => (r.kind || "") === k).length;
-    kindTabs.innerHTML = [["all", "ทั้งหมด"], ["KOL", "KOL"], ["KOC", "KOC"]].map(([id, label]) =>
-      `<button role="tab" data-sgk="${id}" aria-selected="${SG_KIND === id}"
-        >${label}<span class="n">${n(id)}</span></button>`).join("");
-    kindTabs.querySelectorAll("[data-sgk]").forEach(b => b.onclick = () => {
-      SG_KIND = b.dataset.sgk; renderSgPick();
-    });
-  }
 
   const box = $("#skuGuidePick");
   if (!box) return;
@@ -17765,7 +17752,7 @@ function renderSkuGuide(){
     }).join("");
     ckt.querySelectorAll("[data-skuck]").forEach(b => b.onclick = () => {
       SKU_CK = b.dataset.skuck;
-      SG_KIND = SKU_CK;                 // ตัวเลือก SKU ข้างล่างกรองตามกลุ่มเดียวกัน
+      SG_PICK.clear();                  // SKU ที่ติ๊กไว้ของอีกกลุ่มไม่ตามมา
       $("#sgBulkText").value = ""; $("#sgBulkPreview").innerHTML = "";
       renderSkuGuide();
     });
@@ -19251,7 +19238,7 @@ $("#skuGuideAdd").onclick = () => {
     : (n ? `เพิ่มแล้ว — มีผลกับ <b>${n}</b> คน` : `เพิ่มแล้ว แต่<b>ยังไม่มีใครได้ SKU นี้</b> เก็บไว้ใช้ทีหลัง`),
     n ? "ok" : "busy");
 };
-$("#skuGuideProj").onchange = () => { SG_PROJ = $("#skuGuideProj").value; SG_KIND = "all"; renderSgPick(); };
+$("#skuGuideProj").onchange = () => { SG_PROJ = $("#skuGuideProj").value; renderSgPick(); };
 $("#skuGuideFind").oninput = () => { SG_FIND = $("#skuGuideFind").value; renderSgPick(); };
 $("#sgBulkParse").onclick = sgBulkParse;
 $("#settings").onclick = e => { if (e.target.id === "settings") closeSettings(); };
