@@ -3046,6 +3046,11 @@ html[data-theme="light"] .mapcard:has(.mapstamp) > *:not(.mapstamp),html[data-th
 .cmdtagedit label .miss{color:var(--warn)}
 .cmdtagedit .row{display:flex;gap:6px;flex-wrap:wrap;align-items:center}
 .cmdtagedit input{flex:1 1 260px;min-width:0;height:32px}
+.skuck{display:flex;align-items:center;gap:8px;margin-bottom:8px}
+.skuck .lab{font-size:.78rem;color:var(--dim)}
+.ckn{font-size:.8rem}
+.ckn.koc{color:var(--accent)}
+.ckn .cmdbtn{margin-left:6px}
 </style>
 </head>
 <body>
@@ -4046,6 +4051,8 @@ html[data-theme="light"] .mapcard:has(.mapstamp) > *:not(.mapstamp),html[data-th
         ระบบเทียบระดับคำให้ · ใส่ <b>SKU เต็ม</b> = ใช้เฉพาะเฉดนั้น (ชนะชื่อไลน์เสมอ)<br>
         <span style="color:var(--dim)">ที่แปะไว้เฉพาะรายคนยังชนะเสมอ — ตรงนี้เป็นค่าตั้งต้นให้คนที่ยังไม่ได้แปะเอง</span>
       </p>
+      <!-- ตั้งให้กลุ่มไหน — KOL/KOC แยกกัน (2026-10-27) -->
+      <div class="skuck"><span class="lab">ตั้งให้</span><div class="tabs sub" id="skuCkTabs" role="tablist"></div></div>
       <div class="tabs sub" id="skuBindTabs" style="margin-bottom:10px"></div>
       <p class="sect-sub" id="skuBindNote" style="margin-top:0"></p>
       <div class="skuover" id="skuOverNote" hidden></div>
@@ -9298,14 +9305,25 @@ const SKU_BIND_BY = Object.fromEntries(SKU_BIND.map(b => [b.k, b]));
 // เก็บแยกคีย์ละก้อน ไม่ยุบรวมเป็นก้อนเดียว — ของเดิมใน cf_skuguide_v1 จะได้ไม่ต้องย้าย
 // และถ้าวันหลังเลิกใช้อันไหน ลบทีละก้อนได้โดยไม่แตะของที่เหลือ
 let SKUBIND = { guide:{}, hashtag:{}, cart:{} };
+// ชุดของ KOC แยกจาก KOL (2026-10-27) — SKUBIND เดิม = ชุดของ KOL และเป็นค่าสำรองของ KOC
+// KOC ที่ SKU นั้นยังไม่ได้ตั้งแยก → ใช้ของ KOL (ของเดิมไม่เปลี่ยนจนกว่าจะตั้งของ KOC เอง)
+let SKUBIND_KOC = { guide:{}, hashtag:{}, cart:{} };
+const LS_SKU_KOC = k => "cf_sku_koc_" + k + "_v1";
+const skuMapOf = (kind, ck) => ck === "KOC"
+  ? (SKUBIND_KOC[kind] || (SKUBIND_KOC[kind] = {}))
+  : (SKUBIND[kind] || (SKUBIND[kind] = {}));
 let SKUGUIDE = {};                      // ตัวเดียวกับ SKUBIND.guide — ของเดิมอ้างชื่อนี้อยู่หลายที่
 function loadSkuBind(){
   SKU_BIND.forEach(b => {
     if (b.k === "guide") return;        // guide โหลดใน loadSkuGuide (มีเรื่อง seed ของตัวเอง)
     try { SKUBIND[b.k] = JSON.parse(lsGet(b.ls) || "{}") || {}; } catch(e){ SKUBIND[b.k] = {}; }
   });
+  SKU_BIND.forEach(b => {
+    try { SKUBIND_KOC[b.k] = JSON.parse(lsGet(LS_SKU_KOC(b.k)) || "{}") || {}; } catch(e){ SKUBIND_KOC[b.k] = {}; }
+  });
 }
-function saveSkuBind(kind){
+function saveSkuBind(kind, ck){
+  if (ck === "KOC"){ try { lsSet(LS_SKU_KOC(kind), JSON.stringify(SKUBIND_KOC[kind] || {})); } catch(e){} return saveSkuKoc(); }
   if (kind === "guide") return saveSkuGuide();
   const b = SKU_BIND_BY[kind]; if (!b) return;
   try { lsSet(b.ls, JSON.stringify(SKUBIND[kind] || {})); } catch(e){}
@@ -9327,6 +9345,7 @@ function loadSkuGuide(){
 function saveSkuGuide(){
   try { lsSet(LS_SKUGUIDE, JSON.stringify(SKUGUIDE)); } catch(e){}
 }
+function saveSkuKoc(){}                 // จุดให้ซิงก์ทีมเกาะ (tsAfter) — เขียนเครื่องทำใน saveSkuBind แล้ว
 // ─── จับคู่คู่มือกับ SKU ───
 // SKU เขียนเป็น "ไลน์ - เฉด (จำนวน)" เสมอ — ตัวที่ตัดสินว่าใช้คู่มือใบไหนคือ "ไลน์"
 // แต่ทีมตั้งชื่อคู่มือแบบที่คนอ่านรู้เรื่อง ("cream blush moomin") ไม่ได้ขึ้นต้นตรงกับ SKU
@@ -9379,33 +9398,38 @@ function bindKeyForOne(MAP, one){
 // คู่มือถ่ายทำยังเรียกด้วยชื่อเดิม — ของเดิมอ้างชื่อนี้อยู่หลายที่ ไม่ต้องไล่แก้
 const guideKeyForOne = one => bindKeyForOne(SKUGUIDE, one);
 // คืนค่าของ SKU ก้อนเดียว (ไม่ใช่ทั้งช่องที่อาจมีหลายอันคั่นด้วย +)
-function bindValForOne(kind, one){
+// ck = กลุ่มของครีเอเตอร์ (KOL/KOC) — KOC ดูชุดของตัวเองก่อน ไม่เจอค่อยตกไปใช้ของ KOL
+function bindValForOne(kind, one, ck){
+  if (ck === "KOC"){
+    const KM = SKUBIND_KOC[kind] || {}, kk = bindKeyForOne(KM, one);
+    if (kk && KM[kk]) return KM[kk];
+  }
   const MAP = SKUBIND[kind] || {};
   const k = bindKeyForOne(MAP, one);
   return k ? (MAP[k] || "") : "";
 }
-function guideForOne(one){ return bindValForOne("guide", one); }
+function guideForOne(one, ck){ return bindValForOne("guide", one, ck); }
 // n = SKU ตัวที่เท่าไหร่ (1 = ตัวแรก) · 0 = เอาอันแรกที่หาเจอจากทุก SKU ที่คนนี้ได้
-function bindForSku(kind, sku, n){
+function bindForSku(kind, sku, n, ck){
   const parts = skuParts(sku);
-  if (n) return bindValForOne(kind, parts[n - 1]);
-  for (const p of parts){ const v = bindValForOne(kind, p); if (v) return v; }
+  if (n) return bindValForOne(kind, parts[n - 1], ck);
+  for (const p of parts){ const v = bindValForOne(kind, p, ck); if (v) return v; }
   return "";
 }
 // SKU ทั้งหมดที่คู่มือใบนี้คุมอยู่จริง — ใช้โชว์ในหน้าตั้งค่า
 // ตั้งกว้างเกินไป (คู่มือของ Moomin ไปคุมเฉดที่ไม่ใช่ Moomin ด้วย) จะเห็นทันทีตั้งแต่ตอนตั้ง
-function skusUnderKey(kind, key){
+function skusUnderKey(kind, key, ck){
   const all = [...new Set(PROJECTS.flatMap(p => (COORD[p] || []).flatMap(r => skuParts(r.sku))))];
   const pool = [...new Set(all.concat(projLibSkus(PROJECTS)))];
-  const MAP = SKUBIND[kind] || {};
+  const MAP = ck ? skuMapOf(kind, ck) : (SKUBIND[kind] || {});
   return pool.filter(s => bindKeyForOne(MAP, s) === key).sort();
 }
 const skusUnderGuide = key => skusUnderKey("guide", key);
 // n = คลิปที่เท่าไหร่ (1 = SKU ตัวแรก) · 0 = เอาอันแรกที่หาเจอจากทุก SKU ที่คนนี้ได้
-function guideForSku(sku, n){
+function guideForSku(sku, n, ck){
   const parts = skuParts(sku);
-  if (n) return guideForOne(parts[n - 1]);
-  for (const p of parts){ const g = guideForOne(p); if (g) return g; }
+  if (n) return guideForOne(parts[n - 1], ck);
+  for (const p of parts){ const g = guideForOne(p, ck); if (g) return g; }
   return "";
 }
 
@@ -9621,7 +9645,7 @@ function cmdValues(r){
       const k = d.k + n;
       // คู่มือ / แฮชแท็ก / ตะกร้า เลือกตาม SKU ของคลิปนั้น — คลิป 2 ได้คนละ SKU ก็ได้คนละชุด
       // ลำดับ: ที่แปะไว้เฉพาะคนนี้ → ที่ผูกไว้กับ SKU → ลิงก์ที่ใช้ร่วมกันทุกคน
-      const bySku = SKU_BIND_BY[d.k] ? bindForSku(d.k, r.sku, n) : "";
+      const bySku = SKU_BIND_BY[d.k] ? bindForSku(d.k, r.sku, n, kindOf(r)) : "";
       // ⚠️ หน้า "ลิงก์" ไม่มีแถว "ชุดที่ 1" แยกต่างหาก — แถว "ลิงก์ตะกร้า" คือช่องของชุดแรก (own.cart)
       // เดิมตรงนี้เช็คแค่ own.cart1 ซึ่งไม่มีวันถูกตั้งจากหน้านั้น แล้วตกไปใช้ SKU ทันที
       // ผลคือบล็อกที่แยกคลิป (เช่น 13. Hashtag + ตะกร้า) ไม่เปลี่ยนตามหน้าลิงก์ ทั้งที่บล็อกที่
@@ -9701,7 +9725,7 @@ function cmdValues(r){
     // ในบล็อกที่ไม่ได้แตกเป็นชุด จะได้ของกลางทั้งที่ตั้งผูกกับ SKU ไว้แล้ว
     // (guide มีบรรทัดของตัวเองอยู่ล่างสุดแล้ว จึงข้ามตรงนี้ไป)
     ...Object.fromEntries(SKU_BIND.filter(b => b.k !== "guide").map(b =>
-      [b.k, own[b.k] != null ? own[b.k] : (bindForSku(b.k, r.sku, 0) || L(b.k))])),
+      [b.k, own[b.k] != null ? own[b.k] : (bindForSku(b.k, r.sku, 0, kindOf(r)) || L(b.k))])),
     ...perClip,
     guide,
     clips,
@@ -10119,7 +10143,7 @@ const cmdTagKey = n => n >= 2 ? "hashtag" + n : "hashtag";
 function cmdTagState(r, n){
   const own = cmdOwnRead(r.project, r.handle).links || {};
   const mine = n >= 2 ? own["hashtag" + n] : (own.hashtag1 != null ? own.hashtag1 : own.hashtag);
-  const sku = bindForSku("hashtag", r.sku, n || 0) || bindForSku("hashtag", r.sku, 0);
+  const sku = bindForSku("hashtag", r.sku, n || 0, kindOf(r)) || bindForSku("hashtag", r.sku, 0, kindOf(r));
   return { mine: mine != null ? String(mine) : null, sku: sku || "", shared: CMDLINKS.hashtag || "" };
 }
 function cmdTagEditHTML(r, n, j){
@@ -11646,7 +11670,7 @@ function mapFlags(r){
   }
   if ((r.rate_all || []).length > 1) f.push("เรทไม่ตรงกันในชีต");
   if (!String(r.sku || "").trim()) f.push("ไม่มี SKU");
-  else if (!guideForSku(r.sku, 0) && !CMDLINKS.guide) f.push("SKU นี้ยังไม่มีคู่มือถ่ายทำ");
+  else if (!guideForSku(r.sku, 0, kindOf(r)) && !CMDLINKS.guide) f.push("SKU นี้ยังไม่มีคู่มือถ่ายทำ");
   if (!r.status) f.push("ไม่มีสถานะ");
   return f;
 }
@@ -13284,7 +13308,7 @@ function mapGapSheet(proj){
       fix:"/sku", test:r => !String(r.sku || "").trim() },
     { th:"SKU นี้ยังไม่มีคู่มือถ่ายทำ", why:"มี SKU แล้วแต่ยังไม่ได้ผูกคู่มือของไลน์นั้นไว้",
       fix:"/skuguide", test:r => String(r.sku || "").trim() &&
-        !guideForSku(r.sku, 0) && !CMDLINKS.guide },
+        !guideForSku(r.sku, 0, kindOf(r)) && !CMDLINKS.guide },
     { th:"ไม่มีสถานะ", why:"ไม่รู้ว่าคนนี้เดินไปถึงไหนแล้ว ตกจากทุกแถบสรุป",
       fix:"/status", test:r => !r.status },
   // คนที่ปิดเรื่องแล้วตัดออกทุกกลุ่ม — จ่ายจบหรือยกเลิกไปแล้ว ไล่เก็บข้อมูลย้อนหลังไม่มีประโยชน์
@@ -17647,6 +17671,7 @@ $("#histClear").onclick = () => {
 // ทำเป็นหน้าเดียวแทนที่จะก๊อปสามชุด เพราะทั้งสามใช้ตรรกะจับคู่ตัวเดียวกัน
 // แยกเป็นสามหน้าเมื่อไหร่ วันหลังแก้ตรรกะแล้วจะลืมแก้ให้ครบทุกหน้า
 let SKU_BIND_KIND = "guide";
+let SKU_CK = "KOL";                     // หน้าตั้งค่ากำลังแก้ชุดของ KOL หรือ KOC
 
 // ─── เลือก SKU ได้หลายอันพร้อมกัน (คู่มือ/แฮชแท็ก/ตะกร้าตาม SKU) ───
 // เดิมพิมพ์ทีละคีย์ ใช้ชื่อไลน์ครอบได้ก็จริงแต่ครอบได้แค่ทั้งไลน์เดียว
@@ -17729,12 +17754,26 @@ function renderSkuGuide(){
   loadSkuGuide();
   const kind = SKU_BIND_KIND;
   const meta = SKU_BIND_BY[kind] || SKU_BIND_BY.guide;
-  const MAP = SKUBIND[kind] || (SKUBIND[kind] = {});
+  const CK = SKU_CK;
+  const MAP = skuMapOf(kind, CK);
 
+  const ckt = $("#skuCkTabs");
+  if (ckt){
+    ckt.innerHTML = ["KOL", "KOC"].map(k => {
+      const n = SKU_BIND.reduce((a, b) => a + Object.keys(skuMapOf(b.k, k)).length, 0);
+      return `<button role="tab" data-skuck="${k}" aria-selected="${k === CK}">${k}<span class="n">${n}</span></button>`;
+    }).join("");
+    ckt.querySelectorAll("[data-skuck]").forEach(b => b.onclick = () => {
+      SKU_CK = b.dataset.skuck;
+      SG_KIND = SKU_CK;                 // ตัวเลือก SKU ข้างล่างกรองตามกลุ่มเดียวกัน
+      $("#sgBulkText").value = ""; $("#sgBulkPreview").innerHTML = "";
+      renderSkuGuide();
+    });
+  }
   const tabs = $("#skuBindTabs");
   if (tabs){
     tabs.innerHTML = SKU_BIND.map(b => {
-      const n = Object.keys(SKUBIND[b.k] || {}).length;
+      const n = Object.keys(skuMapOf(b.k, CK)).length;
       return `<button role="tab" data-skubind="${b.k}" aria-selected="${b.k === kind}"
         >${esc(b.th)}<span class="n">${n}</span></button>`;
     }).join("");
@@ -17747,11 +17786,23 @@ function renderSkuGuide(){
     });
   }
   const note = $("#skuBindNote");
-  if (note) note.innerHTML = kind === "guide"
+  const ckNote = CK === "KOC"
+    ? `<span class="ckn koc">กำลังตั้งของ <b>KOC</b> — SKU ที่ KOC ยังไม่ได้ตั้งแยก จะใช้ของ KOL ไปก่อน
+        <button type="button" class="cmdbtn" id="skuCopyKol" title="คัดลอกรายการของ KOL ที่ KOC ยังไม่มี มาไว้ให้แก้ต่อ">⧉ คัดลอกจาก KOL มาแก้</button></span><br>`
+    : `<span class="ckn">กำลังตั้งของ <b>KOL</b> — ใช้กับ KOL และเป็นค่าสำรองของ KOC ที่ยังไม่ได้ตั้งแยก</span><br>`;
+  if (note) note.innerHTML = ckNote + (kind === "guide"
     ? `เข้าไปที่ <code>{{guide}}</code> ใน Command และเป็นตัวสำรองของ <code>{{brief}}</code>
        เมื่อชีตไม่ได้กรอกบรีฟไว้ · สั่งจากช่องคำสั่งได้ด้วย <code>/skuguide Blush : https://…</code>`
     : `เข้าไปที่ <code>{{${esc(kind)}}}</code> ใน Command · คนทำหลายคลิปจะได้
-       <code>{{${esc(kind)}1}}</code> <code>{{${esc(kind)}2}}</code> แยกตาม SKU ของคลิปนั้น`;
+       <code>{{${esc(kind)}1}}</code> <code>{{${esc(kind)}2}}</code> แยกตาม SKU ของคลิปนั้น`);
+  const cpk = $("#skuCopyKol");
+  if (cpk) cpk.onclick = () => {
+    const src = SKUBIND[kind] || {}, miss = Object.keys(src).filter(k => !(k in MAP));
+    if (!miss.length) return alert(`KOC มี${meta.th}ครบทุกรายการของ KOL แล้ว`);
+    if (!confirm(`คัดลอก${meta.th}ของ KOL ${miss.length} รายการมาเป็นของ KOC?\n\nรายการที่ KOC ตั้งไว้แล้วไม่ถูกทับ`)) return;
+    miss.forEach(k => { MAP[k] = src[k]; });
+    saveSkuBind(kind, "KOC"); vlog("sku:koc-copy", { d: kind + " " + miss.length }); renderSkuGuide();
+  };
   $("#skuGuideUrl").placeholder = meta.ph;
 
   // ── ค่าเฉพาะคนที่ทับค่าตาม SKU อยู่ ──
@@ -17760,10 +17811,11 @@ function renderSkuGuide(){
   loadCmdOwn();
   const over = [];
   PROJECTS.forEach(p => (COORD[p] || []).forEach(r => {
+    if (kindOf(r) !== CK) return;
     const L = (cmdOwnRead(p, r.handle).links) || {};
     const n = Math.max(1, clipCount(r));
     for (let c = 1; c <= n; c++){
-      const sk = bindForSku(kind, r.sku, c);
+      const sk = bindForSku(kind, r.sku, c, kindOf(r));
       if (!sk) continue;
       const mine = L[kind + c] != null ? L[kind + c] : (c === 1 ? L[kind] : null);
       if (mine != null && String(mine).trim() !== String(sk).trim()){ over.push({ p, h: r.handle }); break; }
@@ -17795,7 +17847,7 @@ function renderSkuGuide(){
   const actLib = PROJECTS.filter(p => !isDone(p)).flatMap(p => PROJ_SKU[p] || []);
   const doneRows = PROJECTS.filter(isDone).flatMap(p => (COORD[p] || []));
   const hitSku = (key, x) => x === key || x.toLowerCase().startsWith(String(key).trim().toLowerCase());
-  const hitsIn = (rows, key) => rows.filter(r => skuParts(r.sku).some(x => hitSku(key, x))).length;
+  const hitsIn = (rows, key) => rows.filter(r => kindOf(r) === CK && skuParts(r.sku).some(x => hitSku(key, x))).length;
   const HS = sgHideState()[kind] || (SGHIDE[kind] = {});
   const keys = Object.keys(MAP).sort();
   const info = keys.map(k => {
@@ -17808,7 +17860,7 @@ function renderSkuGuide(){
   const row = x => {
         const k = x.k, n = x.n;
         // โชว์ SKU ที่ใบนี้คุมอยู่จริงๆ — ตั้งกว้างเกินไปจะเห็นตั้งแต่ตอนตั้ง ไม่ต้องรอให้ส่งผิดก่อน
-        const under = skusUnderKey(kind, k);
+        const under = skusUnderKey(kind, k, CK);
         return `<div class="skugrow${x.shown ? "" : " hid"}">
           <b>${esc(k)}</b>
           ${n ? `<span class="n">${n} คน</span>`
@@ -17841,7 +17893,7 @@ function renderSkuGuide(){
   box.querySelectorAll("[data-sg]").forEach(inp => inp.onchange = () => {
     const v = inp.value.trim();
     if (v) MAP[inp.dataset.sg] = v; else delete MAP[inp.dataset.sg];
-    saveSkuBind(kind); renderSkuGuide();
+    saveSkuBind(kind, CK); renderSkuGuide();
   });
   box.querySelectorAll("[data-sgeye]").forEach(b => b.onclick = () => {
     const x = info.find(i => i.k === b.dataset.sgeye);
@@ -17856,7 +17908,7 @@ function renderSkuGuide(){
   box.querySelectorAll("[data-sgdel]").forEach(b => b.onclick = () => {
     delete MAP[b.dataset.sgdel];
     if (HS[b.dataset.sgdel]){ delete HS[b.dataset.sgdel]; saveSgHide(); }
-    saveSkuBind(kind); renderSkuGuide();
+    saveSkuBind(kind, CK); renderSkuGuide();
   });
 
   renderSgPick();
@@ -17868,9 +17920,9 @@ function closeSettings(){ $("#settings").hidden = true; }
 // ตรวจก่อนเสมอ ไม่เขียนทันทีที่วาง เพราะทับของเดิมที่ตั้งไว้แล้วได้
 let SGBULK = [];
 function sgBulkParse(){
-  const kind = SKU_BIND_KIND;
+  const kind = SKU_BIND_KIND, CK = SKU_CK;
   const meta = SKU_BIND_BY[kind] || SKU_BIND_BY.guide;
-  const MAP = SKUBIND[kind] || (SKUBIND[kind] = {});
+  const MAP = skuMapOf(kind, CK);
   const raw = ($("#sgBulkText").value || "").split(/\r?\n/);
   SGBULK = [];
   raw.forEach(line => {
@@ -17895,7 +17947,7 @@ function sgBulkParse(){
   const backup = Object.assign({}, MAP);
   good.forEach(x => { MAP[x.key] = x.url; });
   const under = {};
-  good.forEach(x => { under[x.key] = skusUnderKey(kind, x.key); });
+  good.forEach(x => { under[x.key] = skusUnderKey(kind, x.key, CK); });
   // คืนค่าโดยล้างแล้วเติมในก้อนเดิม ไม่ใช่ชี้ไปก้อนใหม่ — SKUGUIDE กับ SKUBIND.guide เป็นก้อนเดียวกัน
   // ถ้าชี้ก้อนใหม่ สองตัวจะหลุดจากกันเงียบๆ แล้วที่แก้ทีหลังจะไปไม่ถึงอีกฝั่ง
   Object.keys(MAP).forEach(k => delete MAP[k]);
@@ -17915,10 +17967,10 @@ function sgBulkParse(){
   const ap = $("#sgBulkApply");
   if (ap) ap.onclick = () => {
     SGBULK.filter(x => x.ok).forEach(x => { MAP[x.key] = x.url; });
-    saveSkuBind(kind); renderSkuGuide();
+    saveSkuBind(kind, CK); renderSkuGuide();
     $("#sgBulkText").value = ""; $("#sgBulkPreview").innerHTML = "";
     msg.className = "addmsg on ok";
-    msg.textContent = `ตั้ง${meta.th}แล้ว ${good.length} รายการ`;
+    msg.textContent = `ตั้ง${meta.th}ของ ${CK} แล้ว ${good.length} รายการ`;
   };
 }
 
@@ -19185,9 +19237,9 @@ $("#skuGuideAdd").onclick = () => {
   if (meta.url && !/^https?:\/\//i.test(u))
     return say(`${meta.th}ต้องเป็นลิงก์ ขึ้นต้นด้วย http`, "err");
   loadSkuGuide();
-  const MAP = SKUBIND[SKU_BIND_KIND] || (SKUBIND[SKU_BIND_KIND] = {});
+  const MAP = skuMapOf(SKU_BIND_KIND, SKU_CK);
   keys.forEach(k => { MAP[k] = u; });
-  saveSkuBind(SKU_BIND_KIND);
+  saveSkuBind(SKU_BIND_KIND, SKU_CK);
   $("#skuGuideKey").value = ""; $("#skuGuideUrl").value = "";
   SG_PICK.clear();
   renderSkuGuide();
@@ -22446,15 +22498,22 @@ const TS = {
       const o = Object.assign({}, SKUGUIDE);
       ["hashtag", "cart"].forEach(t => { const st = SKUBIND[t] || {};
         for (const k in st) if (st[k] != null && st[k] !== "") o[t + "::" + k] = st[k]; });
+      SKU_BIND.forEach(b => { const st = SKUBIND_KOC[b.k] || {};
+        for (const k in st) if (st[k] != null && st[k] !== "") o["koc::" + b.k + "::" + k] = st[k]; });
       return o;
     },
     ok: () => true,
-    put: (k, v) => { const m = k.match(/^(hashtag|cart)::(.*)$/s);
+    put: (k, v) => { const c = k.match(/^koc::(guide|hashtag|cart)::(.*)$/s);
+      if (c){ (SKUBIND_KOC[c[1]] || (SKUBIND_KOC[c[1]] = {}))[c[2]] = v; return; }
+      const m = k.match(/^(hashtag|cart)::(.*)$/s);
       if (m) (SKUBIND[m[1]] || (SKUBIND[m[1]] = {}))[m[2]] = v; else SKUGUIDE[k] = v; },
-    drop: k => { const m = k.match(/^(hashtag|cart)::(.*)$/s);
+    drop: k => { const c = k.match(/^koc::(guide|hashtag|cart)::(.*)$/s);
+      if (c){ if (SKUBIND_KOC[c[1]]) delete SKUBIND_KOC[c[1]][c[2]]; return; }
+      const m = k.match(/^(hashtag|cart)::(.*)$/s);
       if (m){ if (SKUBIND[m[1]]) delete SKUBIND[m[1]][m[2]]; } else delete SKUGUIDE[k]; },
     save: () => { try { lsSet(LS_SKUGUIDE, JSON.stringify(SKUGUIDE));
-      ["hashtag", "cart"].forEach(t => lsSet(SKU_BIND_BY[t].ls, JSON.stringify(SKUBIND[t] || {}))); } catch(e){} },
+      ["hashtag", "cart"].forEach(t => lsSet(SKU_BIND_BY[t].ls, JSON.stringify(SKUBIND[t] || {})));
+      SKU_BIND.forEach(b => lsSet(LS_SKU_KOC(b.k), JSON.stringify(SKUBIND_KOC[b.k] || {}))); } catch(e){} },
   },
   fmt: {
     // main|โปรเจกต์|kind = ต้นแบบหลัก (FORMATS / FORMATS_NB) · extra|โปรเจกต์|kind = กล่องเพิ่มเติม
@@ -22673,6 +22732,7 @@ if (TEAM_MODE){
   saveCmdOwn = tsAfter(saveCmdOwn, () => tsSoon("own"));
   saveSkuGuide = tsAfter(saveSkuGuide, () => tsSoon("sku"));
   saveSkuBind = tsAfter(saveSkuBind, () => tsSoon("sku"));
+  saveSkuKoc = tsAfter(saveSkuKoc, () => tsSoon("sku"));
   saveFormats = tsAfter(saveFormats, () => tsSoon("fmt"));
   saveFmtExtra = tsAfter(saveFmtExtra, () => tsSoon("fmt"));
   savePimg = tsAfter(savePimg, () => tsSoon("fmt"));
