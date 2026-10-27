@@ -3040,6 +3040,12 @@ html[data-theme="light"] .mapcard:has(.mapstamp) > *:not(.mapstamp),html[data-th
 .coach-hub .ch-tx small{font-size:.74rem;color:var(--dim)}
 .coach-hub .ch-st{flex:none;font-size:.8rem;font-weight:700;color:var(--accent)}
 .coach-hub .ch-item.done .ch-st{color:var(--hi,#4ade80)}
+.cmdtagedit{border-top:1px dashed var(--line);margin-top:8px;padding-top:8px;font-size:.78rem;color:var(--mute)}
+.cmdtagedit label{display:block;margin-bottom:5px}
+.cmdtagedit label .own{color:var(--accent)}
+.cmdtagedit label .miss{color:var(--warn)}
+.cmdtagedit .row{display:flex;gap:6px;flex-wrap:wrap;align-items:center}
+.cmdtagedit input{flex:1 1 260px;min-width:0;height:32px}
 </style>
 </head>
 <body>
@@ -10106,6 +10112,40 @@ function setCmdOwnBlock(proj, handle, rawId, key, val){
 // แท็บรายคนเห็นเฉพาะบล็อกที่คนนี้ได้จริง (ตามเรทชำระ · กลุ่ม · ไลฟ์) — ไม่งั้นย้ายลำดับข้ามบล็อกที่เขาไม่ได้รับ
 // เช่น "1. (ไม่มีเรทชำระ)" แล้วดูเหมือนกดไม่ติด
 // กล่องฟีดแบค Draft 4–5 โชว์เมื่อ: สถานะถึง "รอ Draft N" แล้ว · หรือมีฟีดแบครอบนั้นพิมพ์ไว้ · หรือเคยกดส่งไปแล้ว
+// ═══ แฮชแท็กเฉพาะคน — แก้ตรงใต้กล่อง Hashtag ใน Command ═══
+// ลำดับที่ใช้จริง (cmdValues): ตั้งเฉพาะคนนี้ > ตาม SKU > ลิงก์ร่วม
+// ชุด 1 (หรือไม่แยกชุด) เก็บที่ links.hashtag · ชุดที่ n ≥ 2 เก็บที่ links.hashtagN — คีย์เดียวกับหน้า 🔗 ลิงก์/คำสั่งด่วน
+const cmdTagKey = n => n >= 2 ? "hashtag" + n : "hashtag";
+function cmdTagState(r, n){
+  const own = cmdOwnRead(r.project, r.handle).links || {};
+  const mine = n >= 2 ? own["hashtag" + n] : (own.hashtag1 != null ? own.hashtag1 : own.hashtag);
+  const sku = bindForSku("hashtag", r.sku, n || 0) || bindForSku("hashtag", r.sku, 0);
+  return { mine: mine != null ? String(mine) : null, sku: sku || "", shared: CMDLINKS.hashtag || "" };
+}
+function cmdTagEditHTML(r, n, j){
+  const st = cmdTagState(r, n);
+  const src = st.mine != null ? `<b class="own">ตั้งเฉพาะคนนี้</b>${st.sku ? ` <span class="hint">(ตาม SKU: ${esc(st.sku.slice(0, 40))}${st.sku.length > 40 ? "…" : ""})</span>` : ""}`
+    : st.sku ? `ใช้ตาม SKU` : st.shared ? `ใช้ของกลางโปรเจกต์` : `<span class="miss">ยังไม่มี</span>`;
+  return `<div class="cmdtagedit">
+    <label># แฮชแท็ก${n ? ` ชุด ${n}` : ""} ของ ${esc(normId(r.handle))} · ${src}</label>
+    <div class="row">
+      <input data-taginp="${n}" value="${esc(st.mine != null ? st.mine : (st.sku || st.shared))}" placeholder="#tag1 #tag2 …"
+        title="แก้แล้วกด Enter หรือ บันทึก — ใช้กับคนนี้คนเดียว">
+      <button type="button" class="cmdbtn" data-tagsave="${n}">บันทึกเฉพาะคนนี้</button>
+      ${st.mine != null ? `<button type="button" class="cmdbtn ghost" data-tagclr="${n}" title="ลบที่ตั้งเฉพาะคนนี้ กลับไปใช้ตาม SKU / ของกลาง">↺ ใช้ตาม SKU</button>` : ""}
+    </div></div>`;
+}
+function cmdTagSet(proj, handle, n, val){
+  const o = cmdOwn(proj, handle);
+  o.links = o.links || {};
+  const k = cmdTagKey(n);
+  if (n <= 1) delete o.links.hashtag1;          // ชุด 1 มีคีย์เดียว กันค่าเก่าค้างทับ
+  const v = val == null ? "" : String(val).trim();
+  if (v) o.links[k] = v; else delete o.links[k];
+  pruneCmdOwn(proj, handle);
+  saveCmdOwn();
+  vlog("hashtag:own", { p: proj, h: normId(handle), d: v ? "set" : "clear" });
+}
 function lateOk(bl, r){
   if (!bl.late) return true;
   if (r && mapStage(r.status) >= stageAt("Waiting Draft " + bl.late)) return true;
@@ -10699,6 +10739,8 @@ function openCmd(proj, handle){
         mine: bl.mine, id, custom: bl.custom, clip:n, law: !!bl.law,
         // ขั้นที่กล่องนี้พาไปเมื่อกดส่ง — มาจากต้นแบบเท่านั้น กล่องที่เพิ่มเองไม่มี
         to: (bl.base && bl.base.to) || null,
+        // กล่องที่มี {{hashtag}} → มีช่องแก้แฮชแท็กเฉพาะคนนี้ใต้กล่อง (2026-10-27)
+        tagN: /\{\{hashtag\d*\}\}/.test(bl.b) ? n : null,
         sent: isSent(proj, handle, id, n), old: sentOld(proj, handle, id, n) },
       fillBlock(bl.b, vals, n))));
   });
@@ -10865,7 +10907,7 @@ function openCmd(proj, handle){
               title="คืนข้อความบล็อกนี้ให้เหมือนต้นแบบ — ทิ้งฉบับที่แก้ไว้เฉพาะ ${esc(normId(handle))}${
                 b.clip ? " (มีผลทุกชุด เพราะทุกชุดใช้ข้อความก้อนเดียวกัน)" : ""}">↺ ต้นแบบ</button>`
           : ""}</header>
-      <pre>${b.html}</pre></div>`).join("") + `</div>`;
+      <pre>${b.html}</pre>${b.tagN != null ? cmdTagEditHTML(r, b.tagN, j) : ""}</div>`).join("") + `</div>`;
 
   if ($("#cmdShowSent")) $("#cmdShowSent").onclick = () => {
     CMD_SHOW_SENT = !CMD_SHOW_SENT;
@@ -10873,6 +10915,19 @@ function openCmd(proj, handle){
     openCmd(proj, handle);
     $("#cmdBody").scrollTop = sc;
   };
+  // ── แฮชแท็กเฉพาะคนนี้ (ช่องใต้กล่อง Hashtag) ──
+  document.querySelectorAll("#cmdBody [data-tagsave], #cmdBody [data-tagclr]").forEach(btn => btn.onclick = () => {
+    const n = +(btn.dataset.tagsave ?? btn.dataset.tagclr);
+    const inp = $(`#cmdBody [data-taginp="${n}"]`);
+    cmdTagSet(proj, handle, n, btn.dataset.tagclr != null ? null : inp.value);
+    const top = $("#cmdBody").scrollTop;
+    openCmd(proj, handle);
+    $("#cmdBody").scrollTop = top;
+  });
+  document.querySelectorAll("#cmdBody [data-taginp]").forEach(inp => inp.onkeydown = e => {
+    if (e.key === "Enter" && !e.shiftKey && !e.isComposing){ e.preventDefault();
+      $(`#cmdBody [data-tagsave="${inp.dataset.taginp}"]`).click(); }
+  });
   document.querySelectorAll("#cmdBody [data-copy]").forEach(btn => btn.onclick = () => {
     navigator.clipboard.writeText(blocks[+btn.dataset.copy].text).then(() => {
       btn.textContent = "คัดลอกแล้ว ✓"; btn.classList.add("done");
