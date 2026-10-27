@@ -22670,9 +22670,30 @@ async function tsPull(force){
     }
     tsLastSave();
     for (const ns of push) await tsPush(ns);
+    migrateCartClear();
   } catch(e){ console.warn("team_kv", e); }
   finally { TS_BUSY = false; }
   if (redraw) tsRedraw();
+}
+// ── ล้างตะกร้าที่ตั้งเฉพาะคน ให้ทุกคนใช้ตาม SKU (Jibli สั่ง 2026-10-27) ──
+// sandbox ล้างจากหลังบ้านแล้ว · ALTA token หมดอายุ → ทำฝั่งเว็บ: เครื่องแรกที่เปิดหลังดึงข้อมูลทีมเสร็จ ล้างแล้วซิงก์ขึ้นทีม
+// ครั้งเดียวต่อเครื่องต่อทีม และหมดเขต 2026-10-30 — หลังจากนั้นไม่แตะ (ตะกร้าที่ตั้งเองใหม่ทีหลังต้องอยู่รอด)
+function migrateCartClear(){
+  if (!TEAM_MODE || !TEAM) return;
+  if (Date.now() > Date.parse("2026-10-30T00:00:00+07:00")) return;
+  const F = "cf_mig_cartclear_v1";
+  try { if (lsGet(F) === TEAM.id) return; } catch(e){}
+  loadCmdOwn();
+  let n = 0;
+  for (const k of Object.keys(CMDOWN)){
+    if (!TS.own.ok(k)) continue;
+    const L = (CMDOWN[k] || {}).links || {};
+    Object.keys(L).forEach(x => { if (/^cart\d*$/.test(x)){ delete L[x]; n++; } });
+    const i = k.lastIndexOf("|");
+    pruneCmdOwn(k.slice(0, i), k.slice(i + 1));
+  }
+  try { lsSet(F, TEAM.id); } catch(e){}
+  if (n){ saveCmdOwn(); vlog("mig:cartclear", { d: String(n) }); tsRedraw(); }
 }
 function tsSoon(ns){
   if (!TEAM_MODE || !TEAM) return;
