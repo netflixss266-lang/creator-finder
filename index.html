@@ -9370,6 +9370,21 @@ function loadSkuGuide(){
   loadSkuBind();
   try { SKUGUIDE = JSON.parse(lsGet(LS_SKUGUIDE) || "{}") || {}; } catch(e){}
   SKUBIND.guide = SKUGUIDE;
+  // ⚠️ แท็บที่เปิดค้างจากโค้ดก่อนมีชุด KOC ดึงคีย์ "koc::cart::…" ลงมาเป็น "คู่มือ" (ตัวรับเก่าไม่รู้จัก koc::)
+  //    ค่าตรงกับเซิร์ฟเวอร์เลยไม่ถูกซิงก์แก้ — ค้างถาวร KOC ไม่ได้ลิงก์ของตัวเอง (เจอจริงที่ ALTA 2026-10-27)
+  //    ย้ายกลับเข้าชุด KOC ที่ถูกต้องทุกครั้งที่โหลด
+  let movedKoc = 0;
+  for (const k of Object.keys(SKUGUIDE)){
+    const m = k.match(/^koc::(guide|hashtag|cart)::(.*)$/s);
+    if (!m) continue;
+    const C = SKUBIND_KOC[m[1]] || (SKUBIND_KOC[m[1]] = {});
+    if (!(m[2] in C)) C[m[2]] = SKUGUIDE[k];
+    delete SKUGUIDE[k]; movedKoc++;
+  }
+  if (movedKoc){
+    try { lsSet(LS_SKUGUIDE, JSON.stringify(SKUGUIDE));
+          SKU_BIND.forEach(b => lsSet(LS_SKU_KOC(b.k), JSON.stringify(SKUBIND_KOC[b.k] || {}))); } catch(e){}
+  }
   let seeded = false;
   try { seeded = lsGet(LS_SKUSEED) === "1"; } catch(e){}
   if (seeded) return;
@@ -22701,7 +22716,8 @@ const TS = {
   // เดิมซิงก์แค่คู่มือ แฮชแท็ก/ตะกร้าตาม SKU ค้างอยู่ในเบราว์เซอร์ของคนที่ตั้ง (2026-10-15 แก้)
   sku: {
     all: () => {
-      const o = Object.assign({}, SKUGUIDE);
+      const o = {};
+      for (const k in SKUGUIDE) if (!/^koc::/.test(k)) o[k] = SKUGUIDE[k];   // กันคีย์ koc:: ที่หลงอยู่ในคู่มือ
       ["hashtag", "cart"].forEach(t => { const st = SKUBIND[t] || {};
         for (const k in st) if (st[k] != null && st[k] !== "") o[t + "::" + k] = st[k]; });
       SKU_BIND.forEach(b => { const st = SKUBIND_KOC[b.k] || {};
