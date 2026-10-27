@@ -3086,6 +3086,21 @@ html[data-theme="light"] .mapcard:has(.mapstamp) > *:not(.mapstamp),html[data-th
 .skuaudit .sa-i i{font-style:normal;display:inline-block;margin-right:4px}
 .skuaudit .sa-i i.own,.skuaudit .sa-i i.lit{color:var(--warn)} .skuaudit .sa-i i.none{color:#E5484D} .skuaudit .sa-i i.fallback{color:var(--mute)}
 @media(max-width:700px){ .skuaudit .sa-row{grid-template-columns:1fr 1fr} }
+/* หน้า SKU ตัวอักษรเล็กลง (2026-10-27) — รายการยาว อ่านทีละหลายแถว */
+#skuGuideSect summary h3{font-size:.98rem}
+#skuGuideSect .sect-sub,#skuGuideSect .ckn,#skuGuideSect .hint{font-size:.74rem}
+#skuGuideSect .tabs button{font-size:.76rem;padding:6px 10px}
+#skuGuideSect .skuck .lab{font-size:.72rem}
+#skuGuideSect .skugrow{padding:5px 0;gap:7px}
+#skuGuideSect .skugrow b{font-size:.78rem;min-width:10em}
+#skuGuideSect .skugrow .n{font-size:.68rem}
+#skuGuideSect .skugrow input{font-size:.74rem;padding:4px 8px;height:auto}
+#skuGuideSect .skugrow button{font-size:.72rem}
+#skuGuideSect .skugrow button.eye svg{width:14px;height:14px}
+#skuGuideSect .sgunder{font-size:.68rem}
+#skuGuideSect .pickhead select,#skuGuideSect .pickhead input,#skuGuideSect input,#skuGuideSect textarea{font-size:.76rem}
+#skuGuideSect .skuover,#skuGuideSect .skusplit,#skuGuideSect .skuaudit{font-size:.74rem}
+#skuGuideSect .addmsg{font-size:.74rem}
 </style>
 </head>
 <body>
@@ -4077,7 +4092,8 @@ html[data-theme="light"] .mapcard:has(.mapstamp) > *:not(.mapstamp),html[data-th
 
     <!-- คู่มือถ่ายทำไม่ได้มีใบเดียว — คนได้บลัชกับคนได้ลิปถ่ายคนละแบบ
          ผูกไว้กับ SKU ทีเดียว แล้วทุกคนที่ได้ SKU นั้นได้คู่มือถูกใบเอง -->
-    <details class="sect crewhide" id="skuGuideSect">
+    <!-- เปิดให้ทุกคนในทีมเข้าได้ (2026-10-27) — เดิม crewhide (เห็นเฉพาะแอดมิน/หัวหน้า) · RLS ของ team_kv ให้สมาชิกทีมที่ active เขียนได้อยู่แล้ว -->
+    <details class="sect" id="skuGuideSect">
       <summary><h3>คู่มือ · แฮชแท็ก · ตะกร้า ตาม SKU</h3></summary>
       <p class="sect-sub">
         ตั้งทีเดียวต่อไลน์สินค้า — <b>ไม่ต้องไปกรอกรายคน</b> ทุกคนที่ได้ SKU ในไลน์นั้นจะได้ของถูกชุดเอง
