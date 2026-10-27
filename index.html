@@ -2982,7 +2982,9 @@ html[data-no-assign] select.asg{pointer-events:none;opacity:.55}
 .mapnote.drnote{border-color:rgba(var(--accent-rgb),.45)}
 .stcell{display:flex;align-items:center;gap:4px}
 .mapdr.tbdr{border:1px solid var(--line);border-radius:6px;height:26px;padding:0 5px}
-#coordBody tr:has(.tbdr.on) > td{background:rgba(var(--accent-rgb),.07)}
+/* ไฮไลต์แถวที่มาร์ค 📥 — ใช้ background-image ซ้อนชั้น ไม่แตะ background-color
+   ⚠️ เดิมใช้ background: ทับสีทึบของคอลัมน์ตรึง (td.stk) → ตอนเลื่อนตารางไปขวา ช่องข้างใต้โผล่ทะลุชื่อ (บัค 2026-10-27) */
+#coordBody tr:has(.tbdr.on) > td{background-image:linear-gradient(rgba(var(--accent-rgb),.07),rgba(var(--accent-rgb),.07))}
 .drtag.tb{display:block;font-size:.66rem;font-weight:600;color:var(--accent);margin-top:2px;white-space:nowrap}
 .cmdst{display:flex;align-items:center;gap:6px;margin-left:10px;flex:0 1 auto;min-width:0}
 .cmdst .st-sel{max-width:230px;height:32px}
