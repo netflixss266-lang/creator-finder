@@ -3063,6 +3063,9 @@ html[data-theme="light"] .mapcard:has(.mapstamp) > *:not(.mapstamp),html[data-th
 .skusplit .ssr .k{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .skusplit .ssr .c{color:var(--dim);flex:none}
 .skusplit .cmdbtn.go{margin:10px 8px 0 0;background:var(--accent);color:var(--accent-ink);border-color:var(--accent);font-weight:700}
+.cmdlitwarn{margin-top:8px;padding:7px 10px;border:1px solid rgba(var(--warn-rgb),.5);background:rgba(var(--warn-rgb),.08);
+  border-radius:8px;font-size:.78rem;color:var(--ink)}
+.cmdtagedit + .cmdtagedit{border-top:0;margin-top:4px;padding-top:4px}
 </style>
 </head>
 <body>
@@ -10156,36 +10159,44 @@ function setCmdOwnBlock(proj, handle, rawId, key, val){
 // ═══ แฮชแท็กเฉพาะคน — แก้ตรงใต้กล่อง Hashtag ใน Command ═══
 // ลำดับที่ใช้จริง (cmdValues): ตั้งเฉพาะคนนี้ > ตาม SKU > ลิงก์ร่วม
 // ชุด 1 (หรือไม่แยกชุด) เก็บที่ links.hashtag · ชุดที่ n ≥ 2 เก็บที่ links.hashtagN — คีย์เดียวกับหน้า 🔗 ลิงก์/คำสั่งด่วน
-const cmdTagKey = n => n >= 2 ? "hashtag" + n : "hashtag";
-function cmdTagState(r, n){
+// kd = "hashtag" | "cart" — ตะกร้าใช้ช่องแบบเดียวกัน (2026-10-27) และบอกด้วยว่าค่าตาม SKU มาจากชุด KOL หรือ KOC
+const cmdTagKey = (n, kd = "hashtag") => n >= 2 ? kd + n : kd;
+function cmdTagState(r, n, kd = "hashtag"){
   const own = cmdOwnRead(r.project, r.handle).links || {};
-  const mine = n >= 2 ? own["hashtag" + n] : (own.hashtag1 != null ? own.hashtag1 : own.hashtag);
-  const sku = bindForSku("hashtag", r.sku, n || 0, kindOf(r)) || bindForSku("hashtag", r.sku, 0, kindOf(r));
-  return { mine: mine != null ? String(mine) : null, sku: sku || "", shared: CMDLINKS.hashtag || "" };
+  const mine = n >= 2 ? own[kd + n] : (own[kd + "1"] != null ? own[kd + "1"] : own[kd]);
+  const ck = kindOf(r);
+  const sku = bindForSku(kd, r.sku, n || 0, ck) || bindForSku(kd, r.sku, 0, ck);
+  // ค่านี้มาจากชุดไหน — KOC ที่ยังไม่ได้ตั้งแยกจะตกไปใช้ของ KOL
+  const one = skuParts(r.sku)[(n || 1) - 1];
+  const fromKoc = ck === "KOC" && sku && (() => { const kk = bindKeyForOne(skuMergedFor(kd), one); return kk && kk in (SKUBIND_KOC[kd] || {}); })();
+  return { mine: mine != null ? String(mine) : null, sku: sku || "", shared: CMDLINKS[kd] || "", ck, fromKoc };
 }
-function cmdTagEditHTML(r, n, j){
-  const st = cmdTagState(r, n);
-  const src = st.mine != null ? `<b class="own">ตั้งเฉพาะคนนี้</b>${st.sku ? ` <span class="hint">(ตาม SKU: ${esc(st.sku.slice(0, 40))}${st.sku.length > 40 ? "…" : ""})</span>` : ""}`
-    : st.sku ? `ใช้ตาม SKU` : st.shared ? `ใช้ของกลางโปรเจกต์` : `<span class="miss">ยังไม่มี</span>`;
+function cmdTagEditHTML(r, n, j, kd = "hashtag"){
+  const st = cmdTagState(r, n, kd);
+  const skuSrc = st.ck === "KOC" ? (st.fromKoc ? "ตาม SKU (ชุด KOC)" : "ตาม SKU (ใช้ของ KOL — KOC ยังไม่ได้ตั้งแยก)") : "ตาม SKU (ชุด KOL)";
+  const cut = v => esc(v.slice(0, 48)) + (v.length > 48 ? "…" : "");
+  const src = st.mine != null ? `<b class="own">ตั้งเฉพาะคนนี้</b>${st.sku ? ` <span class="hint">(${skuSrc}: ${cut(st.sku)})</span>` : ""}`
+    : st.sku ? skuSrc : st.shared ? `ใช้ของกลางโปรเจกต์` : `<span class="miss">ยังไม่มี</span>`;
+  const isCart = kd === "cart";
   return `<div class="cmdtagedit">
-    <label># แฮชแท็ก${n ? ` ชุด ${n}` : ""} ของ ${esc(normId(r.handle))} · ${src}</label>
+    <label>${isCart ? "🛒 ลิงก์ตะกร้า" : "# แฮชแท็ก"}${n ? ` ชุด ${n}` : ""} ของ ${esc(normId(r.handle))} · ${src}</label>
     <div class="row">
-      <input data-taginp="${n}" value="${esc(st.mine != null ? st.mine : (st.sku || st.shared))}" placeholder="#tag1 #tag2 …"
+      <input data-taginp="${kd}:${n}" value="${esc(st.mine != null ? st.mine : (st.sku || st.shared))}" placeholder="${isCart ? "https://… ลิงก์ตะกร้า" : "#tag1 #tag2 …"}"
         title="แก้แล้วกด Enter หรือ บันทึก — ใช้กับคนนี้คนเดียว">
-      <button type="button" class="cmdbtn" data-tagsave="${n}">บันทึกเฉพาะคนนี้</button>
-      ${st.mine != null ? `<button type="button" class="cmdbtn ghost" data-tagclr="${n}" title="ลบที่ตั้งเฉพาะคนนี้ กลับไปใช้ตาม SKU / ของกลาง">↺ ใช้ตาม SKU</button>` : ""}
+      <button type="button" class="cmdbtn" data-tagsave="${kd}:${n}">บันทึกเฉพาะคนนี้</button>
+      ${st.mine != null ? `<button type="button" class="cmdbtn ghost" data-tagclr="${kd}:${n}" title="ลบที่ตั้งเฉพาะคนนี้ กลับไปใช้ตาม SKU / ของกลาง">↺ ใช้ตาม SKU</button>` : ""}
     </div></div>`;
 }
-function cmdTagSet(proj, handle, n, val){
+function cmdTagSet(proj, handle, n, val, kd = "hashtag"){
   const o = cmdOwn(proj, handle);
   o.links = o.links || {};
-  const k = cmdTagKey(n);
-  if (n <= 1) delete o.links.hashtag1;          // ชุด 1 มีคีย์เดียว กันค่าเก่าค้างทับ
+  const k = cmdTagKey(n, kd);
+  if (n <= 1) delete o.links[kd + "1"];         // ชุด 1 มีคีย์เดียว กันค่าเก่าค้างทับ
   const v = val == null ? "" : String(val).trim();
   if (v) o.links[k] = v; else delete o.links[k];
   pruneCmdOwn(proj, handle);
   saveCmdOwn();
-  vlog("hashtag:own", { p: proj, h: normId(handle), d: v ? "set" : "clear" });
+  vlog(kd + ":own", { p: proj, h: normId(handle), d: v ? "set" : "clear" });
 }
 function lateOk(bl, r){
   if (!bl.late) return true;
@@ -10782,6 +10793,9 @@ function openCmd(proj, handle){
         to: (bl.base && bl.base.to) || null,
         // กล่องที่มี {{hashtag}} → มีช่องแก้แฮชแท็กเฉพาะคนนี้ใต้กล่อง (2026-10-27)
         tagN: /\{\{hashtag\d*\}\}/.test(bl.b) ? n : null,
+        cartN: /\{\{cart\d*\}\}/.test(bl.b) ? n : null,
+        // ลิงก์ตะกร้าพิมพ์ฝังลงในข้อความตรงๆ (ไม่ได้ใช้ {{cart}}) — แก้ที่ SKU/เฉพาะคนแล้วกล่องนี้ไม่เปลี่ยนตาม
+        litCart: /https?:\/\/(?:affiliate\.tiktok\.com|vt\.tiktok\.com|vm\.tiktok\.com)\S*/.test(bl.b),
         sent: isSent(proj, handle, id, n), old: sentOld(proj, handle, id, n) },
       fillBlock(bl.b, vals, n))));
   });
@@ -10948,7 +10962,9 @@ function openCmd(proj, handle){
               title="คืนข้อความบล็อกนี้ให้เหมือนต้นแบบ — ทิ้งฉบับที่แก้ไว้เฉพาะ ${esc(normId(handle))}${
                 b.clip ? " (มีผลทุกชุด เพราะทุกชุดใช้ข้อความก้อนเดียวกัน)" : ""}">↺ ต้นแบบ</button>`
           : ""}</header>
-      <pre>${b.html}</pre>${b.tagN != null ? cmdTagEditHTML(r, b.tagN, j) : ""}</div>`).join("") + `</div>`;
+      <pre>${b.html}</pre>${b.litCart ? `<div class="cmdlitwarn">⚠ ข้อความกล่องนี้<b>ฝังลิงก์ตะกร้าไว้ตายตัว</b> (ไม่ได้ใช้ <code>{{cart}}</code>) —
+        แก้ตะกร้าที่ SKU/เฉพาะคนแล้วกล่องนี้ไม่เปลี่ยนตาม${b.mine && (!b.clip || b.clip === 1) ? ` · กด <b>↺ ต้นแบบ</b> ที่หัวกล่องเพื่อกลับไปใช้ {{cart}}` : ` · แก้ที่ ✎ แก้ข้อความ`}</div>` : ""}${
+        b.cartN != null ? cmdTagEditHTML(r, b.cartN, j, "cart") : ""}${b.tagN != null ? cmdTagEditHTML(r, b.tagN, j) : ""}</div>`).join("") + `</div>`;
 
   if ($("#cmdShowSent")) $("#cmdShowSent").onclick = () => {
     CMD_SHOW_SENT = !CMD_SHOW_SENT;
@@ -10958,9 +10974,11 @@ function openCmd(proj, handle){
   };
   // ── แฮชแท็กเฉพาะคนนี้ (ช่องใต้กล่อง Hashtag) ──
   document.querySelectorAll("#cmdBody [data-tagsave], #cmdBody [data-tagclr]").forEach(btn => btn.onclick = () => {
-    const n = +(btn.dataset.tagsave ?? btn.dataset.tagclr);
-    const inp = $(`#cmdBody [data-taginp="${n}"]`);
-    cmdTagSet(proj, handle, n, btn.dataset.tagclr != null ? null : inp.value);
+    const id = btn.dataset.tagsave ?? btn.dataset.tagclr, [kd, ns] = id.split(":"), n = +ns;
+    const inp = $(`#cmdBody [data-taginp="${id}"]`);
+    let v = btn.dataset.tagclr != null ? null : inp.value;
+    if (kd === "cart" && v && v.trim() && !/^https?:\/\//i.test(v.trim())) return alert("ลิงก์ตะกร้าต้องขึ้นต้นด้วย http");
+    cmdTagSet(proj, handle, n, v, kd);
     const top = $("#cmdBody").scrollTop;
     openCmd(proj, handle);
     $("#cmdBody").scrollTop = top;
