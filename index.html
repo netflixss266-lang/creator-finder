@@ -22808,6 +22808,10 @@ async function tsPull(force){
       for (const k of Object.keys(obj)){
         if (k in srv[ns] || !S.ok(k) || obj[k] == null) continue;
         if (k in last){ S.drop(k); delete last[k]; changed = true; }
+        // ⚠️ SKU: เครื่องที่เคยซิงก์แล้ว (last ไม่ว่าง) ห้ามดันคีย์ที่เซิร์ฟเวอร์ไม่มีขึ้นไปเอง —
+        //    แท็บเก่าที่ค้างค่าเก่าไว้จะชุบชีวิตรายการที่ลบไปแล้วกลับมาเรื่อยๆ (เจอจริง ALTA 2026-10-27)
+        //    แก้/เพิ่มเองยังขึ้นปกติผ่าน tsPush ตอนกดบันทึก
+        else if (ns === "sku" && Object.keys(last).length){ S.drop(k); changed = true; }
         else mine = true;
       }
       for (const k of Object.keys(last)) if (!(k in srv[ns])) delete last[k];
