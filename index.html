@@ -3101,6 +3101,8 @@ html[data-theme="light"] .mapcard:has(.mapstamp) > *:not(.mapstamp),html[data-th
 #skuGuideSect .pickhead select,#skuGuideSect .pickhead input,#skuGuideSect input,#skuGuideSect textarea{font-size:.76rem}
 #skuGuideSect .skuover,#skuGuideSect .skusplit,#skuGuideSect .skuaudit{font-size:.74rem}
 #skuGuideSect .addmsg{font-size:.74rem}
+.skugrow.dup{background:rgba(var(--warn-rgb),.05)}
+.skugrow .n.dupn{color:var(--warn);background:rgba(var(--warn-rgb),.12)}
 </style>
 </head>
 <body>
@@ -17983,6 +17985,17 @@ function renderSkuSplit(){
     };
   };
 }
+// ── ลิงก์ซ้ำในชุดเดียวกัน (2026-10-27) ──
+// ลิงก์เดียวกันอยู่หลายใบ = ตั้งซ้ำ ไล่แก้ทีหลังลำบาก (แก้ใบหนึ่ง อีกใบยังค้างค่าเก่า)
+// ห้ามเพิ่ม/แก้ให้ซ้ำ · ใช้ชื่อไลน์ใบเดียวคุมหลายเฉดแทน · เฉพาะชนิดที่เป็นลิงก์ (คู่มือ/ตะกร้า) — แฮชแท็กซ้ำได้
+const skuLinkNorm = v => String(v || "").trim().replace(/[?#].*$/, "").replace(/\/+$/, "").toLowerCase();
+function skuDupKeys(MAP, val, except){
+  const v = skuLinkNorm(val);
+  if (!v) return [];
+  const ex = new Set([].concat(except || []));
+  return Object.keys(MAP).filter(k => !ex.has(k) && skuLinkNorm(MAP[k]) === v);
+}
+const skuDupMsg = (th, dups) => `${th}นี้มีอยู่แล้วที่ “${dups.join("”, “")}” — ห้ามเพิ่มซ้ำ\n\nถ้าใช้ลิงก์เดียวกันหลายเฉด ให้ตั้งที่ชื่อไลน์ใบเดียว (เช่น “Blush”) แทน`;
 function renderSkuGuide(){
   const box = $("#skuGuideList");
   if (!box) return;
@@ -18032,7 +18045,7 @@ function renderSkuGuide(){
        <code>{{${esc(kind)}1}}</code> <code>{{${esc(kind)}2}}</code> แยกตาม SKU ของคลิปนั้น`);
   const cpk = $("#skuCopyKol");
   if (cpk) cpk.onclick = () => {
-    const src = SKUBIND[kind] || {}, miss = Object.keys(src).filter(k => !(k in MAP));
+    const src = SKUBIND[kind] || {}, miss = Object.keys(src).filter(k => !(k in MAP) && !(meta.url && skuDupKeys(MAP, src[k]).length));
     if (!miss.length) return alert(`KOC มี${meta.th}ครบทุกรายการของ KOL แล้ว`);
     if (!confirm(`คัดลอก${meta.th}ของ KOL ${miss.length} รายการมาเป็นของ KOC?\n\nรายการที่ KOC ตั้งไว้แล้วไม่ถูกทับ`)) return;
     miss.forEach(k => { MAP[k] = src[k]; });
@@ -18083,13 +18096,19 @@ function renderSkuGuide(){
   const actRows = PROJECTS.filter(p => !isDone(p)).flatMap(p => (COORD[p] || []));
   const actLib = PROJECTS.filter(p => !isDone(p)).flatMap(p => PROJ_SKU[p] || []);
   const doneRows = PROJECTS.filter(isDone).flatMap(p => (COORD[p] || []));
-  const hitSku = (key, x) => x === key || x.toLowerCase().startsWith(String(key).trim().toLowerCase());
-  const hitsIn = (rows, key) => rows.filter(r => kindOf(r) === CK && skuParts(r.sku).some(x => hitSku(key, x))).length;
+  // ใบนี้คุม SKU ไหนบ้าง — จับคู่แบบเดียวกับ Command (bindKeyForOne) ไม่ใช่ขึ้นต้นด้วยชื่อ
+  // ⚠️ "ปิดตามโปรเจกต์" ต้องดูทุกคนทุกกลุ่ม ไม่ใช่เฉพาะ KOL/KOC ที่เลือกอยู่ —
+  //    เดิมกรองตามกลุ่ม: แฮชแท็ก Tiny 2 Lite ของ OBSBOT-KOC (ปิดแล้ว) อยู่แท็บ KOL → นับได้ 0 คน → ไม่ถูกซ่อน (2026-10-27)
+  const matchMap = CK === "KOC" ? skuMergedFor(kind) : (SKUBIND[kind] || {});
+  const doneLib = PROJECTS.filter(isDone).flatMap(p => PROJ_SKU[p] || []);
+  const hits = (rows, key) => rows.filter(r => skuParts(r.sku).some(x => bindKeyForOne(matchMap, x) === key));
+  const libHit = (lib, key) => lib.some(x => bindKeyForOne(matchMap, x) === key);
   const HS = sgHideState()[kind] || (SGHIDE[kind] = {});
   const keys = Object.keys(MAP).sort();
   const info = keys.map(k => {
-    const n = hitsIn(actRows, k), nd = hitsIn(doneRows, k);
-    const doneOnly = !n && nd > 0 && !actLib.some(x => hitSku(k, x));
+    const act = hits(actRows, k), dn = hits(doneRows, k);
+    const n = act.filter(r => kindOf(r) === CK).length, nd = dn.length;
+    const doneOnly = !act.length && !libHit(actLib, k) && (nd > 0 || libHit(doneLib, k));
     const shown = HS[k] === "show" || (HS[k] !== "hide" && !doneOnly);
     return { k, n, nd, doneOnly, shown };
   });
@@ -18098,8 +18117,9 @@ function renderSkuGuide(){
         const k = x.k, n = x.n;
         // โชว์ SKU ที่ใบนี้คุมอยู่จริงๆ — ตั้งกว้างเกินไปจะเห็นตั้งแต่ตอนตั้ง ไม่ต้องรอให้ส่งผิดก่อน
         const under = skusUnderKey(kind, k, CK);
-        return `<div class="skugrow${x.shown ? "" : " hid"}">
-          <b>${esc(k)}</b>
+        const dups = meta.url ? skuDupKeys(MAP, MAP[k], k) : [];
+        return `<div class="skugrow${x.shown ? "" : " hid"}${dups.length ? " dup" : ""}">
+          <b>${esc(k)}</b>${dups.length ? `<span class="n dupn" title="ลิงก์เดียวกับ: ${esc(dups.join(", "))}">⚠ ลิงก์ซ้ำกับ ${esc(dups.slice(0, 2).join(", "))}${dups.length > 2 ? " …" : ""}</span>` : ""}
           ${n ? `<span class="n">${n} คน</span>`
             : x.doneOnly ? `<span class="n done">โปรเจกต์ปิดแล้ว · ${x.nd} คน</span>`
             : `<span class="n none">ยังไม่มีใครได้</span>`}
@@ -18129,6 +18149,8 @@ function renderSkuGuide(){
 
   box.querySelectorAll("[data-sg]").forEach(inp => inp.onchange = () => {
     const v = inp.value.trim();
+    const dups = meta.url && v ? skuDupKeys(MAP, v, inp.dataset.sg) : [];
+    if (dups.length){ alert(skuDupMsg(meta.th, dups)); inp.value = MAP[inp.dataset.sg] || ""; return; }
     if (v) MAP[inp.dataset.sg] = v; else delete MAP[inp.dataset.sg];
     saveSkuBind(kind, CK); renderSkuGuide();
   });
@@ -18175,6 +18197,10 @@ function sgBulkParse(){
     const url = meta.url ? safeLinkUrl(m[2].trim()) : m[2].trim();
     if (!key) return SGBULK.push({ line: t, ok:false, why:"ไม่มีชื่อ" });
     if (!url)  return SGBULK.push({ line: t, ok:false, why:"ค่าใช้ไม่ได้" });
+    if (meta.url){
+      const dups = skuDupKeys(MAP, url, key).concat(SGBULK.filter(x => x.ok && skuLinkNorm(x.url) === skuLinkNorm(url)).map(x => x.key));
+      if (dups.length) return SGBULK.push({ line: t, ok:false, why:`ลิงก์ซ้ำกับ “${dups.join("”, “")}” — ห้ามเพิ่มซ้ำ` });
+    }
     SGBULK.push({ line: t, ok:true, key, url, was: MAP[key] || "" });
   });
   const good = SGBULK.filter(x => x.ok);
@@ -19475,6 +19501,11 @@ $("#skuGuideAdd").onclick = () => {
     return say(`${meta.th}ต้องเป็นลิงก์ ขึ้นต้นด้วย http`, "err");
   loadSkuGuide();
   const MAP = skuMapOf(SKU_BIND_KIND, SKU_CK);
+  if (meta.url){
+    const dups = skuDupKeys(MAP, u, keys);
+    if (dups.length) return say(esc(skuDupMsg(meta.th, dups)).replace(/\n/g, "<br>"), "err");
+    if (keys.length > 1) return say(`ลิงก์เดียวใส่ได้ใบเดียว — เลือก ${keys.length} SKU พร้อมกันจะกลายเป็นลิงก์ซ้ำ ${keys.length} ใบ<br>ให้พิมพ์ชื่อไลน์ใบเดียวแทน (เช่น “Blush”)`, "err");
+  }
   keys.forEach(k => { MAP[k] = u; });
   saveSkuBind(SKU_BIND_KIND, SKU_CK);
   $("#skuGuideKey").value = ""; $("#skuGuideUrl").value = "";
