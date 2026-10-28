@@ -3103,6 +3103,28 @@ html[data-theme="light"] .mapcard:has(.mapstamp) > *:not(.mapstamp),html[data-th
 #skuGuideSect .addmsg{font-size:.74rem}
 .skugrow.dup{background:rgba(var(--warn-rgb),.05)}
 .skugrow .n.dupn{color:var(--warn);background:rgba(var(--warn-rgb),.12)}
+/* หน้า SKU แบบใหม่ (2026-10-28) */
+#skuGuideSect .sg-intro{margin:2px 0 10px;color:var(--dim)}
+#skuGuideSect .sg-bar{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-bottom:6px}
+#skuGuideSect .sg-bar .tabs{margin:0;flex:none}
+#skuGuideSect .sg-bar .tabs button{white-space:nowrap}
+#skuGuideSect .sg-bar .sg-ck button[aria-selected="true"]{background:var(--accent);color:var(--accent-ink)}
+#skuGuideSect .sg-find{flex:1 1 160px;min-width:140px;padding:6px 10px}
+#skuGuideSect #skuBindNote{margin:0 0 8px}
+#skuGuideSect #skuBindNote .sg-var{color:var(--dim)}
+#skuGuideSect .sg-add{display:flex;gap:6px;flex-wrap:wrap;margin:0 0 4px}
+#skuGuideSect .sg-add #skuGuideKey{flex:1 1 150px;min-width:130px;padding:6px 10px}
+#skuGuideSect .sg-add #skuGuideUrl{flex:2 1 220px;min-width:160px;padding:6px 10px}
+#skuGuideSect .sg-add .run{width:auto;padding:6px 16px;flex:none}
+#skuGuideSect .sg-fold{margin:4px 0 10px}
+#skuGuideSect .sg-fold > summary{cursor:pointer;font-size:.76rem;color:var(--accent);list-style:none;padding:3px 0}
+#skuGuideSect .sg-fold > summary::-webkit-details-marker{display:none}
+#skuGuideSect .sg-fold > summary::before{content:"▸ ";display:inline-block;transition:transform .15s}
+#skuGuideSect .sg-fold[open] > summary::before{transform:rotate(90deg)}
+#skuGuideSect .sg-tools{margin-top:14px;border-top:1px solid var(--line);padding-top:8px}
+#skuGuideSect .skugrow{border-bottom:1px solid var(--line)}
+#skuGuideSect .sgunder{max-height:1.7em;overflow:hidden;cursor:pointer;opacity:.85}
+#skuGuideSect .sgunder.open{max-height:none}
 </style>
 </head>
 <body>
@@ -4097,55 +4119,50 @@ html[data-theme="light"] .mapcard:has(.mapstamp) > *:not(.mapstamp),html[data-th
     <!-- เปิดให้ทุกคนในทีมเข้าได้ (2026-10-27) — เดิม crewhide (เห็นเฉพาะแอดมิน/หัวหน้า) · RLS ของ team_kv ให้สมาชิกทีมที่ active เขียนได้อยู่แล้ว -->
     <details class="sect" id="skuGuideSect">
       <summary><h3>คู่มือ · แฮชแท็ก · ตะกร้า ตาม SKU</h3></summary>
-      <p class="sect-sub">
-        ตั้งทีเดียวต่อไลน์สินค้า — <b>ไม่ต้องไปกรอกรายคน</b> ทุกคนที่ได้ SKU ในไลน์นั้นจะได้ของถูกชุดเอง
-        และคนที่ได้หลาย SKU จะได้แยกชุดตามคลิป<br>
-        ชื่อเขียนแบบที่ทีมเรียกกันได้เลย (<code>cream blush moomin</code>) ไม่ต้องเขียนให้ตรง SKU เป๊ะ —
-        ระบบเทียบระดับคำให้ · ใส่ <b>SKU เต็ม</b> = ใช้เฉพาะเฉดนั้น (ชนะชื่อไลน์เสมอ)<br>
-        <span style="color:var(--dim)">ที่แปะไว้เฉพาะรายคนยังชนะเสมอ — ตรงนี้เป็นค่าตั้งต้นให้คนที่ยังไม่ได้แปะเอง</span>
-      </p>
-      <!-- ตั้งให้กลุ่มไหน — KOL/KOC แยกกัน (2026-10-27) -->
-      <div class="skuck"><span class="lab">ตั้งให้</span><div class="tabs sub" id="skuCkTabs" role="tablist"></div></div>
-      <div class="tabs sub" id="skuBindTabs" style="margin-bottom:10px"></div>
-      <p class="sect-sub" id="skuBindNote" style="margin-top:0"></p>
+      <!-- จัดหน้าใหม่ให้ง่ายขึ้น (2026-10-28): แถบเดียวเลือกชนิด/กลุ่ม/ค้นหา · เพิ่มอยู่บนสุด · ตัวเลือก SKU กับเครื่องมือพับไว้ -->
+      <p class="sect-sub sg-intro">ตั้งทีเดียวต่อสินค้า ทุกคนที่ได้ SKU นั้นได้เองใน Command · ตั้งเฉพาะคน (ใน Command) ชนะเสมอ ·
+        ใส่ชื่อไลน์ (<code>Blush</code>) = ทุกเฉด · ใส่ SKU เต็ม = เฉพาะเฉดนั้น</p>
+      <div class="sg-bar">
+        <div class="tabs sub" id="skuBindTabs" role="tablist"></div>
+        <div class="tabs sub sg-ck" id="skuCkTabs" role="tablist"></div>
+        <input id="sgListFind" class="sg-find" placeholder="🔍 ค้นหาในรายการ" autocomplete="off">
+      </div>
+      <p class="sect-sub" id="skuBindNote"></p>
+
+      <div class="sg-add">
+        <input id="skuGuideKey" list="skuGuideOpts" placeholder="ชื่อไลน์ / SKU เช่น Blush">
+        <datalist id="skuGuideOpts"></datalist>
+        <input id="skuGuideUrl" placeholder="https://… ลิงก์">
+        <button type="button" class="run" id="skuGuideAdd">＋ เพิ่ม</button>
+      </div>
+      <div class="addmsg" id="skuGuideMsg"></div>
+      <details class="sg-fold" id="sgPickFold">
+        <summary>เลือกจากรายการ SKU (ทีละหลายอัน)</summary>
+        <div class="pickhead">
+          <select id="skuGuideProj" title="จำกัดวงให้เหลือแค่ SKU ในโปรเจกต์นี้"></select>
+          <input id="skuGuideFind" placeholder="พิมพ์กรอง SKU" autocomplete="off">
+        </div>
+        <div class="picklist" id="skuGuidePick"></div>
+        <p class="sect-sub" id="skuGuidePickSum" style="margin:4px 0 0"></p>
+      </details>
+
       <div class="skuover" id="skuOverNote" hidden></div>
       <!-- แยกข้อมูลเดิม (ก่อนมีชุด KOC) เป็น KOL/KOC — โชว์เฉพาะตอนชุด KOC ยังว่าง -->
       <div class="skusplit" id="skuSplitBox" hidden></div>
-      <!-- ตรวจตะกร้า/แฮชแท็กของทุกคน — ค่าที่ Command ใช้จริงมาจากไหน (2026-10-27) -->
-      <div class="skuaudit" id="skuAuditBox" hidden></div>
       <div id="skuGuideList"></div>
 
-      <!-- เลือก SKU ได้ทีละหลายอันพร้อมกัน แทนที่จะพึ่งชื่อไลน์ครอบอย่างเดียว —
-           เลือกโปรเจกต์ก่อนเพื่อย่อรายการ (กลุ่ม KOL/KOC ตามสวิตช์ “ตั้งให้” ข้างบน)ให้เหลือแค่ SKU ที่ใช้จริงตรงนั้น -->
-      <p class="sect-sub" style="margin:14px 0 6px">เลือกได้หลาย SKU พร้อมกัน — จำกัดวงด้วยโปรเจกต์ก่อนได้ · โชว์เฉพาะ SKU ของกลุ่มที่เลือกใน “ตั้งให้” ข้างบน</p>
-      <div class="pickhead">
-        <select id="skuGuideProj" title="จำกัดวงให้เหลือแค่ SKU ในโปรเจกต์นี้"></select>
-        <input id="skuGuideFind" placeholder="พิมพ์กรอง SKU ที่โชว์ด้านล่าง" autocomplete="off">
-      </div>
-      <div class="picklist" id="skuGuidePick"></div>
-      <p class="sect-sub" id="skuGuidePickSum" style="margin:4px 0 0"></p>
-
-      <div class="skuadd-row">
-        <input id="skuGuideKey" list="skuGuideOpts"
-               placeholder="หรือพิมพ์ชื่อไลน์เอง เช่น Blush — ไม่บังคับถ้าเลือกจากรายการด้านบนแล้ว">
-        <datalist id="skuGuideOpts"></datalist>
-        <input id="skuGuideUrl" placeholder="https://… ลิงก์คู่มือถ่ายทำ">
-        <button type="button" class="run" id="skuGuideAdd">เพิ่ม</button>
-      </div>
-      <div class="addmsg" id="skuGuideMsg"></div>
-
-      <!-- วางทั้งลิสต์ทีเดียว — ตอนเปิดโปรเจกต์ใหม่มีคู่มือมาเป็นชุด ไม่ควรต้องกดเพิ่มทีละใบ -->
-      <details class="sect" id="sgBulkSect" style="margin-top:12px">
-        <summary><h3 style="font-size:.9rem">วางทั้งลิสต์ทีเดียว</h3></summary>
-        <p class="sect-sub">บรรทัดละใบ <code>ชื่อ : ลิงก์</code> — ขึ้นต้นด้วย <code>*</code> หรือ <code>-</code>
-          ก็ได้ และใช้ <code>=</code> แทน <code>:</code> ก็ได้ (ก๊อปจากแชตมาวางได้เลย)</p>
-        <textarea id="sgBulkText" rows="6" spellcheck="false"
-          placeholder="moomin lip : https://canva.link/...&#10;cream blush moomin : https://canva.link/..."></textarea>
-        <div class="skuadd-row">
-          <button type="button" class="run" id="sgBulkParse">ตรวจก่อน</button>
+      <details class="sg-fold sg-tools">
+        <summary>เครื่องมือเพิ่มเติม — ตรวจทุกคน · วางทั้งลิสต์</summary>
+        <!-- ตรวจตะกร้า/แฮชแท็กของทุกคน — ค่าที่ Command ใช้จริงมาจากไหน -->
+        <div class="skuaudit" id="skuAuditBox" hidden></div>
+        <div id="sgBulkSect">
+          <p class="sect-sub" style="margin:8px 0 4px"><b>วางทั้งลิสต์</b> — บรรทัดละใบ <code>ชื่อ : ลิงก์</code> (ใช้ <code>=</code> แทน <code>:</code> ได้ ก๊อปจากแชตมาวางได้เลย)</p>
+          <textarea id="sgBulkText" rows="5" spellcheck="false"
+            placeholder="moomin lip : https://canva.link/...&#10;cream blush moomin : https://canva.link/..."></textarea>
+          <div class="skuadd-row"><button type="button" class="run" id="sgBulkParse">ตรวจก่อน</button></div>
+          <div id="sgBulkPreview"></div>
+          <div class="addmsg" id="sgBulkMsg"></div>
         </div>
-        <div id="sgBulkPreview"></div>
-        <div class="addmsg" id="sgBulkMsg"></div>
       </details>
     </details>
 
@@ -17989,13 +18006,32 @@ function renderSkuSplit(){
 // ลิงก์เดียวกันอยู่หลายใบ = ตั้งซ้ำ ไล่แก้ทีหลังลำบาก (แก้ใบหนึ่ง อีกใบยังค้างค่าเก่า)
 // ห้ามเพิ่ม/แก้ให้ซ้ำ · ใช้ชื่อไลน์ใบเดียวคุมหลายเฉดแทน · เฉพาะชนิดที่เป็นลิงก์ (คู่มือ/ตะกร้า) — แฮชแท็กซ้ำได้
 const skuLinkNorm = v => String(v || "").trim().replace(/[?#].*$/, "").replace(/\/+$/, "").toLowerCase();
+// หมวดสินค้าของชื่อใบ: คำก่อนรหัสเฉด/รหัสสินค้า ("Feather eyeshadow #FE800" → feather eyeshadow ·
+// "Earphone - J201" → earphone · "Blush - RC302 Liben" → blush) + รหัสที่อยู่ในชื่อ (fe800 · j201)
+const SKU_CODE_RE = /^[a-z]{0,3}\d{3,4}$/;
+function skuCat(k){
+  const t = String(k || "").toLowerCase().split(/\s+-\s+/)[0];
+  const all = String(k || "").toLowerCase().split(/[^a-z0-9฀-๿]+/).filter(Boolean);
+  const words = [];
+  for (const w of t.split(/[^a-z0-9฀-๿]+/).filter(Boolean)){ if (SKU_CODE_RE.test(w)) break; if (w !== "set") words.push(w); }
+  return { cat: words.join(" "), codes: new Set(all.filter(w => SKU_CODE_RE.test(w))) };
+}
+// สินค้าเดียวกัน = หมวดเดียวกัน หรือมีรหัสสินค้าร่วมกัน (J201 กับ Earphone - J201)
+function skuSameProduct(a, b){
+  const A = skuCat(a), B = skuCat(b);
+  if (A.cat && B.cat && A.cat === B.cat) return true;
+  for (const c of A.codes) if (B.codes.has(c)) return true;
+  return false;
+}
+// ใบอื่นที่ใช้ลิงก์เดียวกันแต่ "คนละสินค้า" — สินค้าเดียวกันหลายเฉดใช้ลิงก์ตะกร้าเดียวกันได้ (ไม่นับว่าซ้ำ)
 function skuDupKeys(MAP, val, except){
   const v = skuLinkNorm(val);
   if (!v) return [];
-  const ex = new Set([].concat(except || []));
-  return Object.keys(MAP).filter(k => !ex.has(k) && skuLinkNorm(MAP[k]) === v);
+  const ex = [].concat(except || []);
+  return Object.keys(MAP).filter(k => !ex.includes(k) && skuLinkNorm(MAP[k]) === v
+    && !(ex.length && ex.every(e => skuSameProduct(e, k))));
 }
-const skuDupMsg = (th, dups) => `${th}นี้มีอยู่แล้วที่ “${dups.join("”, “")}” — ห้ามเพิ่มซ้ำ\n\nถ้าใช้ลิงก์เดียวกันหลายเฉด ให้ตั้งที่ชื่อไลน์ใบเดียว (เช่น “Blush”) แทน`;
+const skuDupMsg = (th, dups) => `${th}นี้ใช้อยู่แล้วกับสินค้าอื่น: “${dups.join("”, “")}” — ห้ามใช้ซ้ำข้ามสินค้า\n\n(สินค้าเดียวกันคนละเฉดใช้ลิงก์เดียวกันได้)`;
 function renderSkuGuide(){
   const box = $("#skuGuideList");
   if (!box) return;
@@ -18009,7 +18045,7 @@ function renderSkuGuide(){
   if (ckt){
     ckt.innerHTML = ["KOL", "KOC"].map(k => {
       const n = SKU_BIND.reduce((a, b) => a + Object.keys(skuMapOf(b.k, k)).length, 0);
-      return `<button role="tab" data-skuck="${k}" aria-selected="${k === CK}">${k}<span class="n">${n}</span></button>`;
+      return `<button role="tab" data-skuck="${k}" aria-selected="${k === CK}" title="ตั้งให้ ${k}">${k}<span class="n">${n}</span></button>`;
     }).join("");
     ckt.querySelectorAll("[data-skuck]").forEach(b => b.onclick = () => {
       SKU_CK = b.dataset.skuck;
@@ -18035,14 +18071,12 @@ function renderSkuGuide(){
   }
   const note = $("#skuBindNote");
   const ckNote = CK === "KOC"
-    ? `<span class="ckn koc">กำลังตั้งของ <b>KOC</b> — SKU ที่ KOC ยังไม่ได้ตั้งแยก จะใช้ของ KOL ไปก่อน
-        <button type="button" class="cmdbtn" id="skuCopyKol" title="คัดลอกรายการของ KOL ที่ KOC ยังไม่มี มาไว้ให้แก้ต่อ">⧉ คัดลอกจาก KOL มาแก้</button></span><br>`
-    : `<span class="ckn">กำลังตั้งของ <b>KOL</b> — ใช้กับ KOL และเป็นค่าสำรองของ KOC ที่ยังไม่ได้ตั้งแยก</span><br>`;
-  if (note) note.innerHTML = ckNote + (kind === "guide"
-    ? `เข้าไปที่ <code>{{guide}}</code> ใน Command และเป็นตัวสำรองของ <code>{{brief}}</code>
-       เมื่อชีตไม่ได้กรอกบรีฟไว้ · สั่งจากช่องคำสั่งได้ด้วย <code>/skuguide Blush : https://…</code>`
-    : `เข้าไปที่ <code>{{${esc(kind)}}}</code> ใน Command · คนทำหลายคลิปจะได้
-       <code>{{${esc(kind)}1}}</code> <code>{{${esc(kind)}2}}</code> แยกตาม SKU ของคลิปนั้น`);
+    ? `<span class="ckn koc">ชุด <b>KOC</b> · SKU ที่ไม่ได้ตั้งตรงนี้ใช้ของ KOL
+        <button type="button" class="cmdbtn" id="skuCopyKol" title="คัดลอกรายการของ KOL ที่ KOC ยังไม่มี มาไว้ให้แก้ต่อ">⧉ คัดลอกจาก KOL</button></span>`
+    : `<span class="ckn">ชุด <b>KOL</b> · ใช้กับ KOL และเป็นค่าสำรองของ KOC</span>`;
+  if (note) note.innerHTML = ckNote + `<span class="sg-var">` + (kind === "guide"
+    ? ` · ใช้ที่ <code>{{guide}}</code> / <code>{{brief}}</code>`
+    : ` · ใช้ที่ <code>{{${esc(kind)}}}</code> (หลายคลิปแยกตาม SKU ของคลิป)`) + `</span>`;
   const cpk = $("#skuCopyKol");
   if (cpk) cpk.onclick = () => {
     const src = SKUBIND[kind] || {}, miss = Object.keys(src).filter(k => !(k in MAP) && !(meta.url && skuDupKeys(MAP, src[k]).length));
@@ -18119,7 +18153,7 @@ function renderSkuGuide(){
         const under = skusUnderKey(kind, k, CK);
         const dups = meta.url ? skuDupKeys(MAP, MAP[k], k) : [];
         return `<div class="skugrow${x.shown ? "" : " hid"}${dups.length ? " dup" : ""}">
-          <b>${esc(k)}</b>${dups.length ? `<span class="n dupn" title="ลิงก์เดียวกับ: ${esc(dups.join(", "))}">⚠ ลิงก์ซ้ำกับ ${esc(dups.slice(0, 2).join(", "))}${dups.length > 2 ? " …" : ""}</span>` : ""}
+          <b>${esc(k)}</b>${dups.length ? `<span class="n dupn" title="ลิงก์เดียวกับ: ${esc(dups.join(", "))}">⚠ ลิงก์ซ้ำกับสินค้าอื่น: ${esc(dups.slice(0, 2).join(", "))}${dups.length > 2 ? " …" : ""}</span>` : ""}
           ${n ? `<span class="n">${n} คน</span>`
             : x.doneOnly ? `<span class="n done">โปรเจกต์ปิดแล้ว · ${x.nd} คน</span>`
             : `<span class="n none">ยังไม่มีใครได้</span>`}
@@ -18127,7 +18161,7 @@ function renderSkuGuide(){
           <button type="button" class="eye" data-sgeye="${esc(k)}" title="${x.shown
             ? "ซ่อนใบนี้ (ยังใช้ใน Command ตามปกติ)" : "เลิกซ่อน"}">${x.shown ? SG_EYE : SG_EYEOFF}</button>
           <button type="button" data-sgdel="${esc(k)}" title="เอาออก">✕</button>
-          <div class="sgunder">${under.length
+          <div class="sgunder" title="กดเพื่อดูทั้งหมด">${under.length
             ? `คุม ${under.length} SKU: ` + under.map(s => `<span>${esc(s)}</span>`).join("")
             : `<span class="none">ยังไม่ตรงกับ SKU ไหนเลย — เช็คชื่ออีกที</span>`}</div>
         </div>`; };
@@ -18164,6 +18198,15 @@ function renderSkuGuide(){
   });
   const ht = $("#sgHidToggle");
   if (ht) ht.onclick = () => { SG_SHOWHID = !SG_SHOWHID; renderSkuGuide(); };
+  // ค้นหาในรายการ (ชื่อใบ / ลิงก์ / SKU ที่คุม)
+  const lf = $("#sgListFind");
+  if (lf){
+    const apply = () => { const q = lf.value.trim().toLowerCase();
+      box.querySelectorAll(".skugrow").forEach(r => { r.style.display = !q || r.textContent.toLowerCase().includes(q)
+        || [...r.querySelectorAll("input")].some(i => i.value.toLowerCase().includes(q)) ? "" : "none"; }); };
+    lf.oninput = apply; apply();
+  }
+  box.querySelectorAll(".sgunder").forEach(u => u.onclick = () => u.classList.toggle("open"));
   box.querySelectorAll("[data-sgdel]").forEach(b => b.onclick = () => {
     delete MAP[b.dataset.sgdel];
     if (HS[b.dataset.sgdel]){ delete HS[b.dataset.sgdel]; saveSgHide(); }
@@ -18198,7 +18241,7 @@ function sgBulkParse(){
     if (!key) return SGBULK.push({ line: t, ok:false, why:"ไม่มีชื่อ" });
     if (!url)  return SGBULK.push({ line: t, ok:false, why:"ค่าใช้ไม่ได้" });
     if (meta.url){
-      const dups = skuDupKeys(MAP, url, key).concat(SGBULK.filter(x => x.ok && skuLinkNorm(x.url) === skuLinkNorm(url)).map(x => x.key));
+      const dups = skuDupKeys(MAP, url, key).concat(SGBULK.filter(x => x.ok && skuLinkNorm(x.url) === skuLinkNorm(url) && !skuSameProduct(x.key, key)).map(x => x.key));
       if (dups.length) return SGBULK.push({ line: t, ok:false, why:`ลิงก์ซ้ำกับ “${dups.join("”, “")}” — ห้ามเพิ่มซ้ำ` });
     }
     SGBULK.push({ line: t, ok:true, key, url, was: MAP[key] || "" });
@@ -19504,7 +19547,8 @@ $("#skuGuideAdd").onclick = () => {
   if (meta.url){
     const dups = skuDupKeys(MAP, u, keys);
     if (dups.length) return say(esc(skuDupMsg(meta.th, dups)).replace(/\n/g, "<br>"), "err");
-    if (keys.length > 1) return say(`ลิงก์เดียวใส่ได้ใบเดียว — เลือก ${keys.length} SKU พร้อมกันจะกลายเป็นลิงก์ซ้ำ ${keys.length} ใบ<br>ให้พิมพ์ชื่อไลน์ใบเดียวแทน (เช่น “Blush”)`, "err");
+    const mix = keys.filter(k => !skuSameProduct(keys[0], k));
+    if (mix.length) return say(`ลิงก์เดียวใช้ได้กับสินค้าเดียวกันเท่านั้น — “${esc(keys[0])}” กับ “${esc(mix.join("”, “"))}” เป็นคนละสินค้า`, "err");
   }
   keys.forEach(k => { MAP[k] = u; });
   saveSkuBind(SKU_BIND_KIND, SKU_CK);
