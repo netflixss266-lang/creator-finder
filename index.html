@@ -2987,11 +2987,13 @@ html[data-no-assign] select.asg{pointer-events:none;opacity:.55}
 #coordBody tr:has(.tbdr.on) > td{background-image:linear-gradient(rgba(var(--accent-rgb),.07),rgba(var(--accent-rgb),.07))}
 .drtag.tb{display:block;font-size:.66rem;font-weight:600;color:var(--accent);margin-top:2px;white-space:nowrap}
 .cmdst{display:flex;align-items:center;gap:6px;margin-left:10px;flex:0 1 auto;min-width:0}
-.cmdst .st-sel{max-width:230px;height:32px}
+/* ⚠️ ห้ามล็อก height — select ได้ padding ใหญ่จากสไตล์ทั่วไป ล็อก 32px แล้วตัวอักษรตกขอบล่าง (บัค 2026-10-28) */
+.cmdst .st-sel{max-width:260px;height:auto;min-height:34px;padding:6px 30px 6px 11px;line-height:1.3;font-size:.82rem}
 .cmdst .cmddr{height:32px;white-space:nowrap}
 .cmdst .cmddr span{font-size:.72rem;font-weight:600;color:var(--accent)}
 @media(max-width:640px){ .cmdst .st-sel{max-width:150px} .cmdst .cmddr span{display:none} }
-.mapcard{position:relative;overflow:hidden}
+/* isolation = ชั้นของตราปั๊ม/รูปอยู่ในการ์ดเท่านั้น — เดิม z-index 20 ของตราลอยทับแถบหัวแผนผังที่ตรึงไว้ตอนเลื่อน (บัค 2026-10-28) */
+.mapcard{position:relative;overflow:hidden;isolation:isolate}
 .mapcard > *:not(.mapcard-img){position:relative;z-index:1}
 .mapcard-img{position:absolute;inset:0 0 0 35%;z-index:0;pointer-events:none;
   background-size:cover;background-position:center;opacity:.26;filter:saturate(.9);
