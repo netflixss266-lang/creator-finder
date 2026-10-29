@@ -3130,6 +3130,8 @@ html[data-theme="light"] .mapcard:has(.mapstamp) > *:not(.mapstamp),html[data-th
 .mapdr.pay.on,.mapleafwrap.drin .mapdr.pay{background:rgba(199,156,255,.18);border-color:#B48CFF}
 .drtag.pay,.drcount.pay,.drn.pay b{color:#B48CFF}
 .drtag.script,.drcount.script,.drn.script b{color:#F5B546}
+.drtag.post,.drcount.post,.drn.post b{color:#5AB4FF}
+.mapdr.post.on,.mapleafwrap.drin .mapdr.post{background:rgba(61,155,255,.16);border-color:#3D9BFF}
 </style>
 </head>
 <body>
@@ -8695,6 +8697,7 @@ const HIST_FIELD_TH = { handle:"ชื่อ", kind:"กลุ่ม", videos:"�
 function setFieldRaw(r, f, raw){
   if (!r) return false;
   const before = ekey(r);
+  const prevSt = r.status || "";
   if (f === "handle"){
     // แก้ชื่อ = คนละคนแล้ว key เดิมใช้ไม่ได้ ต้องล้างของเก่าทิ้งและอัปเดตลิงก์ตาม
     const clean = normId(raw);
@@ -8719,7 +8722,9 @@ function setFieldRaw(r, f, raw){
     r[f] = raw;
   }
   if (f === "rate") r.rate_all = [];        // ยืนยันด้วยมือแล้ว ธงลง
-  if (f === "status"){ r._sat = new Date().toISOString(); r._sate = false; }
+  if (f === "status"){ r._sat = new Date().toISOString(); r._sate = false;
+    // เข้า "รอโพสต์" ใหม่ = มาร์ค 🎬 ให้เอง (2026-10-29 — เฉพาะคนที่เข้ามาตั้งแต่นี้ คนที่รออยู่ก่อนแล้วไม่ไล่ใส่ย้อนหลัง)
+    if (raw === "Waiting to Post" && prevSt !== "Waiting to Post") drAutoMark(r, raw); }
   // จ่ายจริงคิดจากเรท+รูปแบบภาษีเสมอ เก็บไว้ด้วยเพื่อให้ชีตมีตัวเลขให้อ่าน
   if (f === "rate" || f === "paytype") r.net3 = payOf(r.rate, r.paytype);
   const k = ekey(r);
@@ -12109,12 +12114,23 @@ function satDays(r){
 // มาร์คแยก 3 ชนิด (2026-10-29): 📝 สคริป · 📥 ดราฟต์ · 💸 ทำจ่าย — ข้อมูลชุดเดียวกัน (CMDOWN[…].dr) แค่ไอคอน/ขั้นถัดไปต่างกัน
 const DR_SCRIPT = ["Already Sent to SG", "Waiting Script", "Already Feedback Script"];
 const DR_PAY = ["Waiting Gencode", "Waiting Payment"];
+// 🎬 รอโพสต์ — มาร์คให้เองตอนเข้าขั้นนี้ (ยังไม่โพสต์ ต้องตาม) · เอาออก = โพสต์แล้ว
+const DR_POST = ["Waiting to Post"];
 const DR_STAGES = new Set([...DR_SCRIPT,
-  ...[1, 2, 3, 4, 5].flatMap(n => [`Waiting Draft ${n}`, `Feedback Draft ${n}`]), ...DR_PAY]);
+  ...[1, 2, 3, 4, 5].flatMap(n => [`Waiting Draft ${n}`, `Feedback Draft ${n}`]), ...DR_POST, ...DR_PAY]);
+function drAutoMark(r, st){
+  if (!r || !r.project || isCancelled(r)) return;
+  const o = cmdOwn(r.project, r.handle);
+  if (o.dr && o.dr.s === st) return;
+  o.dr = { s: st, at: Date.now(), auto: 1 };
+  saveCmdOwn();
+}
 const drOk = r => !!r && DR_STAGES.has(r.status || "");
 function drInfo(st){
   if (DR_SCRIPT.includes(st)) return { k:"script", ic:"📝", tag:"สคริปเข้า · รอตรวจ",
     on:"มาร์คว่าครีเอเตอร์ส่งสคริปมาแล้ว รอตรวจ", off:"ตรวจแล้ว — เอามาร์คออก = ย้ายไปรอ PM ฟีดแบคสคริป" };
+  if (st === "Waiting to Post") return { k:"post", ic:"🎬", tag:"รอโพสต์ · ยังไม่โพสต์",
+    on:"มาร์คว่ายังรอครีเอเตอร์โพสต์ (ต้องตาม)", off:"โพสต์แล้ว — เอามาร์คออก = ย้ายไปโพสต์แล้ว" };
   if (st === "Waiting Gencode") return { k:"pay", ic:"💸", tag:"ได้ Gencode แล้ว · รอทำจ่าย",
     on:"มาร์คว่าครีเอเตอร์ส่ง Gencode มาแล้ว", off:"เสร็จแล้ว — เอามาร์คออก = ย้ายไปรอทำจ่าย" };
   if (st === "Waiting Payment") return { k:"pay", ic:"💸", tag:"เอกสารครบ · รอทำจ่าย",
@@ -12133,6 +12149,7 @@ function drMark(r){
 function drPmOf(st){
   if (DR_SCRIPT.includes(st)) return "Waiting PM Feedback Script";
   // ทำจ่าย: ได้ Gencode → รอทำจ่าย · เอกสารครบ → ส่งเรื่องจ่ายแล้ว
+  if (st === "Waiting to Post") return "Already Posted";
   if (st === "Waiting Gencode") return "Waiting Payment";
   if (st === "Waiting Payment") return "Already Submitted Payment";
   let m = String(st || "").match(/^Waiting Draft (\d)$/);
@@ -12708,7 +12725,7 @@ function mapFlowSheet(proj){
     ${(() => {
       const ok = rows.filter(r => drOk(r) && !isCancelled(r));
       if (!ok.length) return "";
-      const G = [["script", "📝", "สคริปเข้า รอตรวจ"], ["draft", "📥", "ดราฟต์เข้า รอตรวจ"], ["pay", "💸", "รอทำจ่าย (ของครบแล้ว)"]]
+      const G = [["script", "📝", "สคริปเข้า รอตรวจ"], ["draft", "📥", "ดราฟต์เข้า รอตรวจ"], ["post", "🎬", "ยังไม่โพสต์"], ["pay", "💸", "รอทำจ่าย (ของครบแล้ว)"]]
         .map(([k, ic, th]) => { const all = ok.filter(r => drInfo(r.status).k === k), n = all.filter(drMark).length;
           return all.length ? `<span class="drn ${k}">${ic} <b>${n}</b> ${th} <span class="hint">/ ${all.length}</span></span>` : ""; }).filter(Boolean);
       return `<div class="mapnote drnote">${G.join(" · ")}
