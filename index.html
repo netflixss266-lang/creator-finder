@@ -5344,6 +5344,9 @@ function runLive(){
 
 async function run(opt){
   const useRank = !opt || opt.rank !== false;
+  // ค้นหา/แตะตัวกรองใหม่ = ซ่อนทุกคนที่เปิดแล้วถึงตอนนี้ (2026-10-29 — เดิมจับภาพแค่ตอนโหลดหน้า/กดรีเฟรช
+  // คนที่เปิดระหว่างวันเลยยังโผล่อยู่) · ระหว่างไล่ดูรายการเดิม คนที่เพิ่งกดเปิดยังอยู่ที่เดิม (เส้นประ) ไม่กระโดด
+  if (!opt || !opt.keepSeen) SEEN_HIDE = new Set(SEEN);
   const url = POOL_SOURCE === "supabase" ? "supabase" : currentSheetUrl();
   if (!url){
     $("#banner").style.display = "";
@@ -5554,7 +5557,7 @@ function render(){
     notes.push(`ดีล <b>Barter</b> ไม่คิดเป็นเงิน — ช่วงงบที่ใส่ไว้ถูกข้าม`);
   $("#resNote").innerHTML = notes.join(" · ");
   if ($("#blToggle")) $("#blToggle").onclick = () => { SHOW_BL = !SHOW_BL; runLive(); };
-  if ($("#seenToggle")) $("#seenToggle").onclick = () => { SHOW_SEEN = !SHOW_SEEN; run({ rank: false }); };
+  if ($("#seenToggle")) $("#seenToggle").onclick = () => { SHOW_SEEN = !SHOW_SEEN; run({ rank: false, keepSeen: true }); };
 
   if (!RESULTS.length){
     $("#results").innerHTML = `<div class="empty"><h3>ไม่มีครีเอเตอร์ตรงเงื่อนไข</h3><div>ลองผ่อนตัวกรอง เช่น ขยายช่วง followers หรือช่วงงบ</div></div>`;
@@ -5567,6 +5570,8 @@ function render(){
     b.onclick = () => workGo(b.dataset.workgo, b.dataset.workid));
   // กดเปิดลิงก์ = แท็บใหม่เปิดอยู่ข้างหลัง ไม่สลับจอไป จะได้ไล่ดูรวดเดียวจบ
   // แล้วจำว่าเปิดคนนี้แล้ว ข้ามการค้นหาและข้ามวัน
+  // คลิกกลาง (ปุ่มล้อ) ไม่ยิง click — ต้องฟัง auxclick ด้วย ไม่งั้นเปิดแล้วไม่ถูกจด (บัค 2026-10-29)
+  document.querySelectorAll(".open").forEach(a => a.addEventListener("auxclick", e => { if (e.button === 1) markSeen(a); }));
   document.querySelectorAll(".open").forEach(a => a.addEventListener("click", e => {
     markSeen(a);
     // กดเองแบบ ctrl/cmd/shift หรือคลิกกลาง = เขารู้อยู่แล้วว่าจะให้เปิดยังไง ปล่อยผ่าน
@@ -5585,6 +5590,18 @@ function render(){
   updateJudgeBar();
 }
 
+// จดว่าเปิดแล้วจากที่อื่นในเว็บ (🔗 เปิดโปรไฟล์ทีละหลายคน · ลิงก์ TikTok ใน Command/ตาราง)
+function seenAdd(handles){
+  let n = 0;
+  [].concat(handles).forEach(h => { const id = normId(h); if (id && !SEEN.has(id)){ SEEN.add(id); n++; } });
+  if (n){ lsSaveSet(LS_SEEN, SEEN); try { updateSeenBar(); } catch(e){} }
+}
+// เปิดอีกแท็บ/อีกหน้าต่างของเว็บนี้ → ดึงรายชื่อที่เปิดแล้วล่าสุดมาด้วย
+document.addEventListener("click", e => {
+  const a = e.target.closest && e.target.closest('a.go[href*="tiktok.com/@"]');
+  if (a) seenAdd(decodeURIComponent((a.getAttribute("href").match(/tiktok\.com\/@([^/?#]+)/) || [])[1] || ""));
+}, true);
+addEventListener("storage", e => { if (e.key === NS + LS_SEEN){ SEEN = lsLoadSet(LS_SEEN); try { updateSeenBar(); } catch(err){} } });
 function markSeen(a){
   const id = a.dataset.id;
   if (!id || SEEN.has(id)) return;
@@ -14940,6 +14957,7 @@ function wireOpenMany(){
 
 เปิดเยอะเครื่องอาจหน่วง และ TikTok อาจขึ้นยืนยันว่าไม่ใช่บอท`)) return;
     batch.forEach(h => window.open("https://www.tiktok.com/@" + encodeURIComponent(h), "_blank", "noopener"));
+    seenAdd(batch);                                             // เปิดผ่านเครื่องมือนี้ก็นับว่าเปิดแล้วในหน้าค้นหา
     const ro = openRateRead(), now = Date.now();
     batch.forEach(() => ro.t.push(now));
     openRateSave(ro);
