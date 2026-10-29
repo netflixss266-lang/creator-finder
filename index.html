@@ -3127,6 +3127,9 @@ html[data-theme="light"] .mapcard:has(.mapstamp) > *:not(.mapstamp),html[data-th
 #skuGuideSect .skugrow{border-bottom:1px solid var(--line)}
 #skuGuideSect .sgunder{max-height:1.7em;overflow:hidden;cursor:pointer;opacity:.85}
 #skuGuideSect .sgunder.open{max-height:none}
+.mapdr.pay.on,.mapleafwrap.drin .mapdr.pay{background:rgba(199,156,255,.18);border-color:#B48CFF}
+.drtag.pay,.drcount.pay,.drn.pay b{color:#B48CFF}
+.drtag.script,.drcount.script,.drn.script b{color:#F5B546}
 </style>
 </head>
 <body>
@@ -8877,10 +8880,11 @@ function coordRow(r, i){
         // 📥 ดราฟต์เข้าแล้ว รอตรวจ — ปุ่มเดียวกับในแผนผัง (ข้อมูลชุดเดียวกัน)
         if (!drOk(r) || isCancelled(r)) return "";
         const d = drMark(r);
-        return `<button type="button" class="mapdr tbdr${d ? " on" : ""}" data-drin="${esc(r.handle)}" data-mapproj="${esc(r.project || PROJ)}"
-          title="${d ? "ตรวจแล้ว — เอามาร์คออก = ย้ายไปรอ PM Feedback" : "มาร์คว่าส่งสคริป/ดราฟต์มาแล้ว รอตรวจ"}">📥</button>`;
-      })()}</div>${(() => { const d = drMark(r);
-        return d ? `<span class="drtag tb" title="มาร์คเมื่อ ${esc(new Date(d.at).toLocaleString("th-TH"))}">📥 รอตรวจ · ${drAgo(d.at)}</span>` : ""; })()}</td>
+        const I = drInfo(r.status);
+        return `<button type="button" class="mapdr tbdr ${I.k}${d ? " on" : ""}" data-drin="${esc(r.handle)}" data-mapproj="${esc(r.project || PROJ)}"
+          title="${d ? I.off : I.on}">${I.ic}</button>`;
+      })()}</div>${(() => { const d = drMark(r), I = drInfo(r.status);
+        return d ? `<span class="drtag tb ${I.k}" title="มาร์คเมื่อ ${esc(new Date(d.at).toLocaleString("th-TH"))}">${I.ic} ${I.tag} · ${drAgo(d.at)}</span>` : ""; })()}</td>
     <td class="mono ${noRate&&!isKOC ? "warn" : amb ? "warn" : ""}">
       <input class="mono" data-i="${i}" data-f="rate" style="width:92px" inputmode="numeric"
              value="${rateText(r.rate)}"
@@ -10776,8 +10780,8 @@ function openCmd(proj, handle){
     const d = drMark(r);
     $("#cmdSt").innerHTML = `<select class="st-sel ${stClass(r.status)}" id="cmdStSel" title="เปลี่ยนสถานะของ ${esc(r.handle)}">${
         statusOptions(r.status)}</select>${drOk(r) && !isCancelled(r)
-      ? `<button type="button" class="mapdr tbdr cmddr${d ? " on" : ""}" data-drin="${esc(r.handle)}" data-mapproj="${esc(proj)}"
-          title="${d ? "ตรวจแล้ว — เอามาร์คออก = ย้ายไปรอ PM Feedback" : "มาร์คว่าส่งสคริป/ดราฟต์มาแล้ว รอตรวจ"}">📥${d ? ` <span>รอตรวจ · ${drAgo(d.at)}</span>` : ""}</button>` : ""}`;
+      ? (() => { const I = drInfo(r.status); return `<button type="button" class="mapdr tbdr cmddr ${I.k}${d ? " on" : ""}" data-drin="${esc(r.handle)}" data-mapproj="${esc(proj)}"
+          title="${d ? I.off : I.on}">${I.ic}${d ? ` <span>${I.tag} · ${drAgo(d.at)}</span>` : ""}</button>`; })() : ""}`;
     $("#cmdStSel").onchange = e => {
       const v = e.target.value;
       if (mapSetStatus(proj, r.handle, v)){
@@ -12102,9 +12106,22 @@ function satDays(r){
 // มาร์คผูกกับสถานะตอนกด (dr.s) — สถานะเปลี่ยนเมื่อไหร่ (ส่งฟีดแบค → รอดราฟต์ถัดไป) มาร์คหายเอง ไม่ต้องตามลบ
 // เก็บใน CMDOWN ของคนนั้น → ซิงก์ทั้งทีม
 // ช่วงที่มาร์คได้: ส่ง SG แล้ว (ครีเอเตอร์กำลังเขียนสคริป) → รอสคริป → ฟีดแบคสคริปแล้ว → Draft 1–5 (2026-10-26 เพิ่มช่วงสคริป)
-const DR_STAGES = new Set(["Already Sent to SG", "Waiting Script", "Already Feedback Script",
-  ...[1, 2, 3, 4, 5].flatMap(n => [`Waiting Draft ${n}`, `Feedback Draft ${n}`])]);
+// มาร์คแยก 3 ชนิด (2026-10-29): 📝 สคริป · 📥 ดราฟต์ · 💸 ทำจ่าย — ข้อมูลชุดเดียวกัน (CMDOWN[…].dr) แค่ไอคอน/ขั้นถัดไปต่างกัน
+const DR_SCRIPT = ["Already Sent to SG", "Waiting Script", "Already Feedback Script"];
+const DR_PAY = ["Waiting Gencode", "Waiting Payment"];
+const DR_STAGES = new Set([...DR_SCRIPT,
+  ...[1, 2, 3, 4, 5].flatMap(n => [`Waiting Draft ${n}`, `Feedback Draft ${n}`]), ...DR_PAY]);
 const drOk = r => !!r && DR_STAGES.has(r.status || "");
+function drInfo(st){
+  if (DR_SCRIPT.includes(st)) return { k:"script", ic:"📝", tag:"สคริปเข้า · รอตรวจ",
+    on:"มาร์คว่าครีเอเตอร์ส่งสคริปมาแล้ว รอตรวจ", off:"ตรวจแล้ว — เอามาร์คออก = ย้ายไปรอ PM ฟีดแบคสคริป" };
+  if (st === "Waiting Gencode") return { k:"pay", ic:"💸", tag:"ได้ Gencode แล้ว · รอทำจ่าย",
+    on:"มาร์คว่าครีเอเตอร์ส่ง Gencode มาแล้ว", off:"เสร็จแล้ว — เอามาร์คออก = ย้ายไปรอทำจ่าย" };
+  if (st === "Waiting Payment") return { k:"pay", ic:"💸", tag:"เอกสารครบ · รอทำจ่าย",
+    on:"มาร์คว่าครีเอเตอร์ส่งเอกสารทำจ่ายครบแล้ว (บัญชี/บัตร/ฟอร์มหัก ณ ที่จ่าย)", off:"ทำจ่ายแล้ว — เอามาร์คออก = ย้ายไปส่งเรื่องจ่ายแล้ว" };
+  return { k:"draft", ic:"📥", tag:"ดราฟต์เข้า · รอตรวจ",
+    on:"มาร์คว่าครีเอเตอร์ส่งดราฟต์มาแล้ว รอตรวจ", off:"ตรวจแล้ว — เอามาร์คออก = ย้ายไปรอ PM Feedback" };
+}
 function drMark(r){
   if (!drOk(r)) return null;
   const d = cmdOwnRead(r.project, r.handle).dr;
@@ -12114,7 +12131,10 @@ function drMark(r){
 //   ช่วงสคริป → รอ PM ฟีดแบคสคริป · รอ Draft N → รอ PM ฟีดแบค Draft N
 //   ฟีดแบค Draft N แล้ว (แถวเก่า) → ของที่ส่งมาคือ Draft N+1
 function drPmOf(st){
-  if (["Already Sent to SG", "Waiting Script", "Already Feedback Script"].includes(st)) return "Waiting PM Feedback Script";
+  if (DR_SCRIPT.includes(st)) return "Waiting PM Feedback Script";
+  // ทำจ่าย: ได้ Gencode → รอทำจ่าย · เอกสารครบ → ส่งเรื่องจ่ายแล้ว
+  if (st === "Waiting Gencode") return "Waiting Payment";
+  if (st === "Waiting Payment") return "Already Submitted Payment";
   let m = String(st || "").match(/^Waiting Draft (\d)$/);
   if (m) return `Waiting PM Feedback Draft ${m[1]}`;
   m = String(st || "").match(/^Feedback Draft (\d)$/);
@@ -12241,9 +12261,9 @@ function mapLeaf(r, proj, color, drag, sub){
           : r.rate != null ? mBaht(r.rate) : `<span class="flag">ไม่มีเรท</span>`}
         ${clips > 1 && !cancel ? `· ${clips} ชุด` : ""}
         ${flags.length ? `<span class="flag" title="${esc(flags.join(" · "))}">⚑${flags.length}</span>` : ""}
-      </span>`}${pm ? `<span class="pmtag">🔷 รอ PM ฟีดแบค</span>` : ""}${dr ? `<span class="drtag" title="มาร์คว่าส่งดราฟต์มาแล้วเมื่อ ${esc(new Date(dr.at).toLocaleString("th-TH"))}">📥 รอตรวจ · ${drAgo(dr.at)}</span>` : ""}${shipDays(r)}</button>
-    ${drCan ? `<button type="button" class="mapdr${dr ? " on" : ""}" data-drin="${esc(r.handle)}" data-mapproj="${esc(proj)}"
-      title="${dr ? "ตรวจแล้ว — เอามาร์คออก = ย้ายไปรอ PM Feedback" : "มาร์คว่าส่งสคริป/ดราฟต์มาแล้ว รอตรวจ"} — ${esc(r.handle)}">📥</button>` : ""}
+      </span>`}${pm ? `<span class="pmtag">🔷 รอ PM ฟีดแบค</span>` : ""}${dr ? `<span class="drtag ${drInfo(r.status).k}" title="มาร์คเมื่อ ${esc(new Date(dr.at).toLocaleString("th-TH"))}">${drInfo(r.status).ic} ${drInfo(r.status).tag} · ${drAgo(dr.at)}</span>` : ""}${shipDays(r)}</button>
+    ${drCan ? `<button type="button" class="mapdr ${drInfo(r.status).k}${dr ? " on" : ""}" data-drin="${esc(r.handle)}" data-mapproj="${esc(proj)}"
+      title="${dr ? drInfo(r.status).off : drInfo(r.status).on} — ${esc(r.handle)}">${drInfo(r.status).ic}</button>` : ""}
     <button class="mapst" data-mapst="${esc(r.handle)}" data-mapproj="${esc(proj)}"
       title="เปลี่ยนสถานะของ ${esc(r.handle)}">▾</button>
   </span>`;
@@ -12661,8 +12681,8 @@ function mapFlowSheet(proj){
       <div class="mapstages">${stages.map(st =>
         `<div class="mapstage${st.list.length ? "" : " zero"}" data-drop="${esc(st.drop)}">
           <div class="lab">${esc(mapStatusLabel(st.v))} <i>${st.list.length}</i>${(() => {
-            const n = st.list.filter(drMark).length;
-            return n ? ` <b class="drcount" title="ส่งดราฟต์มาแล้ว รอตรวจ">📥 ${n}</b>` : ""; })()}</div>
+            const n = st.list.filter(drMark).length, I = drInfo(st.v);
+            return n ? ` <b class="drcount ${I.k}" title="${esc(I.tag)}">${I.ic} ${n}</b>` : ""; })()}</div>
           <div class="mapleaves">${satSort(st.list).map(r => mapLeaf(r, proj, p.c, true)).join("")}</div>
         </div>`).join("")}</div>
     </div>`;
@@ -12686,9 +12706,13 @@ function mapFlowSheet(proj){
     </div>
     ${mapBar(s)}
     ${(() => {
-      const ok = rows.filter(r => drOk(r) && !isCancelled(r)), n = ok.filter(drMark).length;
-      return ok.length ? `<div class="mapnote drnote">📥 <b>${n}</b> คนส่งสคริป/ดราฟต์มาแล้ว รอตรวจ
-        <span class="hint">· จาก ${ok.length} คนที่อยู่ช่วงเขียนสคริป/ดราฟต์ — กด 📥 ที่ใบเพื่อมาร์ค · ส่งฟีดแบคแล้วมาร์คหายเอง</span></div>` : "";
+      const ok = rows.filter(r => drOk(r) && !isCancelled(r));
+      if (!ok.length) return "";
+      const G = [["script", "📝", "สคริปเข้า รอตรวจ"], ["draft", "📥", "ดราฟต์เข้า รอตรวจ"], ["pay", "💸", "รอทำจ่าย (ของครบแล้ว)"]]
+        .map(([k, ic, th]) => { const all = ok.filter(r => drInfo(r.status).k === k), n = all.filter(drMark).length;
+          return all.length ? `<span class="drn ${k}">${ic} <b>${n}</b> ${th} <span class="hint">/ ${all.length}</span></span>` : ""; }).filter(Boolean);
+      return `<div class="mapnote drnote">${G.join(" · ")}
+        <span class="hint">— กดไอคอนที่ใบเพื่อมาร์คว่าของมาแล้ว · กดอีกที = เสร็จ ไปขั้นถัดไป</span></div>`;
     })()}
     ${s.oldSt ? `<div class="mapnote"><b>${s.oldSt}</b> คนยังใช้สถานะชุดเก่า —
       แผนผังอ่านให้เป็นขั้นใหม่ให้แล้ว แต่ในชีตยังเป็นคำเดิม
@@ -22479,7 +22503,7 @@ const COACH_CHAPTERS = [
       text:`เช่น <b>«เพิ่ม @noonnyy 5000 ชำระ3%»</b> · วางหลายชื่อแล้วสั่งทีเดียวก็ได้ — ตรวจก่อนบันทึกทุกครั้ง`,
       target: () => coachVis($("#qo2")) || coachVis($("#qoText")) || coachVis($("#qoNavBtn")) },
     { kick:"สถานะ", t:"เปลี่ยนสถานะในตาราง",
-      text:`เลือกจากช่องนี้ได้เลย · ปุ่ม <b>📥</b> ข้างๆ (ช่วงสคริป/ดราฟต์) = มาร์คว่าครีเอเตอร์ส่งงานมาแล้ว รอเราตรวจ<br>
+      text:`เลือกจากช่องนี้ได้เลย · ปุ่มข้างๆ = มาร์คว่าของมาแล้ว: <b>📝</b> สคริป · <b>📥</b> ดราฟต์ · <b>💸</b> Gencode/เอกสารทำจ่าย — กดอีกที = เสร็จ ไปขั้นถัดไป<br>
         สถานะ <span style="color:#5AB4FF;font-weight:600">กรอบฟ้า</span> = รอ PM ฟีดแบค`,
       target: () => { const el = document.querySelector('#coordBody select[data-f="status"]'); return el && el.closest("td"); },
       skip: () => !coachRow() },
