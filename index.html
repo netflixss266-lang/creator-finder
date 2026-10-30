@@ -11795,7 +11795,10 @@ const ST_POSTED = STAGES.findIndex(x => x.v === "Already Posted");
 const ST_LAST   = STAGES.length - 1;                 // ส่งเรื่องจ่ายแล้ว = จบงานของคนนั้น
 const mapPosted = r => mapStage(r && r.status) >= ST_POSTED;
 // ปิดงานคนนี้แล้ว — ข้อมูลที่ยังไม่ครบไม่ต้องทวงอีก จ่ายเงินไปแล้ว
-const mapDone = r => mapStage(r && r.status) >= ST_LAST;
+// KOC ที่ไม่มียอดชำระ (Barter / คอมมิชชันล้วน) ไม่มีขั้นทำจ่าย — โพสต์แล้ว = จบงาน (2026-10-30)
+const freeKoc = r => !!r && kindOf(r) === "KOC" && !hasPayRate(r);
+const mapDone = r => mapStage(r && r.status) >= ST_LAST
+  || (freeKoc(r) && mapStage(r && r.status) >= stIx("Already Posted"));
 // ปิดเรื่องคนนี้แล้วไม่ว่าจะทางไหน — จ่ายจบ หรือ ยกเลิก
 const mapClosed = r => mapDone(r) || isCancelled(r);
 
@@ -12321,7 +12324,7 @@ function mapLeaf(r, proj, color, drag, sub){
       style="--pc:${cancel ? MAP_CANCEL.c : color}"${drag ? ` draggable="true"` : ""}
       data-mapwho="${esc(r.handle)}" data-mapproj="${esc(proj)}"
       title="${esc(r.handle)}${flags.length ? " — " + esc(flags.join(" · ")) : ""}${
-        done ? " — ส่งเรื่องจ่ายแล้ว ปิดงาน" : ""}${
+        done ? (mapStage(r.status) >= ST_LAST ? " — ส่งเรื่องจ่ายแล้ว ปิดงาน" : " — KOC ไม่มียอดชำระ โพสต์แล้ว = ปิดงาน") : ""}${
         cancel ? " — ยกเลิกงานแล้ว ไม่นับในความคืบหน้าและยอดเงิน" : ""}\nกดเพื่อเปิด Command${
         drag ? " · ลากไปวางที่ขั้นอื่นเพื่อเปลี่ยนสถานะ" : " · กด ▾ เพื่อเปลี่ยนสถานะ"}">
       <span class="h">${TEAM_MODE && TEAM && isTeamProj(proj) && r.assignee ? avatar(r.assignee) : ""}${
@@ -12775,7 +12778,7 @@ function mapFlowSheet(proj){
           s.cancel ? `<br>ไม่รวมที่ยกเลิก ${s.cancel} คน` : ""}</div></div>
       <div class="mapstat"><div class="k">ปิดงานแล้ว</div><div class="v">${s.done}<span
         style="font-size:.6em;color:var(--dim)">/${s.n}</span></div>
-        <div class="s">ส่งเรื่องจ่ายแล้ว</div></div>
+        <div class="s">ส่งเรื่องจ่ายแล้ว · KOC ไม่มีค่าจ้างที่โพสต์แล้ว</div></div>
       <div class="mapstat${flagged ? " warn" : ""}"><div class="k">ต้องดู</div>
         <div class="v">${flagged}</div>
         <div class="s">${flagged ? "ข้อมูลไม่ครบ — ดูแผ่นถัดไป" : "ข้อมูลครบทุกคน"}</div></div>
@@ -23151,7 +23154,7 @@ function migrateCartClear(){
 // ═══ เวอร์ชันของหน้า — แท็บที่เปิดค้างโค้ดเก่าต้องไม่ซิงก์ทีม ═══
 // เจอจริง 2026-10-27: แท็บเก่าดึงคีย์ใหม่ลงผิดที่ + ดันรายการที่ลบแล้วกลับขึ้นทุกนาที
 // APP_VER ประทับตอน deploy (kol-tools\stamp-version.py) · version.json คู่กันบนเซิร์ฟเวอร์ — ไม่ตรง = รีเฟรช
-const APP_VER = "20261030-074735";
+const APP_VER = "20261030-075230";
 let STALE = false;
 async function verCheck(){
   if (STALE || APP_VER === "dev") return;
