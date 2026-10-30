@@ -3133,6 +3133,34 @@ html[data-theme="light"] .mapcard:has(.mapstamp) > *:not(.mapstamp),html[data-th
 .drtag.script,.drcount.script,.drn.script b{color:#F5B546}
 .drtag.post,.drcount.post,.drn.post b{color:#5AB4FF}
 .mapdr.post.on,.mapleafwrap.drin .mapdr.post{background:rgba(61,155,255,.16);border-color:#3D9BFF}
+/* 📋 วันนี้ต้องทำ */
+.todopop-in{width:min(980px,100%);max-height:calc(100vh - 90px);overflow:auto}
+.todoseg{margin:0 0 0 12px}
+.todoseg button{white-space:nowrap}
+.todorow .av{width:18px!important;height:18px!important;font-size:.6rem!important}
+.todorow{padding:5px 10px}
+.todoown{display:flex;flex-wrap:wrap;gap:12px;align-items:center;font-size:.8rem;color:var(--dim);margin:2px 0 10px}
+.todoown span{border:1px solid var(--c);color:var(--c);border-radius:999px;padding:2px 10px}
+.todoown b{font-size:.92rem}
+.todosec{margin-bottom:14px}
+.todosec h4{font-size:.9rem;margin:0 0 6px;display:flex;align-items:baseline;gap:6px;flex-wrap:wrap}
+.todosec h4 .n{background:var(--surface2);border-radius:999px;padding:0 8px;font-size:.78rem}
+.todosec h4 small{font-weight:400;color:var(--dim);font-size:.72rem}
+.todosec.us h4{color:var(--accent)} .todosec.late h4{color:#E5484D} .todosec.gap h4{color:var(--warn)}
+.todorow{display:grid;grid-template-columns:minmax(120px,1.2fr) minmax(90px,1fr) minmax(130px,1.3fr) minmax(140px,2fr) 92px;gap:10px;align-items:center;
+  width:100%;text-align:left;background:var(--surface2);border:1px solid var(--line);border-radius:9px;padding:7px 10px;margin-bottom:5px;
+  color:var(--ink);font:inherit;font-size:.8rem;cursor:pointer}
+.todorow:hover{border-color:var(--accent)}
+.todorow .who{display:flex;align-items:center;gap:6px;overflow:hidden;white-space:nowrap}
+.todorow .who i{font-style:normal;color:var(--dim);font-size:.7rem}
+.todorow .pj,.todorow .why{color:var(--mute);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.todorow .st{font-size:.72rem;justify-self:start;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.todorow .age{justify-self:end;font-size:.74rem;color:var(--dim);white-space:nowrap}
+.todorow .age.late{color:#E5484D;font-weight:600}
+.todonone{margin:2px 0 0 4px}
+@media(max-width:760px){ .todorow{grid-template-columns:1fr auto} .todorow .pj,.todorow .why{display:none} }
+.stalebar{position:fixed;top:0;left:0;right:0;z-index:9900;background:#C62F35;color:#fff;text-align:center;padding:8px 14px;font-size:.86rem}
+.stalebar button{margin-left:10px;background:#fff;color:#C62F35;border:0;border-radius:6px;padding:4px 12px;font-weight:700;cursor:pointer}
 </style>
 </head>
 <body>
@@ -3150,6 +3178,7 @@ html[data-theme="light"] .mapcard:has(.mapstamp) > *:not(.mapstamp),html[data-th
     <button data-go="coord">Coordinator</button>
     <!-- โหมดทีม: ห้องตรวจดราฟต์ (หน้าของตัวเอง) · คำสั่งด่วน (แผงลอย ใช้ได้จากทุกหน้า) -->
     <button data-go="review" class="teamonly">ตรวจดราฟต์<span class="nbadge" id="rvBadge" hidden></span></button>
+    <button type="button" id="todoNavBtn" class="teamonly" aria-expanded="false" aria-controls="todoPop">📋 วันนี้ต้องทำ<span class="nbadge" id="todoBadge" hidden></span></button>
     <button type="button" id="qoNavBtn" class="teamonly" aria-expanded="false" aria-controls="qoPop">⚡ คำสั่งด่วน</button>
     <button type="button" id="openNavBtn" class="teamonly" aria-expanded="false" aria-controls="openPop">🔗 เปิดโปรไฟล์</button>
   </nav>
@@ -3181,6 +3210,18 @@ html[data-theme="light"] .mapcard:has(.mapstamp) > *:not(.mapstamp),html[data-th
 
 <!-- ═══ คำสั่งด่วน — แผงลอยใต้หัวเว็บ (กล่องคำสั่ง/ผลตรวจถูกย้ายมาไว้ในนี้ตอนเปิดเว็บ) ═══ -->
 <!-- ═══ เปิดโปรไฟล์ TikTok ทีละหลายคน — แผงลอย (ไม่เก็บรายชื่อ) ═══ -->
+<!-- ═══ วันนี้ต้องทำ — รวมงานทุกโปรเจกต์ที่ลูกอยู่ที่เรา / ค้างนาน / ข้อมูลไม่ครบ (2026-10-30) ═══ -->
+<div class="qopop" id="todoPop" hidden>
+  <div class="qopop-in todopop-in" role="dialog" aria-label="วันนี้ต้องทำ">
+    <div class="qopop-head"><b>📋 วันนี้ต้องทำ</b>
+      <div class="tabs sub todoseg" id="todoSeg" role="tablist"></div>
+      <button type="button" class="x" id="todoClose" aria-label="ปิด">✕</button></div>
+    <div id="todoBody"></div>
+  </div>
+</div>
+<!-- แถบเตือนเวอร์ชันใหม่ — แท็บเก่าหยุดซิงก์ข้อมูลทีมจนกว่าจะรีเฟรช -->
+<div class="stalebar" id="staleBar" hidden>⚠ มีเว็บเวอร์ชันใหม่ — <b>หยุดซิงก์ข้อมูลทีมไว้ก่อน</b> กันข้อมูลเก่าทับของใหม่
+  <button type="button" id="staleReload">รีเฟรชตอนนี้</button></div>
 <div class="qopop" id="openPop" hidden>
   <div class="qopop-in openpop-in" role="dialog" aria-label="เปิดโปรไฟล์ทีละหลายคน">
     <div class="qopop-head"><b>🔗 เปิดโปรไฟล์ทีละหลายคน</b>
@@ -14980,6 +15021,111 @@ function openOpenPop(){
   wireOpenMany();
   setTimeout(() => $("#qoOpenList").focus(), 30);
 }
+// ═══ 📋 วันนี้ต้องทำ ═══
+// คำถามแรกของวันไม่ใช่ "โปรเจกต์ไหนเป็นยังไง" แต่เป็น "ตอนนี้ต้องทำอะไรก่อน"
+// รวมทุกโปรเจกต์ (ยังไม่ปิด) เป็น 3 กอง: ลูกอยู่ที่เรา · ค้างนานต้องทวง · ข้อมูลไม่ครบ — กดแถว = เปิด Command
+// เจ้าของลูกของแต่ละสถานะ: เรา / ครีเอเตอร์ / PM · มาร์ค 📝📥💸 = ของมาแล้ว ลูกกลับมาที่เรา
+const ST_OWNER = st => {
+  if (/^Waiting PM Feedback/.test(st || "")) return "pm";
+  if (["Confirmed", "Waiting Delivery", "Waiting Sent to SG", "Already Posted"].includes(st)) return "us";
+  return "cr";
+};
+// เกณฑ์ค้าง (วันในขั้นนั้น) — เกินแล้วเข้ากอง "ต้องทวง" · ตั้งต้นไว้ก่อน ปรับได้ทีหลัง
+function stSla(st){
+  if (/^Waiting PM Feedback/.test(st)) return 2;
+  if (/^Waiting Draft \d$/.test(st)) return 5;
+  if (/^Feedback Draft \d$/.test(st)) return 3;
+  return ({ "Waiting Confirm":3, "Confirmed":2, "Waiting Delivery":3, "Already Delivered":7, "Sent Tracking":7,
+    "Waiting Sent to SG":2, "Already Sent to SG":5, "Waiting Script":5, "Already Feedback Script":5,
+    "Waiting to Post":3, "Already Posted":5, "Waiting Gencode":5, "Waiting Payment":7 })[st] || 7;
+}
+let TODO_SEG = "me";
+function todoItems(){
+  const me = sbUid();
+  const out = { us: [], late: [], gap: [] };
+  PROJECTS.filter(p => (!TEAM_MODE || isTeamProj(p)) && !(projMeta(p) || {}).done).forEach(p => (COORD[p] || []).forEach(r => {
+    if (!r.project) r.project = p;
+    if (mapClosed(r) || !r.status) return;
+    if (TODO_SEG === "me" && TEAM_MODE && r.assignee !== me) return;
+    const mk = drMark(r), I = mk ? drInfo(r.status) : null;
+    const d = satDays(r), sla = stSla(r.status);
+    const ownMark = mk && I.k !== "post";                       // 📝📥💸 = ของมาแล้ว ลูกอยู่ที่เรา
+    const owner = ownMark ? "us" : ST_OWNER(r.status);
+    const base = { r, p, d, sla, owner };
+    if (owner === "us"){
+      out.us.push(Object.assign({}, base, { why: ownMark ? `${I.ic} ${I.tag}` : `ขั้นนี้ต้องทำต่อ`,
+        age: ownMark ? (Date.now() - mk.at) / 86400000 : (d == null ? 0 : d) }));
+    } else if (d != null && d > sla){
+      out.late.push(Object.assign({}, base, { why: owner === "pm" ? "รอ PM นานเกินเกณฑ์" : (mk && I.k === "post" ? "🎬 ยังไม่โพสต์" : "รอครีเอเตอร์นานเกินเกณฑ์"),
+        age: d, over: d - sla }));
+    }
+    if (mapStage(r.status) >= stIx("Confirmed")){
+      const f = mapFlags(r);
+      if (f.length) out.gap.push(Object.assign({}, base, { why: f.join(" · "), age: d || 0 }));
+    }
+  }));
+  out.us.sort((a, b) => b.age - a.age);
+  out.late.sort((a, b) => b.over - a.over);
+  out.gap.sort((a, b) => b.age - a.age);
+  return out;
+}
+function todoBadge(){
+  const b = $("#todoBadge");
+  if (!b || !TEAM_MODE) return;
+  const seg = TODO_SEG; TODO_SEG = "me";
+  let n = 0; try { const t = todoItems(); n = t.us.length + t.late.length; } catch(e){}
+  TODO_SEG = seg;
+  b.hidden = !n; b.textContent = n > 99 ? "99+" : n;
+}
+function renderTodo(){
+  const T = todoItems();
+  const OWN = { us:["เรา", "#2DD4BF"], cr:["ครีเอเตอร์", "#F5B546"], pm:["PM", "#5AB4FF"] };
+  $("#todoSeg").innerHTML = [["me", "ของฉัน"], ["all", "ทั้งทีม"]].map(([k, th]) =>
+    `<button role="tab" data-tseg="${k}" aria-selected="${TODO_SEG === k}">${th}</button>`).join("");
+  $("#todoSeg").querySelectorAll("[data-tseg]").forEach(b => b.onclick = () => { TODO_SEG = b.dataset.tseg; renderTodo(); });
+  const ago = x => x.age >= 1 ? `${Math.floor(x.age)} วัน` : "วันนี้";
+  const row = (x, extra) => `<button type="button" class="todorow" data-tp="${esc(x.p)}" data-th="${esc(x.r.handle)}">
+      <span class="who">${TEAM_MODE && x.r.assignee ? avatar(x.r.assignee) : ""}<b>${esc(normId(x.r.handle))}</b> <i>${esc(kindOf(x.r))}</i></span>
+      <span class="pj">${esc(x.p)}</span>
+      <span class="st ${stClass(x.r.status)}">${esc(mapStatusLabel(x.r.status))}</span>
+      <span class="why">${esc(x.why)}</span>
+      <span class="age${extra ? " late" : ""}">${extra || ago(x)}</span>
+    </button>`;
+  const sec = (k, ic, th, sub, list, extraFn) => `<section class="todosec ${k}">
+      <h4>${ic} ${th} <span class="n">${list.length}</span> <small>${sub}</small></h4>
+      ${list.length ? list.slice(0, 120).map(x => row(x, extraFn && extraFn(x))).join("")
+        : `<p class="hint todonone">✓ ไม่มี</p>`}</section>`;
+  // ลูกอยู่ที่ใคร — นับทุกคนที่ยังไม่ปิด
+  const cnt = { us:0, cr:0, pm:0 };
+  PROJECTS.filter(p => (!TEAM_MODE || isTeamProj(p)) && !(projMeta(p) || {}).done).forEach(p => (COORD[p] || []).forEach(r => {
+    if (mapClosed(r) || !r.status) return;
+    if (TODO_SEG === "me" && TEAM_MODE && r.assignee !== sbUid()) return;
+    const mk = drMark(r); cnt[mk && drInfo(r.status).k !== "post" ? "us" : ST_OWNER(r.status)]++;
+  }));
+  $("#todoBody").innerHTML = `<div class="todoown">ลูกอยู่ที่: ${Object.keys(cnt).map(k =>
+      `<span style="--c:${OWN[k][1]}"><b>${cnt[k]}</b> ${OWN[k][0]}</span>`).join("")}</div>`
+    + sec("us", "🎯", "ลูกอยู่ที่เรา", "ของมาแล้ว/ขั้นที่ต้องทำต่อ — ค้างนานสุดอยู่บน", T.us)
+    + sec("late", "⏰", "ค้างนาน ต้องทวง", "รอครีเอเตอร์/PM เกินเกณฑ์ของขั้นนั้น", T.late, x => `${x.d} วัน (เกิน ${x.over})`)
+    + sec("gap", "⚑", "ข้อมูลไม่ครบ", "ทำให้ข้อความใน Command มีช่องว่าง", T.gap);
+  $("#todoBody").querySelectorAll("[data-tp]").forEach(b => b.onclick = () => {
+    closeTodo(); openCmd(b.dataset.tp, b.dataset.th);
+  });
+  todoBadge();
+}
+function openTodo(){
+  closeQoPop && closeQoPop(); closeOpenPop();
+  $("#todoPop").hidden = false; $("#todoNavBtn").setAttribute("aria-expanded", "true");
+  if (!TEAM_MODE) TODO_SEG = "all";
+  renderTodo();
+  vlog("todo:open");
+}
+function closeTodo(){ $("#todoPop").hidden = true; $("#todoNavBtn").setAttribute("aria-expanded", "false"); }
+$("#todoNavBtn").onclick = () => $("#todoPop").hidden ? openTodo() : closeTodo();
+$("#todoClose").onclick = closeTodo;
+$("#todoPop").onclick = e => { if (e.target.id === "todoPop") closeTodo(); };
+document.addEventListener("keydown", e => { if (e.key === "Escape" && !$("#todoPop").hidden) closeTodo(); });
+setInterval(() => { try { todoBadge(); } catch(e){} }, 30000);
+setTimeout(() => { try { todoBadge(); } catch(e){} }, 6000);
 function closeOpenPop(){ $("#openPop").hidden = true; $("#openNavBtn").setAttribute("aria-expanded", "false"); }
 $("#openNavBtn").onclick = () => $("#openPop").hidden ? openOpenPop() : closeOpenPop();
 $("#openPopClose").onclick = closeOpenPop;
@@ -22941,7 +23087,7 @@ function tsLastLoad(){
 }
 function tsLastSave(){ try { lsSet(LS_TS_LAST, JSON.stringify({ team: TEAM.id, ns: TS_LAST })); } catch(e){} }
 async function tsPull(force){
-  if (!TEAM_MODE || !TEAM || TS_BUSY) return;
+  if (!TEAM_MODE || !TEAM || TS_BUSY || STALE) return;
   if (!force && Date.now() - TS_AT < 15000) return;
   TS_BUSY = true; TS_AT = Date.now();
   let redraw = false;
@@ -23002,13 +23148,35 @@ function migrateCartClear(){
   try { lsSet(F, TEAM.id); } catch(e){}
   if (n){ saveCmdOwn(); vlog("mig:cartclear", { d: String(n) }); tsRedraw(); }
 }
+// ═══ เวอร์ชันของหน้า — แท็บที่เปิดค้างโค้ดเก่าต้องไม่ซิงก์ทีม ═══
+// เจอจริง 2026-10-27: แท็บเก่าดึงคีย์ใหม่ลงผิดที่ + ดันรายการที่ลบแล้วกลับขึ้นทุกนาที
+// APP_VER ประทับตอน deploy (kol-tools\stamp-version.py) · version.json คู่กันบนเซิร์ฟเวอร์ — ไม่ตรง = รีเฟรช
+const APP_VER = "20261030-074735";
+let STALE = false;
+async function verCheck(){
+  if (STALE || APP_VER === "dev") return;
+  try {
+    const r = await fetch("version.json?x=" + Date.now(), { cache: "no-store" });
+    if (!r.ok) return;
+    const j = await r.json();
+    if (j && j.v && j.v !== APP_VER){
+      STALE = true;
+      $("#staleBar").hidden = false;
+      vlog("stale", { d: APP_VER + "→" + j.v });
+    }
+  } catch(e){}
+}
+$("#staleReload").onclick = () => location.reload();
+setTimeout(verCheck, 20000);
+setInterval(verCheck, 3 * 60000);
+addEventListener("focus", verCheck);
 function tsSoon(ns){
   if (!TEAM_MODE || !TEAM) return;
   clearTimeout(TS_T[ns]);
   TS_T[ns] = setTimeout(() => tsPush(ns), 1200);
 }
 async function tsPush(ns){
-  if (!TEAM_MODE || !TEAM) return;
+  if (!TEAM_MODE || !TEAM || STALE) return;
   if (!TS_LAST) tsLastLoad();
   const S = TS[ns], obj = S.all(), last = TS_LAST[ns] || (TS_LAST[ns] = {});
   const up = [], del = [];
