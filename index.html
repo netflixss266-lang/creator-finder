@@ -2919,6 +2919,7 @@ html[data-no-tpl] .cmdscope [data-scope]:not([data-scope="mine"]),html[data-no-t
 html[data-no-tpl] .fxbox [data-fxedit],html[data-no-tpl] .fxbox [data-fxdel],html[data-no-tpl] #fxAdd{display:none!important}
 html[data-no-delrow] .delrow,html[data-no-delrow] #dDel,html[data-no-delrow] [data-sheetact="wipe"]{display:none!important}
 html[data-no-export] #coordExport,html[data-no-export] #xferOut{display:none!important}
+html[data-no-sku] #skuGuideSect{display:none!important}
 html[data-no-assign] select.asg{pointer-events:none;opacity:.55}
 .mirow{cursor:default}
 .mirow .uisel{margin-left:auto;width:auto;background:var(--surface2);border:1px solid var(--line);color:var(--ink);border-radius:6px;padding:3px 6px;font:inherit;font-size:.78rem}
@@ -21665,12 +21666,14 @@ function applyQuickOrder(){
         break;
       }
       case "skuguide": {
+        if (!can("sku")){ alert("บัญชีนี้ไม่มีสิทธิ์ตั้งค่าคู่มือ/แฮชแท็ก/ตะกร้าตาม SKU — ขอแอดมินเปิดให้ที่ ตั้งค่าเว็บ → คนที่เข้าใช้เว็บนี้"); break; }
         loadSkuGuide();
         if (q.skuUrl) SKUGUIDE[q.skuKey] = q.skuUrl; else delete SKUGUIDE[q.skuKey];
         saveSkuGuide(); renderSkuGuide();
         break;
       }
-      case "skuguideList": after = () => { openSettings();
+      case "skuguideList": if (!can("sku")){ alert("บัญชีนี้ไม่มีสิทธิ์ตั้งค่าคู่มือ/แฮชแท็ก/ตะกร้าตาม SKU"); break; }
+        after = () => { openSettings();
         const el = $("#skuGuideSect"); if (el){ el.open = true; el.scrollIntoView({block:"center"}); } };
         break;
       case "map":     { const p = q.proj; after = () => openMap(p || null); break; }
@@ -22452,6 +22455,8 @@ const FEATS = [
   { k:"assign", th:"เปลี่ยนผู้ดูแลครีเอเตอร์", viewer:false },
   { k:"delrow", th:"ลบครีเอเตอร์ออกจากโปรเจกต์", viewer:false },
   { k:"export", th:"ส่งออก CSV / ส่งออกการตั้งค่า", viewer:false },
+  // 2026-10-30 — ตั้งต้นเปิดให้ทุกคน (viewer ปิด) · admin ติ๊กออกรายคนได้
+  { k:"sku",    th:"ตั้งค่าคู่มือ · แฮชแท็ก · ตะกร้า ตาม SKU", viewer:false },
 ];
 const featDefault = (role, f) => role === "viewer" ? f.viewer !== false : true;
 function can(k){
