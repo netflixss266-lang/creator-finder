@@ -3999,7 +3999,7 @@ html.demo .dm-b:hover{filter:blur(5px)}
     <!-- ภาพรวมทั้งโปรเจกต์ — อยู่ติดแท็บโปรเจกต์เพราะมันคือ "อีกมุมของข้อมูลชุดเดียวกัน" -->
     <button class="mapbtn" id="mapBtn" title="ดูภาพรวมทั้งโปรเจกต์เป็นแผนผัง (กด M)">◈ Map</button>
     <!-- ข้อความทักครั้งแรกเพื่อขอเรท — ยังไม่มีคนในตาราง เลยเป็นของโปรเจกต์ ไม่ใช่ของรายคน -->
-    <button class="mapbtn" id="fmtBtn" title="ข้อความขอเรทสำหรับทักครีเอเตอร์ครั้งแรก">✉ Format ขอเรท</button>
+    <button class="mapbtn" id="fmtBtn" title="ข้อความขอเรทสำหรับทักครีเอเตอร์ครั้งแรก (กด F)">✉ Format ขอเรท</button>
     <div class="coord-sum" id="coordSum"></div>
     <button type="button" class="treqbtn" id="teamReqBtn" hidden title="มีคนขอเข้าทีม — กดเพื่อไปอนุมัติ"></button>
     <div class="online" id="onlineBar"></div>
@@ -4047,7 +4047,7 @@ html.demo .dm-b:hover{filter:blur(5px)}
       <!-- รูปแบบของแผ่น "ขั้นตอนงาน" — ตั้งแยกรายโปรเจกต์ จำไว้ในเครื่อง -->
       <div class="mapfmt" id="mapFmt" role="tablist"></div>
       <!-- ปุ่มเดียวกับข้างปุ่ม Map ในหน้าตาราง — เปิดซ้อนบนแผนผัง ปิดแล้วกลับมาที่แผนผังเดิม -->
-      <button class="mapbtn" id="mapFmtBtn" title="ข้อความขอเรทสำหรับทักครีเอเตอร์ครั้งแรก">✉ Format ขอเรท</button>
+      <button class="mapbtn" id="mapFmtBtn" title="ข้อความขอเรทสำหรับทักครีเอเตอร์ครั้งแรก (กด F)">✉ Format ขอเรท</button>
       <button class="x" id="closeMap" aria-label="ปิด">✕</button>
     </div>
     <div class="mapbody" id="mapBody"></div>
@@ -20654,6 +20654,29 @@ document.addEventListener("keydown", async e => {
   e.preventDefault();
   if (!onCoord) await setView("coord");
   if (document.body.dataset.view === "coord" && !$("#mapView").hidden) openTable(MAP_PROJ);
+});
+// ── F เปิด/ปิด Format ขอเรท ของโปรเจกต์ที่เปิดอยู่ (2026-11-03) ──
+// กติกาเดียวกับ M/T: ไม่แย่งตอนพิมพ์ · มีหน้าต่างอื่นทับอยู่ไม่ทำอะไร · Ctrl+F ยังเป็นค้นหาเหมือนเดิม
+// อยู่ในแผนผังของโปรเจกต์ไหน = Format ของโปรเจกต์นั้น (เหมือนปุ่ม ✉ บนแผนผัง)
+// ⚠️ e.code ด้วย — แป้นไทยส่ง e.key เป็น "ด"
+document.addEventListener("keydown", e => {
+  if (e.ctrlKey || e.metaKey || e.altKey || e.shiftKey || e.repeat) return;
+  if (e.code !== "KeyF" && e.key !== "f" && e.key !== "F" && e.key !== "ด") return;
+  const a = document.activeElement;
+  // ช่องที่ซ่อนอยู่แต่ยังถือโฟกัสค้าง (เช่นช่องล็อกอินหลังเข้าแล้ว) ไม่นับว่ากำลังพิมพ์
+  if (a && a.offsetParent !== null && (a.tagName === "INPUT" || a.tagName === "TEXTAREA" ||
+            a.tagName === "SELECT" || a.isContentEditable)) return;
+  if (!$("#lockView").hidden || !$("#coachView").hidden) return;
+  if (document.body.dataset.view !== "coord" || !PROJECTS.length || !can("format")) return;
+  if (!$("#fmtPanel").hidden){ e.preventDefault(); $("#fmtPanel").hidden = true; return; }   // กดซ้ำ = ปิด
+  const cover = ["#projPanel", "#addPanel", "#settings"].some(s => $(s) && !$(s).hidden)
+    || ["#detailPanel", "#cmdPanel"].some(s => $(s) && $(s).classList.contains("on"))
+    || !!document.querySelector(".fpop") || !$("#qFind").hidden
+    || [...document.querySelectorAll(".qopop")].some(p => !p.hidden);
+  if (cover) return;
+  e.preventDefault();
+  if (!$("#mapView").hidden) $("#mapFmtBtn").click();          // ในแผนผัง = โปรเจกต์ของแผ่นที่ดูอยู่
+  else openFormat();
 });
 $("#qFindX").onclick = closeQFind;
 $("#qFindIn").addEventListener("input", renderQFind);
