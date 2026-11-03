@@ -11596,7 +11596,9 @@ function openCmd(proj, handle){
   // ปุ่มเดียวกันหมด ผู้ใช้ไม่ต้องรู้ว่าอันไหนเก็บที่ไหน
   // วัน–เวลาไลฟ์ทั้งสามตัวเก็บอยู่ในช่องเดียวกัน (โพสต์) — ตัวที่ปฏิทินอ่าน หลายรอบคั่นด้วย ·
   // ต้องดักไว้ตรงนี้ ไม่งั้นจะตกไปทางลิงก์เอกสารแล้วเขียนลงช่องที่ไม่มีใครอ่านแบบเงียบๆ
+  // ⚠️ ช่องที่เก็บในแถวต้องอยู่ในนี้ — ไม่งั้นตกไปเก็บเป็น "ลิงก์รายคน" แล้วช่องว่างไม่หาย (บัค 2026-11-03: เลขพัสดุ/คอมมิชชั่น)
   const ROW_GAP = { rate:"rate", sku:"sku", paytype:"paytype", brief:"brief", videos:"videos",
+                    commission:"commission", tracking:"tracking", tracklist:"tracking",
                     liveslot:"postdate", livedate:"postdate", livetime:"postdate",
                     livehours:"postdate" };
   // ช่องที่รูปแบบไม่ตรงไปตรงมาต้องบอกวิธีพิมพ์ในกล่องเลย — คนกดมาจากตัวแดงกลางข้อความ
@@ -11604,7 +11606,10 @@ function openCmd(proj, handle){
   const LIVE_HINT = "\n\nพิมพ์ได้ทั้ง 28 ส.ค. · 28-Aug · 28/08/2026 — ใส่เวลาต่อท้ายได้ (20.00-23.00)" +
     "\nหลายรอบคั่นด้วย ·   เช่น   28 Aug 20.00-23.00 · 30 Aug 19.00-22.00";
   const GAP_HINT = { liveslot:LIVE_HINT, livedate:LIVE_HINT,
-                     livetime:LIVE_HINT, livehours:LIVE_HINT };
+                     livetime:LIVE_HINT, livehours:LIVE_HINT,
+                     tracking:"\n\nมีสองกล่อง/สองเลข คั่นด้วย +   เช่น   TH0123456789 + TH0987654321",
+                     tracklist:"\n\nมีสองกล่อง/สองเลข คั่นด้วย +   เช่น   TH0123456789 + TH0987654321",
+                     commission:"\n\nใส่เป็น % เช่น 10%" };
   function fillGap(k){
     const r2 = (COORD[proj] || []).find(x => normId(x.handle) === normId(handle));
     if (!r2) return;
@@ -11620,6 +11625,25 @@ function openCmd(proj, handle){
     // บรีฟของชุดที่ 2 ขึ้นไปไม่มีที่เก็บในชีต ใช้ช่องคู่มือของชุดนั้นแทน
     const bm = k.match(/^brief(\d+)$/);
     if (bm) return fillGap(Number(bm[1]) > 1 ? "guide" + bm[1] : "brief");
+    // ขนส่ง — เลือกจากรายการ (ลิงก์ติดตามสร้างจากขนส่ง + เลข)
+    if (k === "carrier" || k === "trackurl"){
+      const host = $("#cmdBody").querySelector(`[data-gap="${k}"]`);
+      const cur = (cmdOwnRead(proj, handle).links || {}).carrier || "";
+      pickPop(host && host.parentElement, `ขนส่งของ ${normId(handle)}`,
+        CARRIERS.map(c => ({ label: c.th, id: c.k, on: c.k === cur })),
+        it => { setCmdOwnLink(proj, handle, "carrier", it.id); renderCoord(); openCmd(proj, handle); });
+      return;
+    }
+    // ชื่อแบรนด์เป็นของโปรเจกต์ ไม่ใช่ของครีเอเตอร์
+    if (k === "brandname"){
+      if (!canManageProjects()) return alert("ชื่อแบรนด์ตั้งที่ ⚙ จัดการโปรเจกต์ — ให้แอดมิน/ผู้จัดการตั้งให้");
+      const m = projMeta(proj); if (!m) return;
+      const v = prompt(`ชื่อแบรนด์ของโปรเจกต์ ${proj}\n(ไปโผล่ในข้อความหาครีเอเตอร์ทุกคนในโปรเจกต์นี้)`, m.brand || "");
+      if (v == null) return;
+      m.brand = v.trim(); saveProjects();
+      renderCoord(); openCmd(proj, handle);
+      return;
+    }
     if (k === "paytype"){
       // เลือกจากรายการ ไม่ใช่พิมพ์เลขตามที่อ่านจากกล่องข้อความ
       const host = $("#cmdBody").querySelector(`[data-gap="paytype"]`);
