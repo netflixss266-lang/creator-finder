@@ -3419,6 +3419,7 @@ html[data-theme="light"] .mapcard:has(.mapstamp) > *:not(.mapstamp),html[data-th
 .cartpick .cp-chip.match:not(.on){border-color:rgba(var(--accent-rgb),.6)}
 .cartpick .cp-chip.other{border-style:dashed;color:var(--mute)}
 .cartpick .cp-other .cmdtagedit{border-top:0;margin-top:6px;padding-top:0}
+#qoOpenGo.running{background:var(--warn)!important;color:#111!important}
 
 /* ═══ เดโม: เบลอข้อมูลสำคัญ ═══ */
 html.demo .dm-b,
@@ -15274,6 +15275,7 @@ function qo2SheetRows(){
 // เบราว์เซอร์กันป๊อปอัป: กดครั้งเดียวเปิดหลายแท็บ Chrome ปล่อยแค่แท็บแรก — ต้องกด "อนุญาตป๊อปอัปจากเว็บนี้" ครั้งเดียวต่อเครื่อง
 const OPEN_BATCH = 9999;          // กดครั้งเดียวเปิดทั้งหมด (2026-10-22) — เกิน 15 คนถามยืนยันก่อน
 let OPEN_Q = [], OPEN_I = 0, OPEN_SRC = "";
+let OPEN_RUN = null;      // กำลังเปิดทีละแท็บอยู่ { list, i, done, t }
 function openManyParse(text){
   const seen = new Set(), out = [];
   String(text || "").split(/[\r\n,;]+/).forEach(line => {
@@ -15361,6 +15363,7 @@ function wireOpenMany(){
     const cap = Math.min(left, st.left);
     go.disabled = !left || !cap;
     go.classList.toggle("orblock", !!left && !cap);
+    if (OPEN_RUN){ go.disabled = false; return cap; }          // กำลังเปิดทีละแท็บ — ปุ่มเป็นปุ่มหยุด
     go.textContent = !OPEN_Q.length ? "เปิดทั้งหมด ▶" : !left ? "เปิดครบแล้ว ✓" : !cap ? "⛔ ห้ามเปิดต่อ"
       : cap < left ? `เปิดได้แค่ ${cap} คน ▶ (กันโดนบล็อก)`
       : OPEN_I ? `เปิดที่เหลือ ${left} คน ▶` : `เปิดทั้งหมด ${OPEN_Q.length} คน ▶`;
@@ -15374,22 +15377,53 @@ function wireOpenMany(){
   ta.onkeydown = e => {
     if (e.key === "Enter" && !e.shiftKey && !e.isComposing){ e.preventDefault(); go.click(); }
   };
+  // ── เปิดทีละแท็บ ห่างกัน 2 วินาที (2026-11-03) ──
+  // เปิดพร้อมกันทีละหลายแท็บ = เหมือนบอท โดน TikTok ขอยืนยันง่าย · ค่อยๆ เปิดดูเป็นคนกว่า
+  // แท็บแรกเปิดทันที (มาจากการกดจริง) · แท็บถัดๆ ไปเปิดจาก timer → Chrome บล็อกถ้ายังไม่อนุญาตป๊อปอัปให้เว็บนี้
+  //   เลยเช็คทุกครั้ง: window.open คืน null = โดนบล็อก → หยุดทันที บอกวิธีอนุญาต (ไม่ใช้ "noopener" เพราะทำให้คืน null เสมอ)
+  const OPEN_GAP = 2000;
+  const openOne = h => {
+    const w = window.open("https://www.tiktok.com/@" + encodeURIComponent(h), "_blank");
+    if (!w) return false;
+    try { w.opener = null; } catch(e){}
+    seenAdd([h]);                                              // เปิดผ่านเครื่องมือนี้ก็นับว่าเปิดแล้วในหน้าค้นหา
+    const ro = openRateRead(); ro.t.push(Date.now()); openRateSave(ro);
+    OPEN_I++;
+    return true;
+  };
+  const stopRun = note => {
+    clearTimeout(OPEN_RUN && OPEN_RUN.t); OPEN_RUN = null;
+    go.classList.remove("running");
+    if (note) msg(note);
+    sum();
+  };
   go.onclick = () => {
+    if (OPEN_RUN){ const n = OPEN_RUN.done; stopRun(`หยุดแล้ว — เปิดไป ${n} แท็บ · กดอีกทีเพื่อเปิดคนที่เหลือต่อ`); return; }
     const cap = sum();
     const batch = OPEN_Q.slice(OPEN_I, OPEN_I + Math.min(OPEN_BATCH, cap));
     if (!batch.length) return;
-    if (batch.length > 15 && !confirm(`เปิด ${batch.length} แท็บพร้อมกัน?
-
-เปิดเยอะเครื่องอาจหน่วง และ TikTok อาจขึ้นยืนยันว่าไม่ใช่บอท`)) return;
-    batch.forEach(h => window.open("https://www.tiktok.com/@" + encodeURIComponent(h), "_blank", "noopener"));
-    seenAdd(batch);                                             // เปิดผ่านเครื่องมือนี้ก็นับว่าเปิดแล้วในหน้าค้นหา
-    const ro = openRateRead(), now = Date.now();
-    batch.forEach(() => ro.t.push(now));
-    openRateSave(ro);
-    OPEN_I += batch.length;
+    if (batch.length > 30 && !confirm(`เปิด ${batch.length} แท็บ (ทีละแท็บ ห่างกัน 2 วินาที ราว ${Math.ceil(batch.length * OPEN_GAP / 60000)} นาที)?`)) return;
     vlog("openmany", { d: String(batch.length) });              // จดแค่จำนวน ไม่จดชื่อ
-    msg(`เปิด ${batch.length} แท็บแล้ว — ถ้าขึ้นแค่แท็บเดียว กดไอคอนกันป๊อปอัปท้ายแถบที่อยู่ → <b>อนุญาตป๊อปอัปจากเว็บนี้เสมอ</b> แล้วกดอีกครั้ง`);
-    sum();
+    OPEN_RUN = { list: batch, i: 0, done: 0, t: 0 };
+    go.classList.add("running");
+    const step = () => {
+      if (!OPEN_RUN) return;
+      const R = OPEN_RUN;
+      if (R.i >= R.list.length) return stopRun(`เปิดครบ ${R.done} แท็บแล้ว ✓`);
+      // ระหว่างเปิดก็เช็คเพดานกันโดนบล็อกต่อ — ใกล้เต็มแล้วหยุดเอง
+      if (openRateState().left <= 0) return stopRun(`⛔ หยุดอัตโนมัติ — ใกล้เพดานกันโดน TikTok บล็อก (เปิดไป ${R.done} แท็บ)`);
+      if (!openOne(R.list[R.i])){
+        return stopRun(R.done
+          ? `เบราว์เซอร์บล็อกแท็บที่ ${R.done + 1} — กดไอคอนกันป๊อปอัปท้ายแถบที่อยู่ → <b>อนุญาตป๊อปอัปจากเว็บนี้เสมอ</b> แล้วกดเปิดต่อ`
+          : `เปิดไม่ได้ — เบราว์เซอร์บล็อกป๊อปอัป อนุญาตให้เว็บนี้ก่อนแล้วกดอีกที`);
+      }
+      R.i++; R.done++;
+      if (R.i >= R.list.length) return stopRun(`เปิดครบ ${R.done} แท็บแล้ว ✓`);   // แท็บสุดท้าย = จบเลย ไม่ต้องรออีก 2 วิ
+      go.textContent = `⏸ หยุด · เปิดแล้ว ${R.done}/${R.list.length}`;
+      msg(R.i < R.list.length ? `กำลังเปิดทีละแท็บ ห่างกัน 2 วินาที… (${R.done}/${R.list.length}) — อยู่หน้านี้ไว้ก่อนจนกว่าจะครบ` : "");
+      R.t = setTimeout(step, OPEN_GAP);
+    };
+    step();
   };
   $("#qoOpenClear").onclick = () => { ta.value = ""; OPEN_Q = []; OPEN_I = 0; OPEN_SRC = ""; msg(""); sum(); ta.focus(); };
   sum();
