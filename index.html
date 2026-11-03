@@ -459,6 +459,7 @@ html[data-team] .nav button{border-radius:8px;padding:7px 13px}
 html[data-team] .nav button[aria-current="page"]{background:var(--surface2)}
 html[data-team] .nav button:hover{background:var(--surface2)}
 #qoNavBtn[aria-expanded="true"]{background:var(--accent);color:var(--accent-ink)}
+.nbadge[hidden]{display:none!important}   /* display:inline-block ทับ hidden — ป้าย 0 เลยโผล่ (บัค 2026-11-03) */
 .nbadge{display:inline-block;margin-left:6px;min-width:18px;padding:0 5px;border-radius:999px;background:var(--lo);color:#fff;
   font-size:.68rem;font-weight:700;line-height:18px;text-align:center;vertical-align:1px}
 /* แผงลอยคำสั่งด่วน */
@@ -3161,6 +3162,19 @@ html[data-theme="light"] .mapcard:has(.mapstamp) > *:not(.mapstamp),html[data-th
 @media(max-width:760px){ .todorow{grid-template-columns:1fr auto} .todorow .pj,.todorow .why{display:none} }
 .stalebar{position:fixed;top:0;left:0;right:0;z-index:9900;background:#C62F35;color:#fff;text-align:center;padding:8px 14px;font-size:.86rem}
 .stalebar button{margin-left:10px;background:#fff;color:#C62F35;border:0;border-radius:6px;padding:4px 12px;font-weight:700;cursor:pointer}
+/* Command: ทางลัดกล่อง + กล่องที่ควรส่งต่อ */
+/* top ติดลบเท่า padding บนของ drawer-body — ไม่งั้นมีช่องว่างเหนือแถบที่เนื้อหาเลื่อนลอดให้เห็น */
+.cmdjump{position:sticky;top:-18px;z-index:5;display:flex;gap:5px;overflow-x:auto;padding:22px 2px 9px;margin:-18px 0 10px;
+  background:var(--bg);border-bottom:1px solid var(--line);scrollbar-width:thin}
+.cmdjump button{flex:none;background:var(--surface2);border:1px solid var(--line);color:var(--ink);border-radius:999px;
+  padding:4px 11px;font:inherit;font-size:.74rem;cursor:pointer;white-space:nowrap}
+.cmdjump button:hover{border-color:var(--accent)}
+.cmdjump button.sent{opacity:.45}
+.cmdjump button.rec{background:var(--accent);color:var(--accent-ink);border-color:var(--accent);font-weight:700}
+.cmdblk.cmdrec{border-color:var(--accent);box-shadow:0 0 0 2px rgba(var(--accent-rgb),.25)}
+.cmdrectag{font-size:.72rem;font-weight:700;color:var(--accent);padding:6px 12px 0}
+.cmdblk.flash{animation:cmdflash 1.1s ease-out 1}
+@keyframes cmdflash{0%{box-shadow:0 0 0 0 rgba(var(--accent-rgb),.7)}40%{box-shadow:0 0 0 5px rgba(var(--accent-rgb),.45)}100%{box-shadow:0 0 0 0 rgba(var(--accent-rgb),0)}}
 </style>
 </head>
 <body>
@@ -10048,6 +10062,7 @@ function renderVoiceBtn(){
     d.title = `ครีเอเตอร์ที่ไม่ได้ตั้งเฉพาะคน + Format ขอเรท ลงท้ายแบบ${VOICE === "f" ? "หญิง" : "ชาย"} — กดเพื่อสลับ · จำแยกรายบัญชี`;
   }
 }
+let CMD_JUMPED = "";    // คนที่เลื่อนไปกล่องที่ควรส่งให้แล้ว — วาดซ้ำคนเดิมไม่กระโดดอีก
 let CMD_NOW = null;     // { proj, handle } ที่เปิด Command อยู่ — สลับหางเสียงแล้ววาดคนเดิมใหม่
 
 function fillBlock(body, vals, clip){
@@ -10959,6 +10974,21 @@ function openCmd(proj, handle){
   // ส่วนใหญ่ไม่มีวันต้องใช้ ถ้านับรวมจะกลายเป็นว่าทุกคนในทีม "ยังว่าง 6 ช่อง" และ "ส่งแล้ว 0/17"
   // ตลอดกาลทั้งที่งานเรียบร้อยดี — ตัวเลขที่โกหกแบบนี้ใช้ตัดสินใจอะไรไม่ได้เลย
   const norm = blocks.filter(b => !b.law);
+  // ── กล่องที่ควรส่งต่อ (2026-11-03) ── เปิด Command แล้วไม่ต้องไล่เลื่อนหา
+  // = กล่องที่ยังไม่ส่ง ที่พาไปขั้นถัดจากสถานะตอนนี้ (ใกล้สุดก่อน) · ไม่มีก็กล่องแรกที่ยังไม่ส่ง
+  const curIx = mapStage(r.status);
+  const shownJ = blocks.map((b, j) => j).filter(j => !(blocks[j].old && !CMD_SHOW_SENT) && !blocks[j].law);
+  const recJ = (() => {
+    const open = shownJ.filter(j => !blocks[j].sent);
+    const fwd = open.filter(j => blocks[j].to && stageAt(blocks[j].to) > curIx)
+      .sort((a, b) => stageAt(blocks[a].to) - stageAt(blocks[b].to) || a - b);
+    if (fwd.length) return fwd[0];
+    // ไม่มีกล่องไหนพาไปข้างหน้าแล้ว (เช่น KOC ไม่มีค่าจ้างที่รอโพสต์) → กล่องแรกที่ยังไม่ส่ง "หลัง" กล่องที่พามาขั้นนี้
+    // ไม่ย้อนไปชี้กล่องต้นๆ อย่างขอคอนเฟิร์ม · ไม่มีจริงๆ = ไม่ชี้อะไร
+    const lastPast = shownJ.reduce((m, j) => blocks[j].to && stageAt(blocks[j].to) <= curIx ? shownJ.indexOf(j) : m, -1);
+    const after = shownJ.slice(lastPast + 1).filter(j => !blocks[j].sent);
+    return lastPast >= 0 && after.length ? after[0] : -1;
+  })();
   const nSent = norm.filter(b => b.sent).length;
   const gaps = norm.reduce((s, b) => s + (b.sent ? 0 : b.missing), 0);
   // ช่องว่างแต่ละชนิด (ไม่นับซ้ำ) — เอาไปทำปุ่มเติมบนหัว
@@ -11083,7 +11113,13 @@ function openCmd(proj, handle){
        </div>
        <div id="lawRows"></div>
      </div>
-     <div class="cmdlist">` +
+     ` + // แถบทางลัดติดหัว — กดแล้วกระโดดไปกล่องนั้น · ที่ส่งแล้วจาง · 👉 = กล่องที่ควรส่งต่อ
+    (shownJ.length > 2 ? `<div class="cmdjump" id="cmdJump">${shownJ.map(j => {
+      const b = blocks[j];
+      const name = b.t.replace(/^\d+\.\s*/, "").replace(/\s+—.*$/, "");
+      return `<button type="button" data-jump="${j}" class="${b.sent ? "sent" : ""}${j === recJ ? " rec" : ""}"
+        title="${esc(b.t)}${b.sent ? " · ส่งแล้ว" : ""}">${j === recJ ? "👉 " : b.sent ? "✓ " : ""}${b.step}${b.clip ? "." + b.clip : ""} ${esc(name.length > 22 ? name.slice(0, 21) + "…" : name)}</button>`;
+    }).join("")}</div>` : "") + `<div class="cmdlist">` +
     (blocks.some(b => b.old) ? `<div class="sentbar">✓ ส่งไปแล้ว ${blocks.filter(b => b.old).length} กล่อง${
       CMD_SHOW_SENT ? "" : " — ซ่อนไว้"} <button type="button" class="cmdbtn" id="cmdShowSent">${
       CMD_SHOW_SENT ? "ซ่อนที่ส่งแล้ว" : "แสดง"}</button></div>` : "") +
@@ -11091,7 +11127,7 @@ function openCmd(proj, handle){
     // (KOL กับ KOC ใช้บล็อกคนละใบในตำแหน่งเดียวกัน เลขต้นแบบเลยไม่เรียงกัน)
     // ซ่อน = ไม่วาด แต่ index (j) ยังตรงกับ blocks เดิม ปุ่มคัดลอก/ส่งแล้วจึงชี้ถูกกล่อง
     blocks.map((b, j) => b.old && !CMD_SHOW_SENT ? "" : `<div class="cmdblk${b.mine ? " edited" : ""}${b.sent ? " sent" : ""}${
-      b.law ? " lawblk" : ""}">
+      b.law ? " lawblk" : ""}${j === recJ ? " cmdrec" : ""}" data-j="${j}">${j === recJ ? `<div class="cmdrectag">👉 กล่องที่ควรส่งต่อ</div>` : ""}
       ${b.law ? `<div class="lawblkhint">⚖ ฉบับนี้อ้างสิทธิตามสัญญาจริง ส่งไปแล้วเรียกคืนไม่ได้ —
         ${lawMissingFor(proj, handle).length
           ? `<b class="miss">ยังไม่ได้กรอก ${lawMissingFor(proj, handle).length} ช่อง</b>
@@ -11140,6 +11176,25 @@ function openCmd(proj, handle){
     if (e.key === "Enter" && !e.shiftKey && !e.isComposing){ e.preventDefault();
       $(`#cmdBody [data-tagsave="${inp.dataset.taginp}"]`).click(); }
   });
+  // ทางลัด: กดแล้วเลื่อนไปกล่องนั้น (เผื่อความสูงแถบทางลัดที่ติดหัว)
+  const cmdJumpTo = (j, smooth) => {
+    const el = $(`#cmdBody .cmdblk[data-j="${j}"]`), sc = $("#cmdBody");
+    if (!el || !sc) return;
+    const bar = $("#cmdJump"), off = (bar ? bar.offsetHeight : 0) + 10;
+    sc.scrollTo({ top: el.getBoundingClientRect().top - sc.getBoundingClientRect().top + sc.scrollTop - off, behavior: smooth ? "smooth" : "auto" });
+    el.classList.remove("flash"); void el.offsetWidth; el.classList.add("flash");
+    // ชิปของกล่องนั้นในแถบทางลัดเลื่อนมาให้เห็นด้วย
+    const chip = bar && bar.querySelector(`[data-jump="${j}"]`);
+    if (chip) bar.scrollLeft = Math.max(0, chip.offsetLeft - bar.clientWidth / 2 + chip.offsetWidth / 2);
+  };
+  document.querySelectorAll("#cmdJump [data-jump]").forEach(b => b.onclick = () => cmdJumpTo(+b.dataset.jump, true));
+  // เปิดคนใหม่ = เลื่อนไปกล่องที่ควรส่งต่อเลย · วาดคนเดิมซ้ำ (ติ๊กส่งแล้ว/แก้ค่า) ไม่กระโดดเอง
+  const jumpKey = proj + "|" + normId(handle);
+  if (CMD_JUMPED !== jumpKey){
+    CMD_JUMPED = jumpKey;
+    if (recJ >= 0 && !CMD_EDITING) setTimeout(() => cmdJumpTo(recJ, false), 60);
+    else setTimeout(() => { const sc = $("#cmdBody"); if (sc) sc.scrollTop = 0; }, 60);   // คนใหม่ไม่มีกล่องให้ชี้ = เริ่มบนสุด ไม่ค้างตำแหน่งของคนก่อน
+  }
   document.querySelectorAll("#cmdBody [data-copy]").forEach(btn => btn.onclick = () => {
     navigator.clipboard.writeText(blocks[+btn.dataset.copy].text).then(() => {
       btn.textContent = "คัดลอกแล้ว ✓"; btn.classList.add("done");
@@ -13680,7 +13735,7 @@ async function doLogout(){
   setView("home");
 }
 
-$("#closeCmd").onclick = () => $("#cmdPanel").classList.remove("on");
+$("#closeCmd").onclick = () => { $("#cmdPanel").classList.remove("on"); CMD_JUMPED = ""; };
 function voiceRedraw(){
   renderVoiceBtn();
   if (CMD_NOW && $("#cmdPanel").classList.contains("on") && !CMD_EDITING){
@@ -13710,7 +13765,7 @@ $("#voiceBtn").onclick = () => {
   voiceRedraw();
 };
 renderVoiceBtn();
-$("#cmdScrim").onclick = () => $("#cmdPanel").classList.remove("on");
+$("#cmdScrim").onclick = () => { $("#cmdPanel").classList.remove("on"); CMD_JUMPED = ""; };
 
 // ← → เดินดู Command ทีละคน — แต่ต้องไม่แย่งลูกศรไปจากช่องพิมพ์
 document.addEventListener("keydown", e => {
@@ -23171,7 +23226,7 @@ function migrateCartClear(){
 // ═══ เวอร์ชันของหน้า — แท็บที่เปิดค้างโค้ดเก่าต้องไม่ซิงก์ทีม ═══
 // เจอจริง 2026-10-27: แท็บเก่าดึงคีย์ใหม่ลงผิดที่ + ดันรายการที่ลบแล้วกลับขึ้นทุกนาที
 // APP_VER ประทับตอน deploy (kol-tools\stamp-version.py) · version.json คู่กันบนเซิร์ฟเวอร์ — ไม่ตรง = รีเฟรช
-const APP_VER = "20261102-102632";
+const APP_VER = "20261103-060723";
 let STALE = false;
 async function verCheck(){
   if (STALE || APP_VER === "dev") return;
