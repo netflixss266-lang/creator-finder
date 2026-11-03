@@ -15014,7 +15014,7 @@ let QO2_FOLD = false;
 try { QO2_FOLD = lsGet(LS_QO2FOLD) === "1"; } catch(e){}
 const QO2_ACT = [
   { c:"add",   th:"＋ เพิ่มคนใหม่" }, { c:"del", th:"ลบออกจากโปรเจกต์" }, { c:"move", th:"ย้ายโปรเจกต์" },
-  { c:"clear", th:"ล้างค่า" }, { c:"track", th:"📦 เลขพัสดุทีละหลายคน" }, { c:"bulk", th:"⇥ วางจากชีตหลายคน" } ];
+  { c:"clear", th:"ล้างค่า" }, { c:"track", th:"📦 เลขพัสดุทีละหลายคน" }, { c:"skubulk", th:"🏷 SKU ทีละหลายคน" }, { c:"bulk", th:"⇥ วางจากชีตหลายคน" } ];
 // ชื่อคำสั่งในเมนูแบบ "ทำอะไร" ให้อ่านแล้วรู้เลย (ทะเบียนเดิมเป็นชื่อช่อง เช่น "เรท" "SKU")
 // ทุกคำสั่งเป็นการตั้งค่าใหม่ทับของเดิม — หน้าตรวจโชว์ เดิม → ใหม่ ให้ดูก่อนกดใช้เสมอ
 const QO2_TH = { rate:"เพิ่ม/แก้เรท", video:"ตั้งจำนวนคลิป", status:"เปลี่ยนสถานะ", pay:"ตั้งรูปแบบภาษี",
@@ -15025,7 +15025,7 @@ const qo2Label = x => QO2_TH[x.c] || (x.doc ? "เพิ่ม/แก้ " + x.t
 // ที่เหลือซ่อนไว้หลัง "＋ แสดงคำสั่งทั้งหมด" (ใช้ตอนจะใส่ของที่โปรเจกต์ยังไม่เคยมี)
 let QO2_ALL = false;
 const QO2_CORE = new Set(["rate", "status", "sku", "cart", "hashtag", "note", "due", "post", "fb1",
-                          "add", "del", "move", "track", "bulk"]);
+                          "add", "del", "move", "track", "skubulk", "bulk"]);
 function qo2GroupsAll(){
   const pick = list => list.map(c => SLASH_BY[c]).filter(Boolean);
   const g = [
@@ -15064,10 +15064,12 @@ function qo2Opt(id, list, ph){
   return `<select id="${id}" class="qo2s">${ph ? `<option value="">${esc(ph)}</option>` : ""}${
     list.map(([v, t]) => `<option value="${esc(v)}">${esc(t)}</option>`).join("")}</select>`;
 }
+// โปรเจกต์ในคำสั่งด่วน = เฉพาะที่ยังไม่ปิด (2026-11-03) · โปรเจกต์ที่เปิดอยู่ขึ้นก่อน
+const qoProjs = () => { const a = activeProjects(); return a.includes(PROJ) ? [PROJ].concat(a.filter(p => p !== PROJ)) : a; };
 function qo2ValueField(c){
   const sp = qo2Spec(c) || {};
-  const others = PROJECTS.filter(p => p !== PROJ);
-  if (c === "add") return qo2Opt("qo2Val", PROJECTS.map(p => [p, "เข้า " + p])) +
+  const others = qoProjs().filter(p => p !== PROJ);
+  if (c === "add") return qo2Opt("qo2Val", qoProjs().map(p => [p, "เข้า " + p])) +
     qo2Opt("qo2Val2", [["", "กลุ่ม —"], ["KOL", "KOL"], ["KOC", "KOC"]]);
   if (c === "move") return others.length ? qo2Opt("qo2Val", others.map(p => [p, "ไป " + p]), "ย้ายไปโปรเจกต์ —")
     : `<span class="hint">ยังไม่มีโปรเจกต์อื่น</span>`;
@@ -15139,10 +15141,24 @@ function renderQO2(){
             `<option value="${esc(x.c)}"${x.c === c ? " selected" : ""}>${esc(qo2Label(x))}</option>`).join("")}</optgroup>`).join("")}${
           QO2_ALL ? `<option value="__less">− ย่อ: โชว์เฉพาะที่โปรเจกต์นี้ใช้</option>`
             : qo2HiddenN() ? `<option value="__all">＋ แสดงคำสั่งทั้งหมด (อีก ${qo2HiddenN()})</option>` : ""}</select></div>` +
-      (!c ? "" : c === "track"
+      (!c ? "" : c === "skubulk"
+        ? `<span class="qo2step"><b>②</b> ลงโปรเจกต์</span>
+           <select id="qo2SkuProj" class="qo2s" title="SKU ในลิสต์จะลงเฉพาะครีเอเตอร์ในโปรเจกต์นี้">${
+             [`<option value="">ทุกโปรเจกต์ (หาให้เอง)</option>`].concat(qoProjs().map(p =>
+               `<option value="${esc(p)}"${p === (QO_SKU_PROJ == null ? PROJ : QO_SKU_PROJ) ? " selected" : ""}>${
+                 isTeamProj(p) ? "👥 " : ""}${esc(p)}</option>`)).join("")}</select>
+           <span class="qo2step">กลุ่ม</span>
+           <select id="qo2SkuKind" class="qo2s" title="ลงเฉพาะครีเอเตอร์กลุ่มนี้ · คนกลุ่มอื่นในลิสต์จะถูกข้ามพร้อมบอกเหตุผล">${
+             [["", "ทั้ง KOL และ KOC"], ["KOL", "เฉพาะ KOL"], ["KOC", "เฉพาะ KOC"]].map(([v, t]) =>
+               `<option value="${v}"${v === (QO_SKU_KIND || "") ? " selected" : ""}>${t}</option>`).join("")}</select>
+           <span class="qo2step"><b>③</b> วางลิสต์</span>
+           <div class="qo2line"><textarea id="qo2Val" rows="3" class="qo2new qo2track"
+             placeholder="วางลิสต์ — บรรทัดละคน: ชื่อ + SKU (ก๊อปสองคอลัมน์จากชีตมาวางได้เลย)&#10;nana.review   Blush - B301&#10;@mintmint_   Lip - L401 + Blush - B302"></textarea>
+             <button class="run qo2run" id="qo2Go">ตรวจก่อนใช้ ▶</button></div>`
+        : c === "track"
         ? `<span class="qo2step"><b>②</b> ลงโปรเจกต์</span>
            <select id="qo2TrackProj" class="qo2s" title="เลขพัสดุในลิสต์จะลงเฉพาะครีเอเตอร์ในโปรเจกต์นี้">${
-             [`<option value="">ทุกโปรเจกต์ (หาให้เอง)</option>`].concat(PROJECTS.map(p =>
+             [`<option value="">ทุกโปรเจกต์ (หาให้เอง)</option>`].concat(qoProjs().map(p =>
                `<option value="${esc(p)}"${p === (QO_TRACK_PROJ == null ? PROJ : QO_TRACK_PROJ) ? " selected" : ""}>${
                  isTeamProj(p) ? "👥 " : ""}${esc(p)}</option>`)).join("")}</select>
            <span class="qo2step">ขนส่ง</span>
@@ -15187,7 +15203,10 @@ function renderQO2(){
 function qoPopProj(){
   const sel = $("#qoPopProj");
   if (!sel) return;
-  sel.innerHTML = projTabList(PROJ).map(p => `<option value="${esc(p)}"${p === PROJ ? " selected" : ""}>${isTeamProj(p) ? "👥 " : ""}${esc(p)}</option>`).join("");
+  // เฉพาะโปรเจกต์ที่ยังไม่ปิด · ถ้าตอนนี้เปิดโปรเจกต์ที่ปิดแล้วค้างอยู่ ให้ขึ้นไว้ (บอกว่าปิดแล้ว) ไม่งั้นช่องจะโชว์คนละโปรเจกต์กับที่ทำงานอยู่
+  const ps = activeProjects().concat((projMeta(PROJ) || {}).done ? [PROJ] : []);
+  sel.innerHTML = ps.map(p => `<option value="${esc(p)}"${p === PROJ ? " selected" : ""}>${isTeamProj(p) ? "👥 " : ""}${esc(p)}${
+    (projMeta(p) || {}).done ? " (ปิดแล้ว)" : ""}</option>`).join("");
   const sh = $("#qoPopSheet");
   if (sh){
     const all = COORD[PROJ] || [], t = all.filter(r => r.temp).length, cur = sheetOf(PROJ);
@@ -15243,7 +15262,10 @@ function qo2Sum(c){
     return selText("#qo2Val") || String(($("#qo2Val") || {}).value || "").trim();
   })();
   let t;
-  if (c === "track"){
+  if (c === "skubulk"){
+    const n = String(($("#qo2Val") || {}).value || "").split("\n").filter(l => l.trim()).length;
+    t = n ? `จะอ่านลิสต์ <b>${n}</b> บรรทัด แล้วใส่ SKU ให้แต่ละคน` : `วางลิสต์ ชื่อ + SKU แล้วกดตรวจ`;
+  } else if (c === "track"){
     const n = String(($("#qo2Val") || {}).value || "").split("\n").filter(l => l.trim()).length;
     t = n ? `จะอ่านลิสต์เลขพัสดุ <b>${n}</b> บรรทัด แล้วใส่ให้แต่ละคน` : `วางลิสต์แล้วกดตรวจ`;
   } else if (c === "add"){
@@ -15634,7 +15656,12 @@ function wireQO2Form(c){
     const sp = qo2Spec(c) || {};
     const val = $("#qo2Val") ? String($("#qo2Val").value || "").trim() : "";
     let text;
-    if (c === "track"){
+    if (c === "skubulk"){
+      if (!val){ msg("วางลิสต์ชื่อ + SKU ก่อน"); return $("#qo2Val").focus(); }
+      QO_SKU_PROJ = $("#qo2SkuProj") ? $("#qo2SkuProj").value : null;
+      QO_SKU_KIND = ($("#qo2SkuKind") || {}).value || "";
+      text = SKU_BULK_HEAD + "\n" + val;
+    } else if (c === "track"){
       if (!val){ msg("วางลิสต์ชื่อ + เลขพัสดุก่อน"); return $("#qo2Val").focus(); }
       QO_CARRIER = ($("#qo2Carrier") || {}).value || "";
       QO_TRACK_PROJ = $("#qo2TrackProj") ? $("#qo2TrackProj").value : null;
@@ -21464,9 +21491,60 @@ function parseTrackingText(text){
   return out;
 }
 
+// ═══ 🏷 SKU ทีละหลายคน (2026-11-03) ═══
+// บรรทัดละคน: ชื่อ + SKU (ก๊อปสองคอลัมน์จากชีตได้) · เลือกโปรเจกต์ / กลุ่ม KOL-KOC ได้ในคำสั่งด่วน
+// ทับ SKU เดิมได้ — หน้าตรวจโชว์ เดิม → ใหม่ · คนกลุ่มอื่น/ไม่เจอในโปรเจกต์ = ข้ามพร้อมบอกเหตุผล ไม่เดา
+const SKU_BULK_HEAD = "SKU ทีละหลายคน";
+let QO_SKU_PROJ = null, QO_SKU_KIND = "";
+function parseSkuBulkText(text){
+  let lines = String(text).split(/\r?\n/);
+  if ((lines[0] || "").trim() !== SKU_BULK_HEAD) return null;
+  lines = lines.slice(1).map(l => l.replace(/\u00a0/g, " ")).filter(l => l.trim());
+  if (!lines.length) return [{ line: SKU_BULK_HEAD, ok:false, changes:{}, why:"วางลิสต์ ชื่อ + SKU บรรทัดละคน" }];
+  const idx = handleIndex(), out = [], seen = new Map();
+  lines.forEach(line => {
+    const names = readNames(line);
+    if (!names.length){
+      const cand = (line.trim().split(/[\s\t]+/)[0] || "").replace(/^@/, "");
+      const near = cand && nearHandle(cand);
+      return out.push({ line, ok:false, changes:{}, why: `ไม่เจอ ${normId(cand) || "ชื่อ"} ในระบบ` + (near ? ` — หมายถึง ${near} ไหม?` : "") });
+    }
+    if (names.length > 1) return out.push({ line, ok:false, changes:{}, why:`บรรทัดเดียวมีหลายชื่อ (${names.map(n => n.h).join(", ")}) — แยกบรรทัดละคน` });
+    const h = names[0].h;
+    // SKU = ทุกอย่างที่เหลือหลังตัดชื่อออก · แท็บ/คอมมา/ขีดคั่นหัวท้ายตัดทิ้ง
+    let sku = line.replace(new RegExp(`(?<![A-Za-z0-9._])@?${esc4re(h)}(?![A-Za-z0-9._])`, "i"), " ")
+      .replace(/https?:\/\/\S+/g, " ").replace(/\t+/g, "  ").trim().replace(/^[:：=\-–—,|]+\s*/, "").replace(/\s*[,|]+$/, "").replace(/\s{2,}/g, " ").trim();
+    if (!sku) return out.push({ line, ok:false, changes:{}, why:`${h} — ไม่มี SKU ในบรรทัดนี้` });
+    let e = idx.get(h) || [];
+    if (QO_SKU_PROJ){
+      const inP = e.filter(x => x.proj === QO_SKU_PROJ);
+      if (!inP.length) return out.push({ line, ok:false, changes:{}, why:`ไม่เจอ ${h} ใน ${QO_SKU_PROJ}${e.length ? ` (อยู่ใน ${e.map(x => x.proj).join(", ")})` : ""}` });
+      e = inP;
+    } else {
+      e = e.filter(x => !(projMeta(x.proj) || {}).done);
+      if (e.length > 1 && e.some(x => x.proj === PROJ)) e = e.filter(x => x.proj === PROJ);
+    }
+    if (!e.length) return out.push({ line, ok:false, changes:{}, why:`ไม่เจอ ${h} ในโปรเจกต์ที่ยังไม่ปิด` });
+    if (e.length > 1) return out.push({ line, ok:false, changes:{}, why:`${h} อยู่ใน ${e.map(x => x.proj).join(" และ ")} — เลือกโปรเจกต์ที่ ② ก่อน` });
+    const { row, proj } = e[0];
+    if (QO_SKU_KIND && kindOf(row) !== QO_SKU_KIND)
+      return out.push({ line, ok:false, changes:{}, why:`${h} เป็น ${kindOf(row)} — ข้ามตามที่เลือก "เฉพาะ ${QO_SKU_KIND}"` });
+    if (seen.has(row)) return out.push({ line, ok:false, changes:{}, why:`${h} ซ้ำกับบรรทัดก่อนหน้า — ใช้บรรทัดแรก` });
+    seen.set(row, 1);
+    const prev = row.sku || "";
+    if (prev.trim() === sku) return out.push({ line, ok:false, changes:{}, why:`${h} — มี SKU นี้อยู่แล้ว ไม่ต้องเปลี่ยน` });
+    // ไม่อยู่ในคลัง SKU ของโปรเจกต์ = เตือนในหน้าตรวจ (ยังใส่ได้ — อาจเป็น SKU ใหม่)
+    const lib = (PROJ_SKU[proj] || []).concat(skuListFor(proj) || []);
+    const unk = lib.length ? skuParts(sku).filter(x => !lib.includes(x)) : [];
+    out.push({ line, ok:true, id:h, proj, row, changes:{ sku, skuFrom: prev }, note: unk.length ? `ยังไม่อยู่ในคลัง SKU ของโปรเจกต์: ${unk.join(", ")}` : "" });
+  });
+  return out;
+}
 let QO_CARRIER = "";    // ขนส่งที่เลือกในคำสั่งด่วน "เลขพัสดุ" — ใส่ให้ทุกคนในลิสต์ตอนกดใช้
 let QO_TRACK_PROJ = null;   // โปรเจกต์ที่เลือกให้ลงเลขพัสดุ · "" = ทุกโปรเจกต์ · null = ยังไม่เคยเลือก (ใช้แท็บที่เปิดอยู่)
 function parseCmdText(text){
+  const skb = parseSkuBulkText(text);
+  if (skb) return skb;
   const trk = parseTrackingText(text);
   if (trk){
     // ขนส่งไปกับรายการ — หน้าตรวจโชว์ · ตอนกดใช้เขียนลงข้อมูลรายคน (ไม่ใช่ช่องในตาราง)
@@ -22136,7 +22214,11 @@ $("#qoParse").onclick = async () => {
         (q.moveTo ? [`<b style="color:var(--accent)">ย้ายไป ${esc(q.moveTo)}</b>`] : [])
         // net3 คิดจากเรท×ภาษีเสมอ ไม่ใช่สิ่งที่คนสั่ง เอาออกจากรายการที่โชว์
         .concat(Object.entries(q.changes)
-          .filter(([k]) => k !== "rateFrom" && k !== "net3" && k !== "trackFrom" && k !== "carrier").map(([k, v]) =>
+          .filter(([k]) => k !== "rateFrom" && k !== "net3" && k !== "trackFrom" && k !== "skuFrom" && k !== "carrier").map(([k, v]) =>
+          k === "sku" && q.changes.skuFrom != null
+            ? `SKU: <b>${q.changes.skuFrom ? `<s style="color:var(--dim)">${esc(q.changes.skuFrom)}</s> → ` : `<span style="color:var(--dim)">(ว่าง)</span> → `}${esc(v)}</b>${
+                q.note ? ` <span style="color:var(--warn)">⚠ ${esc(q.note)}</span>` : ""}`
+          :
           // เลขพัสดุทับของเดิมได้ — ต้องเห็นเลขเดิมคู่กันเสมอ
           k === "tracking" && q.changes.trackFrom != null
             ? `เลขพัสดุ: <b>${q.changes.trackFrom ? `<s style="color:var(--dim)">${esc(q.changes.trackFrom)}</s> → `
@@ -22178,6 +22260,7 @@ function applyQuickOrder(){
     const ch = Object.assign({}, q.changes);
     delete ch.rateFrom;                      // ใช้โชว์ในหน้าตรวจอย่างเดียว ไม่ใช่ค่าของแถว
     delete ch.trackFrom;
+    delete ch.skuFrom;
     // ขนส่ง: เลือกเองในคำสั่งด่วน = เก็บรายคน · เดาจากเลข ("?" ท้าย) = ไม่ต้องเก็บ (เดาใหม่ได้ทุกครั้ง)
     if (ch.carrier != null){
       if (!String(ch.carrier).endsWith("?")){ loadCmdOwn(); setCmdOwnLink(q.row.project, q.row.handle, "carrier", ch.carrier); }
