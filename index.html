@@ -2921,6 +2921,8 @@ html[data-no-tpl] .fxbox [data-fxedit],html[data-no-tpl] .fxbox [data-fxdel],htm
 html[data-no-delrow] .delrow,html[data-no-delrow] #dDel,html[data-no-delrow] [data-sheetact="wipe"]{display:none!important}
 html[data-no-export] #coordExport,html[data-no-export] #xferOut{display:none!important}
 html[data-no-sku] #skuGuideSect{display:none!important}
+html[data-no-find] [data-go="find"],html[data-no-find] #foldBtn,html[data-no-find] .poolstat,
+html[data-no-find] #addBtn,html[data-no-find] #cartBtn,html[data-viewer] #addBtn{display:none!important}
 html[data-no-assign] select.asg{pointer-events:none;opacity:.55}
 .mirow{cursor:default}
 .mirow .uisel{margin-left:auto;width:auto;background:var(--surface2);border:1px solid var(--line);color:var(--ink);border-radius:6px;padding:3px 6px;font:inherit;font-size:.78rem}
@@ -3210,7 +3212,7 @@ html[data-theme="light"] .mapcard:has(.mapstamp) > *:not(.mapstamp),html[data-th
     <span class="sub">Alta Global Commerce</span>
   </button>
   <nav class="nav" id="navBar">
-    <button data-go="find" class="crewhide">ค้นหาครีเอเตอร์</button>
+    <button data-go="find">ค้นหาครีเอเตอร์</button>
     <button data-go="coord">Coordinator</button>
     <!-- โหมดทีม: ห้องตรวจดราฟต์ (หน้าของตัวเอง) · คำสั่งด่วน (แผงลอย ใช้ได้จากทุกหน้า) -->
     <button data-go="review" class="teamonly">ตรวจดราฟต์<span class="nbadge" id="rvBadge" hidden></span></button>
@@ -3219,14 +3221,14 @@ html[data-theme="light"] .mapcard:has(.mapstamp) > *:not(.mapstamp),html[data-th
     <button type="button" id="openNavBtn" class="teamonly" aria-expanded="false" aria-controls="openPop">🔗 เปิดโปรไฟล์</button>
   </nav>
   <div class="hgroup">
-    <button class="gear crewhide" id="foldBtn" aria-expanded="true"
+    <button class="gear" id="foldBtn" aria-expanded="true"
             title="พับ/กางแถบตัวกรอง">◧<span class="lbl"> แถบตัวกรอง</span></button>
-    <div class="poolstat crewhide">pool: <b id="poolN">0</b> คน</div>
+    <div class="poolstat">pool: <b id="poolN">0</b> คน</div>
     <div class="srcchip" id="srcChip" title="ตอนนี้เว็บอ่านชีตด้วยวิธีไหน"></div>
-    <button class="gear accent crewhide" id="addBtn" aria-haspopup="dialog">+<span class="lbl"> เพิ่มครีเอเตอร์</span></button>
+    <button class="gear accent" id="addBtn" aria-haspopup="dialog">+<span class="lbl"> เพิ่มครีเอเตอร์</span></button>
     <button class="gear" id="undoBtn" hidden title="ย้อนกลับ (Ctrl+Z)">↶<span class="lbl"> ย้อนกลับ</span></button>
     <button class="gear" id="syncBtn" hidden title="ส่งที่แก้ขึ้นฐานข้อมูลเดี๋ยวนี้ (Ctrl+S)">⇧<span class="lbl"> ซิงก์</span></button>
-    <button class="gear cartbtn empty crewhide" id="cartBtn" aria-haspopup="dialog"
+    <button class="gear cartbtn empty" id="cartBtn" aria-haspopup="dialog"
             title="ครีเอเตอร์ที่หยิบไว้">🛒 ตะกร้า <span class="n" id="cartN">0</span></button>
     <button type="button" class="acctbtn" id="acctBtn" aria-haspopup="menu" aria-expanded="false" aria-controls="acctMenu"
             title="บัญชีของฉัน · ตั้งค่า"><span class="acav" id="acctAv">?</span><span class="an" id="acctName">บัญชี</span><span class="caret">▾</span></button>
@@ -3399,7 +3401,7 @@ html[data-theme="light"] .mapcard:has(.mapstamp) > *:not(.mapstamp),html[data-th
        เรท ภาษี สถานะ วันโพสต์ แก้ได้หมดจากหน้าเดียว</p>
   </div>
   <div class="home">
-    <button class="hcard crewhide" data-go="find">
+    <button class="hcard" data-go="find">
       <span class="ic">🔍</span>
       <span class="ht">ค้นหาครีเอเตอร์</span>
       <span class="hs">ดึง pool จากชีต กรองตามหมวด/ยอดผู้ติดตาม/งบ<br>
@@ -17353,7 +17355,8 @@ let COORD_READY = false;
 async function setView(v){
   if (v === "review" && !can("review")) v = "coord";
   vlog("view", { d: { v } });
-  if (v === "find" && isCrew()) v = "coord";   // ปุ่มถูกซ่อนไปแล้ว แต่ยังเข้าถึงได้ทางคำสั่ง/หน้าที่ค้างไว้
+  // 2026-11-04 เปิดหน้าค้นหาให้ทุกระดับ (เดิมเฉพาะ admin/manager) · admin ปิดรายคนได้ที่สิทธิ์ "find"
+  if (v === "find" && !can("find")) v = "coord";
   // โหมดทีม: ล็อกอินแล้วเข้าได้เลย ไม่มีรหัสชั้นในอีก (ขอเลิกใช้ 2026-10-03)
   if (v === "coord" && !TEAM_MODE && !gatePassed("coord") && !(await askGate("coord"))) return;
   document.body.dataset.view = v;
@@ -22899,6 +22902,8 @@ function isCrew(){ return !FULL_ROLES.includes((PROFILE || {}).role); }
 // ไม่ได้ตั้ง = ตามค่าตั้งต้นของ role · admin ใช้ได้ทุกอย่างเสมอ · หน้าเว็บซ่อน/ปิดปุ่มตาม
 // ⚠️ เป็นการจัดหน้าจอ — ข้อมูลยังเปิดตาม RLS ของ role (เหมือนการซ่อนตาม role เดิม)
 const FEATS = [
+  // 2026-11-04 — ทุกระดับใช้ได้ (อ่าน pool ได้ทุกคนที่ active ตาม RLS · เพิ่มเข้าคลังได้ตั้งแต่ editor)
+  { k:"find",   th:"ค้นหาครีเอเตอร์ (คลัง pool)" },
   { k:"review", th:"ห้องตรวจดราฟต์" },
   { k:"quick",  th:"คำสั่งด่วน" },
   { k:"map",    th:"Map แผนผัง" },
@@ -22929,6 +22934,7 @@ function applyRole(){
   else delete document.body.dataset.crew;
   const de = document.documentElement;
   if ((PROFILE || {}).role === "admin") de.dataset.admin = "1"; else delete de.dataset.admin;
+  de.toggleAttribute("data-viewer", TEAM_MODE && (PROFILE || {}).role === "viewer");
   if (canManageProjects()) de.dataset.pm = "1"; else delete de.dataset.pm;
   applyPerms();
   renderAcctBtn();
@@ -23463,7 +23469,7 @@ function migrateCartClear(){
 // ═══ เวอร์ชันของหน้า — แท็บที่เปิดค้างโค้ดเก่าต้องไม่ซิงก์ทีม ═══
 // เจอจริง 2026-10-27: แท็บเก่าดึงคีย์ใหม่ลงผิดที่ + ดันรายการที่ลบแล้วกลับขึ้นทุกนาที
 // APP_VER ประทับตอน deploy (kol-tools\stamp-version.py) · version.json คู่กันบนเซิร์ฟเวอร์ — ไม่ตรง = รีเฟรช
-const APP_VER = "20261104-030728";
+const APP_VER = "20261104-070846";
 let STALE = false;
 async function verCheck(){
   if (STALE || APP_VER === "dev") return;
@@ -23668,7 +23674,7 @@ requireLogin().then(async () => {
   let last = "home";
   try { last = lsGet(LS_VIEW) || "home"; } catch(e){}
   if (!["find","coord","home","review"].includes(last) || (last === "review" && !TEAM_MODE)) last = "home";
-  if (last === "find" && isCrew()) last = "home";
+  if (last === "find" && !can("find")) last = "home";
   // คนสมัครเองไม่มีใครสอน — กางคู่มือให้ก่อนตั้งแต่ยังไม่เจอประตูรหัส Coordinator
   if (isCrew() && !lsGet(LS_TOUR)) await openCoach();
   await setView(last);
