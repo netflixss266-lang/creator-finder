@@ -3237,9 +3237,13 @@ html[data-theme="light"] .mapcard:has(.mapstamp) > *:not(.mapstamp),html[data-th
 /* หัวเว็บ (2026-11-04): ซ่อนป้ายที่มาข้อมูล · ย้อนกลับ · ซิงก์ — คีย์ลัด Ctrl+Z / Ctrl+S ยังใช้ได้ · แถบสถานะซิงก์เหนือตารางยังเตือนเมื่อค้าง/ผิดพลาด */
 #srcChip,#undoBtn,#syncBtn{display:none!important}
 /* โปรไฟล์ติดมุมขวาบนสุดเสมอ — หัวเว็บขึ้นบรรทัดใหม่ก็ไม่หลุดไปกลางแถว */
+/* (แก้ 2026-11-04) เดิมติดอยู่กับหัวเว็บ — พอเปิด Map / Format / ตั้งค่าโปรเจกต์ (แผงเต็มจอ z50) หัวเว็บถูกบัง ปุ่มหายไปด้วย
+   ตอนนี้ลอยติดมุมจอ อยู่เหนือแผงเต็มจอ (ใต้ลิ้นชัก Command z70 กับหน้าล็อกอิน z90) · หัวแผงเต็มจอเว้นที่ขวาให้ ปุ่ม ✕ ไม่ซ้อนกัน */
 body > header{padding-right:calc(var(--acw,120px) + 44px)}
-body > header #acctBtn{position:absolute;top:12px;right:26px}
-@media(max-width:900px){body > header{padding-right:calc(var(--acw,120px) + 28px)} body > header #acctBtn{top:9px;right:14px}}
+#acctBtn{position:fixed;top:12px;right:26px;z-index:55}
+.overlay.full .modal-head{padding-right:calc(var(--acw,120px) + 44px)}
+@media(max-width:900px){body > header{padding-right:calc(var(--acw,120px) + 28px)} #acctBtn{top:9px;right:14px}
+  .overlay.full .modal-head{padding-right:calc(var(--acw,120px) + 28px)}}
 </style>
 </head>
 <body>
@@ -3271,10 +3275,11 @@ body > header #acctBtn{position:absolute;top:12px;right:26px}
     <button class="gear" id="syncBtn" hidden title="ส่งที่แก้ขึ้นฐานข้อมูลเดี๋ยวนี้ (Ctrl+S)">⇧<span class="lbl"> ซิงก์</span></button>
     <button class="gear cartbtn empty" id="cartBtn" aria-haspopup="dialog"
             title="ครีเอเตอร์ที่หยิบไว้">🛒 ตะกร้า <span class="n" id="cartN">0</span></button>
-    <button type="button" class="acctbtn" id="acctBtn" aria-haspopup="menu" aria-expanded="false" aria-controls="acctMenu"
-            title="บัญชีของฉัน · ตั้งค่า"><span class="acav" id="acctAv">?</span><span class="an" id="acctName">บัญชี</span><span class="caret">▾</span></button>
   </div>
 </header>
+<!-- ปุ่มโปรไฟล์อยู่นอกหัวเว็บ — หัวเว็บเป็นชั้นของตัวเอง (sticky z40) ถ้าอยู่ข้างในจะโดนแผงเต็มจอ (z50) บังเสมอ -->
+<button type="button" class="acctbtn" id="acctBtn" aria-haspopup="menu" aria-expanded="false" aria-controls="acctMenu"
+            title="บัญชีของฉัน · ตั้งค่า"><span class="acav" id="acctAv">?</span><span class="an" id="acctName">บัญชี</span><span class="caret">▾</span></button>
 
 <!-- ═══ เมนูบัญชี — ตั้งค่า / ขนาดตัวอักษร / ออกจากระบบ ย้ายมาอยู่ในนี้ ═══ -->
 <div class="acctmenu" id="acctMenu" role="menu" aria-label="บัญชี" hidden>
@@ -20572,7 +20577,7 @@ document.addEventListener("keydown", e => {
 $("#undoBtn").onclick = doUndo;
 // เว้นที่ขวาของหัวเว็บเท่ากับปุ่มโปรไฟล์จริง (ชื่อยาว/สั้น · จอแคบซ่อนชื่อ) — ของอื่นไม่ไปมุดใต้ปุ่ม
 try { const hd = document.querySelector("body > header"), ab = $("#acctBtn");
-  new ResizeObserver(() => hd.style.setProperty("--acw", ab.offsetWidth + "px")).observe(ab); } catch(e){}
+  new ResizeObserver(() => document.documentElement.style.setProperty("--acw", ab.offsetWidth + "px")).observe(ab); void hd; } catch(e){}
 
 // ── Ctrl+S ซิงก์ขึ้นฐานข้อมูลเดี๋ยวนี้ ──
 // ⚠️ ต้อง preventDefault ทุกครั้งที่จับได้ ไม่ว่าจะซิงก์จริงหรือไม่ — ไม่งั้นกล่อง "บันทึกหน้าเว็บ"
@@ -23586,7 +23591,7 @@ function migrateCartClear(){
 // ═══ เวอร์ชันของหน้า — แท็บที่เปิดค้างโค้ดเก่าต้องไม่ซิงก์ทีม ═══
 // เจอจริง 2026-10-27: แท็บเก่าดึงคีย์ใหม่ลงผิดที่ + ดันรายการที่ลบแล้วกลับขึ้นทุกนาที
 // APP_VER ประทับตอน deploy (kol-tools\stamp-version.py) · version.json คู่กันบนเซิร์ฟเวอร์ — ไม่ตรง = รีเฟรช
-const APP_VER = "20261104-080626";
+const APP_VER = "20261104-080959";
 let STALE = false;
 async function verCheck(){
   if (STALE || APP_VER === "dev") return;
