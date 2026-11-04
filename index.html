@@ -3266,6 +3266,8 @@ html[data-team] .cmdbar-stick{padding-bottom:0;margin-bottom:0}
 body[data-view="coord"] #coordView{padding-top:12px}
 /* "ตรงกับฐานข้อมูลแล้ว" ไม่ต้องโชว์ — แถบขึ้นเฉพาะตอนกำลังซิงก์ / ค้าง / ผิดพลาด */
 #syncBar.ok{display:none}
+.mrow .mkick{flex:none;padding:3px 10px;font-size:.72rem;order:2}
+.mrow .mkick:hover{border-color:var(--lo);color:var(--lo)}
 </style>
 </head>
 <body>
@@ -7368,7 +7370,8 @@ function openFormat(){
 function openProjManager(){
   vlog("projects");
   const body = $("#projBody");
-  body.innerHTML = PROJ_LIST.map((p, i) => `<div class="prow${p.done ? " done" : ""}">
+  // ปิดงานแล้วไปอยู่ล่างสุด — i ยังเป็นตำแหน่งจริงใน PROJ_LIST (ปุ่มปิดงาน/ลบ/ย้ายชี้ถูกตัว)
+  body.innerHTML = PROJ_LIST.map((p, i) => ({ p, i })).sort((a, b) => !!a.p.done - !!b.p.done).map(({ p, i }) => `<div class="prow${p.done ? " done" : ""}">
       <span class="nm">${esc(p.name)}${needsScript(p.name)
         ? `<span class="warnmark" title="ยังไม่มีในสคริปต์">!</span>` : ""}</span>
       ${TEAM_MODE && TEAM ? `<span class="pspace${p.team ? " team" : ""}">${p.team ? "👥 ทีม" : "ส่วนตัว"}</span>` : ""}
@@ -13735,7 +13738,7 @@ function mapAllSheet(){
         <div class="s">ไม่มีเรท ${g.noRate} · ไม่มีสถานะ ${g.noSt}</div></div>
     </div>
     ${mapBar(g)}
-    <div class="mapgrid">${mapAllProjs().map(p => {
+    <div class="mapgrid">${mapAllProjs().slice().sort((a, b) => !!(projMeta(a) || {}).done - !!(projMeta(b) || {}).done).map(p => {
       const rows = mapRows(p);
       const s = mapStats(rows);
       const flagged = rows.filter(r => mapFlags(r).length).length;
@@ -14367,6 +14370,7 @@ function renderTeamSect(){
     </div>
     <div style="margin-top:10px">${TEAM.members.map(m => `<div class="mrow">
       <span class="mn">${avatar(m.id, m.name)} ${esc(m.name || m.email)}${m.id === TEAM.lead_id ? " · หัวทีม" : ""}${m.id === me ? " (คุณ)" : ""}</span>
+      ${(lead || admin) && m.id !== me ? `<button type="button" class="export ghost mkick" data-mkick="${esc(m.id)}" title="ถอด ${esc(m.name || m.email)} ออกจากทีม">เตะออก</button>` : ""}
       ${lead || admin || m.id === me
         ? `<input data-mlabel="${esc(m.id)}" maxlength="60" value="${esc(m.label || "")}"
              placeholder="ป้าย เช่น Sourcing, KOC — คั่นด้วยจุลภาค">`
@@ -14386,6 +14390,26 @@ function renderTeamSect(){
       $("#tmLabelMsg").textContent = "บันทึกป้ายแล้ว";
       if (document.body.dataset.view === "coord") renderCoord();
     } catch(e){ $("#tmLabelMsg").textContent = "บันทึกป้ายไม่ได้: " + e.message; }
+  });
+  b.querySelectorAll("[data-mkick]").forEach(btn => btn.onclick = async () => {
+    const m = TEAM.members.find(x => x.id === btn.dataset.mkick) || {};
+    const who = m.name || m.email || "คนนี้";
+    if (!confirm(`เตะ ${who} ออกจากทีม “${TEAM.name}”?
+
+• บัญชีของเขายังอยู่ แต่จะไม่เห็นงานทีมอีก
+• แถวที่เขาดูแลอยู่ยังอยู่กับทีม (ขึ้นเป็น “คนนอกทีม” — เปลี่ยนผู้ดูแลทีหลังได้)
+• ถ้าเขายังมีรหัสทีมจะกลับเข้ามาได้ — กด “สุ่มรหัสใหม่” ด้วยถ้าไม่อยากให้กลับ`)) return;
+    btn.disabled = true; btn.textContent = "กำลังเตะ...";
+    try {
+      await sbRpc("kick_team_member", { p_user: m.id || btn.dataset.mkick });
+      vlog("team:kick", { d: who });
+      TEAM = await sbRpc("my_team");
+      renderTeamSect();
+      if (document.body.dataset.view === "coord") renderCoord();
+    } catch(e){
+      btn.disabled = false; btn.textContent = "เตะออก";
+      alert(/kick_team_member|function|404/i.test(e.message) ? "ฐานข้อมูลนี้ยังไม่มีคำสั่งเตะสมาชิก — แจ้งผู้ดูแลระบบ" : e.message);
+    }
   });
   $("#tmCopy").onclick = () => {
     const t = `ชวนเข้าทีม ${TEAM.name} บน Creataew
@@ -23632,7 +23656,7 @@ function migrateCartClear(){
 // ═══ เวอร์ชันของหน้า — แท็บที่เปิดค้างโค้ดเก่าต้องไม่ซิงก์ทีม ═══
 // เจอจริง 2026-10-27: แท็บเก่าดึงคีย์ใหม่ลงผิดที่ + ดันรายการที่ลบแล้วกลับขึ้นทุกนาที
 // APP_VER ประทับตอน deploy (kol-tools\stamp-version.py) · version.json คู่กันบนเซิร์ฟเวอร์ — ไม่ตรง = รีเฟรช
-const APP_VER = "20261104-083510";
+const APP_VER = "20261104-084248";
 let STALE = false;
 async function verCheck(){
   if (STALE || APP_VER === "dev") return;
