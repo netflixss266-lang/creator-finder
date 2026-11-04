@@ -3346,10 +3346,25 @@ html[data-theme="light"] .mapcard:has(.mapstamp) > *:not(.mapstamp),html[data-th
 #skuGuideSect .sg-find{flex:1 1 160px;min-width:140px;padding:6px 10px}
 #skuGuideSect #skuBindNote{margin:0 0 8px}
 #skuGuideSect #skuBindNote .sg-var{color:var(--dim)}
-#skuGuideSect .sg-add{display:flex;gap:6px;flex-wrap:wrap;margin:0 0 4px}
-#skuGuideSect .sg-add #skuGuideKey{flex:1 1 150px;min-width:130px;padding:6px 10px}
-#skuGuideSect .sg-add #skuGuideUrl{flex:2 1 220px;min-width:160px;padding:6px 10px}
-#skuGuideSect .sg-add .run{width:auto;padding:6px 16px;flex:none}
+#skuGuideSect .sg-add2{border:1px solid var(--line);border-radius:10px;padding:9px 10px;margin:0 0 6px;background:var(--surface2)}
+#skuGuideSect .sg-a2top{display:flex;gap:6px;flex-wrap:wrap}
+#skuGuideSect .sg-a2top select{flex:1 1 180px;min-width:150px;padding:6px 8px}
+#skuGuideSect .sg-a2top input{flex:1 1 160px;min-width:140px;padding:6px 10px}
+#skuGuideSect .sg-a2list{display:flex;flex-direction:column;gap:5px;max-height:230px;overflow-y:auto;margin:8px 0;padding-right:2px}
+#skuGuideSect .sg-a2line{display:flex;flex-wrap:wrap;gap:5px;align-items:center}
+#skuGuideSect .sg-a2list .pchip{font-size:.72rem;padding:3px 10px}
+#skuGuideSect .sg-a2list .pchip.ln{font-weight:700}
+#skuGuideSect .sg-a2list .pchip.ln:not(.on){border-style:dashed}
+#skuGuideSect .sg-a2list .pchip .has{width:6px;height:6px;border-radius:50%;background:var(--accent);flex:none}
+#skuGuideSect .sg-a2list .pchip.on .has{background:var(--accent-ink)}
+#skuGuideSect .sg-a2list .none{color:var(--dim);font-size:.74rem;padding:4px 2px}
+#skuGuideSect .sg-a2go{display:flex;gap:6px}
+#skuGuideSect .sg-a2go input{flex:1;min-width:0;padding:6px 10px}
+#skuGuideSect .sg-a2go .run{width:auto;padding:6px 16px;flex:none}
+#skuGuideSect .sg-a2sum{margin:6px 0 0;font-size:.7rem;color:var(--dim);min-height:1em}
+#skuGuideSect .sg-a2sum b{color:var(--ink)}
+#skuGuideSect .sg-a2sum .has-dot{display:inline-block;width:6px;height:6px;border-radius:50%;background:var(--accent);margin:0 3px 1px 0}
+#skuGuideSect .sg-a2sum .clr{background:none;border:0;color:var(--dim);text-decoration:underline;cursor:pointer;font:inherit;padding:0 0 0 6px}
 #skuGuideSect .sg-fold{margin:4px 0 10px}
 #skuGuideSect .sg-fold > summary{cursor:pointer;font-size:.76rem;color:var(--accent);list-style:none;padding:3px 0}
 #skuGuideSect .sg-fold > summary::-webkit-details-marker{display:none}
@@ -4463,22 +4478,21 @@ html.demo .dm-b:hover{filter:blur(5px)}
       </div>
       <p class="sect-sub" id="skuBindNote"></p>
 
-      <div class="sg-add">
-        <input id="skuGuideKey" list="skuGuideOpts" placeholder="ชื่อไลน์ / SKU เช่น Blush">
-        <datalist id="skuGuideOpts"></datalist>
-        <input id="skuGuideUrl" placeholder="https://… ลิงก์">
-        <button type="button" class="run" id="skuGuideAdd">＋ เพิ่ม</button>
+      <!-- เพิ่มแบบใหม่ (2026-11-04): เลือกโปรเจกต์ → แตะ SKU ที่โปรเจกต์นั้นมี (ได้หลายอัน) → วางลิงก์ → เพิ่ม
+           ปุ่มเดียว · ไม่ต้องกางรายการ · พิมพ์ชื่อไลน์ใหม่ที่ยังไม่มีในรายการได้ในช่องค้นหา -->
+      <div class="sg-add2">
+        <div class="sg-a2top">
+          <select id="skuGuideProj" title="SKU ของโปรเจกต์ไหน"></select>
+          <input id="skuGuideFind" placeholder="🔍 กรอง SKU / พิมพ์ชื่อไลน์ใหม่" autocomplete="off">
+        </div>
+        <div class="sg-a2list" id="skuGuidePick"></div>
+        <div class="sg-a2go">
+          <input id="skuGuideUrl" placeholder="วางลิงก์" autocomplete="off">
+          <button type="button" class="run" id="skuGuideAdd">＋ เพิ่ม</button>
+        </div>
+        <p class="sg-a2sum" id="skuGuidePickSum"></p>
       </div>
       <div class="addmsg" id="skuGuideMsg"></div>
-      <details class="sg-fold" id="sgPickFold">
-        <summary>เลือกจากรายการ SKU (ทีละหลายอัน)</summary>
-        <div class="pickhead">
-          <select id="skuGuideProj" title="จำกัดวงให้เหลือแค่ SKU ในโปรเจกต์นี้"></select>
-          <input id="skuGuideFind" placeholder="พิมพ์กรอง SKU" autocomplete="off">
-        </div>
-        <div class="picklist" id="skuGuidePick"></div>
-        <p class="sect-sub" id="skuGuidePickSum" style="margin:4px 0 0"></p>
-      </details>
 
       <div class="skuover" id="skuOverNote" hidden></div>
       <!-- แยกข้อมูลเดิม (ก่อนมีชุด KOC) เป็น KOL/KOC — โชว์เฉพาะตอนชุด KOC ยังว่าง -->
@@ -18503,12 +18517,12 @@ let SKU_CK = "KOL";                     // หน้าตั้งค่าก�
 // ถ้าจะผูกลิงก์เดียวกับ SKU เจาะจงหลายตัวที่ไม่ได้อยู่ไลน์เดียวกัน ต้องพิมพ์ทีละบรรทัดอยู่ดี
 // ตัวเลือกนี้ให้ติ๊กเลือกของจริงจากพูล แล้วเขียนเข้า MAP ทีละ SKU พร้อมกันในคลิกเดียว
 // (คีย์ที่ได้เป็น SKU เต็มเป๊ะ ไม่ใช่ชื่อไลน์ — ตรงตัวชนะเสมออยู่แล้วตามตัวจับคู่เดิม ไม่ต้องแก้ตรรกะ)
-let SG_PROJ = "";       // "" = ทุกโปรเจกต์
+let SG_PROJ = null;     // null = ยังไม่เลือก → ใช้โปรเจกต์ที่เปิดอยู่ · "" = ทุกโปรเจกต์
 let SG_FIND = "";
 let SG_PICK = new Set();
 
 function sgScope(){
-  let list = SG_PROJ ? (COORD[SG_PROJ] || []) : PROJECTS.flatMap(p => COORD[p] || []);
+  let list = SG_PROJ ? (COORD[SG_PROJ] || []) : activeProjects().flatMap(p => COORD[p] || []);
   // กลุ่มตามสวิตช์ "ตั้งให้ KOL/KOC" ข้างบน (แถบ KOL/KOC ชุดล่างเอาออกแล้ว 2026-10-27 — ซ้ำกัน)
   list = list.filter(r => kindOf(r) === SKU_CK);
   return list;
@@ -18518,32 +18532,55 @@ function sgScope(){
 const projLibSkus = projs => [...new Set(projs.flatMap(p => (PROJ_SKU[p] || []).concat(skuListFor(p) || [])))];
 function sgOptionValues(){
   // คลังของโปรเจกต์ยังไม่ผูกกับใคร (ไม่รู้ว่า KOL/KOC) — รวมให้ทั้งสองกลุ่ม จะได้ตั้งล่วงหน้าได้พาะตอนดู "ทั้งหมด"
-  const lib = projLibSkus(SG_PROJ ? [SG_PROJ] : PROJECTS);
+  const lib = projLibSkus(SG_PROJ ? [SG_PROJ] : activeProjects());
   const used = [...new Set(sgScope().flatMap(r => skuParts(r.sku)).concat(lib))];
   const lines = [...new Set(used.map(s => s.split(/\s*-\s*/)[0].trim()).filter(Boolean))];
   return skuSort([...new Set(lines.concat(used))]);
 }
 function renderSgPick(){
+  const act = qoProjs();
+  if (SG_PROJ === null || (SG_PROJ && !act.includes(SG_PROJ))) SG_PROJ = act[0] || "";
   const projSel = $("#skuGuideProj");
-  if (projSel) projSel.innerHTML = `<option value="">ทุกโปรเจกต์</option>` +
-    PROJECTS.map(p => `<option value="${esc(p)}"${p === SG_PROJ ? " selected" : ""}>${esc(p)}</option>`).join("");
+  if (projSel) projSel.innerHTML = act.map(p => `<option value="${esc(p)}"${p === SG_PROJ ? " selected" : ""}>${
+      esc(p)} · ${projLibSkus([p]).length || (COORD[p] || []).flatMap(r => skuParts(r.sku)).filter((v, i, a) => a.indexOf(v) === i).length} SKU</option>`).join("")
+    + `<option value=""${SG_PROJ === "" ? " selected" : ""}>ทุกโปรเจกต์ที่ยังทำอยู่</option>`;
 
   const box = $("#skuGuidePick");
   if (!box) return;
-  const opts = sgOptionValues().filter(v => !SG_FIND || v.toLowerCase().includes(SG_FIND.trim().toLowerCase()));
-  box.innerHTML = opts.length
-    ? opts.map(v => `<button type="button" class="pchip${SG_PICK.has(v) ? " on" : ""}"
-        data-sgpick="${esc(v)}">${esc(v)}</button>`).join("")
-    : `<span style="color:var(--dim);font-size:.78rem;padding:6px 2px">ไม่มี SKU ตรงกับตัวกรองนี้</span>`;
+  const meta = SKU_BIND_BY[SKU_BIND_KIND] || SKU_BIND_BY.guide;
+  const MAP = skuMapOf(SKU_BIND_KIND, SKU_CK);
+  const q = SG_FIND.trim().toLowerCase();
+  const all = sgOptionValues();
+  const lineOf = v => v.split(/\s*-\s*/)[0].trim();
+  const groups = new Map();
+  all.forEach(v => { const l = lineOf(v); if (!groups.has(l)) groups.set(l, []); if (v !== l) groups.get(l).push(v); });
+  const chip = (v, ln) => {
+    const has = MAP[v] != null && MAP[v] !== "";
+    return `<button type="button" class="pchip${ln ? " ln" : ""}${SG_PICK.has(v) ? " on" : ""}" data-sgpick="${esc(v)}"
+      title="${ln ? "ทั้งไลน์ (ทุกเฉด)" : esc(v)}${has ? "\nตั้งไว้แล้ว: " + esc(MAP[v]) : ""}">${has ? `<i class="has"></i>` : ""}${
+      ln ? esc(v) + " · ทุกเฉด" : esc(skuShort(v) || v)}</button>`;
+  };
+  const rows = [...groups.entries()].filter(([l, kids]) => !q || l.toLowerCase().includes(q) || kids.some(k => k.toLowerCase().includes(q)))
+    .map(([l, kids]) => `<div class="sg-a2line">${chip(l, true)}${kids.filter(k => !q || l.toLowerCase().includes(q) || k.toLowerCase().includes(q)).map(k => chip(k)).join("")}</div>`);
+  box.innerHTML = rows.length ? rows.join("")
+    : `<span class="none">${q ? `ไม่มี SKU ที่ตรง “${esc(SG_FIND.trim())}” — กด ＋ เพิ่ม ได้เลย จะตั้งให้ชื่อนี้` : "โปรเจกต์นี้ยังไม่มี SKU — เพิ่มที่ ⚡ คำสั่งด่วน → เพิ่ม SKU เข้าโปรเจกต์"}</span>`;
   box.querySelectorAll("[data-sgpick]").forEach(b => b.onclick = () => {
     const v = b.dataset.sgpick;
     SG_PICK.has(v) ? SG_PICK.delete(v) : SG_PICK.add(v);
+    // แตะอันเดียวที่ตั้งไว้แล้ว = เอาค่าเดิมมาใส่ช่องให้แก้ต่อ (ช่องยังว่างอยู่เท่านั้น ไม่ทับที่วางไว้)
+    const u = $("#skuGuideUrl");
+    if (SG_PICK.size === 1 && !u.value.trim() && MAP[[...SG_PICK][0]]) u.value = MAP[[...SG_PICK][0]];
     renderSgPick();
   });
 
   const sumEl = $("#skuGuidePickSum");
-  if (sumEl) sumEl.textContent = SG_PICK.size
-    ? `เลือกไว้ ${SG_PICK.size} SKU — กด “เพิ่ม” ด้านล่างเพื่อผูกทุกอันกับลิงก์เดียวกันทีเดียว` : "";
+  const typed = SG_FIND.trim();
+  if (sumEl){
+    sumEl.innerHTML = SG_PICK.size
+      ? `จะตั้ง${esc(meta.th)}ให้ <b>${[...SG_PICK].map(esc).join("</b>, <b>")}</b><button type="button" class="clr" id="sgPickClr">ล้าง</button>`
+      : typed ? `ยังไม่ได้แตะ SKU — กด ＋ เพิ่ม จะตั้งให้ชื่อ <b>${esc(typed)}</b>` : `แตะ SKU ด้านบน (ได้หลายอัน) แล้ววาง${esc(meta.th)} · <i class="has-dot"></i>จุดเขียว = ตั้งไว้แล้ว`;
+    const c = $("#sgPickClr"); if (c) c.onclick = () => { SG_PICK.clear(); renderSgPick(); };
+  }
 }
 // ── ซ่อนใบที่ไม่ใช้แล้ว ──
 // อัตโนมัติ: ใบที่ SKU ของมันมีแต่ในโปรเจกต์ที่ปิดงานแล้ว (โปรเจกต์ที่ยังทำอยู่ไม่มีใครได้ และไม่อยู่ในคลัง SKU ของโปรเจกต์ที่ยังทำอยู่)
@@ -18896,8 +18933,7 @@ function renderSkuGuide(){
   // ตัวเลือกให้พิมพ์ง่าย: SKU ที่ใช้จริงในทุกโปรเจกต์ + ชื่อไลน์ที่ตัดมาจากหน้า SKU
   const used = [...new Set(all.flatMap(r => skuParts(r.sku)).concat(projLibSkus(PROJECTS)))];
   const lines = [...new Set(used.map(s => s.split(/\s*-\s*/)[0].trim()).filter(Boolean))];
-  $("#skuGuideOpts").innerHTML = skuSort([...new Set(lines.concat(used))])
-    .map(v => `<option value="${esc(v)}">`).join("");
+  void lines;   // (เดิมป้อน datalist ของช่องพิมพ์ชื่อ — ตัวเลือกแบบแตะแทนแล้ว 2026-11-04)
 
   box.querySelectorAll("[data-sg]").forEach(inp => inp.onchange = () => {
     const v = inp.value.trim();
@@ -20249,12 +20285,12 @@ $("#addSheet").onclick = addSheet;
 // ไม่ได้เลือกไว้เลย = ถอยไปพฤติกรรมเดิม (พิมพ์ชื่อไลน์/SKU เดียวในช่องข้อความ)
 $("#skuGuideAdd").onclick = () => {
   const picked = [...SG_PICK];
-  const typed = $("#skuGuideKey").value.trim();
+  const typed = $("#skuGuideFind").value.trim();
   const keys = picked.length ? picked : (typed ? [typed] : []);
   const u = $("#skuGuideUrl").value.trim();
   const msg = $("#skuGuideMsg");
   const say = (t, kind) => { msg.className = "addmsg on " + kind; msg.innerHTML = t; };
-  if (!keys.length) return say("เลือก SKU จากรายการ หรือพิมพ์ชื่อไลน์ก่อน", "err");
+  if (!keys.length) return say("แตะ SKU ที่จะตั้งก่อน (หรือพิมพ์ชื่อไลน์ในช่องค้นหา)", "err");
   const meta = SKU_BIND_BY[SKU_BIND_KIND] || SKU_BIND_BY.guide;
   if (!u) return say(`ใส่${meta.th}ก่อน`, "err");
   // แฮชแท็กเป็นข้อความ ไม่ใช่ลิงก์ — บังคับ http เฉพาะชนิดที่เป็นลิงก์จริงเท่านั้น
@@ -20270,7 +20306,7 @@ $("#skuGuideAdd").onclick = () => {
   }
   keys.forEach(k => { MAP[k] = u; });
   saveSkuBind(SKU_BIND_KIND, SKU_CK);
-  $("#skuGuideKey").value = ""; $("#skuGuideUrl").value = "";
+  $("#skuGuideUrl").value = ""; $("#skuGuideFind").value = ""; SG_FIND = "";
   SG_PICK.clear();
   renderSkuGuide();
   const all = PROJECTS.flatMap(p => COORD[p] || []);
@@ -20283,6 +20319,7 @@ $("#skuGuideAdd").onclick = () => {
 };
 $("#skuGuideProj").onchange = () => { SG_PROJ = $("#skuGuideProj").value; renderSgPick(); };
 $("#skuGuideFind").oninput = () => { SG_FIND = $("#skuGuideFind").value; renderSgPick(); };
+$("#skuGuideUrl").onkeydown = e => { if (e.key === "Enter"){ e.preventDefault(); $("#skuGuideAdd").click(); } };
 $("#sgBulkParse").onclick = sgBulkParse;
 $("#settings").onclick = e => { if (e.target.id === "settings") closeSettings(); };
 document.addEventListener("keydown", e => {
