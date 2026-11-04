@@ -3234,6 +3234,12 @@ html[data-theme="light"] .mapcard:has(.mapstamp) > *:not(.mapstamp),html[data-th
 .skubulkprev .sbp-list span{border:1px solid var(--line);border-radius:999px;padding:1px 9px;font-size:.74rem}
 .skubulkprev .sbp-list .new{border-color:var(--accent);color:var(--accent)}
 .skubulkprev .sbp-list .have{color:var(--dim)}
+/* หัวเว็บ (2026-11-04): ซ่อนป้ายที่มาข้อมูล · ย้อนกลับ · ซิงก์ — คีย์ลัด Ctrl+Z / Ctrl+S ยังใช้ได้ · แถบสถานะซิงก์เหนือตารางยังเตือนเมื่อค้าง/ผิดพลาด */
+#srcChip,#undoBtn,#syncBtn{display:none!important}
+/* โปรไฟล์ติดมุมขวาบนสุดเสมอ — หัวเว็บขึ้นบรรทัดใหม่ก็ไม่หลุดไปกลางแถว */
+body > header{padding-right:calc(var(--acw,120px) + 44px)}
+body > header #acctBtn{position:absolute;top:12px;right:26px}
+@media(max-width:900px){body > header{padding-right:calc(var(--acw,120px) + 28px)} body > header #acctBtn{top:9px;right:14px}}
 </style>
 </head>
 <body>
@@ -20561,6 +20567,9 @@ document.addEventListener("keydown", e => {
   (y || e.shiftKey) ? doRedo() : doUndo();
 });
 $("#undoBtn").onclick = doUndo;
+// เว้นที่ขวาของหัวเว็บเท่ากับปุ่มโปรไฟล์จริง (ชื่อยาว/สั้น · จอแคบซ่อนชื่อ) — ของอื่นไม่ไปมุดใต้ปุ่ม
+try { const hd = document.querySelector("body > header"), ab = $("#acctBtn");
+  new ResizeObserver(() => hd.style.setProperty("--acw", ab.offsetWidth + "px")).observe(ab); } catch(e){}
 
 // ── Ctrl+S ซิงก์ขึ้นฐานข้อมูลเดี๋ยวนี้ ──
 // ⚠️ ต้อง preventDefault ทุกครั้งที่จับได้ ไม่ว่าจะซิงก์จริงหรือไม่ — ไม่งั้นกล่อง "บันทึกหน้าเว็บ"
@@ -23574,7 +23583,7 @@ function migrateCartClear(){
 // ═══ เวอร์ชันของหน้า — แท็บที่เปิดค้างโค้ดเก่าต้องไม่ซิงก์ทีม ═══
 // เจอจริง 2026-10-27: แท็บเก่าดึงคีย์ใหม่ลงผิดที่ + ดันรายการที่ลบแล้วกลับขึ้นทุกนาที
 // APP_VER ประทับตอน deploy (kol-tools\stamp-version.py) · version.json คู่กันบนเซิร์ฟเวอร์ — ไม่ตรง = รีเฟรช
-const APP_VER = "20261104-074806";
+const APP_VER = "20261104-080118";
 let STALE = false;
 async function verCheck(){
   if (STALE || APP_VER === "dev") return;
