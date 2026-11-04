@@ -522,7 +522,7 @@ body[data-memberset] #settings .setbody > .sect:not(.mkeep){display:none!importa
 tr.rlockrow > td:first-child{box-shadow:inset 3px 0 var(--rc)}
 .rview{margin-left:4px}
 /* ★ งานของฉัน */
-body[data-mine] .coordbar, body[data-mine] #memSeg, body[data-mine] #creatorCard{display:none!important}
+body[data-mine] .coordbar, body[data-mine] #memSeg, body[data-mine] #kindSeg, body[data-mine] #coordModes, body[data-mine] #creatorCard{display:none!important}
 .minetable tr.mgrp td{background:rgba(var(--accent-rgb),.06);font-size:.85rem;padding:8px 10px}
 .minetable tr.mgrp .n{color:var(--dim);margin:0 8px 0 4px}
 .minetable td{vertical-align:middle}
@@ -902,6 +902,11 @@ body[data-view="coord"] #cartBtn{display:none}
 .coord-head{display:flex;align-items:center;justify-content:space-between;
   gap:14px;flex-wrap:wrap;margin-bottom:14px}
 .coord-head .tabs{margin-bottom:0;flex:1;min-width:280px}
+.coord-head2{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:12px}
+.coord-head2 .tabs{margin-bottom:0;flex:0 0 auto;min-width:0}
+.coord-head2 .online{margin-left:auto}
+.coord-head2 .coord-sum:empty{display:none}
+.mapmodes button.totable[aria-selected="true"]{cursor:default}
 /* ปุ่มเข้าแผนผัง — อยู่ติดแท็บโปรเจกต์ เพราะเป็นข้อมูลชุดเดียวกันคนละมุมมอง */
 .mapbtn{flex:none;background:var(--surface);border:1px solid var(--line);color:var(--ink);
   border-radius:8px;padding:.55em 1.1em;font-family:inherit;font-size:.86rem;font-weight:700;
@@ -2787,6 +2792,11 @@ button.tag.work:hover{border-color:#8fc1ff}
 .ctable tr.warned .nm{border-left:2px solid var(--warn);padding-left:6px}
 /* ── บล็อกที่ส่งไปแล้ว ── ยังอ่านได้ ยังก๊อปได้ แต่ตาไม่ต้องไปหยุดที่มันอีก */
 .cmdblk.sent{opacity:.5;border-style:dashed}
+/* กดส่งแล้ว — แถบนับถอยหลังบางๆ ก่อนบินออก (2.5 วิ) */
+.cmdblk.flysoon{position:relative}
+.cmdblk.flysoon::after{content:"";position:absolute;left:0;bottom:0;height:3px;width:100%;background:var(--hi);
+  transform-origin:left;animation:cmdFlyBar 2.5s linear forwards;border-radius:0 0 0 8px;pointer-events:none}
+@keyframes cmdFlyBar{from{transform:scaleX(1)}to{transform:scaleX(0)}}
 .cmdblk.sent:hover,.cmdblk.sent:focus-within{opacity:1}
 .cmdblk.sent > header{background:var(--bg)}
 .cmdblk.sent > header .no{background:var(--surface2);color:var(--dim)}
@@ -3152,7 +3162,7 @@ html[data-team] [data-nosheet]{display:none!important}
 .themecard .tsub{font-size:.7rem;color:var(--dim)}
 html[data-no-review] [data-go="review"],html[data-no-review] [data-mapgo="review"]{display:none!important}
 html[data-no-quick] #qoNavBtn,html[data-no-quick] [data-mapgo="quick"]{display:none!important}
-html[data-no-map] #mapBtn,html[data-no-map] .open[data-mapgo]{display:none!important}
+html[data-no-map] #coordModes [data-cm],html[data-no-map] #projTabs [data-allmap],html[data-no-map] .open[data-mapgo]{display:none!important}
 html[data-no-format] #fmtBtn,html[data-no-format] #mapFmtBtn{display:none!important}
 html[data-no-tpl] .cmdscope [data-scope]:not([data-scope="mine"]),html[data-no-tpl] #fmtEdit,html[data-no-tpl] #fmtReset,
 html[data-no-tpl] .fxbox [data-fxedit],html[data-no-tpl] .fxbox [data-fxdel],html[data-no-tpl] #fxAdd{display:none!important}
@@ -4026,20 +4036,25 @@ html.demo .dm-b:hover{filter:blur(5px)}
       <div class="addmsg" id="ncBulkMsg"></div>
     </div>
 
+  <!-- หัวตารางหน้าตาเดียวกับหัว Map (2026-11-04) — สลับไปมาแล้วปุ่มอยู่ที่เดิม -->
   <div class="coord-head">
     <div class="tabs sub" id="projTabs" role="tablist"></div>
-    <!-- ภาพรวมทั้งโปรเจกต์ — อยู่ติดแท็บโปรเจกต์เพราะมันคือ "อีกมุมของข้อมูลชุดเดียวกัน" -->
-    <button class="mapbtn" id="mapBtn" title="ดูภาพรวมทั้งโปรเจกต์เป็นแผนผัง (กด M)">◈ Map</button>
-    <!-- ข้อความทักครั้งแรกเพื่อขอเรท — ยังไม่มีคนในตาราง เลยเป็นของโปรเจกต์ ไม่ใช่ของรายคน -->
-    <button class="mapbtn" id="fmtBtn" title="ข้อความขอเรทสำหรับทักครีเอเตอร์ครั้งแรก (กด F)">✉ Format ขอเรท</button>
+  </div>
+  <div class="coord-head2">
+    <div class="tabs sub kindseg" id="kindSeg" role="tablist"></div>
+    <!-- โหมดทีม: กรองตามผู้ดูแลแถว (เฉพาะโปรเจกต์ทีม) -->
+    <div class="tabs sub memseg" id="memSeg" role="tablist" hidden></div>
     <div class="coord-sum" id="coordSum"></div>
     <button type="button" class="treqbtn" id="teamReqBtn" hidden title="มีคนขอเข้าทีม — กดเพื่อไปอนุมัติ"></button>
     <div class="online" id="onlineBar"></div>
+    <!-- มุมมองชุดเดียวกับใน Map — ▦ ตาราง คือหน้านี้ · ที่เหลือเปิด Map ในมุมนั้น -->
+    <div class="mapmodes" id="coordModes" role="tablist"></div>
+    <!-- ข้อความทักครั้งแรกเพื่อขอเรท — ยังไม่มีคนในตาราง เลยเป็นของโปรเจกต์ ไม่ใช่ของรายคน -->
+    <button class="mapbtn" id="fmtBtn" title="ข้อความขอเรทสำหรับทักครีเอเตอร์ครั้งแรก (กด F)">✉ Format ขอเรท</button>
   </div>
   <div class="syncbar" id="syncBar"></div>
 
   <div class="coordbar">
-    <div class="tabs sub kindseg" id="kindSeg" role="tablist"></div>
     <input id="coordFind" placeholder="ค้นหาครีเอเตอร์ — พิมพ์ชื่อเพื่อดูประวัติทุกโปรเจกต์"
            autocomplete="off">
     <div class="tabs sub colseg" id="colSeg" role="tablist"></div>
@@ -4047,8 +4062,6 @@ html.demo .dm-b:hover{filter:blur(5px)}
     <button class="mapbtn" id="custColBtn"
       title="เพิ่ม/แก้คอลัมน์ของโปรเจกต์นี้เอง">＋ คอลัมน์</button>
   </div>
-  <!-- โหมดทีม: กรองตามผู้ดูแลแถว (เฉพาะโปรเจกต์ทีม) -->
-  <div class="tabs sub memseg" id="memSeg" role="tablist" hidden></div>
   <div id="creatorCard"></div>
 
 
@@ -7070,10 +7083,13 @@ function renderProjTabs(){
       ? `<button role="tab" data-mine="1" aria-selected="${MINE_VIEW}"
            title="ครีเอเตอร์ที่คุณดูแลจากทุกโปรเจกต์ — พื้นที่ส่วนตัว แก้ตรงนี้คือแก้แถวเดียวกับของทีม">★ งานของฉัน<span
            class="n">${myRows().length}</span></button>` : "") +
+    `<button role="tab" data-allmap="1" aria-selected="false" title="ภาพรวมทุกโปรเจกต์ (เปิด Map) · มีการ์ด ＋ เพิ่ม/ตั้งค่าโปรเจกต์">ทุกโปรเจกต์</button>` +
     show.map(tab).join("") + doneTabBtn(PROJ);
     // (2026-11-04) ปุ่ม ⚙ เพิ่ม/ตั้งค่าโปรเจกต์ ย้ายไปเป็นการ์ดใบสุดท้ายในแผนผังภาพรวม ◈ ทุกโปรเจกต์
   const ac = $("#projTabs [data-acts]");
   if (ac) ac.onclick = openActivity;
+  const am = $("#projTabs [data-allmap]");
+  if (am) am.onclick = () => { MAP_MODE = "flow"; openMap(null); };
 
   document.querySelectorAll("#projTabs [data-p]").forEach(b => b.onclick = () => {
     PROJ = b.dataset.p; MINE_VIEW = false; renderProjTabs(); renderCoord();
@@ -8158,6 +8174,16 @@ function asgSelect(r, i){
   return `${r.assignee ? avatar(r.assignee) : ""}<select class="asg${r.assignee === me ? " mine" : ""}" data-asg="${i}" title="ผู้ดูแลแถวนี้ — ${esc(memName(r.assignee))}${r.assignee === me ? " (คุณ)" : ""}">${opts.join("")}</select>`;
 }
 
+function renderCoordModes(){
+  const el = $("#coordModes");
+  if (!el) return;
+  let fmt; try { fmt = mapFmt(PROJ); void MAP_MODES; void MAP_FMTS; } catch(e){ return setTimeout(renderCoordModes); }   // ตอนโหลดสคริปต์ยังไม่ถึงตัวแปรของ Map
+  el.innerHTML = MAP_MODES.map(([id, label]) => `<button role="tab" data-cm="${id}" aria-selected="false"
+      title="เปิด Map ของ ${esc(PROJ)} — ${esc(label)} (กด M)">${
+      id === "flow" ? esc((MAP_FMTS.find(f => f[0] === fmt) || MAP_FMTS[0])[1]) : label}</button>`).join("")
+    + `<button role="tab" class="totable" aria-selected="true" title="หน้านี้ — ตาราง">▦ ตาราง</button>`;
+  el.querySelectorAll("[data-cm]").forEach(b => b.onclick = () => { MAP_MODE = b.dataset.cm; openMap(PROJ); });
+}
 function renderKindSeg(){
   const all = COORD[PROJ] || [];
   const n = k => all.filter(r => (r.kind || "") === k).length;
@@ -8167,7 +8193,7 @@ function renderKindSeg(){
     `<button role="tab" data-k="${id}" aria-selected="${id===KINDSEG}">${esc(label)}<span
       class="n">${c}</span></button>`).join("");
   document.querySelectorAll("#kindSeg button").forEach(b => b.onclick = () => {
-    KINDSEG = b.dataset.k; renderKindSeg(); renderCoord();
+    KINDSEG = b.dataset.k; MAP_KIND = KINDSEG; renderKindSeg(); renderCoord();
   });
 }
 
@@ -8797,7 +8823,7 @@ if (TEAM_MODE) $("#coordBody").addEventListener("click", e => {
 });
 
 function renderCoord(){
-  renderKindSeg(); renderColSeg(); renderMemSeg();
+  renderKindSeg(); renderColSeg(); renderMemSeg(); renderCoordModes();
   if (TEAM_MODE && TEAM && MINE_VIEW){ document.body.dataset.mine = "1"; return renderMine(); }
   delete document.body.dataset.mine;
   if (TEAM_MODE) document.body.dataset.sheet = sheetOf(PROJ); else delete document.body.dataset.sheet;
@@ -10004,8 +10030,10 @@ const PAGE_T0 = Date.now();
 let CMD_SHOW_SENT = false;
 const sentOld = (proj, handle, i, clip) => {
   const v = cmdOwnRead(proj, handle).sent[sentKey(i, clip)];
-  return !!v && !(Number(v) >= PAGE_T0);
+  return !!v && (!(Number(v) >= PAGE_T0) || CMD_FLOWN.has(proj + "|" + normId(handle) + "|" + sentKey(i, clip)));
 };
+// กล่องที่กดส่งแล้วและบินออกไปแล้วในรอบนี้ — นับเป็น "ส่งไปแล้ว (ซ่อน)" เหมือนของเก่า
+const CMD_FLOWN = new Set();
 const isSent = (proj, handle, i, clip) =>
   !!cmdOwnRead(proj, handle).sent[sentKey(i, clip)];
 // ─── กดส่ง Command แล้วสถานะเดินตาม ───
@@ -11619,7 +11647,36 @@ function openCmd(proj, handle){
     toggleSent(proj, handle, b.id, b.clip);
     b.sent = !b.sent;
     if (b.sent) cmdAdvance(proj, handle, b); else cmdRetreat(proj, handle, b);
-    btn.closest(".cmdblk").classList.toggle("sent", b.sent);
+    const blk = btn.closest(".cmdblk");
+    blk.classList.toggle("sent", b.sent);
+    // ── ส่งแล้ว = บินออกไปใน ~2.5 วิ (2026-11-04) ── ระหว่างรอยังกดกลับได้ (ยกเลิกการบิน)
+    // กำลังเปิด "แสดงที่ส่งแล้ว" อยู่ = ไม่บิน (ตั้งใจดูของที่ส่งแล้ว)
+    clearTimeout(blk._fly); blk.classList.remove("flysoon");
+    if (b.sent && !CMD_SHOW_SENT){
+      blk.classList.add("flysoon");
+      const fk = proj + "|" + normId(handle) + "|" + sentKey(b.id, b.clip);
+      blk._fly = setTimeout(() => {
+        if (!blk.isConnected || !isSent(proj, handle, b.id, b.clip)) return;
+        CMD_FLOWN.add(fk);
+        const h = blk.offsetHeight;
+        const a = blk.animate([{ opacity:1, transform:"none" },
+          { opacity:0, transform:"translate(140px,-40px) rotate(4deg) scale(.88)" }],
+          { duration:480, easing:"cubic-bezier(.5,0,.75,0)", fill:"forwards" });
+        a.onfinish = () => {
+          blk.style.overflow = "hidden";
+          const c = blk.animate([{ height:h + "px", marginTop:getComputedStyle(blk).marginTop, marginBottom:getComputedStyle(blk).marginBottom, paddingTop:"0px", paddingBottom:"0px" },
+            { height:"0px", marginTop:"0px", marginBottom:"0px", paddingTop:"0px", paddingBottom:"0px" }],
+            { duration:260, easing:"ease-out", fill:"forwards" });
+          c.onfinish = () => {
+            if (!blk.isConnected) return;
+            // วาดใหม่ให้แถบ "ส่งไปแล้ว N กล่อง" กับปุ่มกระโดด/กล่องที่ควรส่งต่อ อัปเดตตาม · คงตำแหน่งเลื่อนไว้
+            const top = $("#cmdBody").scrollTop - h;
+            openCmd(proj, handle);
+            $("#cmdBody").scrollTop = Math.max(0, top);
+          };
+        };
+      }, 2500);
+    }
     btn.textContent = b.sent ? "✓ ส่งแล้ว" : "ส่งแล้ว";
     const n = norm.filter(x => x.sent).length;
     $("#cmdUnsent").textContent = `↺ ล้างเครื่องหมายส่งแล้ว (${n})`;
@@ -12390,7 +12447,7 @@ function renderMap(){
     MAP_MODE = b.dataset.mm; renderMap();
   });
   document.querySelectorAll("#mapKind [data-mk]").forEach(b => b.onclick = () => {
-    MAP_KIND = b.dataset.mk; renderMap();
+    MAP_KIND = b.dataset.mk; KINDSEG = MAP_KIND; renderMap(); renderCoord();
   });
   document.querySelectorAll("#mapModes [data-totable]").forEach(b => b.onclick = () => openTable(MAP_PROJ));
   // กดที่ชื่อคน = เปิด Command ของคนนั้นทับแผนผัง (ลิ้นชักอยู่ชั้นบนกว่า)
@@ -14083,7 +14140,7 @@ function mapMoneySheet(proj){
     </div>`;
 }
 
-$("#mapBtn").onclick = () => openMap(PROJ);
+// (ปุ่ม ◈ Map เดิม → แถบมุมมอง #coordModes ชุดเดียวกับใน Map)
 $("#fmtBtn").onclick = openFormat;
 // จากหน้า Map: ใช้โปรเจกต์ที่เปิดดูอยู่ (หน้าทุกโปรเจกต์ = โปรเจกต์ล่าสุดในตาราง)
 document.querySelectorAll("#mapView [data-mapgo]").forEach(b => b.onclick = async () => {
