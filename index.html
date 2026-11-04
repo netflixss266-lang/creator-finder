@@ -10242,6 +10242,24 @@ function cmdMetaW(key){
   if (!m.hide) m.hide = []; if (!m.show) m.show = []; if (!m.ord) m.ord = {};
   return m;
 }
+// ═══ กล่องที่เพิ่มทีหลัง ต้องตามไปอยู่ที่เดิมเทียบกับเพื่อน (2026-11-04) ═══
+// เรียงใหม่ในชั้นไหน (โปรเจกต์ / KOL-KOC / รายคน) = ชั้นนั้นเก็บเลขลำดับใหม่ของทุกกล่องที่เห็นตอนนั้น (0, 1, 2 …)
+// กล่องที่เพิ่ม/ย้ายทีหลังในชั้นที่กว้างกว่า (เช่น "เช็คตะกร้า" ทุกโปรเจกต์ ord 12.5 = ต่อจากกล่อง 12 แจ้งโพสต์)
+// ไม่มีเลขในชั้นนั้น → เดิมใช้เลข 12.5 ตรงๆ ในชุดเลขใหม่ = หลุดไปอยู่ผิดที่ (เจอจริง: KOC ของ GJD / Red Chamber KOC)
+// ตอนนี้: หา "กล่องที่มันต่อท้าย" จากลำดับชั้นกว้าง แล้ววางต่อจากกล่องนั้นในลำดับที่เรียงใหม่
+// list[i] ต้องมี ord (ลำดับจริง) · bord (ลำดับในชั้นกว้าง) · mapped (ชั้นที่เรียงใหม่มีเลขของกล่องนี้)
+function cmdOrdAnchor(list){
+  const mapped = list.filter(b => b.mapped).sort((a, b) => a.bord - b.bord);
+  if (!mapped.length || mapped.length === list.length) return list;
+  list.forEach(b => {
+    if (b.mapped) return;
+    let anc = null;
+    for (const m of mapped){ if (m.bord <= b.bord) anc = m; else break; }
+    // ต่อท้ายกล่องที่ยึด (เศษเล็กๆ ตามลำดับเดิม กันชนกันเองถ้ามีหลายกล่องยึดตัวเดียวกัน)
+    b.ord = anc ? anc.ord + 0.001 + (b.bord - anc.bord) * 1e-5 : mapped[0].ord - 1 + b.bord * 1e-5;
+  });
+  return list;
+}
 function cmdBlocksAll(proj, kind, level){
   level = level || (kind ? "K" : "P");
   const up = { G:1, P:2, K:3 }[level];
@@ -10263,8 +10281,12 @@ function cmdBlocksAll(proj, kind, level){
     if (KM){ if (KM.show.includes(id)) hidBy = ""; if (KM.hide.includes(id)) hidBy = "K"; }
     let ord = Number.isFinite(+dord) && dord !== null && dord !== "" ? +dord : 900 + (++badOrd);
     if (GM.ord[id] != null) ord = GM.ord[id];
+    const bord = ord;                                   // ลำดับระดับทุกโปรเจกต์ — ใช้หากล่องที่ยึด
     if (up >= 2 && PM.ord[id] != null) ord = PM.ord[id];
     if (KM && KM.ord[id] != null) ord = KM.ord[id];
+    // เลขจากชั้นที่เรียงใหม่ — ชั้นที่ "เจาะจงที่สุดที่มีการเรียง" เท่านั้นนับ (KOL/KOC ทับโปรเจกต์)
+    const kmOn = KM && Object.keys(KM.ord).length, pmOn = up >= 2 && Object.keys(PM.ord).length;
+    const mapped = kmOn ? KM.ord[id] != null : pmOn ? PM.ord[id] != null : true;
     return { id,
              t: up === 1 ? gt : up === 2 ? pt : ((ke && ke.t) || pt),
              b: up === 1 ? gb : up === 2 ? pb : ((ke && ke.b != null) ? ke.b : pb),
@@ -10272,14 +10294,15 @@ function cmdBlocksAll(proj, kind, level){
              clip: !!def.clip, kind: def.kind || "", law: !!def.law, live: !!def.live, late: def.late || 0,
              // null = ได้ทุกคน · ต้องส่งต่อจากต้นแบบ ไม่งั้นตัวกรอง "มีเรทชำระไหม" จะไม่เห็นค่านี้เลย
              pay: def.pay == null ? null : !!def.pay,
-             ord, custom, from, edited: !!ed, hidden: !!hidBy, hidBy, base: def };
+             ord, bord, mapped, custom, from, edited: !!ed, hidden: !!hidBy, hidBy, base: def };
   };
   // บล็อกที่เพิ่มเฉพาะกลุ่ม (kind) — แท็บโปรเจกต์เห็นทุกกลุ่ม (มีป้ายบอก) · แท็บกลุ่มเห็นแค่ของกลุ่มตัวเอง
   const kindOk = x => !x.kind || up === 2 || x.kind === kind;
-  return CMD_BLOCKS.map((b, i) => mk(String(i), b, b.ord ?? i, false, "code"))
+  const all = CMD_BLOCKS.map((b, i) => mk(String(i), b, b.ord ?? i, false, "code"))
     .concat(cmdAddFor(ALLP).map(x => mk(x.id, x, x.ord, true, "G")))
-    .concat(up >= 2 ? cmdAddFor(proj).filter(kindOk).map(x => mk(x.id, x, x.ord, true, x.kind ? "K" : "P")) : [])
-    .sort((a, b) => a.ord - b.ord);
+    // บล็อกที่เพิ่มในชั้นโปรเจกต์/กลุ่มเอง ถือว่าอยู่ในลำดับของชั้นนั้นแล้ว (เลขของมันตั้งในชั้นนั้น)
+    .concat(up >= 2 ? cmdAddFor(proj).filter(kindOk).map(x => Object.assign(mk(x.id, x, x.ord, true, x.kind ? "K" : "P"), { mapped: true })) : []);
+  return cmdOrdAnchor(all).sort((a, b) => a.ord - b.ord);
 }
 const cmdBlocks = (proj, kind, level) => cmdBlocksAll(proj, kind, level).filter(b => !b.hidden);
 
@@ -10297,8 +10320,9 @@ function cmdBlocksFor(proj, handle){
       const ov = own[b.id];
       return Object.assign({}, b, { t: (ov && ov.t) || b.t,
         b: (ov && ov.b != null) ? ov.b : b.b, mine: !!ov,
-        ord: ords[b.id] != null ? ords[b.id] : b.ord });
+        ord: ords[b.id] != null ? ords[b.id] : b.ord, bord: b.ord, mapped: ords[b.id] != null });
     });
+  if (Object.keys(ords).length) cmdOrdAnchor(base);
   // ของที่เพิ่มให้คนนี้ถือเป็น "ของเขา" เสมอ — ต้นแบบไม่มีให้เทียบ จึงคืนค่ากลับไม่ได้ มีแต่ลบ
   const extra = (o.add || []).map((x, k) => Object.assign({}, x, {
     ord: Number.isFinite(+x.ord) && x.ord !== null ? +x.ord : 900 + k,
@@ -23439,7 +23463,7 @@ function migrateCartClear(){
 // ═══ เวอร์ชันของหน้า — แท็บที่เปิดค้างโค้ดเก่าต้องไม่ซิงก์ทีม ═══
 // เจอจริง 2026-10-27: แท็บเก่าดึงคีย์ใหม่ลงผิดที่ + ดันรายการที่ลบแล้วกลับขึ้นทุกนาที
 // APP_VER ประทับตอน deploy (kol-tools\stamp-version.py) · version.json คู่กันบนเซิร์ฟเวอร์ — ไม่ตรง = รีเฟรช
-const APP_VER = "20261104-023547";
+const APP_VER = "20261104-030728";
 let STALE = false;
 async function verCheck(){
   if (STALE || APP_VER === "dev") return;
