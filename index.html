@@ -3271,6 +3271,12 @@ body[data-view="coord"] #coordView{padding-top:12px}
 /* ป้ายคำขอเข้าทีมบนปุ่มโปรไฟล์ */
 #acctBtn{position:fixed}
 #acctBtn .acreq{position:absolute;top:-5px;right:-5px;margin:0;box-shadow:0 0 0 2px var(--bg)}
+/* คำขอเปลี่ยนผู้ดูแล — การ์ดลอยมุมขวาล่าง เห็นทุกหน้า */
+.asgreq{position:fixed;right:16px;bottom:16px;z-index:395;width:min(380px,calc(100vw - 32px));max-height:50vh;overflow:auto;
+  background:var(--surface);border:1px solid var(--accent);border-radius:12px;padding:10px 12px;box-shadow:0 10px 30px rgba(0,0,0,.45);font-size:.8rem}
+.asgreq .ar-row{border-top:1px solid var(--line);padding:8px 0 4px;margin-top:6px}
+.asgreq .ar-act{display:flex;gap:6px;margin-top:6px}
+.asgreq .ar-act .run{width:auto;padding:4px 14px}
 </style>
 </head>
 <body>
@@ -8895,8 +8901,20 @@ const commPct = v => {
   return /^[0-9]+(\.[0-9]+)?$/.test(t) ? t + "%" : t;
 };
 
+// ═══ งานของใครของมัน (2026-11-04) ═══
+// แถวงานทีมที่มีผู้ดูแลแล้ว: ผู้ดูแลคนเดียวที่ทำ process ได้ (Command · ย้ายขั้น · มาร์ค) — admin/manager ทำได้ทุกแถว
+// ยังไม่มีผู้ดูแล = ใครก็ทำได้ · ฐานข้อมูล ALTA กันซ้ำอีกชั้น (trigger coord_zwork / coord_check_assignee)
+const canWorkRow = r => !TEAM_MODE || !r || !isTeamProj(r.project) || canManageProjects() || !r.assignee || r.assignee === sbUid();
+function workDenied(r){
+  histToast(`@${normId(r.handle)} อยู่ในความดูแลของ ${memName(r.assignee)} — Command / ย้ายขั้น ทำได้เฉพาะผู้ดูแล · ขอรับดูแลได้ที่ช่องผู้ดูแล`, true);
+}
+// เปลี่ยนผู้ดูแลแถวของคนอื่น (editor) = ส่งคำขอให้ผู้ดูแลเดิมอนุมัติ · admin/manager เปลี่ยนตรงได้
+const asgNeedsRequest = (r, to) => TEAM_MODE && TEAM && isTeamProj(r.project) && !canManageProjects()
+  && !!r.assignee && r.assignee !== sbUid() && (to || null) !== r.assignee;
 function setField(r, f, raw){
   if (!r) return false;
+  if (f === "status" && (r.status || "") !== (raw || "") && !canWorkRow(r)){ workDenied(r); return false; }
+  if (f === "assignee" && asgNeedsRequest(r, raw)){ asgRequest(r, raw || null); return false; }
   histBegin(r.project, `แก้${QO_LABEL[f] || HIST_FIELD_TH[f] || f} · ${normId(r.handle)}`);
   histTouch(r);
   const ok = setFieldRaw(r, f, raw);
@@ -8907,6 +8925,67 @@ function setField(r, f, raw){
 const HIST_FIELD_TH = { handle:"ชื่อ", kind:"กลุ่ม", videos:"จำนวนวิดีโอ", deadline:"กำหนดส่ง",
   brief:"บรีฟ", commission:"Commission", project:"โปรเจกต์", tracking:"เลขพัสดุ", assignee:"ผู้ดูแล",
   temp:"แท็บชั่วคราว" };
+const ASGREQ_NS = "asgreq";
+const asgKvUrl = k => SB_URL + `/rest/v1/team_kv?team_id=${sbEq(TEAM.id)}&ns=${sbEq(ASGREQ_NS)}` + (k ? `&k=${sbEq(k)}` : "");
+async function asgPut(k, v){
+  await sbSend(SB_URL + "/rest/v1/team_kv?on_conflict=team_id,ns,k", "POST",
+    [{ team_id: TEAM.id, ns: ASGREQ_NS, k, v }], "บันทึกคำขอไม่ได้", "resolution=merge-duplicates,return=minimal");
+}
+async function asgRequest(r, to){
+  const h = normId(r.handle), old = memName(r.assignee);
+  if (!confirm(`@${h} (${r.project}) ดูแลโดย ${old}\n\nส่งคำขอให้ ${old} อนุมัติ เปลี่ยนผู้ดูแลเป็น ${to ? memName(to) : "ไม่มีผู้ดูแล"}?\n(เปลี่ยนตรงได้เฉพาะ manager / admin)`)) return;
+  try {
+    await asgPut(r.project + "|" + h, { from: sbUid(), to: to || null, old: r.assignee, at: Date.now(), st: "wait" });
+    vlog("asg:req", { p: r.project, h });
+    histToast(`ส่งคำขอแล้ว — รอ ${old} อนุมัติ`);
+  } catch(e){ alert(e.message); }
+}
+let ASGREQ = [];
+async function asgReqPoll(){
+  if (!TEAM_MODE || !TEAM || STALE || !sbUid()) return;
+  let rows = [];
+  try { const res = await sbAuthed(asgKvUrl() .replace("team_kv?", "team_kv?select=k,v&")); if (!res.ok) return; rows = await res.json(); } catch(e){ return; }
+  const me = sbUid(), now = Date.now();
+  ASGREQ = [];
+  for (const x of rows){
+    const v = x.v || {};
+    if (now - (v.at || 0) > 14 * 864e5){ sbSend(asgKvUrl(x.k), "DELETE", null, "").catch(() => {}); continue; }   // ค้างเกิน 14 วัน = ทิ้ง
+    if (v.st === "wait" && v.old === me) ASGREQ.push({ k: x.k, v });
+    else if (v.from === me && (v.st === "ok" || v.st === "no")){
+      const h = x.k.slice(x.k.indexOf("|") + 1);
+      acctToast(v.st === "ok" ? `✓ ${memName(v.old)} อนุมัติแล้ว — @${h} เปลี่ยนผู้ดูแลเป็น ${v.to ? memName(v.to) : "ไม่มี"}` : `✗ ${memName(v.old)} ไม่อนุมัติคำขอ @${h}`);
+      sbSend(asgKvUrl(x.k), "DELETE", null, "").catch(() => {});
+      if (v.st === "ok") renderCoord();            // แถวจริงมาทาง realtime ของ coord อยู่แล้ว
+    }
+  }
+  renderAsgReq();
+}
+function renderAsgReq(){
+  let box = $("#asgReqBox");
+  if (!ASGREQ.length){ if (box) box.remove(); return; }
+  if (!box){ box = document.createElement("div"); box.id = "asgReqBox"; box.className = "asgreq"; document.body.appendChild(box); }
+  box.innerHTML = `<b>🔁 คำขอเปลี่ยนผู้ดูแล ${ASGREQ.length}</b>` + ASGREQ.map(({ k, v }, i) => {
+    const p = k.slice(0, k.indexOf("|")), h = k.slice(k.indexOf("|") + 1);
+    return `<div class="ar-row"><div><b>${esc(memName(v.from))}</b> ขอเปลี่ยนผู้ดูแล <b>@${esc(h)}</b>
+      <span class="hint">${esc(p)}</span> → ${v.to ? esc(memName(v.to)) : "ไม่มีผู้ดูแล"}</div>
+      <div class="ar-act"><button type="button" class="run" data-arok="${i}">อนุมัติ</button>
+      <button type="button" class="cmdbtn" data-arno="${i}">ไม่อนุมัติ</button></div></div>`; }).join("");
+  const decide = async (i, ok) => {
+    const { k, v } = ASGREQ[i];
+    const p = k.slice(0, k.indexOf("|")), h = k.slice(k.indexOf("|") + 1);
+    const r = (COORD[p] || []).find(x => normId(x.handle) === h);
+    let st = ok ? "ok" : "no";
+    if (ok){
+      if (!r || r.assignee !== sbUid()){ alert("แถวนี้ไม่ได้อยู่ในความดูแลของคุณแล้ว — ปิดคำขอให้"); st = "no"; }
+      else { setField(r, "assignee", v.to); clearTimeout(AUTO_T); syncCoord(false); renderCoord(); }
+    }
+    try { await asgPut(k, Object.assign({}, v, { st, at: Date.now() })); } catch(e){ return alert(e.message); }
+    vlog("asg:" + st, { p, h });
+    ASGREQ.splice(i, 1); renderAsgReq();
+  };
+  box.querySelectorAll("[data-arok]").forEach(b => b.onclick = () => decide(+b.dataset.arok, true));
+  box.querySelectorAll("[data-arno]").forEach(b => b.onclick = () => decide(+b.dataset.arno, false));
+}
 function setFieldRaw(r, f, raw){
   if (!r) return false;
   const before = ekey(r);
@@ -11039,6 +11118,13 @@ function openCmd(proj, handle){
   vlog("cmd", { p: proj, h: normId(handle) });
   const r = (COORD[proj] || []).find(x => normId(x.handle) === normId(handle));
   if (!r) return;
+  // Command ของคนอื่น = เปิดหน้าข้อมูลครีเอเตอร์แทน (ข้อความ/ขั้นตอนการทำงานเป็นของผู้ดูแล)
+  if (!canWorkRow(r)){
+    $("#cmdPanel").classList.remove("on");
+    openDetail(proj, (COORD[proj] || []).indexOf(r));
+    histToast(`Command ของ @${normId(handle)} เป็นของ ${memName(r.assignee)} — เปิดหน้าข้อมูลให้แทน`, true);
+    return;
+  }
   loadCmdLinks(); loadCmdEdit(); loadCmdOwn(); loadSkuGuide();
   migrateOwnDocsKind(proj, handle, r.kind);
   migrateOwnPayment(proj, handle);
@@ -12553,6 +12639,7 @@ function drPmOf(st){
   return null;
 }
 function drToggle(r){
+  if (!canWorkRow(r)){ workDenied(r); return !!drMark(r); }
   const o = cmdOwn(r.project, r.handle);
   const on = !drMark(r);
   if (on) o.dr = { s: r.status, at: Date.now() }; else delete o.dr;
@@ -23594,14 +23681,17 @@ const TS = {
     save: () => (saveCmdEditRaw || saveCmdEdit)(),
   },
 };
-let TS_LAST = null, TS_BUSY = false, TS_AT = 0;
+let TS_LAST = null, TS_BUSY = false, TS_AT = 0;   // TS_FRESH ประกาศถัดจาก tsLastSave
 const TS_T = {};
 function tsLastLoad(){
   let j = null;
   try { j = JSON.parse(lsGet(LS_TS_LAST) || "null"); } catch(e){}
-  TS_LAST = j && j.team === TEAM.id && j.ns ? j.ns : { links:{}, own:{}, sku:{}, tpl:{}, fmt:{} };
+  TS_FRESH = !(j && j.team === TEAM.id && j.ns && (!j.uid || j.uid === sbUid()));
+  TS_LAST = !TS_FRESH ? j.ns : { links:{}, own:{}, sku:{}, tpl:{}, fmt:{} };
 }
-function tsLastSave(){ try { lsSet(LS_TS_LAST, JSON.stringify({ team: TEAM.id, ns: TS_LAST })); } catch(e){} }
+function tsLastSave(){ try { lsSet(LS_TS_LAST, JSON.stringify({ team: TEAM.id, uid: sbUid(), ns: TS_LAST })); } catch(e){} }
+// สมาชิกใหม่ / บัญชีอื่นในเบราว์เซอร์เดิม — Format ขอเรท · Command · ต้นแบบ ใช้ของทีม (ค่าตั้งต้น) ล้วนๆ (2026-11-04)
+let TS_FRESH = false;
 async function tsPull(force){
   if (!TEAM_MODE || !TEAM || TS_BUSY || STALE) return;
   if (!force && Date.now() - TS_AT < 15000) return;
@@ -23631,12 +23721,15 @@ async function tsPull(force){
         //    แท็บเก่าที่ค้างค่าเก่าไว้จะชุบชีวิตรายการที่ลบไปแล้วกลับมาเรื่อยๆ (เจอจริง ALTA 2026-10-27)
         //    แก้/เพิ่มเองยังขึ้นปกติผ่าน tsPush ตอนกดบันทึก
         else if (ns === "sku" && Object.keys(last).length){ S.drop(k); changed = true; }
+        // ครั้งแรกของบัญชีนี้กับทีมนี้ในเครื่องนี้ = ของในเครื่องเป็นของเก่า/ของคนอื่น → ทิ้ง ไม่ดันขึ้นทีม
+        else if (TS_FRESH){ S.drop(k); changed = true; }
         else mine = true;
       }
       for (const k of Object.keys(last)) if (!(k in srv[ns])) delete last[k];
       if (changed){ S.save(); redraw = true; }
       if (mine) push.push(ns);
     }
+    TS_FRESH = false;
     tsLastSave();
     for (const ns of push) await tsPush(ns);
     migrateCartClear();
@@ -23667,7 +23760,7 @@ function migrateCartClear(){
 // ═══ เวอร์ชันของหน้า — แท็บที่เปิดค้างโค้ดเก่าต้องไม่ซิงก์ทีม ═══
 // เจอจริง 2026-10-27: แท็บเก่าดึงคีย์ใหม่ลงผิดที่ + ดันรายการที่ลบแล้วกลับขึ้นทุกนาที
 // APP_VER ประทับตอน deploy (kol-tools\stamp-version.py) · version.json คู่กันบนเซิร์ฟเวอร์ — ไม่ตรง = รีเฟรช
-const APP_VER = "20261104-092624";
+const APP_VER = "20261104-093939";
 let STALE = false;
 async function verCheck(){
   if (STALE || APP_VER === "dev") return;
@@ -23863,7 +23956,8 @@ requireLogin().then(async () => {
   rtStart();                 // ฟังการเปลี่ยนแปลงจากเครื่องอื่นตั้งแต่เข้าเว็บ
   if (TEAM_MODE) initQoPop();
   vlog("open");
-  if (TEAM_MODE){ checkTeamRequests(); setTimeout(checkTeamRequests, 8000); setInterval(checkTeamRequests, 60000); }
+  if (TEAM_MODE){ checkTeamRequests(); setTimeout(checkTeamRequests, 8000); setInterval(checkTeamRequests, 60000);
+    setTimeout(asgReqPoll, 9000); setInterval(asgReqPoll, 45000); }
   startLiveWarn();           // แจ้งเตือนก่อนไลฟ์ ทำงานทุกหน้า
   applyRole();                  // ต้องรู้สิทธิ์ก่อนวาดอะไร ไม่งั้นปุ่มที่กดไม่ได้จะโผล่แวบนึง
   if (ACCT_NOTE){ acctToast(ACCT_NOTE); ACCT_NOTE = ""; }
