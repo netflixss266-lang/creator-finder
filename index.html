@@ -4174,7 +4174,8 @@ body > header #acctBtn{position:absolute;top:12px;right:26px}
          ที่เหนือตารางเหลือแต่ของที่ใช้ทุกวัน — แท็บโปรเจกต์กับ Map -->
     <!-- ไม่ crewhide แล้ว — งานเก็บที่ฐานข้อมูล ทุก role ต้องโหลดใหม่/ส่งออกได้
          เหลือเฉพาะปุ่มที่เกี่ยวกับ Google Sheet ที่ยังเป็นของ admin -->
-    <section class="sect adminonly" id="teamSect" hidden>
+    <!-- เปิดให้ลูกทีมทุกคน (2026-11-04) — เห็นรหัสทีม คัดลอกส่งให้คนใหม่ได้เอง · สุ่มรหัสใหม่ยังเฉพาะหัวทีม/admin -->
+    <section class="sect mkeep" id="teamSect" hidden>
       <h3>ทีม</h3>
       <div id="teamBody"></div>
     </section>
@@ -14328,8 +14329,8 @@ function renderTeamSect(){
     </div>`).join("")}</div>
     <div class="hint" id="tmLabelMsg" style="margin-top:4px">ป้ายใช้กรองงานเหนือตาราง Coordinator (#ป้าย) ·
       หัวทีม/admin แก้ป้ายของทุกคนได้</div>
-    <div class="hint">คนใหม่: ล็อกอินครั้งแรก → เลือก “${esc(TEAM.name)}” → ใส่รหัสนี้ (เข้าทันที) หรือกดส่งคำขอแล้วคุณอนุมัติให้ ·
-      สุ่มรหัสใหม่แล้วรหัสเก่าใช้ไม่ได้ แต่คนที่อยู่ในทีมแล้วไม่โดนเตะ</div>
+    <div class="hint">ชวนคนใหม่: กด <b>คัดลอก</b> แล้วส่งให้เขา → ล็อกอินครั้งแรก → เลือก “${esc(TEAM.name)}” → ใส่รหัสนี้ เข้าทีมได้ทันที${lead || admin
+      ? ` · หรือเขากดส่งคำขอแล้วคุณอนุมัติให้ · สุ่มรหัสใหม่แล้วรหัสเก่าใช้ไม่ได้ แต่คนที่อยู่ในทีมแล้วไม่โดนเตะ` : ""}</div>
     ${admin ? `<div id="tmAdmin"></div>` : ""}`;
   if (lead || admin) renderTeamRequests($("#tmReqs"));
   if (admin) renderTeamAdmin($("#tmAdmin"));
@@ -14342,7 +14343,9 @@ function renderTeamSect(){
     } catch(e){ $("#tmLabelMsg").textContent = "บันทึกป้ายไม่ได้: " + e.message; }
   });
   $("#tmCopy").onclick = () => {
-    const t = `ทีม ${TEAM.name} · รหัส ${TEAM.code}`;
+    const t = `ชวนเข้าทีม ${TEAM.name} บน Creataew
+${location.origin + location.pathname}
+ล็อกอิน → เลือกทีม “${TEAM.name}” → ใส่รหัส ${TEAM.code}`;
     (navigator.clipboard ? navigator.clipboard.writeText(t) : Promise.reject()).then(
       () => { $("#tmCopy").textContent = "คัดลอกแล้ว"; }, () => prompt("คัดลอกข้อความนี้", t));
   };
@@ -17943,8 +17946,8 @@ function openSettings(tab){
         if (document.body.dataset.view === "coord") renderCoord();
       } catch(e){ $("#myNameMsg").className = "addmsg on err"; $("#myNameMsg").textContent = e.message; }
     };
-    if (limited){ document.body.dataset.memberset = "1"; $("#teamSect").hidden = true; }
-    else { delete document.body.dataset.memberset; if ((PROFILE || {}).role === "admin") renderTeamSect(); }
+    if (limited) document.body.dataset.memberset = "1"; else delete document.body.dataset.memberset;
+    if (TEAM_MODE) renderTeamSect(); else $("#teamSect").hidden = true;
     $("#privTeam").hidden = false;
     $("#privTeam").innerHTML = `<b>ที่บันทึกลงฐานข้อมูล:</b> งานที่แก้ (ทุกคนในพื้นที่เดียวกันเห็น) และการใช้งาน —
       หน้าที่เปิด · โปรเจกต์/ครีเอเตอร์ที่เปิดดู · คำค้นและตัวกรอง · ลิงก์ TikTok ที่กด · ข้อความที่คัดลอก (ความยาว + 40 ตัวแรก) ·
@@ -23583,7 +23586,7 @@ function migrateCartClear(){
 // ═══ เวอร์ชันของหน้า — แท็บที่เปิดค้างโค้ดเก่าต้องไม่ซิงก์ทีม ═══
 // เจอจริง 2026-10-27: แท็บเก่าดึงคีย์ใหม่ลงผิดที่ + ดันรายการที่ลบแล้วกลับขึ้นทุกนาที
 // APP_VER ประทับตอน deploy (kol-tools\stamp-version.py) · version.json คู่กันบนเซิร์ฟเวอร์ — ไม่ตรง = รีเฟรช
-const APP_VER = "20261104-080118";
+const APP_VER = "20261104-080626";
 let STALE = false;
 async function verCheck(){
   if (STALE || APP_VER === "dev") return;
