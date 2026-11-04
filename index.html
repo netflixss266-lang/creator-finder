@@ -20376,6 +20376,16 @@ function renderQFind(){
 async function pickQFind(ref){
   if (!ref) return;
   if (ref.kind === "pool"){ QF_INFO = ref.handle; return renderQFInfo(); }
+  // เปิด Command อยู่แล้วกด Ctrl+F เลือกคน = สลับ Command ไปเป็นของคนนั้น (2026-11-04)
+  // ไม่ปิด Command ไปเปิดหน้ารายละเอียด/กระโดดไปแถวในตาราง — คนที่ค้นจากหน้านี้ต้องการคุยต่อกับอีกคน
+  if ($("#cmdPanel").classList.contains("on")){
+    const row = (COORD[ref.proj] || []).find(r => normId(r.handle) === ref.handle);
+    if (!row) return;
+    closeQFind();
+    if (ref.proj !== PROJ){ PROJ = ref.proj; MINE_VIEW = false; renderProjTabs(); renderCoord(); fillProjSelect(); }
+    openCmd(ref.proj, row.handle);
+    return;
+  }
   if (qfMapMode() && jumpToMapLeaf(ref)) return;
   const onTable = qfTableMode();
   if (onTable && jumpToTableRow(ref)) return;
@@ -23429,7 +23439,7 @@ function migrateCartClear(){
 // ═══ เวอร์ชันของหน้า — แท็บที่เปิดค้างโค้ดเก่าต้องไม่ซิงก์ทีม ═══
 // เจอจริง 2026-10-27: แท็บเก่าดึงคีย์ใหม่ลงผิดที่ + ดันรายการที่ลบแล้วกลับขึ้นทุกนาที
 // APP_VER ประทับตอน deploy (kol-tools\stamp-version.py) · version.json คู่กันบนเซิร์ฟเวอร์ — ไม่ตรง = รีเฟรช
-const APP_VER = "20261103-090751";
+const APP_VER = "20261104-023547";
 let STALE = false;
 async function verCheck(){
   if (STALE || APP_VER === "dev") return;
