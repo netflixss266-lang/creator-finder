@@ -3472,6 +3472,18 @@ body > header{padding-right:calc(var(--acw,120px) + 44px)}
 .overlay.full .modal-head{padding-right:calc(var(--acw,120px) + 44px)}
 @media(max-width:900px){body > header{padding-right:calc(var(--acw,120px) + 28px)} #acctBtn{top:9px;right:14px}
   .overlay.full .modal-head{padding-right:calc(var(--acw,120px) + 28px)}}
+/* ── หัวเว็บแบบเดียวกับหัว Map (2026-11-04) — เมนูเป็นแคปซูล · หน้าตารางโชว์ชื่อโปรเจกต์ตัวใหญ่ ── */
+.nav{background:var(--surface);border:1px solid var(--line);border-radius:999px;padding:3px;gap:4px}
+.nav button{padding:5px 12px;border-radius:999px;font-size:.8rem;white-space:nowrap}
+.nav button:hover{background:var(--surface2);color:var(--ink)}
+.nav button[aria-current="page"]{background:var(--surface2);color:var(--ink)}
+.nav button[aria-current="page"]::after{display:none}
+.pagetitle{display:none;margin:0;font-family:'Bebas Neue','Space Grotesk',sans-serif;font-size:1.55rem;font-weight:400;
+  letter-spacing:.06em;color:var(--accent);line-height:1.1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+body[data-view="coord"] .pagetitle{display:block;flex:0 1 auto}
+body[data-view="coord"] > header .brand{display:none}
+body[data-view="coord"] .nav{margin-left:auto}
+body[data-view="coord"] .hgroup{margin-left:0}
 
 /* ═══ เดโม: เบลอข้อมูลสำคัญ ═══ */
 html.demo .dm-b,
@@ -3503,7 +3515,10 @@ html.demo .dm-b:hover{filter:blur(5px)}
     <h1>Creataew</h1>
     <span class="sub">Alta Global Commerce</span>
   </button>
+  <!-- หน้าตาราง: ชื่อโปรเจกต์ตัวใหญ่แทนโลโก้ — หัวเดียวกับหน้า Map (2026-11-04) -->
+  <h2 class="pagetitle" id="coordTitle"></h2>
   <nav class="nav" id="navBar">
+    <button data-go="home">⌂ หน้าแรก</button>
     <button data-go="find">ค้นหาครีเอเตอร์</button>
     <button data-go="coord">Coordinator</button>
     <!-- โหมดทีม: ห้องตรวจดราฟต์ (หน้าของตัวเอง) · คำสั่งด่วน (แผงลอย ใช้ได้จากทุกหน้า) -->
@@ -8199,6 +8214,8 @@ function renderCoordModes(){
     + `<button role="tab" class="totable" aria-selected="true" title="หน้านี้ — ตาราง">▦ ตาราง</button>`;
   el.querySelectorAll("[data-cm]").forEach(b => b.onclick = () => { MAP_MODE = b.dataset.cm; openMap(PROJ); });
   // รูปแบบของแผ่นขั้นตอนงาน — ตั้งจากตารางได้ด้วย (มีผลกับ Map + บล็อกแจ้งเตือนไลฟ์ใน Command)
+  const ttl = $("#coordTitle");
+  if (ttl) ttl.textContent = MINE_VIEW && TEAM_MODE && TEAM ? "★ งานของฉัน" : (PROJ || "Coordinator");
   const fe = $("#coordFmt");
   if (fe){
     fe.innerHTML = PROJ ? `<span class="lab">รูปแบบ</span>` + MAP_FMTS.map(([id, label]) =>
