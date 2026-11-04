@@ -3496,6 +3496,9 @@ body[data-view="coord"] #coordView{padding-top:12px}
 #syncBar.ok{display:none}
 .mrow .mkick{flex:none;padding:3px 10px;font-size:.72rem;order:2}
 .mrow .mkick:hover{border-color:var(--lo);color:var(--lo)}
+/* ป้ายคำขอเข้าทีมบนปุ่มโปรไฟล์ */
+#acctBtn{position:fixed}
+#acctBtn .acreq{position:absolute;top:-5px;right:-5px;margin:0;box-shadow:0 0 0 2px var(--bg)}
 
 /* ═══ เดโม: เบลอข้อมูลสำคัญ ═══ */
 html.demo .dm-b,
@@ -3553,7 +3556,7 @@ html.demo .dm-b:hover{filter:blur(5px)}
 </header>
 <!-- ปุ่มโปรไฟล์อยู่นอกหัวเว็บ — หัวเว็บเป็นชั้นของตัวเอง (sticky z40) ถ้าอยู่ข้างในจะโดนแผงเต็มจอ (z50) บังเสมอ -->
 <button type="button" class="acctbtn" id="acctBtn" aria-haspopup="menu" aria-expanded="false" aria-controls="acctMenu"
-            title="บัญชีของฉัน · ตั้งค่า"><span class="acav" id="acctAv">?</span><span class="an" id="acctName">บัญชี</span><span class="caret">▾</span></button>
+            title="บัญชีของฉัน · ตั้งค่า"><span class="acav" id="acctAv">?</span><span class="an" id="acctName">บัญชี</span><span class="caret">▾</span><span class="nbadge acreq" id="acctReqBadge" hidden title="มีคนขอเข้าทีม"></span></button>
 
 <!-- ═══ เมนูบัญชี — ตั้งค่า / ขนาดตัวอักษร / ออกจากระบบ ย้ายมาอยู่ในนี้ ═══ -->
 <div class="acctmenu" id="acctMenu" role="menu" aria-label="บัญชี" hidden>
@@ -14722,15 +14725,22 @@ async function renderTeamAdmin(host){
   };
 }
 // ป้ายเตือนหัวทีม/admin ว่ามีคนขอเข้าทีม — โผล่ข้างคนออนไลน์เหนือตาราง
+// (2026-11-04) หัวทีมได้แจ้งเตือนด้วย — เดิมเฉพาะ admin · ป้ายบนปุ่มโปรไฟล์ (เห็นทุกหน้า) + แจ้งเด้งเมื่อมีคำขอใหม่
+let TREQ_N = -1;
 function teamReqBadge(n){
   const el = $("#teamReqBtn");
-  if (!el) return;
-  el.hidden = !n;
-  el.textContent = `📨 คำขอเข้าทีม ${n}`;
+  if (el){ el.hidden = !n; el.textContent = `📨 คำขอเข้าทีม ${n}`; }
+  const ab = $("#acctReqBadge");
+  if (ab){ ab.hidden = !n; ab.textContent = n > 9 ? "9+" : n; }
+  if (n > Math.max(TREQ_N, 0)){
+    const t = acctToast(`📨 มีคำขอเข้าทีม ${n} คน — กดที่นี่เพื่อไปอนุมัติ`);
+    if (t) t.onclick = () => { t.remove(); $("#teamReqBtn").click(); };
+  }
+  TREQ_N = n;
 }
+const isReqReviewer = () => TEAM_MODE && PROFILE && (PROFILE.role === "admin" || (TEAM && TEAM.lead_id === sbUid()));
 async function checkTeamRequests(){
-  if (!TEAM_MODE || !PROFILE) return;
-  if (PROFILE.role !== "admin") return;
+  if (!isReqReviewer()) return;
   try { teamReqBadge(((await sbRpc("list_team_requests")) || []).length); } catch(e){}
 }
 
@@ -18521,6 +18531,7 @@ function acctToast(text){
   document.body.appendChild(t);
   setTimeout(() => t.remove(), 7000);
   t.onclick = () => t.remove();
+  return t;
 }
 
 // ─── ย้ายการตั้งค่า (ไฟล์ .json) ───
@@ -24093,7 +24104,7 @@ requireLogin().then(async () => {
   rtStart();                 // ฟังการเปลี่ยนแปลงจากเครื่องอื่นตั้งแต่เข้าเว็บ
   if (TEAM_MODE) initQoPop();
   vlog("open");
-  if (TEAM_MODE){ checkTeamRequests(); setInterval(checkTeamRequests, 90000); }
+  if (TEAM_MODE){ checkTeamRequests(); setTimeout(checkTeamRequests, 8000); setInterval(checkTeamRequests, 60000); }
   startLiveWarn();           // แจ้งเตือนก่อนไลฟ์ ทำงานทุกหน้า
   applyRole();                  // ต้องรู้สิทธิ์ก่อนวาดอะไร ไม่งั้นปุ่มที่กดไม่ได้จะโผล่แวบนึง
   if (ACCT_NOTE){ acctToast(ACCT_NOTE); ACCT_NOTE = ""; }
