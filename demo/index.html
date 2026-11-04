@@ -522,7 +522,7 @@ body[data-memberset] #settings .setbody > .sect:not(.mkeep){display:none!importa
 tr.rlockrow > td:first-child{box-shadow:inset 3px 0 var(--rc)}
 .rview{margin-left:4px}
 /* ★ งานของฉัน */
-body[data-mine] .coordbar, body[data-mine] #memSeg, body[data-mine] #kindSeg, body[data-mine] #coordModes, body[data-mine] #creatorCard{display:none!important}
+body[data-mine] .coordbar, body[data-mine] #memSeg, body[data-mine] #kindSeg, body[data-mine] #coordModes, body[data-mine] #coordFmt, body[data-mine] #creatorCard{display:none!important}
 .minetable tr.mgrp td{background:rgba(var(--accent-rgb),.06);font-size:.85rem;padding:8px 10px}
 .minetable tr.mgrp .n{color:var(--dim);margin:0 8px 0 4px}
 .minetable td{vertical-align:middle}
@@ -4060,6 +4060,7 @@ html.demo .dm-b:hover{filter:blur(5px)}
     <div class="online" id="onlineBar"></div>
     <!-- มุมมองชุดเดียวกับใน Map — ▦ ตาราง คือหน้านี้ · ที่เหลือเปิด Map ในมุมนั้น -->
     <div class="mapmodes" id="coordModes" role="tablist"></div>
+    <div class="mapfmt" id="coordFmt" role="tablist"></div>
     <!-- ข้อความทักครั้งแรกเพื่อขอเรท — ยังไม่มีคนในตาราง เลยเป็นของโปรเจกต์ ไม่ใช่ของรายคน -->
     <button class="mapbtn" id="fmtBtn" title="ข้อความขอเรทสำหรับทักครีเอเตอร์ครั้งแรก (กด F)">✉ Format ขอเรท</button>
   </div>
@@ -4088,8 +4089,10 @@ html.demo .dm-b:hover{filter:blur(5px)}
       <h2 id="mapTitle">แผนผังภาพรวม</h2>
       <!-- โหมดทีม: ไปหน้าอื่นจากแผนผังได้เลย (หัวเว็บถูกบังอยู่) — ชุดเดียวกับเมนูหัวเว็บ -->
       <div class="mapnav teamonly" role="navigation" aria-label="ไปหน้าอื่น">
+        <button type="button" data-mapgo="home" title="ปิดแผนผัง กลับหน้าแรก">⌂ หน้าแรก</button>
         <button type="button" data-mapgo="coord" title="ปิดแผนผัง ไปที่ตาราง Coordinator">▦ Coordinator</button>
         <button type="button" data-mapgo="review" title="ไปห้องตรวจดราฟต์">ตรวจดราฟต์<span class="nbadge" id="rvBadgeMap" hidden></span></button>
+        <button type="button" data-mapgo="todo" title="งานที่ต้องทำวันนี้ทุกโปรเจกต์ (ซ้อนบนแผนผัง)">📋 วันนี้ต้องทำ<span class="nbadge" id="todoBadgeMap" hidden></span></button>
         <button type="button" data-mapgo="quick" title="เปิดคำสั่งด่วน (ซ้อนบนแผนผัง)">⚡ คำสั่งด่วน</button>
         <button type="button" data-mapgo="open" title="เปิดโปรไฟล์ TikTok ทีละหลายคน (ซ้อนบนแผนผัง)">🔗 เปิดโปรไฟล์</button>
       </div>
@@ -8195,6 +8198,14 @@ function renderCoordModes(){
       id === "flow" ? esc((MAP_FMTS.find(f => f[0] === fmt) || MAP_FMTS[0])[1]) : label}</button>`).join("")
     + `<button role="tab" class="totable" aria-selected="true" title="หน้านี้ — ตาราง">▦ ตาราง</button>`;
   el.querySelectorAll("[data-cm]").forEach(b => b.onclick = () => { MAP_MODE = b.dataset.cm; openMap(PROJ); });
+  // รูปแบบของแผ่นขั้นตอนงาน — ตั้งจากตารางได้ด้วย (มีผลกับ Map + บล็อกแจ้งเตือนไลฟ์ใน Command)
+  const fe = $("#coordFmt");
+  if (fe){
+    fe.innerHTML = PROJ ? `<span class="lab">รูปแบบ</span>` + MAP_FMTS.map(([id, label]) =>
+      `<button role="tab" data-cf="${id}" aria-selected="${fmt === id}" title="${id === "cal"
+        ? "เรียงตามวันที่ — เหมาะกับงานไลฟ์ · เปิดแล้ว Command ของโปรเจกต์นี้มีบล็อก “แจ้งเตือนวันไลฟ์” เพิ่ม" : "เรียงตามขั้นตอนงาน — แบบมาตรฐาน"}">${esc(label)}</button>`).join("") : "";
+    fe.querySelectorAll("[data-cf]").forEach(b => b.onclick = () => { setMapFmt(PROJ, b.dataset.cf); renderCoordModes(); });
+  }
 }
 function renderKindSeg(){
   const all = COORD[PROJ] || [];
@@ -14158,6 +14169,8 @@ $("#fmtBtn").onclick = openFormat;
 document.querySelectorAll("#mapView [data-mapgo]").forEach(b => b.onclick = async () => {
   const g = b.dataset.mapgo;
   if (g === "quick") return openQoPop();
+  if (g === "todo") return $("#todoPop").hidden ? openTodo() : closeTodo();
+  if (g === "home"){ $("#mapView").hidden = true; return setView("home"); }
   if (g === "open") return openOpenPop();
   const p = MAP_PROJ;
   // เข้าหน้า Coordinator = เปิดแผนผังให้เป็นค่าตั้งต้น → สลับหน้าก่อน แล้วค่อยปิดแผนผังไปที่ตาราง
@@ -15661,6 +15674,7 @@ function todoBadge(){
   let n = 0; try { const t = todoItems(); n = t.us.length + t.late.length; } catch(e){}
   TODO_SEG = seg;
   b.hidden = !n; b.textContent = n > 99 ? "99+" : n;
+  const bm = $("#todoBadgeMap"); if (bm){ bm.hidden = b.hidden; bm.textContent = b.textContent; }
 }
 function renderTodo(){
   const T = todoItems();
