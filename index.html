@@ -22,7 +22,7 @@
   form-action 'none';
   base-uri 'none';
   object-src 'none'">
-<title>Creator Finder — KOL Sourcing</title>
+<title>Creataew — KOL Sourcing</title>
 <link rel="icon" href="favicon.svg" type="image/svg+xml">
 <meta name="theme-color" content="#0B0B0B">
 <script>try{var t=localStorage.getItem("cf_theme_last");if(t&&t!=="dark")document.documentElement.dataset.theme=t;}catch(e){}</script>
@@ -1726,6 +1726,16 @@ body.locked{overflow:hidden}
    flex-start + min-height:100vh ให้กล่องโตตามเนื้อใน หัวเรื่องเลยตรึงได้ตลอดทาง
    และพื้นหลังยังเต็มจอตอนเนื้อในสั้นเหมือนเดิม */
 .overlay.full{padding:0;align-items:flex-start}
+/* แผงโปรเจกต์เต็มหน้า (2026-11-04) — เนื้อหาไม่ยืดสุดจอ อ่านง่าย */
+#projPanel #projBody{max-width:980px;margin:0 auto;padding:18px 26px 40px}
+/* การ์ดเพิ่ม/ตั้งค่าโปรเจกต์ — ใบสุดท้ายของแผนผังภาพรวม */
+.mapcard.mapadd{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;min-height:14em;
+  border:2px dashed rgba(var(--accent-rgb),.55);background:rgba(var(--accent-rgb),.04);color:var(--ink);
+  font:inherit;cursor:pointer;text-align:center;transition:background .15s,border-color .15s}
+.mapcard.mapadd:hover{background:rgba(var(--accent-rgb),.1);border-color:var(--accent)}
+.mapcard.mapadd .ma-plus{font-size:2.4rem;line-height:1;color:var(--accent)}
+.mapcard.mapadd b{font-size:.95rem}
+.mapcard.mapadd .ma-sub{font-size:.74rem;color:var(--dim)}
 .overlay.full .modal{max-width:none;border:0;border-radius:0;min-height:100vh;
   padding:0;display:flex;flex-direction:column;background:var(--bg)}
 .overlay.full .modal-head{position:sticky;top:0;z-index:12;margin:0;padding:16px 26px;
@@ -3223,7 +3233,7 @@ html[data-theme="light"] .mapcard:has(.mapstamp) > *:not(.mapstamp),html[data-th
     <svg class="mark" viewBox="0 0 32 32" aria-hidden="true">
       <path d="M6 3h6.4l7.2 16.1V3H26v26h-6.2L12.4 12v17H6Z"/>
     </svg>
-    <h1>Creator Finder</h1>
+    <h1>Creataew</h1>
     <span class="sub">Alta Global Commerce</span>
   </button>
   <nav class="nav" id="navBar">
@@ -3304,7 +3314,7 @@ html[data-theme="light"] .mapcard:has(.mapstamp) > *:not(.mapstamp),html[data-th
 <!-- ═══ ประตูรหัส ═══ -->
 <div class="lock" id="lockView" hidden>
   <form class="lockbox" id="lockForm">
-    <div class="lk">CREATOR FINDER</div>
+    <div class="lk">CREATAEW</div>
     <h2 id="lockTitle">ใส่รหัสเพื่อเข้าใช้งาน</h2>
     <p class="lockhint" id="lockHint"></p>
     <div class="pin" id="lockPin" hidden></div>
@@ -3410,7 +3420,7 @@ html[data-theme="light"] .mapcard:has(.mapstamp) > *:not(.mapstamp),html[data-th
 <!-- ═══ หน้าแรก — เลือกว่าจะทำงานอะไร ═══ -->
 <section id="homeView">
   <div class="hero">
-    <div class="eyebrow">CREATOR FINDER</div>
+    <div class="eyebrow">CREATAEW</div>
     <h2>หาครีเอเตอร์ แล้วคุมงานให้จบ<br>ในที่เดียว</h2>
     <p>ดึงรายชื่อจากชีตทีม คัดตามหมวดและงบ แล้วส่งต่อเข้าโปรเจกต์ —
        เรท ภาษี สถานะ วันโพสต์ แก้ได้หมดจากหน้าเดียว</p>
@@ -3844,7 +3854,7 @@ html[data-theme="light"] .mapcard:has(.mapstamp) > *:not(.mapstamp),html[data-th
 </div>
 
 <!-- ═══ จัดการโปรเจกต์ — เพิ่ม / ปิดงาน / เรียงใหม่ ═══ -->
-<div class="overlay" id="projPanel" hidden>
+<div class="overlay full" id="projPanel" hidden>
   <div class="modal" role="dialog" aria-modal="true" aria-labelledby="projTitle">
     <div class="modal-head">
       <h2 id="projTitle">โปรเจกต์</h2>
@@ -6813,9 +6823,8 @@ function renderProjTabs(){
       ? `<button role="tab" data-mine="1" aria-selected="${MINE_VIEW}"
            title="ครีเอเตอร์ที่คุณดูแลจากทุกโปรเจกต์ — พื้นที่ส่วนตัว แก้ตรงนี้คือแก้แถวเดียวกับของทีม">★ งานของฉัน<span
            class="n">${myRows().length}</span></button>` : "") +
-    show.map(tab).join("") + doneTabBtn(PROJ) +
-
-    `<button class="ghosttab" data-manageproj="1" title="เพิ่ม / ปิดงาน / ลบโปรเจกต์">⚙</button>`;
+    show.map(tab).join("") + doneTabBtn(PROJ);
+    // (2026-11-04) ปุ่ม ⚙ เพิ่ม/ตั้งค่าโปรเจกต์ ย้ายไปเป็นการ์ดใบสุดท้ายในแผนผังภาพรวม ◈ ทุกโปรเจกต์
   const ac = $("#projTabs [data-acts]");
   if (ac) ac.onclick = openActivity;
 
@@ -12118,6 +12127,7 @@ function renderMap(){
   renderMapMem();
   $("#mapTitle").textContent = MAP_PROJ || "ทุกโปรเจกต์";
 
+  setTimeout(() => document.querySelectorAll("#mapBody [data-manageproj]").forEach(b => b.onclick = openProjManager));
   $("#mapBody").innerHTML = !MAP_PROJ ? mapAllSheet()
     : MAP_MODE === "flow"  ? (fmt === "cal" ? mapCalSheet(MAP_PROJ) : mapFlowSheet(MAP_PROJ))
     : MAP_MODE === "gap"   ? mapGapSheet(MAP_PROJ)
@@ -13646,7 +13656,8 @@ function mapAllSheet(){
           <button class="open" data-mapgo="${esc(p)}">◈ แผนผัง</button>
           <button class="open" data-tablego="${esc(p)}">▦ ตาราง</button>
         </div>
-      </div>`; }).join("")}</div>`;
+      </div>`; }).join("")}${canManageProjects() ? `<button type="button" class="mapcard mapadd" data-manageproj="1" title="เพิ่ม / ปิดงาน / ลบโปรเจกต์">
+        <span class="ma-plus">＋</span><b>เพิ่ม / ตั้งค่าโปรเจกต์</b><span class="ma-sub">สร้างโปรเจกต์ใหม่ · ปิดงาน · เปลี่ยนชื่อ · ลบ</span></button>` : ""}</div>`;
 }
 
 // ── รูปสินค้าของโปรเจกต์ ──
@@ -16872,7 +16883,7 @@ function askLogin(){
   $("#lockHint").textContent  = signup
     ? (TEAM_MODE ? "เลือกทีม แล้วใส่รหัสทีม 6 หลักที่ได้จากหัวทีม — รหัสถูกถึงจะเข้าใช้งานได้"
                  : "สมัครเองได้เลย ไม่ต้องรอแอดมินเพิ่มให้ — ตั้งรหัส 2 ชั้นตอนนี้ทีเดียว แล้วเข้าใช้งานได้ทันที")
-    : "Creator Finder — ใช้อีเมลและรหัสผ่านของทีม";
+    : "Creataew — ใช้อีเมลและรหัสผ่านของทีม";
   $("#lockPin").hidden = true;
   $("#lockEmail").hidden = false;
   $("#lockName").hidden = !signup;
@@ -17208,7 +17219,7 @@ async function requireLogin0(){
 
 const GATES = {"site":{"s":"436z7tnu7UitzNDe6iLyoA==","h":"pKsflTxpW4Eg9aLRiyXvVBG56XutM6hzv0JLHEDJeTU="},"coord":{"s":"z3g0CKrdGkKycgtebTsEBA==","h":"7wNoJIcNNVgBaL+sPvSf1QA0rmHNtMZBg0XDLXQ8wTs="}};
 const GATE_ITER = 250000;
-const GATE_LABEL = { site: ["ใส่รหัสเพื่อเข้าใช้งาน", "Creator Finder — เครื่องมือภายในทีม"],
+const GATE_LABEL = { site: ["ใส่รหัสเพื่อเข้าใช้งาน", "Creataew — เครื่องมือภายในทีม"],
                      coord: ["หน้า Coordinator", "ใส่รหัส 6 หลักของหน้านี้ — คนละตัวกับรหัสเข้าเว็บ"] };
 const GATE_PIN = { site: 6, coord: 6 };   // ประตูไหนใช้ช่องตัวเลขแยกช่อง และกี่หลัก
 
@@ -18174,7 +18185,7 @@ $("#xferIn").onchange = async e => {
   let j;
   try { j = JSON.parse(await f.text()); } catch(err){ return acMsg("xferMsg", "อ่านไฟล์ไม่ได้ — ต้องเป็นไฟล์ที่กดส่งออกจากเว็บนี้", "err"); }
   if (!j || j.app !== "creator-finder-settings" || !j.keys || typeof j.keys !== "object")
-    return acMsg("xferMsg", "ไฟล์นี้ไม่ใช่ไฟล์การตั้งค่าของ Creator Finder", "err");
+    return acMsg("xferMsg", "ไฟล์นี้ไม่ใช่ไฟล์การตั้งค่าของ Creataew", "err");
   const ks = Object.keys(j.keys).filter(k => k.startsWith("cf_") && !XFER_SKIP.has(k) && typeof j.keys[k] === "string");
   if (!ks.length) return acMsg("xferMsg", "ไฟล์นี้ไม่มีการตั้งค่าให้นำเข้า", "err");
   if (!confirm(`นำเข้าการตั้งค่า ${ks.length} รายการจาก ${j.from || "ไฟล์"}?
@@ -20029,7 +20040,7 @@ function cycleUI(){
 applyUI();
 
 $("#closeSet").onclick = closeSettings;
-$("#closeProj").onclick = () => { $("#projPanel").hidden = true; };
+$("#closeProj").onclick = () => { $("#projPanel").hidden = true; if (!$("#mapView").hidden) renderMap(); };
 $("#closeAct").onclick = () => { $("#actPanel").hidden = true; };
 $("#colMgrBtn").onclick = e => openColMgr(e.currentTarget);
 if (!TEAM_MODE) $("#colMgrBtn").hidden = true;
@@ -23506,7 +23517,7 @@ function migrateCartClear(){
 // ═══ เวอร์ชันของหน้า — แท็บที่เปิดค้างโค้ดเก่าต้องไม่ซิงก์ทีม ═══
 // เจอจริง 2026-10-27: แท็บเก่าดึงคีย์ใหม่ลงผิดที่ + ดันรายการที่ลบแล้วกลับขึ้นทุกนาที
 // APP_VER ประทับตอน deploy (kol-tools\stamp-version.py) · version.json คู่กันบนเซิร์ฟเวอร์ — ไม่ตรง = รีเฟรช
-const APP_VER = "20261104-073037";
+const APP_VER = "20261104-073641";
 let STALE = false;
 async function verCheck(){
   if (STALE || APP_VER === "dev") return;
