@@ -20617,6 +20617,16 @@ function renderQFind(){
 async function pickQFind(ref){
   if (!ref) return;
   if (ref.kind === "pool"){ QF_INFO = ref.handle; return renderQFInfo(); }
+  // เปิด Command อยู่แล้วกด Ctrl+F เลือกคน = สลับ Command ไปเป็นของคนนั้น (2026-11-04)
+  // ไม่ปิด Command ไปเปิดหน้ารายละเอียด/กระโดดไปแถวในตาราง — คนที่ค้นจากหน้านี้ต้องการคุยต่อกับอีกคน
+  if ($("#cmdPanel").classList.contains("on")){
+    const row = (COORD[ref.proj] || []).find(r => normId(r.handle) === ref.handle);
+    if (!row) return;
+    closeQFind();
+    if (ref.proj !== PROJ){ PROJ = ref.proj; MINE_VIEW = false; renderProjTabs(); renderCoord(); fillProjSelect(); }
+    openCmd(ref.proj, row.handle);
+    return;
+  }
   if (qfMapMode() && jumpToMapLeaf(ref)) return;
   const onTable = qfTableMode();
   if (onTable && jumpToTableRow(ref)) return;
