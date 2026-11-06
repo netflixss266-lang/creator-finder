@@ -10617,6 +10617,47 @@ const sentOld = (proj, handle, i, clip) => {
 };
 // กล่องที่กดส่งแล้วและบินออกไปแล้วในรอบนี้ — นับเป็น "ส่งไปแล้ว (ซ่อน)" เหมือนของเก่า
 const CMD_FLOWN = new Set();
+const CMD_FLYQ = new Map();          // คีย์กล่อง → ตัวนับเวลา (รอบิน 2.5 วิ)
+let CMD_FLY_T = null;
+function cmdFlyCancel(fk){ const t = CMD_FLYQ.get(fk); if (t) clearTimeout(t); CMD_FLYQ.delete(fk); }
+function cmdFlyQueue(proj, handle, id, clip, fk){
+  CMD_FLYQ.set(fk, setTimeout(() => {
+    CMD_FLYQ.delete(fk);
+    if (!isSent(proj, handle, id, clip)) return;
+    CMD_FLOWN.add(fk);                                   // นับว่าบินแล้วเสมอ — ต่อให้กล่องบนจอถูกวาดใหม่ไปแล้ว
+    const blk = document.querySelector(`#cmdBody .cmdblk[data-fk="${CSS.escape(fk)}"]`);
+    if (!blk || !$("#cmdPanel").classList.contains("on")) return cmdFlyRedraw(proj, handle, 0);
+    const h = blk.offsetHeight;
+    // กันแท็บพัก/หน้าต่างย่อ — แอนิเมชันไม่เดิน onfinish ไม่มา = กล่องค้าง · ครบ 1.2 วิ วาดใหม่เลย
+    const guard = setTimeout(() => cmdFlyRedraw(proj, handle, h), 1200);
+    const a = blk.animate([{ opacity:1, transform:"none" },
+      { opacity:0, transform:"translate(140px,-40px) rotate(4deg) scale(.88)" }],
+      { duration:480, easing:"cubic-bezier(.5,0,.75,0)", fill:"forwards" });
+    a.onfinish = () => {
+      if (!blk.isConnected){ clearTimeout(guard); return cmdFlyRedraw(proj, handle, 0); }
+      blk.style.overflow = "hidden";
+      const cs = getComputedStyle(blk);
+      const c = blk.animate([{ height:h + "px", marginTop:cs.marginTop, marginBottom:cs.marginBottom, paddingTop:"0px", paddingBottom:"0px" },
+        { height:"0px", marginTop:"0px", marginBottom:"0px", paddingTop:"0px", paddingBottom:"0px" }],
+        { duration:260, easing:"ease-out", fill:"forwards" });
+      c.onfinish = () => { clearTimeout(guard); cmdFlyRedraw(proj, handle, h); };
+    };
+  }, 2500));
+}
+// วาดใหม่ทีเดียวหลังกล่องที่บินพร้อมๆ กันจบ — แต่ละกล่องที่ยังนับถอยหลังอยู่ได้แถบนับต่อ (ตามคีย์)
+let CMD_FLY_SHIFT = 0;
+function cmdFlyRedraw(proj, handle, h){
+  CMD_FLY_SHIFT += h || 0;
+  clearTimeout(CMD_FLY_T);
+  CMD_FLY_T = setTimeout(() => {
+    const shift = CMD_FLY_SHIFT; CMD_FLY_SHIFT = 0;
+    if (!CMD_NOW || CMD_NOW.proj !== proj || normId(CMD_NOW.handle) !== normId(handle)) return;
+    if (!$("#cmdPanel").classList.contains("on") || CMD_EDITING) return;
+    const top = $("#cmdBody").scrollTop - shift;
+    openCmd(proj, handle);
+    $("#cmdBody").scrollTop = Math.max(0, top);
+  }, 60);
+}
 const isSent = (proj, handle, i, clip) =>
   !!cmdOwnRead(proj, handle).sent[sentKey(i, clip)];
 // ─── กดส่ง Command แล้วสถานะเดินตาม ───
@@ -12131,7 +12172,8 @@ function openCmd(proj, handle){
     // (KOL กับ KOC ใช้บล็อกคนละใบในตำแหน่งเดียวกัน เลขต้นแบบเลยไม่เรียงกัน)
     // ซ่อน = ไม่วาด แต่ index (j) ยังตรงกับ blocks เดิม ปุ่มคัดลอก/ส่งแล้วจึงชี้ถูกกล่อง
     blocks.map((b, j) => b.old && !CMD_SHOW_SENT ? "" : `<div class="cmdblk${b.mine ? " edited" : ""}${b.sent ? " sent" : ""}${
-      b.law ? " lawblk" : ""}${j === recJ ? " cmdrec" : ""}" data-j="${j}">${j === recJ ? `<div class="cmdrectag">👉 กล่องที่ควรส่งต่อ</div>` : ""}
+      b.law ? " lawblk" : ""}${j === recJ ? " cmdrec" : ""}${
+      CMD_FLYQ.has(proj + "|" + normId(handle) + "|" + sentKey(b.id, b.clip)) ? " flysoon" : ""}" data-j="${j}" data-fk="${esc(proj + "|" + normId(handle) + "|" + sentKey(b.id, b.clip))}">${j === recJ ? `<div class="cmdrectag">👉 กล่องที่ควรส่งต่อ</div>` : ""}
       ${b.law ? `<div class="lawblkhint">⚖ ฉบับนี้อ้างสิทธิตามสัญญาจริง ส่งไปแล้วเรียกคืนไม่ได้ —
         ${lawMissingFor(proj, handle).length
           ? `<b class="miss">ยังไม่ได้กรอก ${lawMissingFor(proj, handle).length} ช่อง</b>
@@ -12273,32 +12315,12 @@ function openCmd(proj, handle){
     blk.classList.toggle("sent", b.sent);
     // ── ส่งแล้ว = บินออกไปใน ~2.5 วิ (2026-11-04) ── ระหว่างรอยังกดกลับได้ (ยกเลิกการบิน)
     // กำลังเปิด "แสดงที่ส่งแล้ว" อยู่ = ไม่บิน (ตั้งใจดูของที่ส่งแล้ว)
-    clearTimeout(blk._fly); blk.classList.remove("flysoon");
-    if (b.sent && !CMD_SHOW_SENT){
-      blk.classList.add("flysoon");
-      const fk = proj + "|" + normId(handle) + "|" + sentKey(b.id, b.clip);
-      blk._fly = setTimeout(() => {
-        if (!blk.isConnected || !isSent(proj, handle, b.id, b.clip)) return;
-        CMD_FLOWN.add(fk);
-        const h = blk.offsetHeight;
-        const a = blk.animate([{ opacity:1, transform:"none" },
-          { opacity:0, transform:"translate(140px,-40px) rotate(4deg) scale(.88)" }],
-          { duration:480, easing:"cubic-bezier(.5,0,.75,0)", fill:"forwards" });
-        a.onfinish = () => {
-          blk.style.overflow = "hidden";
-          const c = blk.animate([{ height:h + "px", marginTop:getComputedStyle(blk).marginTop, marginBottom:getComputedStyle(blk).marginBottom, paddingTop:"0px", paddingBottom:"0px" },
-            { height:"0px", marginTop:"0px", marginBottom:"0px", paddingTop:"0px", paddingBottom:"0px" }],
-            { duration:260, easing:"ease-out", fill:"forwards" });
-          c.onfinish = () => {
-            if (!blk.isConnected) return;
-            // วาดใหม่ให้แถบ "ส่งไปแล้ว N กล่อง" กับปุ่มกระโดด/กล่องที่ควรส่งต่อ อัปเดตตาม · คงตำแหน่งเลื่อนไว้
-            const top = $("#cmdBody").scrollTop - h;
-            openCmd(proj, handle);
-            $("#cmdBody").scrollTop = Math.max(0, top);
-          };
-        };
-      }, 2500);
-    }
+    // (แก้ 2026-11-06) กดรัวๆ แล้วบางกล่องไม่หาย — เดิมผูกเวลานับถอยหลังไว้กับตัวกล่องบนจอ
+    //   กล่องแรกบินเสร็จ = วาดหน้าใหม่ = กล่องอื่นบนจอถูกแทนที่ ตัวนับของมันเลยเลิกกลางทาง
+    //   ตอนนี้จำด้วยคีย์ของกล่อง (cmdFlyQueue) ครบเวลาเมื่อไหร่บินแน่นอน ไม่ว่าหน้าจะถูกวาดใหม่กี่รอบ
+    const fk = proj + "|" + normId(handle) + "|" + sentKey(b.id, b.clip);
+    cmdFlyCancel(fk); blk.classList.remove("flysoon");
+    if (b.sent && !CMD_SHOW_SENT){ blk.classList.add("flysoon"); cmdFlyQueue(proj, handle, b.id, b.clip, fk); }
     btn.textContent = b.sent ? "✓ ส่งแล้ว" : "ส่งแล้ว";
     const n = norm.filter(x => x.sent).length;
     $("#cmdUnsent").textContent = `↺ ล้างเครื่องหมายส่งแล้ว (${n})`;
