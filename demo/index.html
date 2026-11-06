@@ -3570,16 +3570,17 @@ body[data-view="coord"] #coordView{padding-top:12px}
 .relrow{display:flex;gap:10px;align-items:baseline;padding:4px 0;font-size:.82rem}
 .pipepanel[hidden],.pp-drawer[hidden],.pp-board[hidden],.pp-stats[hidden],.pp-matrix[hidden],#ppGroup[hidden]{display:none!important}
 .pp-body.drag{cursor:grabbing;user-select:none}
-.pp-matrix table{border-collapse:separate;border-spacing:3px;font-size:.78rem}
-.pp-matrix th{font-weight:600;color:var(--mute);font-size:.7rem;padding:4px 6px;text-align:center;vertical-align:bottom;min-width:76px}
+.pp-matrix table{border-collapse:separate;border-spacing:4px;font-size:.82rem;width:100%;min-width:900px}
+.pp-matrix{min-height:100%}
+.pp-matrix th{font-weight:600;color:var(--mute);font-size:.78rem;padding:6px 6px;text-align:center;vertical-align:bottom;min-width:76px}
 .pp-matrix th small{display:block;font-weight:400;color:var(--dim)}
-.pp-matrix th.rowh,.pp-matrix td.rowh{text-align:left;min-width:150px;max-width:220px;position:sticky;left:0;background:var(--bg);z-index:1;color:var(--ink);font-size:.78rem}
-.pp-matrix td{height:44px;border-radius:7px;text-align:center;background:var(--surface);font-variant-numeric:tabular-nums;font-size:.95rem;border:1px solid transparent}
+.pp-matrix th.rowh,.pp-matrix td.rowh{text-align:left;width:1%;white-space:nowrap;min-width:170px;max-width:260px;position:sticky;left:0;background:var(--bg);z-index:1;color:var(--ink);font-size:.78rem}
+.pp-matrix td{height:clamp(52px,7vh,78px);font-size:1.15rem;border-radius:7px;text-align:center;background:var(--surface);font-variant-numeric:tabular-nums;font-size:.95rem;border:1px solid transparent}
 .pp-matrix td.s-late{background:rgba(var(--lo-rgb,240,114,114),.22);border-color:rgba(var(--lo-rgb,240,114,114),.6);color:var(--ink)}
 .pp-matrix td.s-near{background:rgba(var(--warn-rgb,245,181,70),.18);border-color:rgba(var(--warn-rgb,245,181,70),.55)}
 .pp-matrix td.s-ok{background:rgba(var(--hi-rgb,70,211,105),.12);border-color:rgba(var(--hi-rgb,70,211,105),.35)}
 .pp-matrix td.s-late.hot{background:rgba(var(--lo-rgb,240,114,114),.42)}
-.pp-matrix td .sub{display:block;font-size:.64rem;font-weight:600;margin-top:1px;white-space:nowrap}
+.pp-matrix td .sub{display:block;font-size:.72rem;font-weight:600;margin-top:1px;white-space:nowrap}
 .pp-matrix td.s-late .sub{color:var(--lo)} .pp-matrix td.s-near .sub{color:var(--warn)} .pp-matrix td.s-ok .sub{color:var(--hi)}
 .pp-matrix th{border-top:3px solid var(--line);border-radius:4px 4px 0 0}
 .pp-matrix th.o-us{border-top-color:var(--accent)} .pp-matrix th.o-cr{border-top-color:var(--pay,#BFA2F2)}
@@ -3611,7 +3612,7 @@ body[data-view="coord"] #coordView{padding-top:12px}
 .pp-kpis{display:flex;gap:6px;flex-wrap:wrap;font-size:.78rem;color:var(--mute)} .pp-kpis b{color:var(--ink);font-size:.95rem;margin-right:3px} .pp-kpis .late b{color:var(--lo)}
 .pp-x{margin-left:auto;border:0;background:var(--surface2);color:var(--ink);width:32px;height:32px;border-radius:8px;cursor:pointer;font-size:1rem}
 .pp-body{overflow:auto;padding:12px max(16px,env(safe-area-inset-left,0px)) 40px}
-.pp-board{display:grid;grid-auto-flow:column;grid-auto-columns:minmax(200px,1fr);gap:9px;align-items:start;min-height:100%}
+.pp-board{display:grid;grid-auto-flow:column;grid-auto-columns:minmax(210px,1fr);min-width:100%;gap:9px;align-items:start;min-height:100%}
 .pp-col{background:var(--surface);border-radius:9px;padding:7px;display:grid;gap:6px;align-content:start}
 .pp-col h4{margin:0;display:flex;justify-content:space-between;gap:6px;font-size:.8rem;padding:2px 4px} .pp-col h4 small{color:var(--dim);font-weight:400}
 .pp-col .pp-who{font-size:.68rem;color:var(--dim);padding:0 4px;margin-top:-4px}
@@ -3633,7 +3634,7 @@ body[data-view="coord"] #coordView{padding-top:12px}
 .pp-tl{list-style:none;margin:0;padding:0;font-size:.78rem}
 .pp-tl li{display:grid;grid-template-columns:86px 1fr;gap:8px;padding:4px 0;border-top:1px solid var(--line)}
 .pp-tl li span:first-child{color:var(--dim);font-family:'IBM Plex Mono',monospace;font-size:.7rem}
-.pp-stats table{border-collapse:collapse;width:100%;max-width:900px;font-size:.82rem}
+.pp-stats table{border-collapse:collapse;width:100%;font-size:.86rem}
 .pp-stats th,.pp-stats td{text-align:left;padding:7px 10px;border-bottom:1px solid var(--line)} .pp-stats td.n{text-align:right;font-variant-numeric:tabular-nums}
 .pp-stats th{font-size:.7rem;color:var(--dim);font-weight:500}
 .pp-sbar{display:inline-block;height:8px;border-radius:2px;background:var(--accent);vertical-align:middle;margin-right:6px} .pp-sbar.late{background:var(--lo)}
@@ -4470,7 +4471,8 @@ html.demo .dm-b:hover{filter:blur(5px)}
     <select id="ppProj" class="pp-sel" aria-label="โปรเจกต์"></select>
     <select id="ppWho" class="pp-sel" aria-label="ผู้ดูแล"></select>
     <span class="pp-kpis" id="ppKpis"></span>
-    <button type="button" class="pp-x" id="ppClose" aria-label="ปิด">✕</button>
+    <button type="button" class="pp-x" id="ppFull" aria-label="เต็มจอ" title="เต็มจอ (ซ่อนแถบเบราว์เซอร์) · กด Esc เพื่อออก" style="margin-left:auto">⛶</button>
+    <button type="button" class="pp-x" id="ppClose" aria-label="ปิด" style="margin-left:0">✕</button>
   </div>
   <div class="pp-body">
     <div id="ppMatrix" class="pp-matrix"></div>
@@ -16767,7 +16769,10 @@ async function renderPipeStats(){
       : `<tr><td>${esc(r.c.th)}</td><td class="n">0</td><td class="n">—</td><td class="n">—</td><td class="n">${r.sla}</td><td></td></tr>`).join("")}</tbody></table>`;
 }
 $("#pipeNavBtn").onclick = openPipe;
-$("#ppClose").onclick = () => { $("#pipePanel").hidden = true; $("#ppDrawer").hidden = true; };
+$("#ppClose").onclick = () => { $("#pipePanel").hidden = true; $("#ppDrawer").hidden = true; if (document.fullscreenElement) document.exitFullscreen().catch(() => {}); };
+$("#ppFull").onclick = () => { const el = $("#pipePanel");
+  if (document.fullscreenElement) document.exitFullscreen().catch(() => {}); else if (el.requestFullscreen) el.requestFullscreen().catch(() => {}); };
+document.addEventListener("fullscreenchange", () => { const b = $("#ppFull"); if (b) b.textContent = document.fullscreenElement ? "🗗" : "⛶"; });
 document.addEventListener("keydown", e => { if (e.key === "Escape" && !$("#pipePanel").hidden){
   if (!$("#ppDrawer").hidden) $("#ppDrawer").hidden = true; else $("#pipePanel").hidden = true; } });
 $("#ppProj").onchange = renderPipe; $("#ppWho").onchange = renderPipe;
