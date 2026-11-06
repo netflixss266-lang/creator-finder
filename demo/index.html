@@ -8262,7 +8262,7 @@ function avatar(id, name){
 // ไม่ strict = ตาราง (แถบกรองโผล่เฉพาะโปรเจกต์ทีม) — โปรเจกต์ส่วนตัวไม่กรองเลย
 function memMatch(r, seg, strict){
   if (seg === "all") return true;
-  if (!isTeamProj(r.project))
+  if (!projAsg(r.project))                 // โปรเจกต์ส่วนตัวที่ไม่มีผู้ดูแลคนอื่น = ทุกแถวเป็นของเรา
     return !strict || seg === "me" ||
       (seg.startsWith("l:") && memLabels(memberOf(sbUid())).includes(seg.slice(2)));
   const a = r.assignee;
@@ -8271,6 +8271,15 @@ function memMatch(r, seg, strict){
   if (seg.startsWith("u:")) return a === seg.slice(2);
   if (seg.startsWith("l:")) return memLabels(memberOf(a)).includes(seg.slice(2));
   return true;
+}
+// (2026-11-06) โปรเจกต์ที่มี "ผู้รับผิดชอบ" ให้ดู/ตั้ง/กรอง: โปรเจกต์ทีม + โปรเจกต์ส่วนตัวที่มีผู้ดูแลเป็นคนอื่นในทีม
+//   (เช่นนำเข้าจาก Lark มาพร้อมผู้ดูแล) · โปรเจกต์ส่วนตัวทั่วไป (ทุกแถวเป็นของเรา) ไม่โชว์เหมือนเดิม
+//   กฎ "งานของใครของมัน" (ย้ายขั้น/Command) ยังใช้กับโปรเจกต์ทีมเท่านั้น — โปรเจกต์ส่วนตัวเจ้าของทำได้ทุกแถว
+function projAsg(p){
+  if (!TEAM_MODE || !TEAM || !p) return false;
+  if (isTeamProj(p)) return true;
+  const me = sbUid();
+  return (COORD[p] || []).some(r => r.assignee && r.assignee !== me);
 }
 function passMember(r, strict){ return !TEAM_MODE || !TEAM || memMatch(r, MEMSEG, strict); }
 function memSegFill(el, rows, strict, after){
@@ -8298,7 +8307,7 @@ function memSegFill(el, rows, strict, after){
 function renderMemSeg(){
   const el = $("#memSeg");
   if (!el) return;
-  if (!TEAM_MODE || !TEAM || MINE_VIEW || !isTeamProj(PROJ)){ el.hidden = true; el.innerHTML = ""; return; }
+  if (!TEAM_MODE || !TEAM || MINE_VIEW || !projAsg(PROJ)){ el.hidden = true; el.innerHTML = ""; return; }
   memSegFill(el, COORD[PROJ] || [], false, () => { renderCoord(); if (!$("#mapView").hidden) renderMap(); });
 }
 function renderMapMem(){
@@ -8306,7 +8315,7 @@ function renderMapMem(){
   if (!el) return;
   // แถบ ทุกคน/ของฉัน/รายคน อยู่เฉพาะหน้าย่อยของแต่ละโปรเจกต์ — หน้าทุกโปรเจกต์/★ งานของฉัน ไม่มี
   const scope = MAP_PROJ ? (COORD[MAP_PROJ] || []) : [];
-  if (!TEAM_MODE || !TEAM || !MAP_PROJ || !scope.some(r => isTeamProj(r.project))){ el.hidden = true; el.innerHTML = ""; return; }
+  if (!TEAM_MODE || !TEAM || !MAP_PROJ || !projAsg(MAP_PROJ)){ el.hidden = true; el.innerHTML = ""; return; }
   memSegFill(el, scope, true, () => { renderMap(); renderCoord(); });
 }
 
@@ -8416,7 +8425,7 @@ function renderMine(){
 }
 // ช่องเลือกผู้ดูแลในแถว — เปลี่ยนได้จากตารางเลย ไม่ต้องเปิดรายละเอียด
 function asgSelect(r, i){
-  if (!TEAM_MODE || !TEAM || !isTeamProj(r.project)) return "";
+  if (!projAsg(r.project)) return "";
   const me = sbUid();
   // ตัวเลือกสั้นๆ — กล่องกว้างเท่าตัวเลือกที่ยาวสุด ยาวไปแล้วชื่อครีเอเตอร์ข้างๆ ถูกบีบ
   const opts = [`<option value="">–</option>`].concat(TEAM.members.map(m =>
@@ -13592,7 +13601,7 @@ function mapLeaf(r, proj, color, drag, sub){
         done ? (mapStage(r.status) >= ST_LAST ? " — ส่งเรื่องจ่ายแล้ว ปิดงาน" : " — KOC ไม่มียอดชำระ โพสต์แล้ว = ปิดงาน") : ""}${
         cancel ? " — ยกเลิกงานแล้ว ไม่นับในความคืบหน้าและยอดเงิน" : ""}\nกดเพื่อเปิด Command${
         drag ? " · ลากไปวางที่ขั้นอื่นเพื่อเปลี่ยนสถานะ" : " · กด ▾ เพื่อเปลี่ยนสถานะ"}">
-      <span class="h">${TEAM_MODE && TEAM && isTeamProj(proj) && r.assignee ? avatar(r.assignee) : ""}${
+      <span class="h">${projAsg(proj) && r.assignee ? avatar(r.assignee) : ""}${
         done ? "✓ " : ""}${cancel ? "✕ " : ""}${esc(r.handle)}</span>
       ${sub === "sku" ? `<span class="m sku" title="${esc(String(r.sku || "") || "ยังไม่ได้ใส่ SKU")}">${
         String(r.sku || "").trim()
@@ -16027,7 +16036,7 @@ function qo2WhoHTML(c){
     <div class="qo2pan" id="qo2Pan" hidden>
       <input id="qo2Find" class="qo2new" placeholder="ค้นชื่อใน ${esc(PROJ)}…" style="width:100%!important">
       <div class="qo2quick"><button type="button" data-qq="all">เลือกทั้งหมด</button>
-        ${isTeamProj(PROJ) ? `<button type="button" data-qq="mine">เฉพาะที่ฉันดูแล</button>` : ""}
+        ${projAsg(PROJ) ? `<button type="button" data-qq="mine">เฉพาะที่ฉันดูแล</button>` : ""}
         <button type="button" data-qq="none">ล้าง</button></div>
       <div class="qo2opts" id="qo2List"></div></div></div>`;
 }
@@ -16558,7 +16567,7 @@ function wireQO2Form(c){
     const rows = qo2SheetRows().filter(r => !q || normId(r.handle).includes(q));
     list.innerHTML = rows.map(r => { const h = normId(r.handle);
       return `<label><input type="checkbox" data-qn="${esc(h)}"${QO2_PICK.has(h) ? " checked" : ""}>${
-        isTeamProj(PROJ) && r.assignee ? avatar(r.assignee) : ""}<span>${esc(r.handle)}</span>
+        projAsg(PROJ) && r.assignee ? avatar(r.assignee) : ""}<span>${esc(r.handle)}</span>
         <span class="d">${esc(ST_TH[r.status || ""] || r.status || "")}</span></label>`; }).join("") ||
       `<span class="hint">ไม่พบชื่อ</span>`;
     list.querySelectorAll("[data-qn]").forEach(cb => cb.onchange = () => {
@@ -16933,7 +16942,7 @@ function applyColumns(){
   const ths = [...headRow.children];
   if (ths.length !== keys.length) return;                    // หน้าตาไม่ตรงที่คาด — ไม่แตะดีกว่าจัดผิด
   ths.forEach((th, i) => { th.dataset.col = keys[i]; });
-  const team = isTeamProj(PROJ);
+  const team = projAsg(PROJ);
   // 1) ผู้รับผิดชอบ
   if (team){
     const th = document.createElement("th");
@@ -17029,7 +17038,7 @@ function openColMgr(anchor){
   const draw = () => {
     const order = colMovable(colsPresent());
     const hidden = new Set(COLS.hidden);
-    const rowsHTML = (isTeamProj(PROJ) ? [`<div class="colrow fixed"><label><input type="checkbox" data-cshow="asg"${
+    const rowsHTML = (projAsg(PROJ) ? [`<div class="colrow fixed"><label><input type="checkbox" data-cshow="asg"${
         hidden.has("asg") ? "" : " checked"}> ผู้รับผิดชอบ</label><span class="hint">ตรึงซ้าย</span></div>`] : [])
       .concat([`<div class="colrow fixed"><label><input type="checkbox" checked disabled> ครีเอเตอร์</label><span class="hint">ตรึงซ้าย</span></div>`])
       .concat(order.map((k, i) => `<div class="colrow"><label><input type="checkbox" data-cshow="${esc(k)}"${
@@ -17175,7 +17184,7 @@ function renderReview(){
   const q = RV_FIND.trim().toLowerCase();
   const list = rows.filter(r => { const t = rvTurn(r);
       if (RV_TURN === "done" ? rvStep(r) !== "posted" : RV_TURN && t.role !== RV_TURN) return false;
-      if (MEMSEG === "me" && isTeamProj(PROJ) && r.assignee !== sbUid()) return false;
+      if (MEMSEG === "me" && projAsg(PROJ) && r.assignee !== sbUid()) return false;
       return !q || [r.handle, r.sku, memName(r.assignee)].join(" ").toLowerCase().includes(q); })
     .sort((a, b) => (rvTurn(b).role === role) - (rvTurn(a).role === role));
   if (!RV_SEL || !rows.some(r => rvKey(r) === RV_SEL)) RV_SEL = list[0] ? rvKey(list[0]) : null;
@@ -17188,7 +17197,7 @@ function renderReview(){
     <div class="rv-note">ทดลอง: ขั้นและสถานะใช้ของจริงในโปรเจกต์ · รอบดราฟต์ ลิงก์คลิป และฟีดแบค ยังเก็บในเครื่องนี้ (ทีมยังไม่เห็นกัน)</div>
     <div class="rv-turns">${turns.map(([k, t, n, c]) => `<button type="button" class="rv-turn${k === role ? " mine" : ""}" data-rvturn="${k}"
       aria-pressed="${RV_TURN === k}" style="--c:${c}"><i></i>${esc(t)}${k === role ? " (คุณ)" : ""} <b>${n}</b></button>`).join("")}
-      ${isTeamProj(PROJ) ? `<button type="button" class="rv-turn" data-rvmine="1" aria-pressed="${MEMSEG === "me"}" style="--c:var(--accent)"><i></i>เฉพาะที่ฉันดูแล</button>` : ""}</div>
+      ${projAsg(PROJ) ? `<button type="button" class="rv-turn" data-rvmine="1" aria-pressed="${MEMSEG === "me"}" style="--c:var(--accent)"><i></i>เฉพาะที่ฉันดูแล</button>` : ""}</div>
     <div class="rv-desk">
       <aside class="rv-queue"><div class="rv-find"><input id="rvFind" placeholder="ค้นชื่อ / SKU / ผู้ดูแล" value="${esc(RV_FIND)}" autocomplete="off"></div>
         <div class="rv-list">${list.map(r => { const t = rvTurn(r), rc = t.role ? RV_ROLES[t.role].c : "var(--hi)";
@@ -24876,6 +24885,9 @@ i18nStart();
 // ⚠️ อัปเดตครั้งใหม่ = เพิ่มรายการบนสุด n+1 · คนที่ใช้ช่อง Publish เห็นตอนเปิดเวอร์ชันที่มีรายการนั้นครั้งแรก
 //    ข้ามหลายเวอร์ชัน = เห็นรวมทุกรายการที่พลาดไป · เข้าเว็บครั้งแรกในชีวิต = ไม่เด้งของเก่า (เริ่มนับจากตอนนี้)
 const RELEASE_NOTES = [
+  { n: 4, d: "6 พ.ย. 2569", t: "ผู้รับผิดชอบในโปรเจกต์ส่วนตัว", items: [
+    ["👥", "โปรเจกต์ส่วนตัวที่มีผู้ดูแลเป็นคนอื่น (เช่นที่นำเข้าจาก Lark) โชว์คอลัมน์ <b>ผู้รับผิดชอบ</b> · กรองรายคน · วงชื่อบนแผนผัง เหมือนโปรเจกต์ทีม"],
+  ]},
   { n: 3, d: "6 พ.ย. 2569", t: "คีย์ลัดใหม่", items: [
     ["⌨", "กด <b>H</b> = กลับหน้าหลักทุกโปรเจกต์ (ภาพรวมการ์ด) ได้จากทุกหน้า · ดูคีย์ลัดทั้งหมดที่ ตั้งค่า → ย้อนกลับ · กู้ข้อมูล"],
   ]},
