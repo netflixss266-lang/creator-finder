@@ -258,13 +258,19 @@
   var CF_SB = "https://sosfberpszbqvghyymzi.supabase.co";
   var CF_BK = "sb_publishable_hucMkquwdBpVLWC6dx_o9w_ZGF2iMO5";
   var V = document.querySelector('meta[name="cf-ver"]').content, L = location;
-  if (V === "dev" || /[?&]cfr=1/.test(L.search)) return;              // ไฟล์ทดสอบในเครื่อง / พามาแล้ว (กันวน)
+  if (V === "dev") return;                                             // ไฟล์ทดสอบในเครื่อง
   var base = L.pathname.replace(/(v\/)?[^\/]*$/, ""), inV = /\/v\/[^\/]*$/.test(L.pathname);
   var beta = localStorage.getItem("cf_beta") === "1";
-  if (beta){ if (inV) L.replace(base); return; }                        // admin = ตัวล่าสุดเสมอ
+  if (beta){ if (inV) L.replace(base + L.hash); return; }              // admin = ตัวล่าสุดเสมอ
+  // (แก้ 2026-11-06) เดิมติด ?cfr=1 กันวน แล้วไม่เช็คอีกเลย — คนกด F5 บนไฟล์เวอร์ชันเก่าเลยติดอยู่ตัวเก่า กดกี่รอบก็ไม่ไป
+  // ตอนนี้เช็คทุกครั้งที่โหลด · กันวนด้วยตัวนับในแท็บ: พาไปได้ไม่เกิน 2 ครั้งใน 20 วิ (ไฟล์หาย/เน็ตแปลก = หยุดอยู่ที่เดิม)
+  var hop = {}; try { hop = JSON.parse(sessionStorage.getItem("cf_hop") || "{}") || {}; } catch(e){}
+  var fresh = hop.t && Date.now() - hop.t < 20000;
   var go = function(p){
     if (!p || p === V || !/^\d{8}-\d{6}$/.test(p)) return false;
-    L.replace(base + "v/" + p + ".html?cfr=1" + L.hash); return true;
+    if (fresh && hop.n >= 2) return false;
+    try { sessionStorage.setItem("cf_hop", JSON.stringify({ t: Date.now(), n: fresh ? hop.n + 1 : 1 })); } catch(e){}
+    L.replace(base + "v/" + p + ".html" + L.hash); return true;
   };
   if (go(localStorage.getItem("cf_pubver"))) return;
   fetch(CF_SB + "/rest/v1/rpc/get_published_version", { method:"POST",
@@ -24876,7 +24882,7 @@ async function verCheck(){
     }
   } catch(e){}
 }
-$("#staleReload").onclick = () => { location.href = relRoot() + location.hash; };   // หน้าแรก — ตัวพาใน <head> เลือกเวอร์ชันที่ถูกให้
+$("#staleReload").onclick = () => { try { sessionStorage.removeItem("cf_hop"); } catch(e){} location.href = relRoot() + location.hash; };   // หน้าแรก — ตัวพาใน <head> เลือกเวอร์ชันที่ถูกให้
 setTimeout(verCheck, 20000);
 setInterval(verCheck, 3 * 60000);
 addEventListener("focus", verCheck);
