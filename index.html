@@ -23,7 +23,7 @@
   base-uri 'none';
   object-src 'none'">
 <title>Creataew — KOL Sourcing</title>
-<meta name="cf-ver" content="20261106-170822">
+<meta name="cf-ver" content="20261106-172032">
 <!-- Beta / Publish (2026-11-06): หน้าแรก = เวอร์ชันล่าสุด (admin เห็นก่อน) · คนอื่นถูกพาไป v/<เวอร์ชันที่ Publish>.html
      จำเวอร์ชันที่ Publish ไว้ในเครื่อง = พาไปได้ทันทีไม่ต้องรอเน็ต แล้วเช็คซ้ำเบื้องหลัง · ฐานข้อมูลไม่มี RPC (sandbox) = อยู่ตัวล่าสุด -->
 <script>(function(){try{
@@ -3340,6 +3340,7 @@ body[data-view="coord"] #coordView{padding-top:12px}
 .acshare{display:flex;gap:8px;align-items:flex-start;font-size:.78rem;color:var(--mute);margin:4px 0 10px;cursor:pointer}
 .acshare input{margin-top:3px}
 .relrow{display:flex;gap:10px;align-items:baseline;padding:4px 0;font-size:.82rem}
+.pipepanel[hidden],.pp-drawer[hidden],.pp-board[hidden],.pp-stats[hidden]{display:none!important}
 .pipepanel{position:fixed;inset:0;z-index:60;background:var(--bg);display:grid;grid-template-rows:auto 1fr;padding-top:env(safe-area-inset-top,0px)}
 .pp-head{display:flex;flex-wrap:wrap;gap:8px 12px;align-items:center;padding:10px max(16px,env(safe-area-inset-left,0px));border-bottom:1px solid var(--line);background:var(--surface)}
 .pp-title{font-size:1.05rem} .pp-beta{font-size:.68rem;font-weight:600;padding:1px 7px;border-radius:999px;background:rgba(var(--warn-rgb,245,181,70),.16);color:var(--warn);margin-left:4px}
@@ -25152,7 +25153,7 @@ async function relHistDraw(pub, fmt){
 // ═══ เวอร์ชันของหน้า — แท็บที่เปิดค้างโค้ดเก่าต้องไม่ซิงก์ทีม ═══
 // เจอจริง 2026-10-27: แท็บเก่าดึงคีย์ใหม่ลงผิดที่ + ดันรายการที่ลบแล้วกลับขึ้นทุกนาที
 // APP_VER ประทับตอน deploy (kol-tools\stamp-version.py) · version.json คู่กันบนเซิร์ฟเวอร์ — ไม่ตรง = รีเฟรช
-const APP_VER = "20261106-170822";
+const APP_VER = "20261106-172032";
 let STALE = false;
 async function verCheck(){
   if (STALE || APP_VER === "dev") return;
