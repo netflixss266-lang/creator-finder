@@ -13691,11 +13691,11 @@ function stAgeChip(r){
   if (isPostedSt(r.status)) return `<span class="stage-age done" title="โพสต์แล้ว = รอดเส้นตายแล้ว ไม่นับวันค้าง">✅ โพสต์แล้ว</span>`;
   if (!r._sat) return "";
   const n = satDays(r); if (n == null) return "";
-  const st = ageState(n), cls = st === "ok" ? "" : " " + st;
-  return `<span class="stage-age${cls}" title="อยู่ขั้น ${esc(ST_TH[r.status] || r.status)} มา ${n}${r._sate ? "+" : ""} วัน · เกิน ${AGE_WARN} วัน = เหลือง · เกิน ${AGE_LATE} วัน = แดง${
+  const st = ageState(n, r.status), cls = st === "ok" ? "" : " " + st, [aw, al] = ageLim(r.status);
+  return `<span class="stage-age${cls}" title="อยู่ขั้น ${esc(ST_TH[r.status] || r.status)} มา ${n}${r._sate ? "+" : ""} วัน · เกิน ${aw} วัน = เหลือง · เกิน ${al} วัน = แดง${
     r._sate ? " (วันที่ประมาณ)" : ""}">${st === "late" ? "🔴 " : st === "near" ? "🟡 " : ""}${n}${r._sate ? "+" : ""} วัน</span>`;
 }
-const POSTED_ST = ["Already Posted", "Waiting Gencode", "Waiting Payment", "Already Submitted Payment"];
+const POSTED_ST = ["Already Posted", "Waiting Gencode", "Already Submitted Payment"];   // รอทำจ่ายยังนับวัน (เกณฑ์ 10/15 วัน)
 const isPostedSt = st => POSTED_ST.includes(STAGES.some(x => x.v === st) ? st : (STATUS_MIGRATE[st] || st));
 function shipDays(r){
   if (!TEAM_MODE || !r || !r.status || !r._sat) return "";
@@ -13704,9 +13704,9 @@ function shipDays(r){
   const txt = n === 0 ? "วันนี้" : d.toLocaleDateString("th-TH", { day:"numeric", month:"short" });
   const full = d.toLocaleDateString("th-TH", { day:"numeric", month:"long", year:"numeric" });
   const ship = r.status === "Already Delivered" || r.status === "Sent Tracking";
-  const sla = AGE_LATE, over = isPostedSt(r.status) ? 0 : n - sla;
+  const sla = stSla(r.status), over = isPostedSt(r.status) ? 0 : n - sla;
   return `<span class="shipd${ship ? " ship" : ""}${over > 0 ? " late" : ""}" data-satedit="1" role="button" tabindex="0"
-    title="เข้าขั้น ${esc(ST_TH[r.status] || r.status)} ${r._sate ? "ประมาณ" : "เมื่อ"} ${esc(full)} · ผ่านมา ${n} วัน${over > 0 ? " · เกิน " + AGE_LATE + " วัน (แดง)" : ""}${
+    title="เข้าขั้น ${esc(ST_TH[r.status] || r.status)} ${r._sate ? "ประมาณ" : "เมื่อ"} ${esc(full)} · ผ่านมา ${n} วัน${over > 0 ? " · เกิน " + sla + " วัน (แดง)" : ""}${
       r._sate ? " — ไม่มีประวัติการเปลี่ยนสถานะ วันจริงอาจก่อนหน้านี้" : ""}
 กดเพื่อแก้วันที่">${ship ? "🚚" : "📅"} ${
       n === 0 && !r._sate ? "วันนี้"
@@ -16578,8 +16578,12 @@ const ST_OWNER = st => {
 // เกณฑ์ค้าง (วันในขั้นนั้น) — เกินแล้วเข้ากอง "ต้องทวง" · ตั้งต้นไว้ก่อน ปรับได้ทีหลัง
 // เกณฑ์ค้าง — เดิมแยกรายขั้น · Jibli ให้เหลือเกณฑ์เดียว (2026-11-07): เกิน AGE_WARN วัน = เหลือง · เกิน AGE_LATE วัน = แดง
 const AGE_WARN = 3, AGE_LATE = 5;
-function stSla(st){ return AGE_LATE; }
-const ageState = n => n == null ? "" : n > AGE_LATE ? "late" : n > AGE_WARN ? "near" : "ok";
+// ทำจ่าย (รอทำจ่าย) ใช้เวลานานกว่าขั้นอื่นตามรอบบัญชี — แดงเมื่อเกิน 15 วัน · เหลืองเมื่อเกิน 10 วัน (Jibli 2026-11-07)
+const PAY_WARN = 10, PAY_LATE = 15;
+const isPaySt = st => (STAGES.some(x => x.v === st) ? st : (STATUS_MIGRATE[st] || st)) === "Waiting Payment";
+const ageLim = st => isPaySt(st) ? [PAY_WARN, PAY_LATE] : [AGE_WARN, AGE_LATE];
+function stSla(st){ return ageLim(st)[1]; }
+const ageState = (n, st) => { if (n == null) return ""; const [w, l] = ageLim(st); return n > l ? "late" : n > w ? "near" : "ok"; };
 // ═══ 🧪 Pipeline (ทดลอง · admin · 2026-11-07) ═══
 // บอร์ดรวมงานทุกโปรเจกต์ทีมที่ยังไม่ปิด จัดคอลัมน์ตามช่วงงาน (หลายสถานะต่อคอลัมน์) · การ์ดบอกวันในขั้นเทียบ stSla
 // กดการ์ด = ลิ้นชัก: คำเตือน (creatorWarns) · เลื่อนไปขั้นถัดไปด้วยปุ่มเดียว (mapSetStatus = ทางเดียวกับแผนผัง) · ประวัติจาก activity
@@ -16615,7 +16619,7 @@ function ppRows(){
 }
 const ppAge = r => { const d = satDays(r); return d == null ? null : d; };
 const ppState = r => { if (r.status && isPostedSt(r.status)) return "done";
-  const d = ppAge(r); if (d == null || !r.status) return ""; return ageState(d); };
+  const d = ppAge(r); if (d == null || !r.status) return ""; return ageState(d, r.status); };
 const ppStChip = r => { const k = ppState(r); return k ? `<span class="stc">${PP_ST[k][0]} ${esc(PP_ST[k][1])}</span>` : ""; };
 function openPipe(){
   const pj = $("#ppProj"), who = $("#ppWho");
@@ -16668,7 +16672,7 @@ async function ppOpen(proj, handle, back){
     <div class="pp-facts">
       <div><span>โปรเจกต์</span>${esc(proj)}</div><div><span>ผู้ดูแล</span>${esc(r.assignee ? memName(r.assignee) : "—")}</div>
       <div><span>ขั้นตอนตอนนี้</span>${esc(r.status ? (ST_TH[r.status] || r.status) : "ยังไม่เริ่ม")}</div>
-      <div><span>อยู่ขั้นนี้มา</span>${d == null || !r.status ? "—" : isPostedSt(r.status) ? "✅ โพสต์แล้ว" : `${d} วัน${ppState(r) === "late" ? ` · <b style="color:var(--lo)">🔴 เกิน ${AGE_LATE} วัน</b>` : ppState(r) === "near" ? ` · <b style="color:var(--warn)">🟡 เกิน ${AGE_WARN} วัน</b>` : ""}`}</div>
+      <div><span>อยู่ขั้นนี้มา</span>${d == null || !r.status ? "—" : isPostedSt(r.status) ? "✅ โพสต์แล้ว" : `${d} วัน${ppState(r) === "late" ? ` · <b style="color:var(--lo)">🔴 เกิน ${ageLim(r.status)[1]} วัน</b>` : ppState(r) === "near" ? ` · <b style="color:var(--warn)">🟡 เกิน ${ageLim(r.status)[0]} วัน</b>` : ""}`}</div>
       <div><span>เรท · ภาษี</span>${r.rate != null ? Number(r.rate).toLocaleString("en-US") : "—"} · ${esc(payType(r.paytype).label)}</div>
       <div><span>จ่ายจริง</span>${payOf(r.rate, r.paytype) != null ? payOf(r.rate, r.paytype).toLocaleString("en-US") : "—"}</div>
       <div><span>SKU · วิดีโอ</span>${esc(r.sku || "—")} · ${r.videos ?? "—"}</div><div><span>เลขพัสดุ</span>${esc(r.tracking || "—")}</div>
@@ -16717,7 +16721,7 @@ function renderPipeMatrix(rows){
       <span><b>ช่อง:</b></span><span><i class="sw late"></i>${PP_ST.late[0]} มีงานค้างขั้นเดิมเกิน ${AGE_LATE} วัน</span><span><i class="sw near"></i>${PP_ST.near[0]} เกิน ${AGE_WARN} วัน</span><span><i class="sw ok"></i>${PP_ST.ok[0]} ไม่เกิน ${AGE_WARN} วัน</span><span><i class="sw done"></i>${PP_ST.done[0]} โพสต์แล้ว (รอดเส้นตาย ไม่นับวันค้าง)</span>
       <span style="margin-left:8px"><b>รอใคร:</b></span>${Object.entries(PP_OWN).map(([k, [ic, th]]) =>
         `<span><i class="ol" style="background:${k === "us" ? "var(--accent)" : k === "cr" ? "var(--pay,#BFA2F2)" : k === "pm" ? "var(--info)" : "var(--dim)"}"></i>${ic} ${esc(th)}</span>`).join("")}
-    </div><p class="pp-mhint">ตัวเลขใหญ่ = งานในขั้นนั้นตอนนี้ · นับวันตั้งแต่งานเข้าขั้นปัจจุบัน · ทุกขั้นใช้เกณฑ์เดียวกัน: <b style="color:var(--warn)">🟡 เกิน ${AGE_WARN} วัน</b> · <b style="color:var(--lo)">🔴 เกิน ${AGE_LATE} วัน</b> · โพสต์แล้วไม่นับ · แดงเข้ม = แดงตั้งแต่ครึ่งหนึ่งของช่อง · กดช่องเพื่อดูรายชื่อ</p>
+    </div><p class="pp-mhint">ตัวเลขใหญ่ = งานในขั้นนั้นตอนนี้ · นับวันตั้งแต่งานเข้าขั้นปัจจุบัน · ทุกขั้นใช้เกณฑ์เดียวกัน: <b style="color:var(--warn)">🟡 เกิน ${AGE_WARN} วัน</b> · <b style="color:var(--lo)">🔴 เกิน ${AGE_LATE} วัน</b> · ยกเว้น <b>จ่ายเงิน</b>: 🟡 เกิน ${PAY_WARN} · 🔴 เกิน ${PAY_LATE} วัน · โพสต์แล้วไม่นับ · แดงเข้ม = แดงตั้งแต่ครึ่งหนึ่งของช่อง · กดช่องเพื่อดูรายชื่อ</p>
     <table><thead><tr><th class="rowh">${PP_GROUP === "who" ? "ผู้ดูแล" : "โปรเจกต์"}</th>${cols.map(c => `<th class="o-${c.own}">${esc(c.th)}<small>${esc(c.who)}</small><span class="own">${PP_OWN[c.own][0]} ${esc(PP_OWN[c.own][1])}</span></th>`).join("")}<th>รวม</th></tr></thead>
     <tbody>${keys.map(k => `<tr><td class="rowh">${esc(nameOf(k))}</td>${cols.map(c => td(cell(k, c), k, c)).join("")}${td(cell(k, null), k, null)}</tr>`).join("")}
     <tr class="tot"><td class="rowh">รวมทุก${PP_GROUP === "who" ? "คน" : "โปรเจกต์"}</td>${cols.map(c => td(cell(null, c), null, c)).join("")}${td(rows, null, null)}</tr></tbody></table>`
