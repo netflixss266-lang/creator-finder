@@ -23,7 +23,7 @@
   base-uri 'none';
   object-src 'none'">
 <title>Creataew — KOL Sourcing</title>
-<meta name="cf-ver" content="20261106-172713">
+<meta name="cf-ver" content="20261106-173645">
 <!-- Beta / Publish (2026-11-06): หน้าแรก = เวอร์ชันล่าสุด (admin เห็นก่อน) · คนอื่นถูกพาไป v/<เวอร์ชันที่ Publish>.html
      จำเวอร์ชันที่ Publish ไว้ในเครื่อง = พาไปได้ทันทีไม่ต้องรอเน็ต แล้วเช็คซ้ำเบื้องหลัง · ฐานข้อมูลไม่มี RPC (sandbox) = อยู่ตัวล่าสุด -->
 <script>(function(){try{
@@ -3466,6 +3466,7 @@ details.fold[data-fold="crit"],#critBar{display:none!important}
   <h2 class="pagetitle" id="coordTitle"></h2>
   <nav class="nav" id="navBar">
     <button data-go="home">⌂ หน้าแรก</button>
+    <button type="button" id="pipeNavBtn" hidden title="หน้าทดลอง เห็นเฉพาะ admin · คีย์ลัด P">🧪 Pipeline</button>
     <button data-go="find">ค้นหาครีเอเตอร์</button>
     <button data-go="coord">Coordinator</button>
     <!-- โหมดทีม: ห้องตรวจดราฟต์ (หน้าของตัวเอง) · คำสั่งด่วน (แผงลอย ใช้ได้จากทุกหน้า) -->
@@ -3474,7 +3475,6 @@ details.fold[data-fold="crit"],#critBar{display:none!important}
     <button type="button" id="chatNavBtn" class="teamonly" aria-expanded="false" aria-controls="chatPanel">💬 แชตทีม<span class="nbadge" id="chatBadge" hidden></span></button>
     <button type="button" id="qoNavBtn" class="teamonly" aria-expanded="false" aria-controls="qoPop">⚡ คำสั่งด่วน</button>
     <button type="button" id="openNavBtn" class="teamonly" aria-expanded="false" aria-controls="openPop">🔗 เปิดโปรไฟล์</button>
-    <button type="button" id="pipeNavBtn" hidden title="หน้าทดลอง เห็นเฉพาะ admin">🧪 Pipeline</button>
   </nav>
   <div class="hgroup">
     <button class="gear" id="foldBtn" aria-expanded="true"
@@ -4089,6 +4089,7 @@ details.fold[data-fold="crit"],#critBar{display:none!important}
         <button type="button" data-mapgo="chat" title="แชตทีม (ซ้อนบนแผนผัง)">💬 แชตทีม<span class="nbadge" id="chatBadgeMap" hidden></span></button>
         <button type="button" data-mapgo="quick" title="เปิดคำสั่งด่วน (ซ้อนบนแผนผัง)">⚡ คำสั่งด่วน</button>
         <button type="button" data-mapgo="open" title="เปิดโปรไฟล์ TikTok ทีละหลายคน (ซ้อนบนแผนผัง)">🔗 เปิดโปรไฟล์</button>
+        <button type="button" data-mapgo="pipe" id="pipeMapBtn" hidden title="หน้าทดลอง เห็นเฉพาะ admin · คีย์ลัด P">🧪 Pipeline</button>
       </div>
       <div class="tabs sub" id="mapTabs" role="tablist"></div>
       <!-- KOL กับ KOC เดินคนละกระบวนการแล้ว (11 บล็อก vs 15) ดูรวมกันบางทีก็ไม่ตอบอะไร -->
@@ -14802,6 +14803,7 @@ document.querySelectorAll("#mapView [data-mapgo]").forEach(b => b.onclick = asyn
   if (g === "chat") return chatToggle();
   if (g === "home"){ $("#mapView").hidden = true; return setView("home"); }
   if (g === "open") return openOpenPop();
+  if (g === "pipe") return openPipe();
   const p = MAP_PROJ;
   // เข้าหน้า Coordinator = เปิดแผนผังให้เป็นค่าตั้งต้น → สลับหน้าก่อน แล้วค่อยปิดแผนผังไปที่ตาราง
   if (g === "review"){ openTable(p); await setView("review"); }
@@ -16428,6 +16430,8 @@ async function renderPipeStats(){
 }
 $("#pipeNavBtn").onclick = openPipe;
 $("#ppClose").onclick = () => { $("#pipePanel").hidden = true; $("#ppDrawer").hidden = true; };
+document.addEventListener("keydown", e => { if (e.key === "Escape" && !$("#pipePanel").hidden){
+  if (!$("#ppDrawer").hidden) $("#ppDrawer").hidden = true; else $("#pipePanel").hidden = true; } });
 $("#ppProj").onchange = renderPipe; $("#ppWho").onchange = renderPipe;
 document.querySelectorAll("[data-pptab]").forEach(b => b.onclick = () => { PP_TAB = b.dataset.pptab; renderPipe(); });
 
@@ -21769,6 +21773,16 @@ document.addEventListener("keydown", async e => {
   if (!onCoord) await setView("coord");
   if (document.body.dataset.view === "coord" && !$("#mapView").hidden) openTable(MAP_PROJ);
 });
+// ── P = 🧪 Pipeline (admin) ── แป้นไทยส่ง "ย"
+document.addEventListener("keydown", e => {
+  if (e.ctrlKey || e.metaKey || e.altKey || e.shiftKey || e.repeat) return;
+  if (e.code !== "KeyP" && e.key !== "p" && e.key !== "P" && e.key !== "ย") return;
+  const a = document.activeElement;
+  if (a && a.offsetParent !== null && (a.tagName === "INPUT" || a.tagName === "TEXTAREA" || a.tagName === "SELECT" || a.isContentEditable)) return;
+  if (!PROFILE || PROFILE.role !== "admin" || !TEAM_MODE || !$("#lockView").hidden) return;
+  e.preventDefault();
+  if ($("#pipePanel").hidden) openPipe(); else { $("#pipePanel").hidden = true; $("#ppDrawer").hidden = true; }
+});
 // ── H หน้าหลักทุกโปรเจกต์ (ภาพรวมการ์ดใน Map) (2026-11-06) ──
 // กดจากหน้าไหนก็ได้ · อยู่หน้าภาพรวมอยู่แล้ว = ไม่ทำอะไร · กติกาเดียวกับ M/T: ไม่แย่งตอนพิมพ์ มีหน้าต่างทับอยู่ไม่ทำอะไร
 // ⚠️ e.code ด้วย — แป้นไทยส่ง e.key เป็น "้"
@@ -25051,7 +25065,7 @@ function relChannel(){
       $("#pvPub").onclick = () => relRollback(APP_VER, () => location.replace(relRoot())); }
   }
   setTimeout(relPillCheck, 1500);
-  const pb = $("#pipeNavBtn"); if (pb) pb.hidden = !admin || !TEAM_MODE;
+  ["#pipeNavBtn", "#pipeMapBtn"].forEach(id => { const pb = $(id); if (pb) pb.hidden = !admin || !TEAM_MODE; });
   if (!relChannel._news){ relChannel._news = true; whatsNewSoon(); }
 }
 async function relPublished(){
@@ -25159,7 +25173,7 @@ async function relHistDraw(pub, fmt){
 // ═══ เวอร์ชันของหน้า — แท็บที่เปิดค้างโค้ดเก่าต้องไม่ซิงก์ทีม ═══
 // เจอจริง 2026-10-27: แท็บเก่าดึงคีย์ใหม่ลงผิดที่ + ดันรายการที่ลบแล้วกลับขึ้นทุกนาที
 // APP_VER ประทับตอน deploy (kol-tools\stamp-version.py) · version.json คู่กันบนเซิร์ฟเวอร์ — ไม่ตรง = รีเฟรช
-const APP_VER = "20261106-172713";
+const APP_VER = "20261106-173645";
 let STALE = false;
 async function verCheck(){
   if (STALE || APP_VER === "dev") return;
