@@ -23,7 +23,7 @@
   base-uri 'none';
   object-src 'none'">
 <title>Creataew — KOL Sourcing</title>
-<meta name="cf-ver" content="20261106-092035">
+<meta name="cf-ver" content="20261106-092734">
 <!-- Beta / Publish (2026-11-06): หน้าแรก = เวอร์ชันล่าสุด (admin เห็นก่อน) · คนอื่นถูกพาไป v/<เวอร์ชันที่ Publish>.html
      จำเวอร์ชันที่ Publish ไว้ในเครื่อง = พาไปได้ทันทีไม่ต้องรอเน็ต แล้วเช็คซ้ำเบื้องหลัง · ฐานข้อมูลไม่มี RPC (sandbox) = อยู่ตัวล่าสุด -->
 <script>(function(){try{
@@ -3399,6 +3399,7 @@ details.fold[data-fold="crit"],#critBar{display:none!important}
 .whatsnew li .ic{flex:none;width:1.4em;text-align:center}
 .whatsnew .wn-foot{padding:12px 18px;border-top:1px solid var(--line);display:flex;justify-content:flex-end}
 .whatsnew .wn-foot .run{width:auto;padding:8px 22px}
+.mapcard h4 .done.priv{color:var(--accent);border-color:rgba(var(--accent-rgb),.45)}
 </style>
 </head>
 <body>
@@ -14423,7 +14424,8 @@ function renderCalPaste(proj){
 const calDayLabel = d => `${d.getDate()} ${TH_MON_SHORT[d.getMonth()]} ${d.getFullYear() + 543}`;
 
 // แผ่น "ทุกโปรเจกต์" ในโหมดทีม = เฉพาะโปรเจกต์ของทีม (โปรเจกต์ส่วนตัวดูที่แท็บของมันเอง)
-const mapAllProjs = () => TEAM_MODE && TEAM ? PROJECTS.filter(isTeamProj) : PROJECTS;
+// (2026-11-06) รวมโปรเจกต์ส่วนตัวของเราด้วย — ขึ้นป้าย 🔒 ส่วนตัว (คนอื่นไม่เห็นอยู่แล้ว เพราะเป็นของเราคนเดียว)
+const mapAllProjs = () => PROJECTS.filter(p => p && typeof p === "string");
 function mapAllSheet(){
   const all = mapAllProjs().flatMap(mapRows);
   if (!all.length) return `<div class="mapempty">ยังไม่มีข้อมูล — โหลดจากชีตก่อน</div>`;
@@ -14454,7 +14456,7 @@ function mapAllSheet(){
           <button type="button" data-pimg="${esc(p)}" title="${img ? "เปลี่ยนรูปสินค้า" : "ใส่รูปสินค้า (โชว์จางๆ หลังการ์ด) — ลากรูปมาวางที่การ์ดก็ได้"}">🖼</button>
           ${img ? `<button type="button" data-pimgdel="${esc(p)}" title="ลบรูปสินค้า">✕</button>` : ""}
         </div>
-        <h4>${esc(p)}${(projMeta(p) || {}).done ? `<span class="done">ปิดงานแล้ว</span>` : ""}</h4>
+        <h4>${esc(p)}${TEAM_MODE && TEAM && !isTeamProj(p) ? `<span class="done priv" title="โปรเจกต์ส่วนตัว — เห็นคนเดียว">🔒 ส่วนตัว</span>` : ""}${(projMeta(p) || {}).done ? `<span class="done">ปิดงานแล้ว</span>` : ""}</h4>
         <div class="sub">${s.active} คน · ${s.clips} คลิป${
           MAP_KIND === "all" ? ` · KOL ${s.kol} / KOC ${s.koc}` : ` · เฉพาะ ${MAP_KIND}`}${
           s.cancel ? ` · <span style="color:#C98A8A">ยกเลิก ${s.cancel}</span>` : ""}</div>
@@ -24644,6 +24646,9 @@ i18nStart();
 // ⚠️ อัปเดตครั้งใหม่ = เพิ่มรายการบนสุด n+1 · คนที่ใช้ช่อง Publish เห็นตอนเปิดเวอร์ชันที่มีรายการนั้นครั้งแรก
 //    ข้ามหลายเวอร์ชัน = เห็นรวมทุกรายการที่พลาดไป · เข้าเว็บครั้งแรกในชีวิต = ไม่เด้งของเก่า (เริ่มนับจากตอนนี้)
 const RELEASE_NOTES = [
+  { n: 5, d: "6 พ.ย. 2569", t: "หน้ารวมทุกโปรเจกต์", items: [
+    ["🗂", "โปรเจกต์ส่วนตัวของคุณขึ้นในหน้ารวมทุกโปรเจกต์ด้วยแล้ว (มีป้าย 🔒 ส่วนตัว · คนอื่นไม่เห็น)"],
+  ]},
   { n: 4, d: "6 พ.ย. 2569", t: "ผู้รับผิดชอบในโปรเจกต์ส่วนตัว", items: [
     ["👥", "โปรเจกต์ส่วนตัวที่มีผู้ดูแลเป็นคนอื่น (เช่นที่นำเข้าจาก Lark) โชว์คอลัมน์ <b>ผู้รับผิดชอบ</b> · กรองรายคน · วงชื่อบนแผนผัง เหมือนโปรเจกต์ทีม"],
   ]},
@@ -24774,7 +24779,7 @@ async function renderRelSect(){
 // ═══ เวอร์ชันของหน้า — แท็บที่เปิดค้างโค้ดเก่าต้องไม่ซิงก์ทีม ═══
 // เจอจริง 2026-10-27: แท็บเก่าดึงคีย์ใหม่ลงผิดที่ + ดันรายการที่ลบแล้วกลับขึ้นทุกนาที
 // APP_VER ประทับตอน deploy (kol-tools\stamp-version.py) · version.json คู่กันบนเซิร์ฟเวอร์ — ไม่ตรง = รีเฟรช
-const APP_VER = "20261106-092035";
+const APP_VER = "20261106-092734";
 let STALE = false;
 async function verCheck(){
   if (STALE || APP_VER === "dev") return;
