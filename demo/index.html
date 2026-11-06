@@ -912,11 +912,11 @@ body:not([data-view="home"]) #homeView{display:none}
 body:not([data-view="find"]) .wrap{display:none}
 body:not([data-view="coord"]) #coordView{display:none}
 body[data-view="home"] .hgroup > :not(#acctBtn){display:none}
-/* หน้า Coordinate ไม่เกี่ยวกับการหาคนใหม่ ซ่อนของฝั่งค้นหาไปเลย */
-body[data-view="coord"] #foldBtn,
-body[data-view="coord"] .poolstat,
-body[data-view="coord"] #addBtn,
-body[data-view="coord"] #cartBtn{display:none}
+/* ของฝั่งค้นหาโชว์เฉพาะหน้าค้นหา (เดิมระบุแค่หน้า Coordinate — หลุดไปโผล่ในหน้าตรวจดราฟต์ แก้ 2026-11-06) */
+body:not([data-view="find"]) #foldBtn,
+body:not([data-view="find"]) .poolstat,
+body:not([data-view="find"]) #addBtn,
+body:not([data-view="find"]) #cartBtn{display:none!important}
 /* ตั้งค่าย้ายเข้าเมนูบัญชีมุมขวาบนแล้ว — เปิดได้จากทุกหน้า (ประตูรหัส Coordinator ยกเลิกไปแล้ว ไม่มีเหตุให้ซ่อน) */
 
 /* ── Coordinate ── */
@@ -3585,6 +3585,18 @@ details.fold[data-fold="crit"],#critBar{display:none!important}
 .chatpanel .ch-at.me{background:rgba(var(--accent-rgb),.18);border-radius:4px;padding:0 3px}
 .chatpanel .ch-bub.ping{box-shadow:0 0 0 2px rgba(var(--accent-rgb),.6)}
 .nbadge.ping{background:var(--accent);color:var(--accent-ink)}
+/* ปุ่มแชตลอยมุมขวาล่าง — เมนูบนไม่มีปุ่มแชตแล้ว */
+#chatNavBtn,.mapnav [data-mapgo="chat"]{display:none!important}
+.chatbubble{position:fixed;right:18px;bottom:18px;z-index:9100;width:52px;height:52px;border-radius:50%;border:1px solid var(--line);
+  background:var(--accent);color:var(--accent-ink);font-size:1.4rem;line-height:1;box-shadow:0 8px 24px rgba(0,0,0,.45);cursor:pointer;
+  display:grid;place-items:center;transition:transform .15s}
+.chatbubble:hover{transform:scale(1.06)}
+.chatbubble.on{background:var(--surface2);color:var(--ink)}
+.chatbubble[hidden]{display:none}
+.chatbubble .nbadge{position:absolute;top:-4px;right:-4px;margin:0;box-shadow:0 0 0 2px var(--bg)}
+.chatpanel{bottom:82px!important}
+.asgreq{bottom:82px}
+.chatpanel:not([hidden]) ~ .asgreq{display:none}
 
 /* ═══ เดโม: เบลอข้อมูลสำคัญ ═══ */
 html.demo .dm-b,
@@ -3647,6 +3659,7 @@ html.demo .dm-b:hover{filter:blur(5px)}
 
 <!-- ═══ เมนูบัญชี — ตั้งค่า / ขนาดตัวอักษร / ออกจากระบบ ย้ายมาอยู่ในนี้ ═══ -->
 <!-- ═══ แชตทีม (2026-11-06) — เห็นเฉพาะคนในทีม · ล้างทุกวันจันทร์ 00:00 ═══ -->
+<button type="button" class="chatbubble" id="chatBubble" hidden aria-controls="chatPanel" aria-expanded="false" title="แชตทีม">💬<span class="nbadge" id="chatBadgeBub" hidden></span></button>
 <aside class="chatpanel" id="chatPanel" hidden aria-label="แชตทีม">
   <div class="ch-head"><b>💬</b><div class="tabs sub ch-tabs" id="chatTabs" role="tablist">
       <button role="tab" data-chs="team" aria-selected="true">แชตทีม</button><button role="tab" data-chs="world" aria-selected="false" hidden>🌐 ทุกทีม</button></div>
@@ -9577,8 +9590,8 @@ function chatBadge(){
   if (tt) tt.textContent = "แชตทีม" + (nT && CHAT_SCOPE !== "team" ? ` (${nT})` : "");
   const n = open ? 0 : nT + nW;
   const pinged = !open && CHAT.some(m => m.at > chatSeen("team") && chatMentionsMe(m));
-  ["#chatBadge", "#chatBadgeMap"].forEach(id => { const b = $(id); if (b) b.classList.toggle("ping", pinged); });
-  ["#chatBadge", "#chatBadgeMap"].forEach(id => { const b = $(id); if (b){ b.hidden = !n; b.textContent = (CHAT.some(m => m.at > chatSeen("team") && chatMentionsMe(m)) ? "@" : "") + (n > 99 ? "99+" : n); } });
+  ["#chatBadge", "#chatBadgeMap", "#chatBadgeBub"].forEach(id => { const b = $(id); if (b) b.classList.toggle("ping", pinged); });
+  ["#chatBadge", "#chatBadgeMap", "#chatBadgeBub"].forEach(id => { const b = $(id); if (b){ b.hidden = !n; b.textContent = (CHAT.some(m => m.at > chatSeen("team") && chatMentionsMe(m)) ? "@" : "") + (n > 99 ? "99+" : n); } });
 }
 function chatRender(){
   chatBadge();
@@ -9609,19 +9622,23 @@ function chatRender(){
 function chatToggle(open){
   const p = $("#chatPanel");
   open = open == null ? p.hidden : open;
+  if (!open) chatDraftSave();
   p.hidden = !open;
   $("#chatNavBtn").setAttribute("aria-expanded", String(open));
+  $("#chatBubble").setAttribute("aria-expanded", String(open));
+  $("#chatBubble").classList.toggle("on", open);
   if (open){
     $("#chatList").dataset.first = "";
-    chatFilesProbe();
+    chatFilesProbe(); chatDraftLoad();
     (CHAT_SCOPE === "world" ? worldLoad() : chatLoad()).then(() => { chatMarkSeen(); chatBadge(); });
     chatRender();
     setTimeout(() => $("#chatIn").focus(), 30);
   } else { chatMarkSeen(); chatBadge(); }
 }
 function chatScope(sc){
-  chatMarkSeen();
+  chatMarkSeen(); chatDraftSave();
   CHAT_SCOPE = sc;
+  $("#chatIn").value = ""; chatDraftLoad();
   chatAttShow(); $("#chatMent").hidden = true;
   document.querySelectorAll("#chatTabs [data-chs]").forEach(b => b.setAttribute("aria-selected", String(b.dataset.chs === sc)));
   $("#chatList").dataset.first = "";
@@ -9632,7 +9649,7 @@ async function chatSend(){
   const inp = $("#chatIn"), t = inp.value.trim().slice(0, 500);
   if ((!t && !CHAT_PEND.length) || !TEAM) return;
   if (CHAT_SCOPE === "world"){
-    inp.value = ""; inp.style.height = "";
+    inp.value = ""; inp.style.height = ""; chatDraftSave();
     try {
       await sbSend(SB_URL + "/rest/v1/world_chat", "POST", { body: t }, "ส่งข้อความไม่ได้", "return=minimal");
       rtSend(WORLD_TOPIC, "broadcast", { type: "broadcast", event: "chat", payload: { at: Date.now() } });
@@ -9655,7 +9672,7 @@ async function chatSend(){
     $("#chatSend").disabled = false; $("#chatSend").textContent = "ส่ง";
     CHAT_PEND = []; chatPendRender();
   }
-  inp.value = ""; inp.style.height = "";
+  inp.value = ""; inp.style.height = ""; chatDraftSave();
   CHAT.push(Object.assign({ k }, m)); chatRender(); chatSign();
   $("#chatList").scrollTop = $("#chatList").scrollHeight;
   try {
@@ -9675,9 +9692,14 @@ function chatIncoming(p){
   chatRender(); chatSign(); chatPing(p);
   if ($("#chatPanel").hidden && p.u !== sbUid() && !chatMentionsMe(p)) acctToast(`💬 ${p.n || memName(p.u)}: ${String(p.t).slice(0, 60)}`).onclick = () => chatToggle(true);
 }
+// ร่างข้อความที่พิมพ์ค้างไว้ — แยกแท็บทีม/ทุกทีม · อยู่รอดตอนพับ เปลี่ยนหน้า และรีเฟรช (เก็บในเครื่องนี้)
+const chatDraftKey = () => "cf_chatdraft_v1:" + (TEAM ? TEAM.id : "") + ":" + CHAT_SCOPE;
+function chatDraftSave(){ try { const v = $("#chatIn").value; if (v.trim()) lsSet(chatDraftKey(), v); else localStorage.removeItem(chatDraftKey()); } catch(e){} }
+function chatDraftLoad(){ try { const v = lsGet(chatDraftKey()); const ta = $("#chatIn"); if (v && !ta.value){ ta.value = v; ta.style.height = ""; ta.style.height = Math.min(ta.scrollHeight, 120) + "px"; } } catch(e){} }
 function chatInit(){
   if (!TEAM_MODE) return;
   if (!TEAM || !sbUid()) return setTimeout(chatInit, 5000);       // ยังโหลดทีมไม่เสร็จ — รอแล้วลองใหม่
+  $("#chatBubble").hidden = false;
   chatLoad(); worldLoad().then(worldJoin);
   clearInterval(CHAT_T); CHAT_T = setInterval(() => { chatLoad(); worldLoad(); }, 30000);
 }
@@ -16373,6 +16395,8 @@ function openTodo(){
 function closeTodo(){ $("#todoPop").hidden = true; $("#todoNavBtn").setAttribute("aria-expanded", "false"); }
 $("#todoNavBtn").onclick = () => $("#todoPop").hidden ? openTodo() : closeTodo();
 $("#chatNavBtn").onclick = () => chatToggle();
+$("#chatBubble").onclick = () => chatToggle();
+$("#chatIn").addEventListener("input", () => { clearTimeout(window.__chatDraftT); window.__chatDraftT = setTimeout(chatDraftSave, 400); });
 $("#chatClose").onclick = () => chatToggle(false);
 document.querySelectorAll("#chatTabs [data-chs]").forEach(b => b.onclick = () => chatScope(b.dataset.chs));
 $("#chatForm").onsubmit = e => { e.preventDefault(); chatSend(); };
@@ -18399,6 +18423,7 @@ const LS_VIEW = "cf_view_v1";
 let COORD_READY = false;
 
 async function setView(v){
+  if (!$("#chatPanel").hidden) chatToggle(false);       // เปลี่ยนหน้า = พับแชตเก็บ ไม่ตามไปบังหน้าใหม่ (ร่างที่พิมพ์ไว้ยังอยู่)
   if (v === "review" && !can("review")) v = "coord";
   vlog("view", { d: { v } });
   // 2026-11-04 เปิดหน้าค้นหาให้ทุกระดับ (เดิมเฉพาะ admin/manager) · admin ปิดรายคนได้ที่สิทธิ์ "find"
