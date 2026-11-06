@@ -3143,7 +3143,7 @@ html[data-team] [data-nosheet]{display:none!important}
 .mapleaf .shipd.ship{color:var(--info);font-weight:700}
 .mapleaf .shipd.late{color:var(--warn)}
 .stage-age{display:block;margin-top:3px;font-size:.68rem;color:var(--dim);white-space:nowrap}
-.stage-age.near{color:var(--warn)}
+.stage-age.near{color:var(--warn);font-weight:600}
 .stage-age.late{color:var(--lo);font-weight:600}
 .stage-age.done{color:var(--info);font-weight:600}
 .satpop{position:fixed;z-index:500;width:240px;background:var(--surface);border:1px solid var(--line);border-radius:10px;
@@ -13691,9 +13691,9 @@ function stAgeChip(r){
   if (isPostedSt(r.status)) return `<span class="stage-age done" title="โพสต์แล้ว = รอดเส้นตายแล้ว ไม่นับวันค้าง">✅ โพสต์แล้ว</span>`;
   if (!r._sat) return "";
   const n = satDays(r); if (n == null) return "";
-  const sla = stSla(r.status), cls = n > sla ? " late" : n >= sla - 1 ? " near" : "";
-  return `<span class="stage-age${cls}" title="อยู่ขั้น ${esc(ST_TH[r.status] || r.status)} มา ${n}${r._sate ? "+" : ""} วัน · เกณฑ์ ${sla} วัน${
-    n > sla ? ` · เกิน ${n - sla} วัน` : ""}${r._sate ? " (วันที่ประมาณ)" : ""}">${n}${r._sate ? "+" : ""} วัน${n > sla ? " · เกินกำหนด" : ""}</span>`;
+  const st = ageState(n), cls = st === "ok" ? "" : " " + st;
+  return `<span class="stage-age${cls}" title="อยู่ขั้น ${esc(ST_TH[r.status] || r.status)} มา ${n}${r._sate ? "+" : ""} วัน · เกิน ${AGE_WARN} วัน = เหลือง · เกิน ${AGE_LATE} วัน = แดง${
+    r._sate ? " (วันที่ประมาณ)" : ""}">${st === "late" ? "🔴 " : st === "near" ? "🟡 " : ""}${n}${r._sate ? "+" : ""} วัน</span>`;
 }
 const POSTED_ST = ["Already Posted", "Waiting Gencode", "Waiting Payment", "Already Submitted Payment"];
 const isPostedSt = st => POSTED_ST.includes(STAGES.some(x => x.v === st) ? st : (STATUS_MIGRATE[st] || st));
@@ -13704,9 +13704,9 @@ function shipDays(r){
   const txt = n === 0 ? "วันนี้" : d.toLocaleDateString("th-TH", { day:"numeric", month:"short" });
   const full = d.toLocaleDateString("th-TH", { day:"numeric", month:"long", year:"numeric" });
   const ship = r.status === "Already Delivered" || r.status === "Sent Tracking";
-  const sla = stSla(r.status), over = isPostedSt(r.status) ? 0 : n - sla;
+  const sla = AGE_LATE, over = isPostedSt(r.status) ? 0 : n - sla;
   return `<span class="shipd${ship ? " ship" : ""}${over > 0 ? " late" : ""}" data-satedit="1" role="button" tabindex="0"
-    title="เข้าขั้น ${esc(ST_TH[r.status] || r.status)} ${r._sate ? "ประมาณ" : "เมื่อ"} ${esc(full)} · ผ่านมา ${n} วัน · เกณฑ์ขั้นนี้ ${sla} วัน${over > 0 ? ` (เกิน ${over} วัน)` : ""}${
+    title="เข้าขั้น ${esc(ST_TH[r.status] || r.status)} ${r._sate ? "ประมาณ" : "เมื่อ"} ${esc(full)} · ผ่านมา ${n} วัน${over > 0 ? " · เกิน " + AGE_LATE + " วัน (แดง)" : ""}${
       r._sate ? " — ไม่มีประวัติการเปลี่ยนสถานะ วันจริงอาจก่อนหน้านี้" : ""}
 กดเพื่อแก้วันที่">${ship ? "🚚" : "📅"} ${
       n === 0 && !r._sate ? "วันนี้"
@@ -16576,14 +16576,10 @@ const ST_OWNER = st => {
   return "cr";
 };
 // เกณฑ์ค้าง (วันในขั้นนั้น) — เกินแล้วเข้ากอง "ต้องทวง" · ตั้งต้นไว้ก่อน ปรับได้ทีหลัง
-function stSla(st){
-  if (/^Waiting PM Feedback/.test(st)) return 2;
-  if (/^Waiting Draft \d$/.test(st)) return 5;
-  if (/^Feedback Draft \d$/.test(st)) return 3;
-  return ({ "Waiting Confirm":3, "Confirmed":2, "Waiting Delivery":3, "Already Delivered":7, "Sent Tracking":7,
-    "Waiting Sent to SG":2, "Already Sent to SG":5, "Waiting Script":5, "Already Feedback Script":5,
-    "Waiting to Post":3, "Already Posted":5, "Waiting Gencode":5, "Waiting Payment":7 })[st] || 7;
-}
+// เกณฑ์ค้าง — เดิมแยกรายขั้น · Jibli ให้เหลือเกณฑ์เดียว (2026-11-07): เกิน AGE_WARN วัน = เหลือง · เกิน AGE_LATE วัน = แดง
+const AGE_WARN = 3, AGE_LATE = 5;
+function stSla(st){ return AGE_LATE; }
+const ageState = n => n == null ? "" : n > AGE_LATE ? "late" : n > AGE_WARN ? "near" : "ok";
 // ═══ 🧪 Pipeline (ทดลอง · admin · 2026-11-07) ═══
 // บอร์ดรวมงานทุกโปรเจกต์ทีมที่ยังไม่ปิด จัดคอลัมน์ตามช่วงงาน (หลายสถานะต่อคอลัมน์) · การ์ดบอกวันในขั้นเทียบ stSla
 // กดการ์ด = ลิ้นชัก: คำเตือน (creatorWarns) · เลื่อนไปขั้นถัดไปด้วยปุ่มเดียว (mapSetStatus = ทางเดียวกับแผนผัง) · ประวัติจาก activity
@@ -16605,7 +16601,7 @@ const PP_COLS = [
 // รอใคร: สัญลักษณ์ + สีประจำ (ไม่ใช้แดง/ส้ม/เขียว — สามสีนั้นสงวนไว้บอก "เกิน/ใกล้/ทัน")
 const PP_OWN = { us:["👥", "ทีมเรา"], cr:["🎬", "ครีเอเตอร์"], pm:["🔷", "PM ตรวจ"], ext:["📦", "ขนส่ง / บัญชี"] };
 // สถานะของช่อง/การ์ด: เกิน > ใกล้ > ทัน
-const PP_ST = { late:["🔴", "เกินกำหนด"], near:["🟠", "ใกล้ครบ"], ok:["🟢", "ทันเวลา"], done:["✅", "โพสต์แล้ว"] };
+const PP_ST = { late:["🔴", "เกิน 5 วัน"], near:["🟡", "เกิน 3 วัน"], ok:["🟢", "ไม่เกิน 3 วัน"], done:["✅", "โพสต์แล้ว"] };
 const ppColOf = st => { const v = STAGES.some(x => x.v === st) ? st : (STATUS_MIGRATE[st] || st || "");
   return PP_COLS.find(c => (c.st && c.st.includes(v)) || (c.re && c.re.test(v))) || null; };
 let PP_TAB = "matrix", PP_ACT = null, PP_GROUP = "proj";
@@ -16619,7 +16615,7 @@ function ppRows(){
 }
 const ppAge = r => { const d = satDays(r); return d == null ? null : d; };
 const ppState = r => { if (r.status && isPostedSt(r.status)) return "done";
-  const d = ppAge(r); if (d == null || !r.status) return ""; const s = stSla(r.status); return d > s ? "late" : d >= s - 1 ? "near" : "ok"; };
+  const d = ppAge(r); if (d == null || !r.status) return ""; return ageState(d); };
 const ppStChip = r => { const k = ppState(r); return k ? `<span class="stc">${PP_ST[k][0]} ${esc(PP_ST[k][1])}</span>` : ""; };
 function openPipe(){
   const pj = $("#ppProj"), who = $("#ppWho");
@@ -16643,7 +16639,7 @@ function renderPipe(){
   const rows = ppRows();
   const late = rows.filter(r => ppState(r) === "late").length;
   const near = rows.filter(r => ppState(r) === "near").length, done = rows.filter(r => ppState(r) === "done").length;
-  $("#ppKpis").innerHTML = `<span><b>${rows.length - done}</b>ยังไม่โพสต์</span><span class="late"><b>${late}</b>🔴 เกินกำหนด</span><span><b style="color:var(--warn)">${near}</b>🟠 ใกล้ครบ</span><span><b style="color:var(--info)">${done}</b>✅ โพสต์แล้ว</span>`;
+  $("#ppKpis").innerHTML = `<span><b>${rows.length - done}</b>ยังไม่โพสต์</span><span class="late"><b>${late}</b>🔴 เกิน ${AGE_LATE} วัน</span><span><b style="color:var(--warn)">${near}</b>🟡 เกิน ${AGE_WARN} วัน</span><span><b style="color:var(--info)">${done}</b>✅ โพสต์แล้ว</span>`;
   if (PP_TAB === "stats") return renderPipeStats();
   if (PP_TAB === "matrix") return renderPipeMatrix(rows);
   $("#ppBoard").innerHTML = PP_COLS.map(c => {
@@ -16654,7 +16650,7 @@ function renderPipe(){
         return `<button type="button" class="pp-card ${ppState(r)}" data-ppp="${esc(r.project)}" data-pph="${esc(normId(r.handle))}">
           <span class="h"><span>@${esc(normId(r.handle))}</span>${w.some(x => /Blacklist/.test(x)) ? `<span class="bl">Blacklist</span>` : ""}</span>
           <span class="m"><span>${isTeamProj(r.project) ? "" : "🔒 "}${esc(r.project.length > 22 ? r.project.slice(0, 21) + "…" : r.project)}</span>${
-            d != null && r.status ? `<span class="age">${d > sla ? `${d} วัน · เกิน ${d - sla}` : `${d}/${sla} วัน`}</span>` : ""}</span>
+            d != null && r.status ? `<span class="age">${d} วัน</span>` : ""}</span>
           <span class="m"><span>${esc(r.assignee ? memName(r.assignee) : "ไม่มีผู้ดูแล")}</span>${rd ? `<span>รอบ ${rd}</span>` : ""}${ppStChip(r)}</span></button>`; }).join("")
         : `<div class="pp-who" style="text-align:center;padding:8px">—</div>`}</div>`;
   }).join("");
@@ -16672,7 +16668,7 @@ async function ppOpen(proj, handle, back){
     <div class="pp-facts">
       <div><span>โปรเจกต์</span>${esc(proj)}</div><div><span>ผู้ดูแล</span>${esc(r.assignee ? memName(r.assignee) : "—")}</div>
       <div><span>ขั้นตอนตอนนี้</span>${esc(r.status ? (ST_TH[r.status] || r.status) : "ยังไม่เริ่ม")}</div>
-      <div><span>อยู่ขั้นนี้มา</span>${d == null || !r.status ? "—" : `${d} วัน (เกณฑ์ ${sla})${d > sla ? ` · <b style="color:var(--lo)">เกิน ${d - sla}</b>` : ""}`}</div>
+      <div><span>อยู่ขั้นนี้มา</span>${d == null || !r.status ? "—" : isPostedSt(r.status) ? "✅ โพสต์แล้ว" : `${d} วัน${ppState(r) === "late" ? ` · <b style="color:var(--lo)">🔴 เกิน ${AGE_LATE} วัน</b>` : ppState(r) === "near" ? ` · <b style="color:var(--warn)">🟡 เกิน ${AGE_WARN} วัน</b>` : ""}`}</div>
       <div><span>เรท · ภาษี</span>${r.rate != null ? Number(r.rate).toLocaleString("en-US") : "—"} · ${esc(payType(r.paytype).label)}</div>
       <div><span>จ่ายจริง</span>${payOf(r.rate, r.paytype) != null ? payOf(r.rate, r.paytype).toLocaleString("en-US") : "—"}</div>
       <div><span>SKU · วิดีโอ</span>${esc(r.sku || "—")} · ${r.videos ?? "—"}</div><div><span>เลขพัสดุ</span>${esc(r.tracking || "—")}</div>
@@ -16713,15 +16709,15 @@ function renderPipeMatrix(rows){
     if (!list.length) return `<td class="z">·</td>`;
     const lt = lateN(list), nr = list.filter(r => ppState(r) === "near").length, dn = list.filter(r => ppState(r) === "done").length;
     const st = lt ? "late" : nr ? "near" : dn === list.length ? "done" : "ok", act = list.length - dn, hot = lt && lt / Math.max(1, act) >= .5;
-    const sub = lt ? `${PP_ST.late[0]} เกิน ${lt}` : nr ? `${PP_ST.near[0]} ใกล้ ${nr}` : dn === list.length ? `${PP_ST.done[0]} โพสต์แล้ว` : `${PP_ST.ok[0]} ทัน`;
+    const sub = lt ? `${PP_ST.late[0]} ${lt} คน` + (nr ? ` · 🟡 ${nr}` : "") : nr ? `${PP_ST.near[0]} ${nr} คน` : dn === list.length ? `${PP_ST.done[0]} โพสต์แล้ว` : `${PP_ST.ok[0]} ปกติ`;
     return `<td class="c s-${st}${hot ? " hot" : ""}" data-ppk="${esc(k == null ? "*" : k)}" data-ppc="${esc(c ? c.k : "*")}"
-      title="${esc((k == null ? "ทั้งหมด" : nameOf(k)) + " · " + (c ? c.th : "ทุกขั้น"))} — ${list.length} งาน · เกินกำหนด ${lt} · ใกล้ครบ ${nr} · โพสต์แล้ว ${dn}">${list.length}<span class="sub">${sub}</span></td>`;
+      title="${esc((k == null ? "ทั้งหมด" : nameOf(k)) + " · " + (c ? c.th : "ทุกขั้น"))} — ${list.length} งาน · เกิน ${AGE_LATE} วัน ${lt} · เกิน ${AGE_WARN} วัน ${nr} · โพสต์แล้ว ${dn}">${list.length}<span class="sub">${sub}</span></td>`;
   };
   $("#ppMatrix").innerHTML = rows.length ? `<div class="pp-legend">
-      <span><b>ช่อง:</b></span><span><i class="sw late"></i>${PP_ST.late[0]} มีงานเกินกำหนด</span><span><i class="sw near"></i>${PP_ST.near[0]} ใกล้ครบ (เหลือ ≤ 1 วัน)</span><span><i class="sw ok"></i>${PP_ST.ok[0]} ทันทั้งหมด</span><span><i class="sw done"></i>${PP_ST.done[0]} โพสต์แล้ว (รอดเส้นตาย ไม่นับวันค้าง)</span>
+      <span><b>ช่อง:</b></span><span><i class="sw late"></i>${PP_ST.late[0]} มีงานค้างขั้นเดิมเกิน ${AGE_LATE} วัน</span><span><i class="sw near"></i>${PP_ST.near[0]} เกิน ${AGE_WARN} วัน</span><span><i class="sw ok"></i>${PP_ST.ok[0]} ไม่เกิน ${AGE_WARN} วัน</span><span><i class="sw done"></i>${PP_ST.done[0]} โพสต์แล้ว (รอดเส้นตาย ไม่นับวันค้าง)</span>
       <span style="margin-left:8px"><b>รอใคร:</b></span>${Object.entries(PP_OWN).map(([k, [ic, th]]) =>
         `<span><i class="ol" style="background:${k === "us" ? "var(--accent)" : k === "cr" ? "var(--pay,#BFA2F2)" : k === "pm" ? "var(--info)" : "var(--dim)"}"></i>${ic} ${esc(th)}</span>`).join("")}
-    </div><p class="pp-mhint">ตัวเลขใหญ่ = งานในขั้นนั้นตอนนี้ · <b>ทัน / เกิน</b> นับจากวันที่งานเข้าขั้นปัจจุบัน เทียบเกณฑ์ของขั้น (เช่น รอดราฟต์ ${stSla("Waiting Draft 1")} วัน · PM ตรวจ ${stSla("Waiting PM Feedback Draft 1")} วัน · รอส่งของ ${stSla("Waiting Delivery")} วัน) · อยู่มา 8 วันในขั้นที่เกณฑ์ 5 วัน = <b style="color:var(--lo)">เกิน 3</b> · แดงเข้ม = เกินตั้งแต่ครึ่งหนึ่ง · กดช่องเพื่อดูรายชื่อ</p>
+    </div><p class="pp-mhint">ตัวเลขใหญ่ = งานในขั้นนั้นตอนนี้ · นับวันตั้งแต่งานเข้าขั้นปัจจุบัน · ทุกขั้นใช้เกณฑ์เดียวกัน: <b style="color:var(--warn)">🟡 เกิน ${AGE_WARN} วัน</b> · <b style="color:var(--lo)">🔴 เกิน ${AGE_LATE} วัน</b> · โพสต์แล้วไม่นับ · แดงเข้ม = แดงตั้งแต่ครึ่งหนึ่งของช่อง · กดช่องเพื่อดูรายชื่อ</p>
     <table><thead><tr><th class="rowh">${PP_GROUP === "who" ? "ผู้ดูแล" : "โปรเจกต์"}</th>${cols.map(c => `<th class="o-${c.own}">${esc(c.th)}<small>${esc(c.who)}</small><span class="own">${PP_OWN[c.own][0]} ${esc(PP_OWN[c.own][1])}</span></th>`).join("")}<th>รวม</th></tr></thead>
     <tbody>${keys.map(k => `<tr><td class="rowh">${esc(nameOf(k))}</td>${cols.map(c => td(cell(k, c), k, c)).join("")}${td(cell(k, null), k, null)}</tr>`).join("")}
     <tr class="tot"><td class="rowh">รวมทุก${PP_GROUP === "who" ? "คน" : "โปรเจกต์"}</td>${cols.map(c => td(cell(null, c), null, c)).join("")}${td(rows, null, null)}</tr></tbody></table>`
@@ -16739,7 +16735,7 @@ function ppCardHTML(r){
   return `<button type="button" class="pp-card ${ppState(r)}" data-ppp="${esc(r.project)}" data-pph="${esc(normId(r.handle))}">
     <span class="h"><span>@${esc(normId(r.handle))}</span>${w.some(x => /Blacklist/.test(x)) ? `<span class="bl">Blacklist</span>` : ""}</span>
     <span class="m"><span>${isTeamProj(r.project) ? "" : "🔒 "}${esc(r.project.length > 22 ? r.project.slice(0, 21) + "…" : r.project)}</span>${
-      d != null && r.status ? `<span class="age">${d > sla ? `${d} วัน · เกิน ${d - sla}` : `${d}/${sla} วัน`}</span>` : ""}</span>
+      d != null && r.status ? `<span class="age">${d} วัน</span>` : ""}</span>
     <span class="m"><span>${esc(r.status ? (ST_TH[r.status] || r.status) : "ยังไม่เริ่ม")}</span>${rd ? `<span>รอบ ${rd}</span>` : ""}</span>
     <span class="m"><span>${esc(r.assignee ? memName(r.assignee) : "ไม่มีผู้ดูแล")}</span>${ppStChip(r)}</span></button>`;
 }
@@ -16772,10 +16768,10 @@ async function renderPipeStats(){
     const sla = stSla(c.st ? c.st[0] : (c.k === "draft" ? "Waiting Draft 1" : "Waiting PM Feedback Draft 1")); return { c, a, sla, m: a.length ? med(a) : null }; });
   const mx = Math.max(1, ...rows.map(r => r.m || 0));
   box.innerHTML = `<p class="sect-sub" style="margin:0 0 10px">คิดจากการเปลี่ยนสถานะ ${ev.length.toLocaleString()} ครั้งที่ระบบบันทึกไว้${pj ? ` ใน ${esc(pj)}` : " ทุกโปรเจกต์"} · ช่วงเวลาที่ใช้ = จากวันเข้าขั้นถึงวันเปลี่ยนขั้นถัดไป · ข้อมูลก่อนเริ่มบันทึกไม่ถูกนับ</p>
-    <table><thead><tr><th>ช่วงงาน</th><th class="n">จำนวนครั้ง</th><th class="n">ค่ากลาง (วัน)</th><th class="n">P75</th><th class="n">เกณฑ์</th><th>เทียบเกณฑ์</th></tr></thead><tbody>${
+    <table><thead><tr><th>ช่วงงาน</th><th class="n">จำนวนครั้ง</th><th class="n">ค่ากลาง (วัน)</th><th class="n">P75</th><th class="n">แดงเมื่อเกิน</th><th>เทียบ</th></tr></thead><tbody>${
     rows.map(r => r.a.length ? (() => { const x = [...r.a].sort((p, q) => p - q), p75 = x[Math.max(0, Math.ceil(x.length * .75) - 1)];
       return `<tr><td>${esc(r.c.th)}</td><td class="n">${r.a.length}</td><td class="n">${r.m.toFixed(1)}</td><td class="n">${p75.toFixed(1)}</td><td class="n">${r.sla}</td>
-        <td><span class="pp-sbar${r.m > r.sla ? " late" : ""}" style="width:${Math.round(90 * r.m / mx)}px"></span>${r.m > r.sla ? "ช้ากว่าเกณฑ์" : "ทันเกณฑ์"}</td></tr>`; })()
+        <td><span class="pp-sbar${r.m > r.sla ? " late" : ""}" style="width:${Math.round(90 * r.m / mx)}px"></span>${r.m > r.sla ? "ค่ากลางเกิน " + r.sla + " วัน" : "ปกติ"}</td></tr>`; })()
       : `<tr><td>${esc(r.c.th)}</td><td class="n">0</td><td class="n">—</td><td class="n">—</td><td class="n">${r.sla}</td><td></td></tr>`).join("")}</tbody></table>`;
 }
 $("#pipeNavBtn").onclick = openPipe;
