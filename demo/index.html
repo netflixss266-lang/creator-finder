@@ -17235,7 +17235,7 @@ function todoBadge(){
   const b = $("#todoBadge");
   if (!b || !TEAM_MODE) return;
   const seg = TODO_SEG; TODO_SEG = "me";
-  let n = 0; try { const t = todoItems(); n = t.us.length + t.late.length; } catch(e){}
+  let n = 0; try { const t = todoItems(); n = t.late.length + t.rv.length; } catch(e){}
   TODO_SEG = seg;
   b.hidden = !n; b.textContent = n > 99 ? "99+" : n;
   const bm = $("#todoBadgeMap"); if (bm){ bm.hidden = b.hidden; bm.textContent = b.textContent; }
@@ -17268,7 +17268,7 @@ function renderTodo(){
   }));
   $("#todoBody").innerHTML = `<div class="todoown">ลูกอยู่ที่: ${Object.keys(cnt).map(k =>
       `<span style="--c:${OWN[k][1]}"><b>${cnt[k]}</b> ${OWN[k][0]}</span>`).join("")}</div>`
-    + sec("us", "🎯", "ลูกอยู่ที่เรา", "ของมาแล้ว/ขั้นที่ต้องทำต่อ — ค้างนานสุดอยู่บน", T.us)
+    // 🎯 ลูกอยู่ที่เรา — ซ่อนไว้ก่อน (Jibli 2026-11-10: ยังไม่สำคัญ) · ข้อมูลยังคิดอยู่ใน todoItems().us
     + sec("late", "⏰", "ค้างนาน ต้องทวง", "รอครีเอเตอร์/PM เกินเกณฑ์ของขั้นนั้น", T.late, x => `${x.d} วัน (เกิน ${x.over})`)
     + sec("rv", "📥", "มีดราฟต์แล้ว รอตรวจ", "ครีเอเตอร์ส่งมาแล้ว (มาร์ค 📥/📝) หรือรอ PM ฟีดแบค", T.rv, todoAge)
     + sec("post", "🎬", "รอโพสต์", "ดราฟต์ผ่านแล้ว รอครีเอเตอร์โพสต์", T.post, todoAge)
