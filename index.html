@@ -23,7 +23,7 @@
   base-uri 'none';
   object-src 'none'">
 <title>Creataew — KOL Sourcing</title>
-<meta name="cf-ver" content="20261110-113036">
+<meta name="cf-ver" content="20261111-040134">
 <!-- Beta / Publish (2026-11-06): หน้าแรก = เวอร์ชันล่าสุด (admin เห็นก่อน) · คนอื่นถูกพาไป v/<เวอร์ชันที่ Publish>.html
      จำเวอร์ชันที่ Publish ไว้ในเครื่อง = พาไปได้ทันทีไม่ต้องรอเน็ต แล้วเช็คซ้ำเบื้องหลัง · ฐานข้อมูลไม่มี RPC (sandbox) = อยู่ตัวล่าสุด -->
 <script>(function(){try{
@@ -10147,7 +10147,8 @@ const CMD_BLOCKS = [
 ✅จ่าย NET
 ✅นิติบุคคล (vat 7% หัก ณ ที่จ่าย 3%)` },
 
-  { t:"7. แจ้ง Timeline", b:
+  // ส่ง Timeline แล้ว = เข้า "รอ Draft 1" + จดวันนัดส่งลงโน้ต (2026-11-11 · เดิมย้ายตอนส่ง key content)
+  { t:"7. แจ้ง Timeline", to:"Waiting Draft 1", b:
 `แอดมินขออนุญาตแจ้ง Timeline นะค้าบบ🕞
 📢📢📢
 
@@ -10159,7 +10160,7 @@ const CMD_BLOCKS = [
   { t:"8. แจ้งรอจัดส่ง", to:"Waiting Delivery", b:
 `ขอบคุณมากครับ🙏😀 แอดมินจะแจ้งให้ทราบ หากมีการจัดส่งนะครับ` },
 
-  { t:"9. ส่ง key content + สคริป", to:"Waiting Draft 1", b:
+  { t:"9. ส่ง key content + สคริป", b:
 `เพื่อความรวดเร็วในการถ่ายวิดีโอแอดมินขอส่ง key content สรุปพร้อมสคริปจากครีเอเตอร์ให้นะครับ
 
 📌📌📌
@@ -10835,6 +10836,37 @@ function cmdAdvance(proj, handle, b){
   if (!$("#mapView").hidden) renderMap();
   histToast(`${normId(handle)} → ${STAGES[want].th}`, false, doUndo, "ย้อนกลับ");
   return true;
+}
+// ─── ส่ง Timeline แล้ว จดวันนัดส่ง Draft 1 ลงโน้ต (2026-11-11) ───
+// อ่านจากข้อความ Timeline ของคนนี้ ({{timeline}}) — หาบรรทัดที่พูดถึง Draft 1 แล้วดึงวันที่ออกมา
+// หาวันที่ไม่เจอ = จดบรรทัดนั้นไว้ทั้งบรรทัดแทน (ไม่เดา) · ส่งซ้ำ = แทนของเดิม ไม่ซ้อน
+const TL_MON = "ม\\.?ค\\.?|ก\\.?พ\\.?|มี\\.?ค\\.?|เม\\.?ย\\.?|พ\\.?ค\\.?|มิ\\.?ย\\.?|ก\\.?ค\\.?|ส\\.?ค\\.?|ก\\.?ย\\.?|ต\\.?ค\\.?|พ\\.?ย\\.?|ธ\\.?ค\\.?|jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec";
+const TL_DATE = new RegExp(`(\\d{1,2})\\s*[/.-]\\s*(\\d{1,2})(?:\\s*[/.-]\\s*(\\d{2,4}))?|(\\d{1,2})\\s*(${TL_MON})[a-z]*\\.?(?:\\s*(\\d{2,4}))?`, "i");
+function tlDraft1(text){
+  const lines = String(text || "").split(/\n/).map(x => x.trim()).filter(Boolean);
+  const isD1 = l => /(draft|ดราฟ|ดราฟท์|ดราฟต์)\s*#?\s*1(?!\d)|ส่ง\s*(draft|ดราฟ)|draft\s*แรก|ดราฟ\S*\s*แรก/i.test(l);
+  const line = lines.find(l => isD1(l) && TL_DATE.test(l)) || lines.find(isD1);
+  if (!line) return null;
+  // ตัดคำว่า "Draft 1" ออกก่อน — ไม่งั้นเลข 1 ของ Draft ไปถูกอ่านเป็นวันที่
+  const rest = line.replace(/(draft|ดราฟ\S*)\s*#?\s*1(?!\d)/ig, " ");
+  const m = rest.match(TL_DATE) || rest.match(new RegExp(`(${TL_MON})[a-z]*\\.?\\s*(\\d{1,2})(?!\\d)`, "i"));
+  return { date: m ? m[0].trim() : "", line };
+}
+function cmdTimelineNote(proj, handle, b){
+  const body = String(b.b || b.body || (b.base && b.base.b) || "");
+  if (!/\{\{\s*timeline\s*\}\}/i.test(body) && !/timeline|ไทม์ไลน์/i.test(b.t || "")) return;
+  const r = (COORD[proj] || []).find(x => normId(x.handle) === normId(handle));
+  if (!r) return;
+  let tl = ""; try { tl = (cmdValues(r) || {}).timeline || ""; } catch(e){}
+  const d = tlDraft1(tl);
+  const today = new Date().toLocaleDateString("th-TH", { day:"numeric", month:"short" });
+  const tag = d ? (d.date ? `📅 นัดส่ง Draft 1: ${d.date}` : `📅 นัดส่ง Draft 1: ${d.line.slice(0, 60)}`) : `📅 ส่ง Timeline แล้ว (${today}) — ยังไม่เจอวันนัดส่ง Draft 1 ในข้อความ`;
+  const base = String(r.note || "").replace(/\s*(·\s*)?📅 (นัดส่ง Draft 1|ส่ง Timeline แล้ว)[^·]*/g, "").trim();
+  setField(r, "note", (base ? base + " · " : "") + tag);
+  if (d && d.date && !r.deadline) setField(r, "deadline", d.date);   // ช่องกำหนดส่งยังว่าง = ใส่ให้ด้วย
+  if (TEAM_MODE && isTeamProj(proj)){ clearTimeout(AUTO_T); syncCoord(false); }
+  renderCoord();
+  histToast(d && d.date ? `จดนัดส่ง Draft 1 (${d.date}) ลงโน้ตของ ${normId(handle)} แล้ว` : `ส่ง Timeline แล้ว — ไม่เจอวันนัดส่ง Draft 1 ในข้อความ Timeline ลองเช็กอีกที`, !(d && d.date));
 }
 // ชื่อไทยของขั้น — ใช้ในแจ้งเตือน
 const stTh = v => (STAGES.find(x => x.v === v) || {}).th || (v ? v : "ยังไม่มีสถานะ");
@@ -12493,6 +12525,7 @@ function openCmd(proj, handle){
     toggleSent(proj, handle, b.id, b.clip);
     b.sent = !b.sent;
     if (b.sent) cmdAdvance(proj, handle, b); else cmdRetreat(proj, handle, b);
+    if (b.sent) cmdTimelineNote(proj, handle, b);
     const blk = btn.closest(".cmdblk");
     blk.classList.toggle("sent", b.sent);
     // ── ส่งแล้ว = บินออกไปใน ~2.5 วิ (2026-11-04) ── ระหว่างรอยังกดกลับได้ (ยกเลิกการบิน)
@@ -25645,6 +25678,10 @@ i18nStart();
 // ⚠️ อัปเดตครั้งใหม่ = เพิ่มรายการบนสุด n+1 · คนที่ใช้ช่อง Publish เห็นตอนเปิดเวอร์ชันที่มีรายการนั้นครั้งแรก
 //    ข้ามหลายเวอร์ชัน = เห็นรวมทุกรายการที่พลาดไป · เข้าเว็บครั้งแรกในชีวิต = ไม่เด้งของเก่า (เริ่มนับจากตอนนี้)
 const RELEASE_NOTES = [
+  { n: 11, d: "11 พ.ย. 2569", t: "ส่ง Timeline = เริ่มรอ Draft 1 + จดวันนัดส่ง", items: [
+    ["📅", "กด <b>ส่งแล้ว</b> ที่กล่อง <b>7. แจ้ง Timeline</b> → สถานะเป็น <b>รอ Draft 1</b> ทันที (เดิมย้ายตอนส่ง key content + สคริป)"],
+    ["📝", "ระบบอ่านวันนัดส่ง Draft 1 จากข้อความ Timeline แล้วจดลง <b>โน้ต</b> ให้เอง เช่น “📅 นัดส่ง Draft 1: 15/11” · ช่องกำหนดส่งยังว่าง = ใส่ให้ด้วย · ส่งซ้ำ = แทนของเดิม"],
+  ]},
   { n: 10, d: "10 พ.ย. 2569", t: "หน้าตาเริ่มต้นใหม่: พื้นขาว ตัวอักษรเล็ก", items: [
     ["☀️", "ค่าเริ่มต้นเป็น <b>พื้นขาว</b> และ <b>ตัวอักษรเล็กที่สุด</b> — เห็นตารางได้กว้างขึ้น"],
     ["🎨", "อยากกลับไปพื้นมืด หรือตัวใหญ่ขึ้น: กดวงชื่อมุมขวาบน → <b>ขนาดตัวอักษร</b> / ตั้งค่า → <b>โทนสีเว็บ</b> (เลือกเองแล้วระบบจำของคุณ)"],
@@ -25765,6 +25802,8 @@ document.addEventListener("keydown", e => { if (!ST) return;
 // ขั้นสอนของแต่ละอัปเดต (คีย์ = n ใน RELEASE_NOTES) · อัปเดตที่ทีมเห็นได้ ควรมีขั้นสอนเสมอ
 const goCoord = async () => { $("#todoPop").hidden = true; if (document.body.dataset.view !== "coord") await setView("coord"); if (!$("#mapView").hidden) $("#mapView").hidden = true; };
 const RELEASE_TOURS = {
+  11: [ { pre: goCoord, t: "เปิด <b>✉ Command</b> ของครีเอเตอร์ที่ของถึงแล้ว → กล่อง <b>7. แจ้ง Timeline</b> → กด <b>ส่งแล้ว</b><br>สถานะจะเป็น <b>รอ Draft 1</b> ทันที" },
+        { pre: goCoord, sel: ".ctable td.w-note", t: "ในช่อง <b>โน้ต</b> จะมี <b>📅 นัดส่ง Draft 1: วันที่</b> ที่ระบบอ่านจากข้อความ Timeline ให้<br>ถ้าข้อความไม่มีวันที่ ระบบจะเตือน ไม่เดาเอง" } ],
   10: [ { pre: async () => { $("#todoPop").hidden = true; }, sel: "#acctBtn", t: "กด <b>วงชื่อของคุณ</b> มุมขวาบน" },
         { pre: async () => { if ($("#acctMenu").hidden) $("#acctBtn").click(); }, sel: "#uiSel", t: "<b>ขนาดตัวอักษร</b> — ตอนนี้ตั้งต้นเป็นเล็กที่สุด อยากใหญ่ขึ้นเลือกตรงนี้" },
         { pre: async () => { $("#acctMenu").hidden = true; openSettings(); }, sel: "#themeGrid", t: "<b>โทนสีเว็บ</b> — ตั้งต้นเป็นพื้นขาว อยากกลับไปพื้นมืดกดเลือกตรงนี้ ระบบจำของคุณไว้" } ],
@@ -25921,7 +25960,7 @@ async function relHistDraw(pub, fmt){
 // ═══ เวอร์ชันของหน้า — แท็บที่เปิดค้างโค้ดเก่าต้องไม่ซิงก์ทีม ═══
 // เจอจริง 2026-10-27: แท็บเก่าดึงคีย์ใหม่ลงผิดที่ + ดันรายการที่ลบแล้วกลับขึ้นทุกนาที
 // APP_VER ประทับตอน deploy (kol-tools\stamp-version.py) · version.json คู่กันบนเซิร์ฟเวอร์ — ไม่ตรง = รีเฟรช
-const APP_VER = "20261110-113036";
+const APP_VER = "20261111-040134";
 let STALE = false;
 async function verCheck(){
   if (STALE || APP_VER === "dev") return;
