@@ -3469,13 +3469,26 @@ html[data-theme="light"] .mapcard:has(.mapstamp) > *:not(.mapstamp),html[data-th
 .stalebar button{margin-left:10px;background:#fff;color:#C62F35;border:0;border-radius:6px;padding:4px 12px;font-weight:700;cursor:pointer}
 /* Command: ทางลัดกล่อง + กล่องที่ควรส่งต่อ */
 /* top ติดลบเท่า padding บนของ drawer-body — ไม่งั้นมีช่องว่างเหนือแถบที่เนื้อหาเลื่อนลอดให้เห็น */
-.cmdjump{position:sticky;top:-18px;z-index:5;display:flex;gap:5px;overflow-x:auto;padding:22px 2px 9px;margin:-18px 0 10px;
-  background:var(--bg);border-bottom:1px solid var(--line);scrollbar-width:thin}
-.cmdjump button{flex:none;background:var(--surface2);border:1px solid var(--line);color:var(--ink);border-radius:999px;
-  padding:4px 11px;font:inherit;font-size:.74rem;cursor:pointer;white-space:nowrap}
-.cmdjump button:hover{border-color:var(--accent)}
-.cmdjump button.sent{opacity:.45}
-.cmdjump button.rec{background:var(--accent);color:var(--accent-ink);border-color:var(--accent);font-weight:700}
+/* ทางลัดหัวข้อ (ปรับ 2026-11-11): ขึ้นครบทุกกล่องในตาเดียว (ห่อบรรทัด ไม่ต้องเลื่อนข้าง) · เลขกล่องเป็นวงเด่น · ถัดไป/ส่งแล้ว/ยังไม่ส่ง แยกสีชัด */
+.cmdjump{position:sticky;top:-18px;z-index:5;display:grid;gap:6px;padding:20px 2px 10px;margin:-18px 0 12px;
+  background:var(--bg);border-bottom:2px solid var(--line)}
+.cmdjump .cj-head{display:flex;justify-content:space-between;align-items:baseline;gap:8px;font-size:.72rem;color:var(--dim)}
+.cmdjump .cj-head b{color:var(--ink);font-size:.8rem}
+.cmdjump .cj-leg{display:flex;gap:10px;flex-wrap:wrap}
+.cmdjump .cj-leg i{display:inline-block;width:9px;height:9px;border-radius:50%;margin-right:4px;vertical-align:-1px}
+.cmdjump .cj-list{display:flex;flex-wrap:wrap;gap:6px;max-height:9.5em;overflow-y:auto}
+.cmdjump button{display:inline-flex;align-items:center;gap:6px;background:var(--surface);border:1.5px solid var(--line);color:var(--ink);border-radius:9px;
+  padding:4px 10px 4px 4px;font:inherit;font-size:.78rem;font-weight:600;cursor:pointer;white-space:nowrap;line-height:1.3}
+.cmdjump button .n{display:inline-grid;place-items:center;min-width:1.7em;height:1.7em;padding:0 4px;border-radius:7px;background:var(--surface2);font-size:.72rem;font-weight:700;color:var(--mute)}
+.cmdjump button:hover{border-color:var(--accent);background:rgba(var(--accent-rgb),.08)}
+.cmdjump button.sent{color:var(--dim);border-style:dashed;font-weight:500}
+.cmdjump button.sent .n{background:rgba(var(--hi-rgb,70,211,105),.16);color:var(--hi)}
+.cmdjump button.rec{background:var(--accent);color:var(--accent-ink);border-color:var(--accent);font-weight:700;box-shadow:0 2px 10px rgba(var(--accent-rgb),.35)}
+.cmdjump button.rec .n{background:rgba(255,255,255,.25);color:inherit}
+.cmdjump button.here{outline:2px solid var(--accent);outline-offset:1px}
+.cmdblk.flash{animation:cmdflash 1.2s ease}
+@keyframes cmdflash{0%,40%{box-shadow:0 0 0 3px var(--accent)}100%{box-shadow:none}}
+@media (prefers-reduced-motion:reduce){.cmdblk.flash{animation:none}}
 .cmdblk.cmdrec{border-color:var(--accent);box-shadow:0 0 0 2px rgba(var(--accent-rgb),.25)}
 .cmdrectag{font-size:.72rem;font-weight:700;color:var(--accent);padding:6px 12px 0}
 .cmdblk.flash{animation:cmdflash 1.1s ease-out 1}
@@ -12614,12 +12627,14 @@ function openCmd(proj, handle){
        <div id="lawRows"></div>
      </div>
      ` + // แถบทางลัดติดหัว — กดแล้วกระโดดไปกล่องนั้น · ที่ส่งแล้วจาง · 👉 = กล่องที่ควรส่งต่อ
-    (shownJ.length > 2 ? `<div class="cmdjump" id="cmdJump">${shownJ.map(j => {
+    (shownJ.length > 2 ? `<div class="cmdjump" id="cmdJump"><div class="cj-head"><b>⚡ ไปที่กล่อง</b><span class="cj-leg">
+        <span><i style="background:var(--accent)"></i>👉 ควรส่งต่อ</span><span><i style="background:var(--line)"></i>ยังไม่ส่ง</span><span><i style="background:var(--hi)"></i>✓ ส่งแล้ว</span></span></div>
+      <div class="cj-list">${shownJ.map(j => {
       const b = blocks[j];
       const name = b.t.replace(/^\d+\.\s*/, "").replace(/\s+—.*$/, "");
       return `<button type="button" data-jump="${j}" class="${b.sent ? "sent" : ""}${j === recJ ? " rec" : ""}"
-        title="${esc(b.t)}${b.sent ? " · ส่งแล้ว" : ""}">${j === recJ ? "👉 " : b.sent ? "✓ " : ""}${b.step}${b.clip ? "." + b.clip : ""} ${esc(name.length > 22 ? name.slice(0, 21) + "…" : name)}</button>`;
-    }).join("")}</div>` : "") + `<div class="cmdlist">` +
+        title="${esc(b.t)}${b.sent ? " · ส่งแล้ว" : ""}"><span class="n">${b.sent ? "✓" : b.step}${b.clip ? "." + b.clip : ""}</span>${j === recJ ? "👉 " : ""}${esc(name.length > 28 ? name.slice(0, 27) + "…" : name)}</button>`;
+    }).join("")}</div></div>` : "") + `<div class="cmdlist">` +
     (blocks.some(b => b.old) ? `<div class="sentbar">✓ ส่งไปแล้ว ${blocks.filter(b => b.old).length} กล่อง${
       CMD_SHOW_SENT ? "" : " — ซ่อนไว้"} <button type="button" class="cmdbtn" id="cmdShowSent">${
       CMD_SHOW_SENT ? "ซ่อนที่ส่งแล้ว" : "แสดง"}</button></div>` : "") +
@@ -12701,7 +12716,8 @@ function openCmd(proj, handle){
     el.classList.remove("flash"); void el.offsetWidth; el.classList.add("flash");
     // ชิปของกล่องนั้นในแถบทางลัดเลื่อนมาให้เห็นด้วย
     const chip = bar && bar.querySelector(`[data-jump="${j}"]`);
-    if (chip) bar.scrollLeft = Math.max(0, chip.offsetLeft - bar.clientWidth / 2 + chip.offsetWidth / 2);
+    if (bar) bar.querySelectorAll(".here").forEach(x => x.classList.remove("here"));
+    if (chip){ chip.classList.add("here"); const L = chip.closest(".cj-list"); if (L) L.scrollTop = Math.max(0, chip.offsetTop - L.offsetTop - 4); }
   };
   document.querySelectorAll("#cmdJump [data-jump]").forEach(b => b.onclick = () => cmdJumpTo(+b.dataset.jump, true));
   // เปิดคนใหม่ = เลื่อนไปกล่องที่ควรส่งต่อเลย · วาดคนเดิมซ้ำ (ติ๊กส่งแล้ว/แก้ค่า) ไม่กระโดดเอง
