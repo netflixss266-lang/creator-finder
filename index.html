@@ -23,7 +23,7 @@
   base-uri 'none';
   object-src 'none'">
 <title>Creataew — KOL Sourcing</title>
-<meta name="cf-ver" content="20261111-101513">
+<meta name="cf-ver" content="20261111-113317">
 <!-- Beta / Publish (2026-11-06): หน้าแรก = เวอร์ชันล่าสุด (admin เห็นก่อน) · คนอื่นถูกพาไป v/<เวอร์ชันที่ Publish>.html
      จำเวอร์ชันที่ Publish ไว้ในเครื่อง = พาไปได้ทันทีไม่ต้องรอเน็ต แล้วเช็คซ้ำเบื้องหลัง · ฐานข้อมูลไม่มี RPC (sandbox) = อยู่ตัวล่าสุด -->
 <script>(function(){try{
@@ -1226,6 +1226,7 @@ tr.dropover td{border-top:2px solid var(--accent)}
 .bmark.auto{color:var(--info)}
 .bmark.no{color:var(--warn)}
 .skuchip.nobrief{border-color:rgba(var(--warn-rgb),.45)}
+.skuchip.autobrief{border-style:dashed;opacity:.85} .skuchip.autobrief a.t{color:var(--hi)}
 /* ── คู่มือถ่ายทำ ตาม SKU (หน้าตั้งค่า) ── */
 .skugrow{display:flex;align-items:center;gap:9px;flex-wrap:wrap;padding:8px 0;
   border-bottom:1px solid var(--line)}
@@ -8058,7 +8059,10 @@ function skuCell(r, i){
   return `<div class="skucell">${
     parts.map((p, n) => {
       const own = briefs[n] || "";
-      const key = own ? "" : guideKeyForOne(p);
+      // ดูคู่มือชุดเดียวกับที่ Command ใช้จริง — KOC ใช้ชุด KOC (ไม่มีค่อยถอยไปของ KOL)
+      // เดิมดูแค่ชุด KOL ทำให้ KOC ที่ตั้งคู่มือไว้แล้วยังขึ้นธง ⚑ (เจอ RC130 2026-11-11)
+      const ck = kindOf(r), key = own || !bindValForOne("guide", p, ck) ? ""
+        : (ck === "KOC" ? bindKeyForOne(skuMergedFor("guide"), p) : guideKeyForOne(p));
       const src = own ? "แปะบรีฟไว้เองแล้ว"
                 : key ? `ได้คู่มือจาก “${key}”`
                 : "ยังไม่มีบรีฟและยังไม่มีคู่มือของ SKU นี้";
@@ -8086,6 +8090,11 @@ function briefCell(r, i){
         url ? `<a class="t" href="${esc(url)}" target="_blank" rel="noopener noreferrer">${esc(label)}</a>`
             : `<span class="t">${esc(label)}</span>`
         }<button data-briefdel="${i}" data-v="${esc(p)}" title="เอาออก">✕</button></span>`; }).join("")
+    // SKU ที่ยังไม่ได้แปะบรีฟเอง แต่มีคู่มือในตั้งค่า SKU — โชว์เป็นการ์ด ✦ (กดเปิดได้ ลบไม่ได้ เพราะไม่ใช่ของแถวนี้)
+    // ให้คอลัมน์บรีฟบอกครบว่า SKU ไหนมีบรีฟแล้ว ไม่ต้องไปดูธงที่คอลัมน์ SKU อีกที
+    }${skus.slice(parts.length).map(s => { const g = bindValForOne("guide", s, kindOf(r)), url = g && safeLinkUrl(g);
+      return url ? `<span class="skuchip autobrief" title="คู่มือของ SKU จากตั้งค่า — ${esc(s)}"><a class="t" href="${esc(url)}"
+        target="_blank" rel="noopener noreferrer">✦ ${esc(skuShort(s))}</a></span>` : ""; }).join("")
     }<button class="skuadd" data-briefadd="${i}" title="เพิ่มลิงก์บรีฟ">${
       parts.length ? "＋" : "＋ วางลิงก์บรีฟ"}</button></div>`;
 }
@@ -25976,7 +25985,7 @@ async function relHistDraw(pub, fmt){
 // ═══ เวอร์ชันของหน้า — แท็บที่เปิดค้างโค้ดเก่าต้องไม่ซิงก์ทีม ═══
 // เจอจริง 2026-10-27: แท็บเก่าดึงคีย์ใหม่ลงผิดที่ + ดันรายการที่ลบแล้วกลับขึ้นทุกนาที
 // APP_VER ประทับตอน deploy (kol-tools\stamp-version.py) · version.json คู่กันบนเซิร์ฟเวอร์ — ไม่ตรง = รีเฟรช
-const APP_VER = "20261111-101513";
+const APP_VER = "20261111-113317";
 let STALE = false;
 async function verCheck(){
   if (STALE || APP_VER === "dev") return;
