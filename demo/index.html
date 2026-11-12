@@ -8764,17 +8764,32 @@ function hoTag(r){
 const hoRowsOf = uid => PROJECTS.filter(p => isTeamProj(p) && !(projMeta(p) || {}).done)
   .flatMap(p => (COORD[p] || []).filter(r => r.assignee === uid && r._id && !mapClosed(r)));
 // filterTo = uid หรือ array ของ uid — โอนเฉพาะแถวที่ผู้ดูแลตอนนี้เป็นคนพวกนี้ (กันไปทับแถวที่ย้ายไปที่อื่นแล้ว)
-async function hoPatch(ids, filterTo, assignee){
+// งานฝากอยู่ในแท็บ ⏳ ชั่วคราว ของโปรเจกต์ (Jibli 2026-11-12) — temp:true ตอนโอนไป · temp:false ตอนโอนคืน
+async function hoPatch(ids, filterTo, assignee, temp){
   const F = filterTo ? [].concat(filterTo) : null;
+  const body = temp == null ? { assignee } : { assignee, temp: !!temp };
   for (let i = 0; i < ids.length; i += 80){
     const part = ids.slice(i, i + 80).map(encodeURIComponent).join(",");
     await sbSend(SB_URL + `/rest/v1/coord?id=in.(${part})` + (F ? `&assignee=in.(${F.map(encodeURIComponent).join(",")})` : ""),
-      "PATCH", { assignee }, "โอนงานไม่ได้");
+      "PATCH", body, "โอนงานไม่ได้");
   }
   const set = new Set(ids);
   PROJECTS.forEach(p => (COORD[p] || []).forEach(r => {
-    if (set.has(r._id) && (!F || F.includes(r.assignee))) r.assignee = assignee;
+    if (set.has(r._id) && (!F || F.includes(r.assignee))){ r.assignee = assignee; if (temp != null) r.temp = !!temp; }
   }));
+}
+// ก่อนเอางานฝากเข้าแท็บชั่วคราว — ของเก่าที่ค้างอยู่ในแท็บชั่วคราวของโปรเจกต์เดียวกัน (ที่ไม่ใช่งานฝาก) ย้ายกลับงานหลักก่อน
+// ย้าย ไม่ลบ: แถวพวกนั้นยังเป็นงานจริง แค่ไม่ปนกับงานฝาก
+async function hoClearTemp(ids){
+  const set = new Set(ids), held = new Set(Object.values(HO).flatMap(e => e.ids || []));
+  const projs = new Set(PROJECTS.filter(p => (COORD[p] || []).some(r => set.has(r._id))));
+  const old = [...projs].flatMap(p => (COORD[p] || []).filter(r => r.temp && r._id && !set.has(r._id) && !held.has(r._id)));
+  for (let i = 0; i < old.length; i += 80){
+    const part = old.slice(i, i + 80).map(r => encodeURIComponent(r._id)).join(",");
+    await sbSend(SB_URL + `/rest/v1/coord?id=in.(${part})`, "PATCH", { temp: false }, "ย้ายของเก่าในแท็บชั่วคราวไม่ได้");
+  }
+  old.forEach(r => r.temp = false);
+  return old.length;
 }
 async function hoSaveKv(k, v){
   await sbSend(SB_URL + "/rest/v1/team_kv?on_conflict=team_id,ns,k", "POST",
@@ -8808,7 +8823,7 @@ function hoTurnover(r, anchor){
         ? { ids: (e.ids || []).filter(x => x !== r._id) }
         : { alt: [...new Set((e.alt || []).concat(to))] });
       await hoSaveKv(k, v);                                     // จดก่อนโอน — พังกลางทางยังรู้ว่าต้องคืนใคร
-      await hoPatch([r._id], r.assignee, to);
+      await hoPatch([r._id], r.assignee, to, !back);
     } catch(err){ return alert(err.message); }
     renderProjTabs(); renderCoord(); if (!$("#mapView").hidden) renderMap();
     histToast(back ? `คืน @${normId(r.handle)} ให้ ${memName(k)} แล้ว` : `ส่งต่อ @${normId(r.handle)} ให้ ${memName(to)} แล้ว (ยังเป็นงานฝากของ ${memName(k)})`);
@@ -8818,7 +8833,7 @@ function hoTurnover(r, anchor){
 async function hoReturn(k, quiet){
   const e = HO[k]; if (!e) return 0;
   const back = (e.ids || []).length;
-  if (back) await hoPatch(e.ids, hoHolders(e), k);
+  if (back) await hoPatch(e.ids, hoHolders(e), k, false);
   await sbSend(SB_URL + `/rest/v1/team_kv?team_id=eq.${encodeURIComponent(TEAM.id)}&ns=eq.ho&k=eq.${encodeURIComponent(k)}`, "DELETE", null, "ยกเลิกการฝากงานไม่ได้");
   delete HO[k];
   if (!quiet) histToast(`โอนงานคืน ${memName(k)} แล้ว`);
@@ -8874,7 +8889,7 @@ function openHandover(fromUid){
     d.innerHTML = `<div class="hobox" role="dialog" aria-label="ฝากงาน">
       <div class="hohead"><b>🤝 ฝากงานตอนลา</b><button class="cmdbtn" data-hox>✕</button></div>
       <p class="hint">${cur.to ? `ตอนนี้ฝากไว้กับ <b>${esc(memName(cur.to))}</b> ${nHeld} คน · ` : ""}งานที่ดูแลอยู่ (<b>${nNow}</b> คน) จะ<b>โอนผู้ดูแล</b>ไปให้คนรับฝากทันที
-        → ขึ้นใน <b>★ งานของฉัน</b> / <b>📋 วันนี้ต้องทำ</b> ของเขาเหมือนงานตัวเอง · ครบวันสุดท้ายแล้ว<b>โอนคืนเอง</b></p>
+        → ขึ้นใน <b>★ งานของฉัน</b> / <b>📋 วันนี้ต้องทำ</b> ของเขา และอยู่ในแท็บ <b>⏳ ชั่วคราว</b> ของแต่ละโปรเจกต์ · ครบวันสุดท้ายแล้ว<b>โอนคืนเอง</b> กลับเข้างานหลัก</p>
       ${boss ? `<label>ใครลา<select id="hoFrom">${TEAM.members.map(m => `<option value="${esc(m.id)}"${m.id === from ? " selected" : ""}>${esc(m.name || m.email)}${m.id === me ? " (คุณ)" : ""}</option>`).join("")}</select></label>` : ""}
       <label>ฝากให้<select id="hoTo"><option value="">— เลือกคนรับฝาก —</option>${people.map(m =>
         `<option value="${esc(m.id)}"${m.id === cur.to ? " selected" : ""}>${esc(m.name || m.email)}</option>`).join("")}</select></label>
@@ -8934,11 +8949,13 @@ function openHandover(fromUid){
       try {
         // จดการฝากก่อนค่อยโอน — โอนพังกลางทาง ยังรู้ว่าแถวไหนต้องคืน
         await hoSaveKv(from, v);
-        if (held.length) await hoPatch(held, cur.to, to);
-        if (fresh.length) await hoPatch(fresh, from, to);
+        var cleared = await hoClearTemp(fresh.concat(held));
+        if (held.length) await hoPatch(held, cur.to, to, true);
+        if (fresh.length) await hoPatch(fresh, from, to, true);
       } catch(err){ busy = false; return alert(err.message); }
       after();
-      histToast(`โอนงาน ${fresh.length + held.length} คนของ ${memName(from)} ให้ ${memName(to)} ถึง ${hoDate(until)} แล้ว`);
+      histToast(`โอนงาน ${fresh.length + held.length} คนของ ${memName(from)} ให้ ${memName(to)} ถึง ${hoDate(until)} แล้ว — อยู่ในแท็บ ⏳ ชั่วคราว ของแต่ละโปรเจกต์${
+        cleared ? ` · ของเก่าในแท็บชั่วคราว ${cleared} คนย้ายกลับงานหลักแล้ว` : ""}`);
     }
   });
 }
