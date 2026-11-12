@@ -23,7 +23,7 @@
   base-uri 'none';
   object-src 'none'">
 <title>Creataew — KOL Sourcing</title>
-<meta name="cf-ver" content="20261112-061108">
+<meta name="cf-ver" content="20261112-061458">
 <!-- Beta / Publish (2026-11-06): หน้าแรก = เวอร์ชันล่าสุด (admin เห็นก่อน) · คนอื่นถูกพาไป v/<เวอร์ชันที่ Publish>.html
      จำเวอร์ชันที่ Publish ไว้ในเครื่อง = พาไปได้ทันทีไม่ต้องรอเน็ต แล้วเช็คซ้ำเบื้องหลัง · ฐานข้อมูลไม่มี RPC (sandbox) = อยู่ตัวล่าสุด -->
 <script>(function(){try{
@@ -1231,6 +1231,9 @@ tr.dropover td{border-top:2px solid var(--accent)}
 .minetable tr.mown td{padding:10px 8px 4px;font-size:.88rem;font-weight:700;border-bottom:2px solid var(--line);background:var(--bg)}
 .minetable tr.mown.ho td{color:var(--hi);border-bottom-color:rgba(var(--hi-rgb),.5)}
 .minetable tr.mown .n{margin-left:6px}
+.homini{display:inline-block;margin-left:4px;padding:0 4px;border-radius:5px;font-size:.66rem;font-weight:700;
+  background:rgba(var(--hi-rgb),.14);color:var(--hi);vertical-align:1px;white-space:nowrap}
+.mapleaf.fromho{outline:1.5px dashed rgba(var(--hi-rgb),.6);outline-offset:1px}
 .hotag.mine{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
 .hobtn{margin-left:8px} .hobanner{margin-top:6px;padding:6px 10px;border-radius:9px;font-size:.82rem;
   background:rgba(var(--hi-rgb),.1);border:1px solid rgba(var(--hi-rgb),.3)}
@@ -8447,6 +8450,13 @@ function hoFromOf(r){
   if (!r || !r._id) return "";
   return Object.keys(HO).find(k => HO[k] && HO[k].to === r.assignee && (HO[k].ids || []).includes(r._id)) || "";
 }
+// ป้ายเล็กบนใบใน Map — ใบแคบ ใส่แค่ 🤝 + ชื่อสั้นของเจ้าของงานเดิม ชื่อเต็มดูจากการชี้ค้าง
+function hoMini(r){
+  const k = TEAM_MODE && hoFromOf(r);
+  if (!k) return "";
+  const n = memName(k);
+  return `<span class="homini" title="ฝากจาก ${esc(n)}${HO[k].until ? " ถึง " + esc(hoDate(HO[k].until)) : ""}">🤝${esc(n.length > 8 ? n.slice(0, 7) + "…" : n)}</span>`;
+}
 function hoTag(r){
   const k = TEAM_MODE && hoFromOf(r);
   if (!k) return "";
@@ -13931,7 +13941,7 @@ function mapLeaf(r, proj, color, drag, sub){
   return `<span class="mapleafwrap${dr ? " drin" : ""}${pm ? " pmwait" : ""}">
     <button class="mapleaf${flags.length ? " miss" : ""}${done ? " done" : ""}${
       TEAM_MODE && TEAM && isTeamProj(proj) && r.assignee !== sbUid() && MEMSEG === "all" ? " notmine" : ""}${
-      cancel ? " cancelled" : ""}"
+      cancel ? " cancelled" : ""}${TEAM_MODE && hoFromOf(r) ? " fromho" : ""}"
       style="--pc:${cancel ? MAP_CANCEL.c : color}"${drag ? ` draggable="true"` : ""}
       data-mapwho="${esc(r.handle)}" data-mapproj="${esc(proj)}"
       title="${esc(r.handle)}${flags.length ? " — " + esc(flags.join(" · ")) : ""}${
@@ -13939,7 +13949,7 @@ function mapLeaf(r, proj, color, drag, sub){
         cancel ? " — ยกเลิกงานแล้ว ไม่นับในความคืบหน้าและยอดเงิน" : ""}\nกดเพื่อเปิด Command${
         drag ? " · ลากไปวางที่ขั้นอื่นเพื่อเปลี่ยนสถานะ" : " · กด ▾ เพื่อเปลี่ยนสถานะ"}">
       <span class="h">${projAsg(proj) && r.assignee ? avatar(r.assignee) : ""}${
-        done ? "✓ " : ""}${cancel ? "✕ " : ""}${esc(r.handle)}</span>
+        done ? "✓ " : ""}${cancel ? "✕ " : ""}${esc(r.handle)}${hoMini(r)}</span>
       ${sub === "sku" ? `<span class="m sku" title="${esc(String(r.sku || "") || "ยังไม่ได้ใส่ SKU")}">${
         String(r.sku || "").trim()
           // ตัดชื่อไลน์ที่ซ้ำกันทุกตัวออก (skuShort) เหลือเฉดที่ต่างกันจริง — ใบแคบ ใส่ชื่อเต็มแล้วโดนตัดหมด
@@ -26173,7 +26183,7 @@ async function relHistDraw(pub, fmt){
 // ═══ เวอร์ชันของหน้า — แท็บที่เปิดค้างโค้ดเก่าต้องไม่ซิงก์ทีม ═══
 // เจอจริง 2026-10-27: แท็บเก่าดึงคีย์ใหม่ลงผิดที่ + ดันรายการที่ลบแล้วกลับขึ้นทุกนาที
 // APP_VER ประทับตอน deploy (kol-tools\stamp-version.py) · version.json คู่กันบนเซิร์ฟเวอร์ — ไม่ตรง = รีเฟรช
-const APP_VER = "20261112-061108";
+const APP_VER = "20261112-061458";
 let STALE = false;
 async function verCheck(){
   if (STALE || APP_VER === "dev") return;
