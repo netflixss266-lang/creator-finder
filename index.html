@@ -23,7 +23,7 @@
   base-uri 'none';
   object-src 'none'">
 <title>Creataew — KOL Sourcing</title>
-<meta name="cf-ver" content="20261112-044832">
+<meta name="cf-ver" content="20261112-055427">
 <!-- Beta / Publish (2026-11-06): หน้าแรก = เวอร์ชันล่าสุด (admin เห็นก่อน) · คนอื่นถูกพาไป v/<เวอร์ชันที่ Publish>.html
      จำเวอร์ชันที่ Publish ไว้ในเครื่อง = พาไปได้ทันทีไม่ต้องรอเน็ต แล้วเช็คซ้ำเบื้องหลัง · ฐานข้อมูลไม่มี RPC (sandbox) = อยู่ตัวล่าสุด -->
 <script>(function(){try{
@@ -8426,30 +8426,54 @@ function pnoteMark(r){
 }
 
 // ═══ 🤝 ฝากงานตอนลา (handover · 2026-11-12) ═══
-// ตั้งครั้งเดียวต่อคน: "ฉันลา ฝากงานทั้งหมดให้ X ถึงวันที่ ..." — ไม่ต้องเปลี่ยนผู้ดูแลทีละแถว
-// ผู้ดูแลจริงไม่เปลี่ยน (กลับมาแล้วงานยังเป็นของตัวเองครบ) แค่คนรับฝากเห็นใน ★ งานของฉัน / วันนี้ต้องทำ
-// และทำ Command / ย้ายขั้นแทนได้ จนเลยวันสุดท้ายแล้วหมดเองอัตโนมัติ
-// เก็บใน team_kv ns 'ho' · k = uid คนลา · v = { to, from, until, note, by }
-let HO = {}, HO_AT = 0;
+// ตั้งครั้งเดียวต่อคน: "ฉันลา โอนงานทั้งหมดให้ X ถึงวันที่ ..." — ไม่ต้องเปลี่ยนผู้ดูแลทีละแถว
+// โอนจริง: ผู้ดูแลของแถวเปลี่ยนเป็นคนรับฝากทันที → เข้า ★ งานของฉัน / วันนี้ต้องทำ / Pipeline ของเขาเหมือนงานตัวเอง
+// จด id แถวที่โอนไว้ — กลับมาแล้ว (กดยกเลิก หรือเลยวันสุดท้าย) โอนคืนเฉพาะแถวที่ยังอยู่กับคนรับฝาก
+//   แถวที่คนรับฝากส่งต่อให้คนอื่นไปแล้วระหว่างนั้น ไม่ดึงกลับ (เขาตั้งใจย้าย)
+// เก็บใน team_kv ns 'ho' · k = uid คนลา · v = { to, from, until, note, by, ids:[coord.id] }
+let HO = {}, HO_AT = 0, HO_RET = false;
 const hoToday = () => { const d = new Date(); return new Date(d - d.getTimezoneOffset() * 6e4).toISOString().slice(0, 10); };
 const hoActive = e => !!(e && e.to && (!e.from || e.from <= hoToday()) && (!e.until || hoToday() <= e.until));
 function hoOf(uid){ const e = uid && HO[uid]; return hoActive(e) ? e : null; }
 function hoCovering(me){ me = me || sbUid(); return Object.keys(HO).filter(k => hoActive(HO[k]) && HO[k].to === me); }
-// แถวนี้เป็น "งานของฉัน" ไหม — ของตัวเอง หรือของคนที่ฝากงานไว้กับฉันตอนนี้
-function isMyWork(r){
-  const me = sbUid();
-  if (!r) return false;
-  if (r.assignee === me) return true;
-  const e = r.assignee && hoOf(r.assignee);
-  return !!(e && e.to === me);
-}
+// แถวนี้เป็น "งานของฉัน" ไหม — โอนแล้วผู้ดูแลคือคนรับฝากอยู่แล้ว เทียบตรงๆ พอ
+function isMyWork(r){ return !!r && r.assignee === sbUid(); }
 const hoDate = d => d ? new Date(d + "T00:00:00").toLocaleDateString("th-TH", { day:"numeric", month:"short" }) : "";
+// แถวนี้มาจากการฝากของใคร (ยังอยู่กับคนรับฝาก)
+function hoFromOf(r){
+  if (!r || !r._id) return "";
+  return Object.keys(HO).find(k => HO[k] && HO[k].to === r.assignee && (HO[k].ids || []).includes(r._id)) || "";
+}
 function hoTag(r){
-  const e = TEAM_MODE && r && r.assignee && hoOf(r.assignee);
-  if (!e) return "";
-  const mine = e.to === sbUid();
-  return `<span class="hotag${mine ? " mine" : ""}" title="${esc(memName(r.assignee))} ฝากงานให้ ${esc(memName(e.to))}${
-    e.until ? " ถึง " + esc(hoDate(e.until)) : ""}${e.note ? " — " + esc(e.note) : ""}">🤝 ${mine ? "แทน " + esc(memName(r.assignee)) : esc(memName(e.to))}</span>`;
+  const k = TEAM_MODE && hoFromOf(r);
+  if (!k) return "";
+  const e = HO[k], mine = e.to === sbUid();
+  return `<span class="hotag${mine ? " mine" : ""}" title="${esc(memName(k))} ฝากไว้กับ ${esc(memName(e.to))}${
+    e.until ? " ถึง " + esc(hoDate(e.until)) + " แล้วโอนคืนเอง" : ""}${e.note ? " — " + esc(e.note) : ""}">🤝 ฝากจาก ${esc(memName(k))}</span>`;
+}
+// แถวที่ "ของ from" ตอนนี้ — ทุกโปรเจกต์ทีมที่ยังไม่ปิด ไม่นับแถวที่จบ/ยกเลิกแล้ว
+const hoRowsOf = uid => PROJECTS.filter(p => isTeamProj(p) && !(projMeta(p) || {}).done)
+  .flatMap(p => (COORD[p] || []).filter(r => r.assignee === uid && r._id && !mapClosed(r)));
+async function hoPatch(ids, filterTo, assignee){
+  for (let i = 0; i < ids.length; i += 80){
+    const part = ids.slice(i, i + 80).map(encodeURIComponent).join(",");
+    await sbSend(SB_URL + `/rest/v1/coord?id=in.(${part})` + (filterTo ? `&assignee=eq.${encodeURIComponent(filterTo)}` : ""),
+      "PATCH", { assignee }, "โอนงานไม่ได้");
+  }
+  const set = new Set(ids);
+  PROJECTS.forEach(p => (COORD[p] || []).forEach(r => {
+    if (set.has(r._id) && (!filterTo || r.assignee === filterTo)) r.assignee = assignee;
+  }));
+}
+// โอนคืน + ลบการฝาก
+async function hoReturn(k, quiet){
+  const e = HO[k]; if (!e) return 0;
+  const back = (e.ids || []).length;
+  if (back) await hoPatch(e.ids, e.to, k);
+  await sbSend(SB_URL + `/rest/v1/team_kv?team_id=eq.${encodeURIComponent(TEAM.id)}&ns=eq.ho&k=eq.${encodeURIComponent(k)}`, "DELETE", null, "ยกเลิกการฝากงานไม่ได้");
+  delete HO[k];
+  if (!quiet) histToast(`โอนงานคืน ${memName(k)} แล้ว`);
+  return back;
 }
 async function hoLoad(force){
   if (!TEAM_MODE || !TEAM || (!force && Date.now() - HO_AT < 15000)) return;
@@ -8460,13 +8484,21 @@ async function hoLoad(force){
     const next = {}; (await r.json()).forEach(x => { if (x.v && typeof x.v === "object") next[x.k] = x.v; });
     const changed = JSON.stringify(next) !== JSON.stringify(HO);
     HO = next;
-    if (changed){ try { renderProjTabs(); renderCoord(); } catch(e){} }
+    // เลยวันสุดท้ายแล้ว = โอนคืนอัตโนมัติ — ให้เจ้าของงาน / คนรับฝาก / admin·manager คนแรกที่เปิดเว็บเป็นคนทำ
+    const me = sbUid();
+    const due = Object.keys(HO).filter(k => HO[k].until && hoToday() > HO[k].until && (k === me || HO[k].to === me || canManageProjects()));
+    if (due.length && !HO_RET){
+      HO_RET = true;
+      try { for (const k of due){ const n = await hoReturn(k, true); histToast(`ครบวันลาแล้ว — โอนงาน ${n} คนคืน ${memName(k)} เรียบร้อย`); } }
+      catch(e){} finally { HO_RET = false; }
+    }
+    if (changed || due.length){ try { renderProjTabs(); renderCoord(); } catch(e){} }
   } catch(e){}
 }
 function hoBanner(){
   const me = sbUid(), mineOut = hoOf(me), cov = hoCovering(me);
   const bits = [];
-  if (mineOut) bits.push(`คุณฝากงานให้ <b>${esc(memName(mineOut.to))}</b>${mineOut.until ? " ถึง <b>" + esc(hoDate(mineOut.until)) + "</b>" : ""}`);
+  if (mineOut) bits.push(`คุณฝากงานให้ <b>${esc(memName(mineOut.to))}</b>${mineOut.until ? " ถึง <b>" + esc(hoDate(mineOut.until)) + "</b> แล้วโอนคืนเอง" : ""}`);
   cov.forEach(k => bits.push(`<b>${esc(memName(k))}</b> ฝากงานไว้กับคุณ${HO[k].until ? " ถึง <b>" + esc(hoDate(HO[k].until)) + "</b>" : ""}${HO[k].note ? " — " + esc(HO[k].note) : ""}`));
   return bits.length ? `<div class="hobanner">🤝 ${bits.join(" · ")}</div>` : "";
 }
@@ -8479,44 +8511,55 @@ function openHandover(fromUid){
   const draw = () => {
     const cur = HO[from] || {};
     const people = TEAM.members.filter(m => m.id !== from);
-    const nRows = PROJECTS.filter(p => isTeamProj(p) && !(projMeta(p) || {}).done)
-      .reduce((a, p) => a + (COORD[p] || []).filter(r => r.assignee === from && !mapClosed(r)).length, 0);
+    const nNow = hoRowsOf(from).length, nHeld = (cur.ids || []).length;
     d.innerHTML = `<div class="hobox" role="dialog" aria-label="ฝากงาน">
       <div class="hohead"><b>🤝 ฝากงานตอนลา</b><button class="cmdbtn" data-hox>✕</button></div>
-      <p class="hint">งานที่ดูแลอยู่ทั้งหมด (<b>${nRows}</b> คน) จะไปขึ้นใน <b>★ งานของฉัน</b> และ <b>📋 วันนี้ต้องทำ</b> ของคนรับฝาก
-        และเขาทำ Command / ย้ายขั้นแทนได้ — ผู้ดูแลในตารางยังเป็นชื่อเดิม เลยวันสุดท้ายแล้วหมดเอง</p>
+      <p class="hint">${cur.to ? `ตอนนี้ฝากไว้กับ <b>${esc(memName(cur.to))}</b> ${nHeld} คน · ` : ""}งานที่ดูแลอยู่ (<b>${nNow}</b> คน) จะ<b>โอนผู้ดูแล</b>ไปให้คนรับฝากทันที
+        → ขึ้นใน <b>★ งานของฉัน</b> / <b>📋 วันนี้ต้องทำ</b> ของเขาเหมือนงานตัวเอง · ครบวันสุดท้ายแล้ว<b>โอนคืนเอง</b></p>
       ${boss ? `<label>ใครลา<select id="hoFrom">${TEAM.members.map(m => `<option value="${esc(m.id)}"${m.id === from ? " selected" : ""}>${esc(m.name || m.email)}${m.id === me ? " (คุณ)" : ""}</option>`).join("")}</select></label>` : ""}
       <label>ฝากให้<select id="hoTo"><option value="">— เลือกคนรับฝาก —</option>${people.map(m =>
         `<option value="${esc(m.id)}"${m.id === cur.to ? " selected" : ""}>${esc(m.name || m.email)}</option>`).join("")}</select></label>
-      <div class="horow"><label>เริ่ม<input type="date" id="hoStart" value="${esc(cur.from || hoToday())}"></label>
-        <label>ถึงวันที่ (วันสุดท้ายที่ลา)<input type="date" id="hoUntil" value="${esc(cur.until || "")}"></label></div>
+      <label>ถึงวันที่ (วันสุดท้ายที่ลา — วันถัดไปโอนคืนเอง)<input type="date" id="hoUntil" min="${hoToday()}" value="${esc(cur.until || "")}"></label>
       <label>ฝากบอกอะไร (ไม่บังคับ)<input id="hoNote" maxlength="200" value="${esc(cur.note || "")}" placeholder="เช่น คนที่รอดราฟต์ 2 ตามให้ด้วย · ติดอะไรโทรมาได้"></label>
-      <div class="hobtns">${HO[from] ? `<button class="cmdbtn" data-hodel>ยกเลิกการฝาก (กลับมาแล้ว)</button>` : ""}
-        <button class="primary" data-hosave>บันทึก</button></div></div>`;
+      <div class="hobtns">${HO[from] ? `<button class="cmdbtn" data-hodel>กลับมาแล้ว — โอนงานคืน</button>` : ""}
+        <button class="primary" data-hosave>${HO[from] ? "บันทึก" : "โอนงาน"}</button></div></div>`;
     const f = d.querySelector("#hoFrom"); if (f) f.onchange = () => { from = f.value; draw(); };
   };
   draw();
   document.body.appendChild(d);
+  const after = () => { d.remove(); renderProjTabs(); renderCoord(); if (document.querySelector("#usersList .ucard")) renderUsers(); };
+  let busy = false;
   d.addEventListener("click", async e => {
     if (e.target === d || e.target.closest("[data-hox]")) return d.remove();
+    if (busy) return;
     if (e.target.closest("[data-hodel]")){
-      try { await sbSend(SB_URL + `/rest/v1/team_kv?team_id=eq.${encodeURIComponent(TEAM.id)}&ns=eq.ho&k=eq.${encodeURIComponent(from)}`, "DELETE", null, "ยกเลิกการฝากงานไม่ได้"); }
-      catch(err){ return alert(err.message); }
-      delete HO[from]; d.remove(); renderProjTabs(); renderCoord(); if (document.querySelector("#usersList .ucard")) renderUsers();
-      histToast(`ยกเลิกการฝากงานของ ${memName(from)} แล้ว`);
-      return;
+      busy = true;
+      try { await hoReturn(from); } catch(err){ busy = false; return alert(err.message); }
+      return after();
     }
     if (e.target.closest("[data-hosave]")){
-      const to = d.querySelector("#hoTo").value, st = d.querySelector("#hoStart").value, until = d.querySelector("#hoUntil").value;
+      const to = d.querySelector("#hoTo").value, until = d.querySelector("#hoUntil").value;
       if (!to) return alert("เลือกคนรับฝากก่อน");
-      if (!until) return alert("ใส่วันสุดท้ายที่ลาด้วย — เลยวันนั้นแล้วการฝากจะหมดเอง");
-      if (st && until < st) return alert("วันสุดท้ายต้องไม่ก่อนวันเริ่ม");
-      const v = { to, from: st || hoToday(), until, note: d.querySelector("#hoNote").value.trim(), by: me };
-      try { await sbSend(SB_URL + "/rest/v1/team_kv?on_conflict=team_id,ns,k", "POST",
-              [{ team_id: TEAM.id, ns: "ho", k: from, v }], "บันทึกการฝากงานไม่ได้", "resolution=merge-duplicates,return=minimal"); }
-      catch(err){ return alert(err.message); }
-      HO[from] = v; d.remove(); renderProjTabs(); renderCoord(); if (document.querySelector("#usersList .ucard")) renderUsers();
-      histToast(`ฝากงานของ ${memName(from)} ให้ ${memName(to)} ถึง ${hoDate(until)} แล้ว`);
+      if (!until) return alert("ใส่วันสุดท้ายที่ลาด้วย — วันถัดไปงานจะโอนคืนเอง");
+      if (until < hoToday()) return alert("วันสุดท้ายต้องเป็นวันนี้หรือหลังจากนี้");
+      const cur = HO[from] || {};
+      const fresh = hoRowsOf(from).map(r => r._id);
+      // เปลี่ยนคนรับฝาก = ย้ายแถวที่ยังอยู่กับคนเดิมไปคนใหม่ด้วย
+      const held = cur.to && cur.to !== to ? (cur.ids || []) : [];
+      if (!confirm(`โอนงาน ${fresh.length + held.length} คนของ ${memName(from)} ไปให้ ${memName(to)} ถึง ${hoDate(until)}?\n\nผู้ดูแลในตารางจะเปลี่ยนเป็น ${memName(to)} ทันที · วันถัดจากวันสุดท้ายโอนคืนเอง`)) return;
+      busy = true;
+      const v = { to, from: hoToday(), until, note: d.querySelector("#hoNote").value.trim(), by: me,
+                  ids: [...new Set((cur.ids || []).concat(fresh))] };
+      try {
+        // จดการฝากก่อนค่อยโอน — โอนพังกลางทาง ยังรู้ว่าแถวไหนต้องคืน
+        await sbSend(SB_URL + "/rest/v1/team_kv?on_conflict=team_id,ns,k", "POST",
+          [{ team_id: TEAM.id, ns: "ho", k: from, v }], "บันทึกการฝากงานไม่ได้", "resolution=merge-duplicates,return=minimal");
+        HO[from] = v;
+        if (held.length) await hoPatch(held, cur.to, to);
+        if (fresh.length) await hoPatch(fresh, from, to);
+      } catch(err){ busy = false; return alert(err.message); }
+      after();
+      histToast(`โอนงาน ${fresh.length + held.length} คนของ ${memName(from)} ให้ ${memName(to)} ถึง ${hoDate(until)} แล้ว`);
     }
   });
 }
@@ -25821,9 +25864,9 @@ i18nStart();
 //    ข้ามหลายเวอร์ชัน = เห็นรวมทุกรายการที่พลาดไป · เข้าเว็บครั้งแรกในชีวิต = ไม่เด้งของเก่า (เริ่มนับจากตอนนี้)
 const RELEASE_NOTES = [
   { n: 12, d: "12 พ.ย. 2569", t: "🤝 ฝากงานตอนลา", items: [
-    ["🤝", "จะลา: ไปที่ <b>★ งานของฉัน</b> → กด <b>🤝 ฝากงาน (ลา)</b> → เลือกคนรับฝาก + วันสุดท้ายที่ลา → บันทึก จบ ไม่ต้องเปลี่ยนผู้ดูแลทีละแถว"],
-    ["📋", "งานทั้งหมดของคนลาไปขึ้นใน <b>★ งานของฉัน</b> และ <b>📋 วันนี้ต้องทำ</b> ของคนรับฝาก และทำ Command / ย้ายขั้นแทนได้เลย"],
-    ["⏰", "ผู้ดูแลในตารางยังเป็นชื่อเดิม มีป้าย <b>🤝 ชื่อคนรับฝาก</b> ต่อท้าย · เลยวันสุดท้ายแล้ว<b>หมดเองอัตโนมัติ</b> · กลับมาก่อนกด <b>ยกเลิกการฝาก</b> ได้"],
+    ["🤝", "จะลา: ไปที่ <b>★ งานของฉัน</b> → กด <b>🤝 ฝากงาน (ลา)</b> → เลือกคนรับฝาก + วันสุดท้ายที่ลา → <b>โอนงาน</b> จบ ไม่ต้องเปลี่ยนผู้ดูแลทีละแถว · admin/manager ตั้งแทนได้ที่ ตั้งค่า → สมาชิก & สิทธิ์"],
+    ["📋", "งานทั้งหมดของคนลา<b>โอนไปเป็นของคนรับฝาก</b>ทันที → ขึ้นใน <b>★ งานของฉัน</b> / <b>📋 วันนี้ต้องทำ</b> ของเขาเหมือนงานตัวเอง มีป้าย <b>🤝 ฝากจาก ชื่อ</b>"],
+    ["⏰", "เลยวันสุดท้ายแล้ว<b>โอนคืนเองอัตโนมัติ</b> · กลับมาก่อนกด <b>กลับมาแล้ว — โอนงานคืน</b> · แถวที่คนรับฝากส่งต่อให้คนอื่นไปแล้วจะไม่ถูกดึงกลับ"],
   ]},
   { n: 11, d: "11 พ.ย. 2569", t: "ส่ง Timeline = เริ่มรอ Draft 1 + จดวันนัดส่ง", items: [
     ["📅", "กด <b>ส่งแล้ว</b> ที่กล่อง <b>7. แจ้ง Timeline</b> → สถานะเป็น <b>รอ Draft 1</b> ทันที (เดิมย้ายตอนส่ง key content + สคริป)"],
@@ -25951,8 +25994,8 @@ const goCoord = async () => { $("#todoPop").hidden = true; if (document.body.dat
 const RELEASE_TOURS = {
   12: [ { pre: goCoord, sel: '#projTabs [data-mine="1"]', t: "กด <b>★ งานของฉัน</b>" },
         { pre: async () => { await goCoord(); if (!MINE_VIEW){ const b = document.querySelector('#projTabs [data-mine="1"]'); if (b) b.click(); } }, sel: "#hoBtn",
-          t: "จะลา กด <b>🤝 ฝากงาน (ลา)</b> → เลือกคนรับฝาก + วันสุดท้ายที่ลา → บันทึก<br>งานทั้งหมดของคุณจะไปขึ้นในงานของเพื่อนจนถึงวันนั้น แล้วหมดเอง" },
-        { sel: "#coordSum", t: "ถ้ามีคนฝากงานไว้กับคุณ จะมีแถบ <b>🤝</b> บอกตรงนี้ และแถวของเขามีป้าย <b>🤝 แทน ชื่อเพื่อน</b>" } ],
+          t: "จะลา กด <b>🤝 ฝากงาน (ลา)</b> → เลือกคนรับฝาก + วันสุดท้ายที่ลา → <b>โอนงาน</b><br>งานทั้งหมดของคุณโอนไปเป็นของเพื่อนจนถึงวันนั้น แล้วโอนคืนเอง" },
+        { sel: "#coordSum", t: "ถ้ามีคนฝากงานไว้กับคุณ จะมีแถบ <b>🤝</b> บอกตรงนี้ และแถวที่ได้รับฝากมีป้าย <b>🤝 ฝากจาก ชื่อเพื่อน</b>" } ],
   11: [ { pre: goCoord, t: "เปิด <b>✉ Command</b> ของครีเอเตอร์ที่ของถึงแล้ว → กล่อง <b>7. แจ้ง Timeline</b> → กด <b>ส่งแล้ว</b><br>สถานะจะเป็น <b>รอ Draft 1</b> ทันที" },
         { pre: goCoord, sel: ".ctable td.w-note", t: "ในช่อง <b>โน้ต</b> จะมี <b>📅 นัดส่ง Draft 1: วันที่</b> ที่ระบบอ่านจากข้อความ Timeline ให้<br>ถ้าข้อความไม่มีวันที่ ระบบจะเตือน ไม่เดาเอง" } ],
   10: [ { pre: async () => { $("#todoPop").hidden = true; }, sel: "#acctBtn", t: "กด <b>วงชื่อของคุณ</b> มุมขวาบน" },
@@ -26111,7 +26154,7 @@ async function relHistDraw(pub, fmt){
 // ═══ เวอร์ชันของหน้า — แท็บที่เปิดค้างโค้ดเก่าต้องไม่ซิงก์ทีม ═══
 // เจอจริง 2026-10-27: แท็บเก่าดึงคีย์ใหม่ลงผิดที่ + ดันรายการที่ลบแล้วกลับขึ้นทุกนาที
 // APP_VER ประทับตอน deploy (kol-tools\stamp-version.py) · version.json คู่กันบนเซิร์ฟเวอร์ — ไม่ตรง = รีเฟรช
-const APP_VER = "20261112-044832";
+const APP_VER = "20261112-055427";
 let STALE = false;
 async function verCheck(){
   if (STALE || APP_VER === "dev") return;
