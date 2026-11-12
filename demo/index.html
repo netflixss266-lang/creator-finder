@@ -1456,6 +1456,9 @@ tr.dropover td{border-top:2px solid var(--accent)}
 .skuchip.nobrief{border-color:rgba(var(--warn-rgb),.45)}
 .hotag{display:inline-block;margin-left:4px;padding:0 6px;border-radius:7px;font-size:.72rem;font-weight:600;white-space:nowrap;
   background:rgba(var(--hi-rgb),.12);color:var(--hi);border:1px solid rgba(var(--hi-rgb),.35)}
+.minetable tr.mown td{padding:10px 8px 4px;font-size:.88rem;font-weight:700;border-bottom:2px solid var(--line);background:var(--bg)}
+.minetable tr.mown.ho td{color:var(--hi);border-bottom-color:rgba(var(--hi-rgb),.5)}
+.minetable tr.mown .n{margin-left:6px}
 .hotag.mine{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
 .hobtn{margin-left:8px} .hobanner{margin-top:6px;padding:6px 10px;border-radius:9px;font-size:.82rem;
   background:rgba(var(--hi-rgb),.1);border:1px solid rgba(var(--hi-rgb),.3)}
@@ -8837,8 +8840,24 @@ function renderMine(){
   $("#coordBody").innerHTML = `<div class="cwrap"><table class="ctable minetable"><thead><tr>
       <th>ครีเอเตอร์</th><th>สถานะ</th><th style="text-align:right">เรท</th><th>โพสต์ / กำหนดส่ง</th>
       <th>🔒 โน้ตส่วนตัว — เห็นคนเดียว</th><th></th></tr></thead><tbody>${
-    projs.map(p => {
-      const mine = list.filter(x => x.p === p);
+    // แยกกลุ่มตามเจ้าของงานเดิม (2026-11-12): งานตัวเองก่อน แล้วค่อยงานที่เพื่อนฝากไว้ทีละคน
+    // มีงานฝากเมื่อไหร่ถึงโชว์หัวกลุ่ม — ไม่มีใครฝาก หน้าตาเหมือนเดิมทุกอย่าง
+    (() => {
+      const ownerOf = x => hoFromOf(x.r);
+      const owners = [""].concat([...new Set(list.map(ownerOf).filter(Boolean))]);
+      const many = owners.length > 1;
+      return owners.map(o => {
+        const L = list.filter(x => ownerOf(x) === o);
+        if (!L.length) return "";
+        const e = o && HO[o];
+        const head = !many ? "" : o
+          ? `<tr class="mown ho"><td colspan="6">🤝 งานของ <b>${esc(memName(o))}</b> (ฝากไว้กับคุณ${e && e.until ? " ถึง " + esc(hoDate(e.until)) : ""})<span class="n">${L.length}</span>${
+              e && e.note ? `<span class="hint"> — ${esc(e.note)}</span>` : ""}</td></tr>`
+          : `<tr class="mown"><td colspan="6">★ งานของฉันเอง<span class="n">${L.length}</span></td></tr>`;
+        return head + [...new Set(L.map(x => x.p))].map(p => groupHTML(p, L.filter(x => x.p === p))).join("");
+      }).join("");
+    })()}</tbody></table></div>`;
+  function groupHTML(p, mine){
       return `<tr class="mgrp"><td colspan="6">${isTeamProj(p) ? "👥 " : ""}<b>${esc(p)}</b><span class="n">${mine.length}</span>
           <button class="cmdbtn" data-mtab="${esc(p)}">▦ ตารางทั้งทีม</button>
           <button class="cmdbtn" data-mmap="${esc(p)}">◈ Map ของฉัน</button></td></tr>` +
@@ -8851,7 +8870,7 @@ function renderMine(){
           <td><input data-mnote value="${esc(PNOTES[pnKey(p, r.handle)] || "")}" placeholder="ไม่มีใครเห็นนอกจากคุณ"></td>
           <td style="white-space:nowrap"><button class="cmdbtn" data-mdet title="ดู/แก้ทุกช่อง">⤢</button>
             <button class="cmdbtn" data-mcmd title="เปิด Command">✉</button></td></tr>`).join("");
-    }).join("")}</tbody></table></div>`;
+  }
   const at = el => { const tr = el.closest("tr"); const p = tr.dataset.mp, i = +tr.dataset.mi;
                      return { p, i, r: (COORD[p] || [])[i] }; };
   const body = $("#coordBody");
