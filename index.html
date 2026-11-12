@@ -23,7 +23,7 @@
   base-uri 'none';
   object-src 'none'">
 <title>Creataew — KOL Sourcing</title>
-<meta name="cf-ver" content="20261112-044527">
+<meta name="cf-ver" content="20261112-044832">
 <!-- Beta / Publish (2026-11-06): หน้าแรก = เวอร์ชันล่าสุด (admin เห็นก่อน) · คนอื่นถูกพาไป v/<เวอร์ชันที่ Publish>.html
      จำเวอร์ชันที่ Publish ไว้ในเครื่อง = พาไปได้ทันทีไม่ต้องรอเน็ต แล้วเช็คซ้ำเบื้องหลัง · ฐานข้อมูลไม่มี RPC (sandbox) = อยู่ตัวล่าสุด -->
 <script>(function(){try{
@@ -8502,7 +8502,7 @@ function openHandover(fromUid){
     if (e.target.closest("[data-hodel]")){
       try { await sbSend(SB_URL + `/rest/v1/team_kv?team_id=eq.${encodeURIComponent(TEAM.id)}&ns=eq.ho&k=eq.${encodeURIComponent(from)}`, "DELETE", null, "ยกเลิกการฝากงานไม่ได้"); }
       catch(err){ return alert(err.message); }
-      delete HO[from]; d.remove(); renderProjTabs(); renderCoord();
+      delete HO[from]; d.remove(); renderProjTabs(); renderCoord(); if (document.querySelector("#usersList .ucard")) renderUsers();
       histToast(`ยกเลิกการฝากงานของ ${memName(from)} แล้ว`);
       return;
     }
@@ -8515,7 +8515,7 @@ function openHandover(fromUid){
       try { await sbSend(SB_URL + "/rest/v1/team_kv?on_conflict=team_id,ns,k", "POST",
               [{ team_id: TEAM.id, ns: "ho", k: from, v }], "บันทึกการฝากงานไม่ได้", "resolution=merge-duplicates,return=minimal"); }
       catch(err){ return alert(err.message); }
-      HO[from] = v; d.remove(); renderProjTabs(); renderCoord();
+      HO[from] = v; d.remove(); renderProjTabs(); renderCoord(); if (document.querySelector("#usersList .ucard")) renderUsers();
       histToast(`ฝากงานของ ${memName(from)} ให้ ${memName(to)} ถึง ${hoDate(until)} แล้ว`);
     }
   });
@@ -21825,6 +21825,9 @@ async function renderUsers(){
             <div class="uact"><button type="button" class="run" data-usave style="width:auto;padding:6px 16px" disabled>บันทึก</button>
               <button type="button" class="export ghost" data-ureset style="padding:6px 12px"${u.role === "admin" || PERMS_COL === false ? " hidden" : ""}
                 title="ล้างที่ติ๊กเอง กลับไปใช้ค่าตั้งต้นของ role">คืนค่าตั้งต้นของสิทธิ์</button>
+              ${memberOf(u.id) ? (() => { const e = hoOf(u.id) || (HO[u.id] && HO[u.id].from > hoToday() ? HO[u.id] : null);
+                return `<button type="button" class="export ghost" data-uho style="padding:6px 12px" title="ตั้ง/แก้การฝากงานตอนคนนี้ลา">🤝 ${e
+                  ? `ฝากให้ ${esc(memName(e.to))} ถึง ${esc(hoDate(e.until))}` : "ฝากงาน (ลา)"}</button>`; })() : ""}
               <span class="addmsg" data-umsg></span></div>`
           : `<div class="uctl"><span class="n">${u.is_active ? esc(u.role) : "ถูกระงับ"}</span></div>`}
         </div>`;
@@ -21846,6 +21849,8 @@ async function renderUsers(){
           cb.disabled = rs.value === "admin" || PERMS_COL === false;
         });
       };
+      const ho = card.querySelector("[data-uho]");
+      if (ho) ho.onclick = () => openHandover(u.id);
       const rst = card.querySelector("[data-ureset]");
       if (rst) rst.onclick = () => { u.perms = {}; card.querySelectorAll("[data-uf]").forEach(cb => {
         cb.checked = featDefault(rs.value, FEATS.find(x => x.k === cb.dataset.uf)); cb.closest("label").classList.remove("chg"); }); dirty(); };
@@ -26106,7 +26111,7 @@ async function relHistDraw(pub, fmt){
 // ═══ เวอร์ชันของหน้า — แท็บที่เปิดค้างโค้ดเก่าต้องไม่ซิงก์ทีม ═══
 // เจอจริง 2026-10-27: แท็บเก่าดึงคีย์ใหม่ลงผิดที่ + ดันรายการที่ลบแล้วกลับขึ้นทุกนาที
 // APP_VER ประทับตอน deploy (kol-tools\stamp-version.py) · version.json คู่กันบนเซิร์ฟเวอร์ — ไม่ตรง = รีเฟรช
-const APP_VER = "20261112-044527";
+const APP_VER = "20261112-044832";
 let STALE = false;
 async function verCheck(){
   if (STALE || APP_VER === "dev") return;
