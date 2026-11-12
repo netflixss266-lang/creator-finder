@@ -1475,6 +1475,10 @@ tr.dropover td{border-top:2px solid var(--accent)}
 .hoturn{display:grid;gap:2px;padding:6px;min-width:220px;background:var(--surface);border:1px solid var(--line);border-radius:10px;box-shadow:0 8px 24px rgba(0,0,0,.25)}
 .hoturn button{display:flex;align-items:center;gap:6px;text-align:left;background:none;border:0;padding:6px 8px;border-radius:7px;font:inherit;color:var(--text);cursor:pointer}
 .hoturn button:hover{background:var(--surface2)}
+.av.hasimg,.acav.hasimg{position:relative;overflow:hidden}
+.av > img.mav,.acav > img.mav{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;border-radius:50%;background:var(--surface)}
+.avrow{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.avrow .acav{width:56px;height:56px;font-size:1.4rem}
 .hotag.mine{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
 .hobtn{margin-left:8px} .hobanner{margin-top:6px;padding:6px 10px;border-radius:9px;font-size:.82rem;
   background:rgba(var(--hi-rgb),.1);border:1px solid rgba(var(--hi-rgb),.3)}
@@ -4861,6 +4865,16 @@ html.demo .dm-b:hover{filter:blur(5px)}
     <!-- ═══ บัญชีของฉัน ═══ -->
     <div class="acctbody" id="acctBody">
       <div class="acard" id="acctCard"></div>
+      <!-- รูปโปรไฟล์ — ทุกคนเปลี่ยนเองได้ (ผ่าน RPC set_my_avatar) · ย่อเหลือ 128×128 ในเครื่องก่อนส่ง -->
+      <section class="sect" id="myAvSect" hidden>
+        <h3>รูปโปรไฟล์</h3>
+        <p class="sect-sub">โชว์แทนตัวอักษรในวงกลม — ผู้ดูแลแถว, Map, Pipeline, แชต, คนที่ออนไลน์ · ระบบตัดเป็นสี่เหลี่ยมจัตุรัสตรงกลางให้เอง</p>
+        <div class="avrow"><span id="myAvPrev"></span>
+          <input type="file" id="myAvFile" accept="image/*" hidden>
+          <button type="button" class="run" id="myAvPick" style="width:auto;padding:7px 16px">📷 เลือกรูป</button>
+          <button type="button" class="export ghost" id="myAvDel" style="padding:7px 14px">ลบรูป</button></div>
+        <div class="addmsg" id="myAvMsg"></div>
+      </section>
       <!-- ชื่อที่ทีมเห็น — ทุกคนเปลี่ยนเองได้ (app_users แก้ตรงได้เฉพาะ admin → ผ่าน RPC set_my_name) -->
       <section class="sect" id="myNameSect" hidden>
         <h3>ชื่อเล่น · ชื่อที่ทีมเห็น</h3>
@@ -8578,8 +8592,14 @@ function memInitial(id, name){
   const c = n.find(ch => !/[เแโใไ]/.test(ch)) || n[0] || "?";
   return c.toUpperCase();
 }
+// รูปโปรไฟล์ (2026-11-12) — data URL รูปเล็กจาก app_users.avatar · เช็กรูปแบบก่อนใส่ใน src กันของแปลกหลุดเข้า HTML
+const avOk = u => typeof u === "string" && /^data:image\/(jpeg|png|webp);base64,[A-Za-z0-9+/=]+$/.test(u) ? u : "";
+const memAvatar = id => avOk((memberOf(id) || {}).avatar) || (id && id === sbUid() ? avOk(MY_AV) : "");
+let MY_AV = "";
 function avatar(id, name){
-  return `<span class="av" style="--mc:${memColor(id)}" title="${esc(name || memName(id))}">${esc(memInitial(id, name))}</span>`;
+  const im = memAvatar(id);
+  return `<span class="av${im ? " hasimg" : ""}" style="--mc:${memColor(id)}" title="${esc(name || memName(id))}">${esc(memInitial(id, name))}${
+    im ? `<img class="mav" src="${im}" alt="" loading="lazy">` : ""}</span>`;
 }
 // seg: all · me · none · u:<id> · l:<ป้าย>
 // strict = ใช้ข้ามโปรเจกต์ (Map) — แถวของโปรเจกต์ส่วนตัวนับเป็นของเราเสมอ
@@ -8788,6 +8808,15 @@ async function hoReturn(k, quiet){
   delete HO[k];
   if (!quiet) histToast(`โอนงานคืน ${memName(k)} แล้ว`);
   return back;
+}
+async function avLoadMine(){
+  if (MY_AV || !sbUid()) return;
+  try {
+    const r = await sbAuthed(SB_URL + "/rest/v1/app_users?select=avatar&id=eq." + encodeURIComponent(sbUid()));
+    if (!r.ok) return;
+    const j = await r.json();
+    if (j && j[0] && avOk(j[0].avatar)){ MY_AV = j[0].avatar; renderAcctBtn(); }
+  } catch(e){}
 }
 async function hoLoad(force){
   if (!TEAM_MODE || !TEAM || (!force && Date.now() - HO_AT < 15000)) return;
@@ -20252,6 +20281,7 @@ function openSettings(tab){
     // admin/manager เห็นทั้งหมด (ยกเว้น 3 ส่วน adminonly ที่ admin เห็นคนเดียว) · editor เห็น 4 ส่วน + ชื่อที่แสดง
     const limited = !canManageProjects();
     $("#myNameSect").hidden = false;
+    avSectInit();
     $("#myName").value = (PROFILE || {}).display_name || "";
     $("#myNameMsg").textContent = "";
     $("#myNameSave").onclick = async () => {
@@ -20300,9 +20330,61 @@ const ROLE_TH = { admin:"แอดมิน", manager:"ผู้จัดกา�
 function acctUser(){ return (SESSION && SESSION.user) || {}; }
 function acctName(){ return ((PROFILE || {}).display_name || "").trim() || (acctUser().email || "").split("@")[0] || "บัญชี"; }
 function acctLabel(){ const m = memberOf(sbUid()); return (m && m.label) || ""; }
+// ── เปลี่ยนรูปโปรไฟล์ ──
+// ย่อในเครื่อง: ตัดกลางเป็นจัตุรัส → 128×128 JPEG · รูปจากมือถือ 5MB เหลือ ~10KB ฐานข้อมูลไม่บวม
+function avShrink(file){
+  return new Promise((ok, no) => {
+    const fr = new FileReader();
+    fr.onerror = () => no(new Error("อ่านไฟล์ไม่ได้"));
+    fr.onload = () => { const im = new Image();
+      im.onerror = () => no(new Error("ไฟล์นี้ไม่ใช่รูป หรือเปิดไม่ได้"));
+      im.onload = () => {
+        const S = 128, side = Math.min(im.naturalWidth, im.naturalHeight);
+        const c = document.createElement("canvas"); c.width = c.height = S;
+        const x = c.getContext("2d"); x.fillStyle = "#fff"; x.fillRect(0, 0, S, S);
+        x.drawImage(im, (im.naturalWidth - side) / 2, (im.naturalHeight - side) / 2, side, side, 0, 0, S, S);
+        let q = .85, u = c.toDataURL("image/jpeg", q);
+        while (u.length > 60000 && q > .4){ q -= .1; u = c.toDataURL("image/jpeg", q); }
+        ok(u);
+      };
+      im.src = fr.result; };
+    fr.readAsDataURL(file);
+  });
+}
+async function avSave(url){
+  const msg = $("#myAvMsg");
+  msg.className = "addmsg on"; msg.textContent = "กำลังบันทึก…";
+  try {
+    const j = await sbRpc("set_my_avatar", { p: url || "" });
+    if (!j || !j.ok) throw new Error((j && j.error) || "บันทึกไม่ได้");
+    MY_AV = url || "";
+    if (TEAM){ try { const t = await sbRpc("my_team"); if (t && t.id) TEAM = t; } catch(e){} }
+    const m = memberOf(sbUid()); if (m) m.avatar = MY_AV;
+    msg.className = "addmsg on ok"; msg.textContent = url ? "เปลี่ยนรูปแล้ว — คนในทีมจะเห็นตอนเปิดหน้าเว็บใหม่" : "ลบรูปแล้ว กลับไปใช้ตัวอักษร";
+    avSectInit(); renderAcctBtn(); renderAcctCard();
+    if (document.body.dataset.view === "coord") renderCoord();
+  } catch(e){
+    msg.className = "addmsg on err";
+    msg.textContent = /set_my_avatar|function|404|PGRST202/i.test(e.message) ? "ฐานข้อมูลยังไม่รองรับรูปโปรไฟล์ — แจ้งแอดมิน" : e.message;
+  }
+}
+function avSectInit(){
+  const sec = $("#myAvSect"); if (!sec) return;
+  sec.hidden = false;
+  $("#myAvPrev").innerHTML = acctAvatar();
+  $("#myAvDel").hidden = !memAvatar(sbUid());
+  $("#myAvPick").onclick = () => $("#myAvFile").click();
+  $("#myAvFile").onchange = async e => {
+    const f = e.target.files && e.target.files[0]; e.target.value = "";
+    if (!f) return;
+    if (f.size > 15e6) return alert("ไฟล์ใหญ่เกิน 15MB");
+    try { await avSave(await avShrink(f)); } catch(err){ $("#myAvMsg").className = "addmsg on err"; $("#myAvMsg").textContent = err.message; }
+  };
+  $("#myAvDel").onclick = () => { if (confirm("ลบรูปโปรไฟล์? กลับไปใช้ตัวอักษรในวงกลม")) avSave(""); };
+}
 function acctAvatar(){
-  const id = sbUid(), c = TEAM && memberOf(id) ? memColor(id) : "var(--accent)";
-  return `<span class="acav" style="--mc:${c}">${esc(memInitial(id, acctName()))}</span>`;
+  const id = sbUid(), c = TEAM && memberOf(id) ? memColor(id) : "var(--accent)", im = memAvatar(id);
+  return `<span class="acav${im ? " hasimg" : ""}" style="--mc:${c}">${esc(memInitial(id, acctName()))}${im ? `<img class="mav" src="${im}" alt="">` : ""}</span>`;
 }
 function acctDate(t){
   if (!t) return "—";
@@ -26062,7 +26144,7 @@ function tsLastSave(){ try { lsSet(LS_TS_LAST, JSON.stringify({ team: TEAM.id, u
 let TS_FRESH = false;
 async function tsPull(force){
   if (!TEAM_MODE || !TEAM || TS_BUSY || STALE) return;
-  hoLoad(force);
+  hoLoad(force); avLoadMine();
   if (!force && Date.now() - TS_AT < 15000) return;
   TS_BUSY = true; TS_AT = Date.now();
   let redraw = false;
@@ -26204,6 +26286,10 @@ i18nStart();
 // ⚠️ อัปเดตครั้งใหม่ = เพิ่มรายการบนสุด n+1 · คนที่ใช้ช่อง Publish เห็นตอนเปิดเวอร์ชันที่มีรายการนั้นครั้งแรก
 //    ข้ามหลายเวอร์ชัน = เห็นรวมทุกรายการที่พลาดไป · เข้าเว็บครั้งแรกในชีวิต = ไม่เด้งของเก่า (เริ่มนับจากตอนนี้)
 const RELEASE_NOTES = [
+  { n: 13, d: "12 พ.ย. 2569", t: "📷 เปลี่ยนรูปโปรไฟล์ได้", items: [
+    ["📷", "กดวงชื่อมุมขวาบน → <b>บัญชีของฉัน</b> → <b>รูปโปรไฟล์</b> → <b>เลือกรูป</b> · ระบบตัดเป็นวงกลมตรงกลางและย่อให้เอง"],
+    ["👥", "รูปขึ้นแทนตัวอักษรในวงกลมทุกที่ — ผู้ดูแลแถว, Map, Pipeline, คนที่ออนไลน์ · ไม่อยากใช้แล้วกด <b>ลบรูป</b>"],
+  ]},
   { n: 12, d: "12 พ.ย. 2569", t: "🤝 ฝากงานตอนลา", items: [
     ["🤝", "จะลา: ไปที่ <b>★ งานของฉัน</b> → กด <b>🤝 ฝากงาน (ลา)</b> → เลือกคนรับฝาก + วันสุดท้ายที่ลา → <b>โอนงาน</b> จบ ไม่ต้องเปลี่ยนผู้ดูแลทีละแถว · admin/manager ตั้งแทนได้ที่ ตั้งค่า → สมาชิก & สิทธิ์"],
     ["📋", "งานทั้งหมดของคนลา<b>โอนไปเป็นของคนรับฝาก</b>ทันที → ขึ้นใน <b>★ งานของฉัน</b> / <b>📋 วันนี้ต้องทำ</b> ของเขาเหมือนงานตัวเอง มีป้าย <b>🤝 ฝากจาก ชื่อ</b>"],
@@ -26333,6 +26419,9 @@ document.addEventListener("keydown", e => { if (!ST) return;
 // ขั้นสอนของแต่ละอัปเดต (คีย์ = n ใน RELEASE_NOTES) · อัปเดตที่ทีมเห็นได้ ควรมีขั้นสอนเสมอ
 const goCoord = async () => { $("#todoPop").hidden = true; if (document.body.dataset.view !== "coord") await setView("coord"); if (!$("#mapView").hidden) $("#mapView").hidden = true; };
 const RELEASE_TOURS = {
+  13: [ { pre: async () => { $("#todoPop").hidden = true; }, sel: "#acctBtn", t: "กด <b>วงชื่อของคุณ</b> มุมขวาบน" },
+        { pre: async () => { if ($("#acctMenu").hidden) $("#acctBtn").click(); }, sel: '#acctMenu [data-am="profile"]', t: "กด <b>บัญชีของฉัน</b>" },
+        { pre: async () => { $("#acctMenu").hidden = true; openSettings("acct"); }, sel: "#myAvSect", t: "กด <b>📷 เลือกรูป</b> แล้วเลือกรูปจากเครื่อง — ระบบตัดตรงกลางและย่อให้เอง คนในทีมเห็นรูปนี้แทนตัวอักษร" } ],
   12: [ { pre: goCoord, sel: '#projTabs [data-mine="1"]', t: "กด <b>★ งานของฉัน</b>" },
         { pre: async () => { await goCoord(); if (!MINE_VIEW){ const b = document.querySelector('#projTabs [data-mine="1"]'); if (b) b.click(); } }, sel: "#hoBtn",
           t: "จะลา กด <b>🤝 ฝากงาน (ลา)</b> → เลือกคนรับฝาก + วันสุดท้ายที่ลา → <b>โอนงาน</b><br>งานทั้งหมดของคุณโอนไปเป็นของเพื่อนจนถึงวันนั้น แล้วโอนคืนเอง" },
