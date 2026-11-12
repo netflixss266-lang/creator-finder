@@ -1480,6 +1480,8 @@ tr.dropover td{border-top:2px solid var(--accent)}
 .avrow{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
 .avrow .acav{width:56px;height:56px;font-size:1.4rem}
 .hotag.away,.homini.away{background:rgba(var(--warn-rgb),.14);color:var(--warn);border-color:rgba(var(--warn-rgb),.4)}
+#mapKind .mksep{width:1px;align-self:stretch;background:var(--line);margin:2px 6px}
+#mapKind button.tmp[aria-selected="true"]{background:rgba(var(--warn-rgb),.18);color:var(--warn)}
 .hotag.mine{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
 .hobtn{margin-left:8px} .hobanner{margin-top:6px;padding:6px 10px;border-radius:9px;font-size:.82rem;
   background:rgba(var(--hi-rgb),.1);border:1px solid rgba(var(--hi-rgb),.3)}
@@ -13863,8 +13865,12 @@ let MAP_MODE = "flow";
 let MAP_KIND = "all";            // all | KOL | KOC — ใช้กับทุกแผ่นและทุกมุมมอง
 const MAP_MODES = [["flow","ขั้นตอนงาน"],["gap","ข้อมูลที่ยังขาด"],["money","เงิน"]];
 // ทุกแผ่นอ่านแถวผ่านตัวนี้ตัวเดียว ตัวกรองกลุ่มจะได้มีผลเหมือนกันหมดโดยไม่ต้องไล่ใส่ทีละที่
+// แท็บงานหลัก/ชั่วคราว บน Map (2026-11-12) — all | main | temp · ครีเอเตอร์ชั่วคราว (งานรับฝาก) ดูเป็น Map ได้
+let MAP_SHEET = "all";
+const mapSheetOk = r => !TEAM_MODE || MAP_SHEET === "all" || (MAP_SHEET === "temp" ? !!r.temp : !r.temp);
 const mapRows = proj => (COORD[proj] || [])
   .filter(r => MAP_KIND === "all" || kindOf(r) === MAP_KIND)
+  .filter(mapSheetOk)
   .filter(r => passMember(r, true));
 
 function openMap(proj){
@@ -13872,6 +13878,8 @@ function openMap(proj){
   vlog("map", { p: proj === undefined ? PROJ : proj });
   loadCmdLinks(); loadSkuGuide();
   MAP_PROJ = proj === undefined ? PROJ : proj;
+  // เปิดจากแท็บ ⏳ ชั่วคราว ของตาราง = Map เฉพาะครีเอเตอร์ชั่วคราว · เปิดจากที่อื่น = ทั้งหมดเหมือนเดิม
+  MAP_SHEET = TEAM_MODE && MAP_PROJ && document.body.dataset.view === "coord" && !MINE_VIEW && sheetOf(MAP_PROJ) === "temp" ? "temp" : "all";
   $("#mapView").hidden = false;
   renderMap();
 }
@@ -13893,7 +13901,13 @@ function renderMap(){
   const scope = MAP_PROJ ? (COORD[MAP_PROJ] || []) : mapAllProjs().flatMap(p => COORD[p] || []);
   $("#mapKind").innerHTML = [["all","ทั้งหมด"],["KOL","KOL"],["KOC","KOC"]].map(([id, label]) =>
     `<button role="tab" data-mk="${id}" aria-selected="${MAP_KIND === id}">${label}<span class="n">${
-      id === "all" ? scope.length : scope.filter(r => kindOf(r) === id).length}</span></button>`).join("");
+      id === "all" ? scope.length : scope.filter(r => kindOf(r) === id).length}</span></button>`).join("") + (() => {
+    // ⏳ ชั่วคราว — โชว์เฉพาะตอนมีครีเอเตอร์ชั่วคราวในขอบเขตนี้ (หรือกำลังกรองอยู่)
+    const nT = TEAM_MODE ? scope.filter(r => r.temp).length : 0;
+    if (!nT && MAP_SHEET === "all") return "";
+    return `<span class="mksep"></span>` + [["all", "ทุกแท็บ", scope.length], ["main", "📋 งานหลัก", scope.length - nT], ["temp", "⏳ ชั่วคราว", nT]].map(([id, label, n]) =>
+      `<button role="tab" data-msheet="${id}" aria-selected="${MAP_SHEET === id}"${id === "temp" ? ` class="tmp" title="ครีเอเตอร์ในแท็บชั่วคราว — งานรับฝาก/รับต่อจากคนอื่น"` : ""}>${label}<span class="n">${n}</span></button>`).join("");
+  })();
   // มุมมองใช้ได้เฉพาะแผ่นรายโปรเจกต์ — แผ่นรวมมีหน้าตาเดียว ปุ่มที่กดแล้วไม่เกิดอะไรอย่าโชว์
   // รูปแบบมีผลกับแผ่น "ขั้นตอนงาน" เท่านั้น — แผ่นข้อมูลที่ยังขาด/เงิน เป็นคนละคำถาม ไม่เกี่ยวกับวันที่
   const fmt = MAP_PROJ ? mapFmt(MAP_PROJ) : "flow";
@@ -13935,6 +13949,9 @@ function renderMap(){
   });
   document.querySelectorAll("#mapKind [data-mk]").forEach(b => b.onclick = () => {
     MAP_KIND = b.dataset.mk; KINDSEG = MAP_KIND; renderMap(); renderCoord();
+  });
+  document.querySelectorAll("#mapKind [data-msheet]").forEach(b => b.onclick = () => {
+    MAP_SHEET = b.dataset.msheet; vlog("map:sheet", { d: MAP_SHEET }); renderMap();
   });
   document.querySelectorAll("#mapModes [data-totable]").forEach(b => b.onclick = () => openTable(MAP_PROJ));
   // กดที่ชื่อคน = เปิด Command ของคนนั้นทับแผนผัง (ลิ้นชักอยู่ชั้นบนกว่า)
