@@ -4432,8 +4432,7 @@ html.demo .dm-b:hover{filter:blur(5px)}
         <div class="hcol">
           <h4>Feedback</h4>
           <div id="helpFb" class="hlist"></div>
-          <p style="color:var(--dim)">ยาวหลายบรรทัดให้กด <b>✉</b> ท้ายชื่อ แล้วกด <b>✎ Feedback</b><br>
-          ในหน้า Command มีช่องสั่งงานของคนนั้นอยู่ในตัว ไม่ต้องพิมพ์ชื่อ</p>
+          <p style="color:var(--dim)">ยาวหลายบรรทัดให้กด <b>✉</b> ท้ายชื่อ แล้วกด <b>✎ Feedback</b></p>
         </div>
 
         <div class="hcol">
@@ -12766,13 +12765,8 @@ function openCmd(proj, handle){
        <button class="cmdbtn" id="cmdUnsent" ${nSent ? "" : "hidden"}
          >↺ ล้างเครื่องหมายส่งแล้ว (${nSent})</button>
      </div>
-     <!-- สั่งงานเฉพาะคนนี้ได้จากตรงนี้ ไม่ต้องปิดหน้าไปพิมพ์ชื่อใหม่ที่ช่องคำสั่งหลัก -->
-     <div class="cmdqo">
-       <span class="cmdbar-ic">⌘</span>
-       <input id="cmdQO" placeholder="/rate 12000  ·  /status รอ Draft 2  ·  /sg https://…  — ไม่ต้องพิมพ์ชื่อ"
-              autocomplete="off" spellcheck="false">
-       <button class="run" id="cmdQOGo">ใช้</button>
-     </div>
+     <!-- ช่องสั่งงานในหน้า Command เอาออกแล้ว (Jibli 2026-11-12) — เก็บ element ซ่อนไว้ให้โค้ดเดิมที่อ้างถึงไม่พัง -->
+     <div class="cmdqo" hidden style="display:none"><input id="cmdQO" hidden><button class="run" id="cmdQOGo" hidden></button></div>
      <div class="addmsg" id="cmdQOMsg"></div>
      <div class="fbbox" id="fbBox" hidden>
        <div class="fbhead">Feedback ของ <b>${esc(r.handle)}</b> — คนละชุดกับครีเอเตอร์คนอื่น
