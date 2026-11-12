@@ -23,7 +23,7 @@
   base-uri 'none';
   object-src 'none'">
 <title>Creataew — KOL Sourcing</title>
-<meta name="cf-ver" content="20261112-085101">
+<meta name="cf-ver" content="20261112-085736">
 <!-- Beta / Publish (2026-11-06): หน้าแรก = เวอร์ชันล่าสุด (admin เห็นก่อน) · คนอื่นถูกพาไป v/<เวอร์ชันที่ Publish>.html
      จำเวอร์ชันที่ Publish ไว้ในเครื่อง = พาไปได้ทันทีไม่ต้องรอเน็ต แล้วเช็คซ้ำเบื้องหลัง · ฐานข้อมูลไม่มี RPC (sandbox) = อยู่ตัวล่าสุด -->
 <script>(function(){try{
@@ -2799,6 +2799,7 @@ tr.subrow td.w-status select{width:14.6em}
 .cmdnav button:disabled{opacity:.3}
 .cmdnav .pos{font-family:'IBM Plex Mono',monospace;font-size:.76rem;color:var(--dim);
   padding:0 6px;white-space:nowrap}
+.cmdnav .stpos{font-size:.7rem;color:var(--dim);background:var(--surface2);border-radius:6px;padding:1px 7px;margin:0 4px;white-space:nowrap;max-width:14em;overflow:hidden;text-overflow:ellipsis}
 .cmdnav .pos i{font-style:normal;opacity:.5;padding:0 1px}
 /* แถบจางบอกชื่อคนก่อนหน้า/ถัดไป — อยู่ใต้หัวเรื่องเลย ไม่ต้องชี้ค้างรอ title tooltip */
 .cmdnavhint{display:flex;justify-content:space-between;gap:10px;
@@ -12426,11 +12427,35 @@ function renderCmdEditor(proj, handle){
 // ─── รายชื่อที่ลูกศร ‹ › เดินไปมา ───
 // ถ้าเปิดจากโปรเจกต์ที่กำลังดูอยู่ ให้เดินตามลำดับ "ที่เห็นในตาราง" (กรอง+กลุ่มเดียวกัน)
 // ไม่ใช่ลำดับดิบทั้งโปรเจกต์ ไม่งั้นกดลูกศรแล้วเด้งไปคนที่ตัวกรองซ่อนไว้
+// (2026-11-12) เดินตามตัวกรองของหน้าที่เปิด Command มา + เรียงตามขั้นตอนงาน (ขั้นเดียวกันอยู่ติดกัน)
+//   Map เปิดอยู่ → คนที่เห็นบน Map ตอนนั้น (ตัวกรอง/แท็บของ Map) · ★ งานของฉัน → งานของฉันในโปรเจกต์นี้
+//   ตาราง → กลุ่ม KOL/KOC + แท็บงานหลัก/ชั่วคราว + ตัวกรองคอลัมน์ + ตัวกรองผู้ดูแล (เหมือนที่เห็นในตาราง)
+//   ยังไม่มีสถานะอยู่หน้าสุด · จบงาน/ยกเลิกไปท้ายสุด
+const cmdNavRank = r => isCancelled(r) ? 1e5 : mapDone(r) ? 9e4 : mapStage(r.status);
 function cmdNavList(proj){
   const all = COORD[proj] || [];
-  if (proj !== PROJ) return all;
-  return (KINDSEG === "all" ? all : all.filter(r => (r.kind || "") === KINDSEG))
-           .filter(passFilter);
+  let L;
+  const mapOn = !$("#mapView").hidden;
+  if (mapOn){
+    const seen = new Set();
+    L = [...document.querySelectorAll(`#mapBody [data-mapwho][data-mapproj="${CSS.escape(proj)}"]`)]
+      .map(el => normId(el.dataset.mapwho)).filter(h => !seen.has(h) && seen.add(h))
+      .map(h => all.find(r => normId(r.handle) === h)).filter(Boolean);
+    if (!L.length) L = all;
+  } else if (TEAM_MODE && TEAM && MINE_VIEW){
+    L = myRows().filter(x => x.p === proj).map(x => x.r);
+  } else if (proj === PROJ){
+    const inTemp = sheetOf(PROJ) === "temp";
+    L = (KINDSEG === "all" ? all : all.filter(r => (r.kind || "") === KINDSEG))
+      .filter(r => !TEAM_MODE || !!r.temp === inTemp).filter(passFilter).filter(passMember);
+  } else L = all;
+  return L.map((r, i) => [r, i]).sort((a, b) => cmdNavRank(a[0]) - cmdNavRank(b[0]) || a[1] - b[1]).map(x => x[0]);
+}
+// ชื่อขั้นของคนนี้ + ลำดับในขั้นเดียวกัน เช่น "รอ Draft 1 · 2/5"
+function cmdNavStage(nav, r){
+  const k = cmdNavRank(r), same = nav.filter(x => cmdNavRank(x) === k);
+  const th = isCancelled(r) ? "ยกเลิก" : !r.status ? "ยังไม่มีสถานะ" : ((STAGES.find(x => x.v === r.status) || {}).th || ST_TH[r.status] || r.status);
+  return { th, i: same.indexOf(r) + 1, n: same.length };
 }
 
 function openCmd(proj, handle){
@@ -12485,7 +12510,8 @@ function openCmd(proj, handle){
   $("#cmdNav").innerHTML = nav.length > 1
     ? `<button id="cmdPrev" ${at <= 0 ? "disabled" : ""}
          title="คนก่อนหน้า${at > 0 ? " — " + esc(nav[at-1].handle) : ""} (←)">‹</button>
-       <span class="pos">${at + 1}<i>/</i>${nav.length}</span>
+       <span class="pos" title="ลำดับตามตัวกรองที่ใช้อยู่ เรียงตามขั้นตอนงาน">${at + 1}<i>/</i>${nav.length}</span>${
+         (() => { const g = cmdNavStage(nav, r); return `<span class="stpos" title="อยู่ขั้นเดียวกัน ${g.n} คน">${esc(g.th)} · ${g.i}/${g.n}</span>`; })()}
        <button id="cmdNext" ${at >= nav.length - 1 ? "disabled" : ""}
          title="คนถัดไป${at < nav.length-1 ? " — " + esc(nav[at+1].handle) : ""} (→)">›</button>`
     : "";
@@ -26376,7 +26402,7 @@ async function relHistDraw(pub, fmt){
 // ═══ เวอร์ชันของหน้า — แท็บที่เปิดค้างโค้ดเก่าต้องไม่ซิงก์ทีม ═══
 // เจอจริง 2026-10-27: แท็บเก่าดึงคีย์ใหม่ลงผิดที่ + ดันรายการที่ลบแล้วกลับขึ้นทุกนาที
 // APP_VER ประทับตอน deploy (kol-tools\stamp-version.py) · version.json คู่กันบนเซิร์ฟเวอร์ — ไม่ตรง = รีเฟรช
-const APP_VER = "20261112-085101";
+const APP_VER = "20261112-085736";
 let STALE = false;
 async function verCheck(){
   if (STALE || APP_VER === "dev") return;
