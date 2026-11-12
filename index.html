@@ -23,7 +23,7 @@
   base-uri 'none';
   object-src 'none'">
 <title>Creataew — KOL Sourcing</title>
-<meta name="cf-ver" content="20261112-064540">
+<meta name="cf-ver" content="20261112-082206">
 <!-- Beta / Publish (2026-11-06): หน้าแรก = เวอร์ชันล่าสุด (admin เห็นก่อน) · คนอื่นถูกพาไป v/<เวอร์ชันที่ Publish>.html
      จำเวอร์ชันที่ Publish ไว้ในเครื่อง = พาไปได้ทันทีไม่ต้องรอเน็ต แล้วเช็คซ้ำเบื้องหลัง · ฐานข้อมูลไม่มี RPC (sandbox) = อยู่ตัวล่าสุด -->
 <script>(function(){try{
@@ -1251,6 +1251,7 @@ tr.dropover td{border-top:2px solid var(--accent)}
 .av > img.mav,.acav > img.mav{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;border-radius:50%;background:var(--surface)}
 .avrow{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
 .avrow .acav{width:56px;height:56px;font-size:1.4rem}
+.hotag.away,.homini.away{background:rgba(var(--warn-rgb),.14);color:var(--warn);border-color:rgba(var(--warn-rgb),.4)}
 .hotag.mine{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
 .hobtn{margin-left:8px} .hobanner{margin-top:6px;padding:6px 10px;border-radius:9px;font-size:.82rem;
   background:rgba(var(--hi-rgb),.1);border:1px solid rgba(var(--hi-rgb),.3)}
@@ -8485,15 +8486,29 @@ function hoFromOf(r){
   return Object.keys(HO).find(k => HO[k] && hoHolders(HO[k]).includes(r.assignee) && (HO[k].ids || []).includes(r._id)) || "";
 }
 // ป้ายเล็กบนใบใน Map — ใบแคบ ใส่แค่ 🤝 + ชื่อสั้นของเจ้าของงานเดิม ชื่อเต็มดูจากการชี้ค้าง
+// ผู้ดูแลแถวนี้กำลังลา แต่แถวนี้ไม่ได้ถูกเลือกโอน (หรือเพิ่มเข้ามาหลังฝากงาน) — บอกทีมว่าเจ้าของไม่อยู่ ติดต่อคนรับฝากได้
+// ไม่นับแถวที่จบ/ยกเลิกแล้ว (ไม่มีอะไรต้องตาม)
+function hoAway(r){
+  if (!TEAM_MODE || !r || !r.assignee || mapClosed(r)) return null;
+  const e = hoOf(r.assignee);
+  return e && !(e.ids || []).includes(r._id) ? e : null;
+}
+function hoAwayTag(r, mini){
+  const e = hoAway(r); if (!e) return "";
+  const n = memName(r.assignee);
+  const t = `${n} ลาถึง ${hoDate(e.until)} — คนนี้ไม่ได้โอนให้ใคร · มีอะไรด่วนติดต่อ ${memName(e.to)} (คนรับฝาก) · จะโอนคนนี้ด้วย: เปิด 🤝 ฝากงาน ของ ${n} อีกครั้งแล้วติ๊กเพิ่ม`;
+  return mini ? `<span class="homini away" title="${esc(t)}">🏖ลา</span>`
+              : `<span class="hotag away" title="${esc(t)}">🏖 ${esc(n)} ลา</span>`;
+}
 function hoMini(r){
   const k = TEAM_MODE && hoFromOf(r);
-  if (!k) return "";
+  if (!k) return hoAwayTag(r, true);
   const n = memName(k);
   return `<span class="homini" title="ฝากจาก ${esc(n)}${HO[k].until ? " ถึง " + esc(hoDate(HO[k].until)) : ""}">🤝${esc(n.length > 8 ? n.slice(0, 7) + "…" : n)}</span>`;
 }
 function hoTag(r){
   const k = TEAM_MODE && hoFromOf(r);
-  if (!k) return "";
+  if (!k) return hoAwayTag(r, false);
   const e = HO[k], mine = r.assignee === sbUid();
   return `<span class="hotag${mine ? " mine" : ""}" title="${esc(memName(k))} ฝากไว้กับ ${esc(memName(r.assignee))}${
     e.until ? " ถึง " + esc(hoDate(e.until)) + " แล้วโอนคืนเอง" : ""}${e.note ? " — " + esc(e.note) : ""}">🤝 ฝากจาก ${esc(memName(k))}</span>`;
@@ -8548,7 +8563,7 @@ function hoTurnover(r, anchor){
       await hoSaveKv(k, v);                                     // จดก่อนโอน — พังกลางทางยังรู้ว่าต้องคืนใคร
       await hoPatch([r._id], r.assignee, to);
     } catch(err){ return alert(err.message); }
-    renderProjTabs(); renderCoord();
+    renderProjTabs(); renderCoord(); if (!$("#mapView").hidden) renderMap();
     histToast(back ? `คืน @${normId(r.handle)} ให้ ${memName(k)} แล้ว` : `ส่งต่อ @${normId(r.handle)} ให้ ${memName(to)} แล้ว (ยังเป็นงานฝากของ ${memName(k)})`);
   });
 }
@@ -8588,7 +8603,8 @@ async function hoLoad(force){
       try { for (const k of due){ const n = await hoReturn(k, true); histToast(`ครบวันลาแล้ว — โอนงาน ${n} คนคืน ${memName(k)} เรียบร้อย`); } }
       catch(e){} finally { HO_RET = false; }
     }
-    if (changed || due.length){ try { renderProjTabs(); renderCoord(); } catch(e){} }
+    // Map เปิดค้างอยู่ก็ต้องวาดใหม่ด้วย — ไม่งั้นใบที่โอนแล้วไม่ขึ้นป้าย 🤝 จนกว่าจะปิด-เปิด Map
+    if (changed || due.length){ try { renderProjTabs(); renderCoord(); if (!$("#mapView").hidden) renderMap(); } catch(e){} }
   } catch(e){}
 }
 function hoBanner(){
@@ -8641,7 +8657,7 @@ function openHandover(fromUid){
   });
   draw();
   document.body.appendChild(d);
-  const after = () => { d.remove(); renderProjTabs(); renderCoord(); if (document.querySelector("#usersList .ucard")) renderUsers(); };
+  const after = () => { d.remove(); renderProjTabs(); renderCoord(); if (!$("#mapView").hidden) renderMap(); if (document.querySelector("#usersList .ucard")) renderUsers(); };
   let busy = false;
   d.addEventListener("click", async e => {
     if (e.target === d || e.target.closest("[data-hox]")) return d.remove();
@@ -26343,7 +26359,7 @@ async function relHistDraw(pub, fmt){
 // ═══ เวอร์ชันของหน้า — แท็บที่เปิดค้างโค้ดเก่าต้องไม่ซิงก์ทีม ═══
 // เจอจริง 2026-10-27: แท็บเก่าดึงคีย์ใหม่ลงผิดที่ + ดันรายการที่ลบแล้วกลับขึ้นทุกนาที
 // APP_VER ประทับตอน deploy (kol-tools\stamp-version.py) · version.json คู่กันบนเซิร์ฟเวอร์ — ไม่ตรง = รีเฟรช
-const APP_VER = "20261112-064540";
+const APP_VER = "20261112-082206";
 let STALE = false;
 async function verCheck(){
   if (STALE || APP_VER === "dev") return;
