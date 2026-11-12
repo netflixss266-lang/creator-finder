@@ -23,7 +23,7 @@
   base-uri 'none';
   object-src 'none'">
 <title>Creataew — KOL Sourcing</title>
-<meta name="cf-ver" content="20261111-113317">
+<meta name="cf-ver" content="20261112-044527">
 <!-- Beta / Publish (2026-11-06): หน้าแรก = เวอร์ชันล่าสุด (admin เห็นก่อน) · คนอื่นถูกพาไป v/<เวอร์ชันที่ Publish>.html
      จำเวอร์ชันที่ Publish ไว้ในเครื่อง = พาไปได้ทันทีไม่ต้องรอเน็ต แล้วเช็คซ้ำเบื้องหลัง · ฐานข้อมูลไม่มี RPC (sandbox) = อยู่ตัวล่าสุด -->
 <script>(function(){try{
@@ -1226,6 +1226,19 @@ tr.dropover td{border-top:2px solid var(--accent)}
 .bmark.auto{color:var(--info)}
 .bmark.no{color:var(--warn)}
 .skuchip.nobrief{border-color:rgba(var(--warn-rgb),.45)}
+.hotag{display:inline-block;margin-left:4px;padding:0 6px;border-radius:7px;font-size:.72rem;font-weight:600;white-space:nowrap;
+  background:rgba(var(--hi-rgb),.12);color:var(--hi);border:1px solid rgba(var(--hi-rgb),.35)}
+.hotag.mine{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
+.hobtn{margin-left:8px} .hobanner{margin-top:6px;padding:6px 10px;border-radius:9px;font-size:.82rem;
+  background:rgba(var(--hi-rgb),.1);border:1px solid rgba(var(--hi-rgb),.3)}
+.hopop{position:fixed;inset:0;z-index:9500;background:rgba(0,0,0,.35);display:grid;place-items:center;padding:16px}
+.hobox{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:16px 18px;width:min(440px,100%);
+  display:grid;gap:10px;box-shadow:0 12px 40px rgba(0,0,0,.3)}
+.hobox .hohead{display:flex;justify-content:space-between;align-items:center;font-size:1rem}
+.hobox label{display:grid;gap:4px;font-size:.8rem;color:var(--dim)} .hobox .hint{margin:0;font-size:.8rem;color:var(--dim)}
+.hobox select,.hobox input{font:inherit;color:var(--text);padding:6px 8px;border:1px solid var(--line);border-radius:8px;background:var(--bg)}
+.hobox .horow{display:grid;grid-template-columns:1fr 1fr;gap:8px} .hobox .hobtns{display:flex;justify-content:flex-end;gap:8px}
+.hobox .hobtns .primary{background:var(--accent);color:var(--accent-ink);border:0;border-radius:9px;padding:7px 18px;font:inherit;font-weight:700;cursor:pointer}
 .skuchip.autobrief{border-style:dashed;opacity:.85} .skuchip.autobrief a.t{color:var(--hi)}
 /* ── คู่มือถ่ายทำ ตาม SKU (หน้าตั้งค่า) ── */
 .skugrow{display:flex;align-items:center;gap:9px;flex-wrap:wrap;padding:8px 0;
@@ -8412,18 +8425,116 @@ function pnoteMark(r){
   return n ? `<span class="pnm" title="โน้ตส่วนตัว (เห็นคนเดียว): ${esc(n)}">🔒</span>` : "";
 }
 
+// ═══ 🤝 ฝากงานตอนลา (handover · 2026-11-12) ═══
+// ตั้งครั้งเดียวต่อคน: "ฉันลา ฝากงานทั้งหมดให้ X ถึงวันที่ ..." — ไม่ต้องเปลี่ยนผู้ดูแลทีละแถว
+// ผู้ดูแลจริงไม่เปลี่ยน (กลับมาแล้วงานยังเป็นของตัวเองครบ) แค่คนรับฝากเห็นใน ★ งานของฉัน / วันนี้ต้องทำ
+// และทำ Command / ย้ายขั้นแทนได้ จนเลยวันสุดท้ายแล้วหมดเองอัตโนมัติ
+// เก็บใน team_kv ns 'ho' · k = uid คนลา · v = { to, from, until, note, by }
+let HO = {}, HO_AT = 0;
+const hoToday = () => { const d = new Date(); return new Date(d - d.getTimezoneOffset() * 6e4).toISOString().slice(0, 10); };
+const hoActive = e => !!(e && e.to && (!e.from || e.from <= hoToday()) && (!e.until || hoToday() <= e.until));
+function hoOf(uid){ const e = uid && HO[uid]; return hoActive(e) ? e : null; }
+function hoCovering(me){ me = me || sbUid(); return Object.keys(HO).filter(k => hoActive(HO[k]) && HO[k].to === me); }
+// แถวนี้เป็น "งานของฉัน" ไหม — ของตัวเอง หรือของคนที่ฝากงานไว้กับฉันตอนนี้
+function isMyWork(r){
+  const me = sbUid();
+  if (!r) return false;
+  if (r.assignee === me) return true;
+  const e = r.assignee && hoOf(r.assignee);
+  return !!(e && e.to === me);
+}
+const hoDate = d => d ? new Date(d + "T00:00:00").toLocaleDateString("th-TH", { day:"numeric", month:"short" }) : "";
+function hoTag(r){
+  const e = TEAM_MODE && r && r.assignee && hoOf(r.assignee);
+  if (!e) return "";
+  const mine = e.to === sbUid();
+  return `<span class="hotag${mine ? " mine" : ""}" title="${esc(memName(r.assignee))} ฝากงานให้ ${esc(memName(e.to))}${
+    e.until ? " ถึง " + esc(hoDate(e.until)) : ""}${e.note ? " — " + esc(e.note) : ""}">🤝 ${mine ? "แทน " + esc(memName(r.assignee)) : esc(memName(e.to))}</span>`;
+}
+async function hoLoad(force){
+  if (!TEAM_MODE || !TEAM || (!force && Date.now() - HO_AT < 15000)) return;
+  HO_AT = Date.now();
+  try {
+    const r = await sbAuthed(SB_URL + "/rest/v1/team_kv?select=k,v&ns=eq.ho&team_id=eq." + encodeURIComponent(TEAM.id));
+    if (!r.ok) return;
+    const next = {}; (await r.json()).forEach(x => { if (x.v && typeof x.v === "object") next[x.k] = x.v; });
+    const changed = JSON.stringify(next) !== JSON.stringify(HO);
+    HO = next;
+    if (changed){ try { renderProjTabs(); renderCoord(); } catch(e){} }
+  } catch(e){}
+}
+function hoBanner(){
+  const me = sbUid(), mineOut = hoOf(me), cov = hoCovering(me);
+  const bits = [];
+  if (mineOut) bits.push(`คุณฝากงานให้ <b>${esc(memName(mineOut.to))}</b>${mineOut.until ? " ถึง <b>" + esc(hoDate(mineOut.until)) + "</b>" : ""}`);
+  cov.forEach(k => bits.push(`<b>${esc(memName(k))}</b> ฝากงานไว้กับคุณ${HO[k].until ? " ถึง <b>" + esc(hoDate(HO[k].until)) + "</b>" : ""}${HO[k].note ? " — " + esc(HO[k].note) : ""}`));
+  return bits.length ? `<div class="hobanner">🤝 ${bits.join(" · ")}</div>` : "";
+}
+function openHandover(fromUid){
+  if (!TEAM_MODE || !TEAM) return;
+  const me = sbUid(), boss = canManageProjects();
+  let from = boss && fromUid ? fromUid : me;
+  document.getElementById("hoPop")?.remove();
+  const d = document.createElement("div"); d.id = "hoPop"; d.className = "hopop";
+  const draw = () => {
+    const cur = HO[from] || {};
+    const people = TEAM.members.filter(m => m.id !== from);
+    const nRows = PROJECTS.filter(p => isTeamProj(p) && !(projMeta(p) || {}).done)
+      .reduce((a, p) => a + (COORD[p] || []).filter(r => r.assignee === from && !mapClosed(r)).length, 0);
+    d.innerHTML = `<div class="hobox" role="dialog" aria-label="ฝากงาน">
+      <div class="hohead"><b>🤝 ฝากงานตอนลา</b><button class="cmdbtn" data-hox>✕</button></div>
+      <p class="hint">งานที่ดูแลอยู่ทั้งหมด (<b>${nRows}</b> คน) จะไปขึ้นใน <b>★ งานของฉัน</b> และ <b>📋 วันนี้ต้องทำ</b> ของคนรับฝาก
+        และเขาทำ Command / ย้ายขั้นแทนได้ — ผู้ดูแลในตารางยังเป็นชื่อเดิม เลยวันสุดท้ายแล้วหมดเอง</p>
+      ${boss ? `<label>ใครลา<select id="hoFrom">${TEAM.members.map(m => `<option value="${esc(m.id)}"${m.id === from ? " selected" : ""}>${esc(m.name || m.email)}${m.id === me ? " (คุณ)" : ""}</option>`).join("")}</select></label>` : ""}
+      <label>ฝากให้<select id="hoTo"><option value="">— เลือกคนรับฝาก —</option>${people.map(m =>
+        `<option value="${esc(m.id)}"${m.id === cur.to ? " selected" : ""}>${esc(m.name || m.email)}</option>`).join("")}</select></label>
+      <div class="horow"><label>เริ่ม<input type="date" id="hoStart" value="${esc(cur.from || hoToday())}"></label>
+        <label>ถึงวันที่ (วันสุดท้ายที่ลา)<input type="date" id="hoUntil" value="${esc(cur.until || "")}"></label></div>
+      <label>ฝากบอกอะไร (ไม่บังคับ)<input id="hoNote" maxlength="200" value="${esc(cur.note || "")}" placeholder="เช่น คนที่รอดราฟต์ 2 ตามให้ด้วย · ติดอะไรโทรมาได้"></label>
+      <div class="hobtns">${HO[from] ? `<button class="cmdbtn" data-hodel>ยกเลิกการฝาก (กลับมาแล้ว)</button>` : ""}
+        <button class="primary" data-hosave>บันทึก</button></div></div>`;
+    const f = d.querySelector("#hoFrom"); if (f) f.onchange = () => { from = f.value; draw(); };
+  };
+  draw();
+  document.body.appendChild(d);
+  d.addEventListener("click", async e => {
+    if (e.target === d || e.target.closest("[data-hox]")) return d.remove();
+    if (e.target.closest("[data-hodel]")){
+      try { await sbSend(SB_URL + `/rest/v1/team_kv?team_id=eq.${encodeURIComponent(TEAM.id)}&ns=eq.ho&k=eq.${encodeURIComponent(from)}`, "DELETE", null, "ยกเลิกการฝากงานไม่ได้"); }
+      catch(err){ return alert(err.message); }
+      delete HO[from]; d.remove(); renderProjTabs(); renderCoord();
+      histToast(`ยกเลิกการฝากงานของ ${memName(from)} แล้ว`);
+      return;
+    }
+    if (e.target.closest("[data-hosave]")){
+      const to = d.querySelector("#hoTo").value, st = d.querySelector("#hoStart").value, until = d.querySelector("#hoUntil").value;
+      if (!to) return alert("เลือกคนรับฝากก่อน");
+      if (!until) return alert("ใส่วันสุดท้ายที่ลาด้วย — เลยวันนั้นแล้วการฝากจะหมดเอง");
+      if (st && until < st) return alert("วันสุดท้ายต้องไม่ก่อนวันเริ่ม");
+      const v = { to, from: st || hoToday(), until, note: d.querySelector("#hoNote").value.trim(), by: me };
+      try { await sbSend(SB_URL + "/rest/v1/team_kv?on_conflict=team_id,ns,k", "POST",
+              [{ team_id: TEAM.id, ns: "ho", k: from, v }], "บันทึกการฝากงานไม่ได้", "resolution=merge-duplicates,return=minimal"); }
+      catch(err){ return alert(err.message); }
+      HO[from] = v; d.remove(); renderProjTabs(); renderCoord();
+      histToast(`ฝากงานของ ${memName(from)} ให้ ${memName(to)} ถึง ${hoDate(until)} แล้ว`);
+    }
+  });
+}
+
 // ═══ ★ งานของฉัน ═══
 // ครีเอเตอร์ที่ตัวเองดูแล จากทุกโปรเจกต์ที่ยังไม่ปิด — เป็นแค่ "มุมมอง" แก้ตรงนี้คือแก้แถวเดียวกับในตาราง
 function myRows(){
   const me = sbUid();
   return PROJECTS.filter(p => !(projMeta(p) || {}).done)
     .flatMap(p => (COORD[p] || []).map((r, i) => ({ r, i, p })))
-    .filter(x => !isTeamProj(x.p) || x.r.assignee === me);
+    .filter(x => !isTeamProj(x.p) || isMyWork(x.r));
 }
 function renderMine(){
   const list = myRows();
   const projs = [...new Set(list.map(x => x.p))];
-  $("#coordSum").innerHTML = `★ งานของฉัน <b>${list.length}</b> คน · ${projs.length} โปรเจกต์`;
+  $("#coordSum").innerHTML = `★ งานของฉัน <b>${list.length}</b> คน · ${projs.length} โปรเจกต์
+    <button class="cmdbtn hobtn" id="hoBtn" title="จะลา? ฝากงานทั้งหมดให้เพื่อนดูแลแทนจนถึงวันที่กำหนด">🤝 ฝากงาน (ลา)</button>${hoBanner()}`;
+  $("#hoBtn").onclick = () => openHandover();
   if (!list.length){
     $("#coordBody").innerHTML = `<div class="empty"><h3>ยังไม่มีครีเอเตอร์ที่คุณดูแล</h3>
       <div>ตั้ง “ผู้ดูแล” เป็นตัวเองได้จากช่องเล็กข้างชื่อในตารางของแต่ละโปรเจกต์ · แถวที่คุณเพิ่มเองเป็นของคุณอัตโนมัติ<br>
@@ -8442,7 +8553,7 @@ function renderMine(){
           <button class="cmdbtn" data-mtab="${esc(p)}">▦ ตารางทั้งทีม</button>
           <button class="cmdbtn" data-mmap="${esc(p)}">◈ Map ของฉัน</button></td></tr>` +
         mine.map(({ r, i }) => `<tr data-mp="${esc(p)}" data-mi="${i}">
-          <td class="who"><b>${esc(r.handle)}</b>${r.kind ? ` <span class="kk">${esc(r.kind)}</span>` : ""}</td>
+          <td class="who"><b>${esc(r.handle)}</b>${r.kind ? ` <span class="kk">${esc(r.kind)}</span>` : ""}${hoTag(r)}</td>
           <td><select data-mst>${opts.map(o => `<option value="${esc(o.v)}"${o.v === stOf(r) ? " selected" : ""}>${
             esc(o.th)}</option>`).join("")}</select></td>
           <td style="text-align:right">${r.rate != null ? mBaht(r.rate) : "–"}</td>
@@ -8479,7 +8590,7 @@ function asgSelect(r, i){
   const opts = [`<option value="">–</option>`].concat(TEAM.members.map(m =>
     `<option value="${esc(m.id)}"${m.id === r.assignee ? " selected" : ""}>${esc(m.name || m.email)}</option>`));
   if (r.assignee && !memberOf(r.assignee)) opts.push(`<option value="${esc(r.assignee)}" selected>คนนอกทีม</option>`);
-  return `${r.assignee ? avatar(r.assignee) : ""}<select class="asg${r.assignee === me ? " mine" : ""}" data-asg="${i}" title="ผู้ดูแลแถวนี้ — ${esc(memName(r.assignee))}${r.assignee === me ? " (คุณ)" : ""}">${opts.join("")}</select>`;
+  return `${r.assignee ? avatar(r.assignee) : ""}<select class="asg${r.assignee === me ? " mine" : ""}" data-asg="${i}" title="ผู้ดูแลแถวนี้ — ${esc(memName(r.assignee))}${r.assignee === me ? " (คุณ)" : ""}">${opts.join("")}</select>${hoTag(r)}`;
 }
 
 function renderCoordModes(){
@@ -9443,7 +9554,7 @@ const commPct = v => {
 // ═══ งานของใครของมัน (2026-11-04) ═══
 // แถวงานทีมที่มีผู้ดูแลแล้ว: ผู้ดูแลคนเดียวที่ทำ process ได้ (Command · ย้ายขั้น · มาร์ค) — admin/manager ทำได้ทุกแถว
 // ยังไม่มีผู้ดูแล = ใครก็ทำได้ · ฐานข้อมูล ALTA กันซ้ำอีกชั้น (trigger coord_zwork / coord_check_assignee)
-const canWorkRow = r => !TEAM_MODE || !r || !isTeamProj(r.project) || canManageProjects() || !r.assignee || r.assignee === sbUid();
+const canWorkRow = r => !TEAM_MODE || !r || !isTeamProj(r.project) || canManageProjects() || !r.assignee || isMyWork(r);
 function workDenied(r){
   histToast(`@${normId(r.handle)} อยู่ในความดูแลของ ${memName(r.assignee)} — Command / ย้ายขั้น ทำได้เฉพาะผู้ดูแล · ขอรับดูแลได้ที่ช่องผู้ดูแล`, true);
 }
@@ -17125,7 +17236,7 @@ function todoItems(){
   PROJECTS.filter(p => (!TEAM_MODE || isTeamProj(p)) && !(projMeta(p) || {}).done).forEach(p => (COORD[p] || []).forEach(r => {
     if (!r.project) r.project = p;
     if (mapClosed(r) || !r.status) return;
-    if (TODO_SEG === "me" && TEAM_MODE && r.assignee !== me) return;
+    if (TODO_SEG === "me" && TEAM_MODE && !isMyWork(r)) return;
     if (isLiveRow(r)){ out.live.push({ r, p, d: null, sla: 0, owner: "us", why: "📺 LIVE · " + (ST_TH[r.status] || r.status), age: 0 }); return; }
     const mk = drMark(r), I = mk ? drInfo(r.status) : null;
     const d = satDays(r), sla = stSla(r.status);
@@ -17962,7 +18073,7 @@ function rvBadge(){
   if (!b) return;
   const role = rvRole();
   const n = PROJECTS.reduce((s, p) => s + (COORD[p] || []).filter(r => !isCancelled(r) && rvTurn(r).role === role &&
-    (!isTeamProj(p) || !r.assignee || r.assignee === sbUid() || role === "pm")).length, 0);
+    (!isTeamProj(p) || !r.assignee || isMyWork(r) || role === "pm")).length, 0);
   b.textContent = n || ""; b.hidden = !n;
   const bm = $("#rvBadgeMap");                 // ตัวเลขเดียวกันบนปุ่มในหน้า Map
   if (bm){ bm.textContent = n || ""; bm.hidden = !n; }
@@ -25562,6 +25673,7 @@ function tsLastSave(){ try { lsSet(LS_TS_LAST, JSON.stringify({ team: TEAM.id, u
 let TS_FRESH = false;
 async function tsPull(force){
   if (!TEAM_MODE || !TEAM || TS_BUSY || STALE) return;
+  hoLoad(force);
   if (!force && Date.now() - TS_AT < 15000) return;
   TS_BUSY = true; TS_AT = Date.now();
   let redraw = false;
@@ -25703,6 +25815,11 @@ i18nStart();
 // ⚠️ อัปเดตครั้งใหม่ = เพิ่มรายการบนสุด n+1 · คนที่ใช้ช่อง Publish เห็นตอนเปิดเวอร์ชันที่มีรายการนั้นครั้งแรก
 //    ข้ามหลายเวอร์ชัน = เห็นรวมทุกรายการที่พลาดไป · เข้าเว็บครั้งแรกในชีวิต = ไม่เด้งของเก่า (เริ่มนับจากตอนนี้)
 const RELEASE_NOTES = [
+  { n: 12, d: "12 พ.ย. 2569", t: "🤝 ฝากงานตอนลา", items: [
+    ["🤝", "จะลา: ไปที่ <b>★ งานของฉัน</b> → กด <b>🤝 ฝากงาน (ลา)</b> → เลือกคนรับฝาก + วันสุดท้ายที่ลา → บันทึก จบ ไม่ต้องเปลี่ยนผู้ดูแลทีละแถว"],
+    ["📋", "งานทั้งหมดของคนลาไปขึ้นใน <b>★ งานของฉัน</b> และ <b>📋 วันนี้ต้องทำ</b> ของคนรับฝาก และทำ Command / ย้ายขั้นแทนได้เลย"],
+    ["⏰", "ผู้ดูแลในตารางยังเป็นชื่อเดิม มีป้าย <b>🤝 ชื่อคนรับฝาก</b> ต่อท้าย · เลยวันสุดท้ายแล้ว<b>หมดเองอัตโนมัติ</b> · กลับมาก่อนกด <b>ยกเลิกการฝาก</b> ได้"],
+  ]},
   { n: 11, d: "11 พ.ย. 2569", t: "ส่ง Timeline = เริ่มรอ Draft 1 + จดวันนัดส่ง", items: [
     ["📅", "กด <b>ส่งแล้ว</b> ที่กล่อง <b>7. แจ้ง Timeline</b> → สถานะเป็น <b>รอ Draft 1</b> ทันที (เดิมย้ายตอนส่ง key content + สคริป)"],
     ["📝", "ระบบอ่านวันนัดส่ง Draft 1 จากข้อความ Timeline แล้วจดลง <b>โน้ต</b> ให้เอง เช่น “📅 นัดส่ง Draft 1: 15/11” · ช่องกำหนดส่งยังว่าง = ใส่ให้ด้วย · ส่งซ้ำ = แทนของเดิม"],
@@ -25827,6 +25944,10 @@ document.addEventListener("keydown", e => { if (!ST) return;
 // ขั้นสอนของแต่ละอัปเดต (คีย์ = n ใน RELEASE_NOTES) · อัปเดตที่ทีมเห็นได้ ควรมีขั้นสอนเสมอ
 const goCoord = async () => { $("#todoPop").hidden = true; if (document.body.dataset.view !== "coord") await setView("coord"); if (!$("#mapView").hidden) $("#mapView").hidden = true; };
 const RELEASE_TOURS = {
+  12: [ { pre: goCoord, sel: '#projTabs [data-mine="1"]', t: "กด <b>★ งานของฉัน</b>" },
+        { pre: async () => { await goCoord(); if (!MINE_VIEW){ const b = document.querySelector('#projTabs [data-mine="1"]'); if (b) b.click(); } }, sel: "#hoBtn",
+          t: "จะลา กด <b>🤝 ฝากงาน (ลา)</b> → เลือกคนรับฝาก + วันสุดท้ายที่ลา → บันทึก<br>งานทั้งหมดของคุณจะไปขึ้นในงานของเพื่อนจนถึงวันนั้น แล้วหมดเอง" },
+        { sel: "#coordSum", t: "ถ้ามีคนฝากงานไว้กับคุณ จะมีแถบ <b>🤝</b> บอกตรงนี้ และแถวของเขามีป้าย <b>🤝 แทน ชื่อเพื่อน</b>" } ],
   11: [ { pre: goCoord, t: "เปิด <b>✉ Command</b> ของครีเอเตอร์ที่ของถึงแล้ว → กล่อง <b>7. แจ้ง Timeline</b> → กด <b>ส่งแล้ว</b><br>สถานะจะเป็น <b>รอ Draft 1</b> ทันที" },
         { pre: goCoord, sel: ".ctable td.w-note", t: "ในช่อง <b>โน้ต</b> จะมี <b>📅 นัดส่ง Draft 1: วันที่</b> ที่ระบบอ่านจากข้อความ Timeline ให้<br>ถ้าข้อความไม่มีวันที่ ระบบจะเตือน ไม่เดาเอง" } ],
   10: [ { pre: async () => { $("#todoPop").hidden = true; }, sel: "#acctBtn", t: "กด <b>วงชื่อของคุณ</b> มุมขวาบน" },
@@ -25985,7 +26106,7 @@ async function relHistDraw(pub, fmt){
 // ═══ เวอร์ชันของหน้า — แท็บที่เปิดค้างโค้ดเก่าต้องไม่ซิงก์ทีม ═══
 // เจอจริง 2026-10-27: แท็บเก่าดึงคีย์ใหม่ลงผิดที่ + ดันรายการที่ลบแล้วกลับขึ้นทุกนาที
 // APP_VER ประทับตอน deploy (kol-tools\stamp-version.py) · version.json คู่กันบนเซิร์ฟเวอร์ — ไม่ตรง = รีเฟรช
-const APP_VER = "20261111-113317";
+const APP_VER = "20261112-044527";
 let STALE = false;
 async function verCheck(){
   if (STALE || APP_VER === "dev") return;
