@@ -23,7 +23,7 @@
   base-uri 'none';
   object-src 'none'">
 <title>Creataew — KOL Sourcing</title>
-<meta name="cf-ver" content="20261112-062334">
+<meta name="cf-ver" content="20261112-062949">
 <!-- Beta / Publish (2026-11-06): หน้าแรก = เวอร์ชันล่าสุด (admin เห็นก่อน) · คนอื่นถูกพาไป v/<เวอร์ชันที่ Publish>.html
      จำเวอร์ชันที่ Publish ไว้ในเครื่อง = พาไปได้ทันทีไม่ต้องรอเน็ต แล้วเช็คซ้ำเบื้องหลัง · ฐานข้อมูลไม่มี RPC (sandbox) = อยู่ตัวล่าสุด -->
 <script>(function(){try{
@@ -1239,7 +1239,9 @@ tr.dropover td{border-top:2px solid var(--accent)}
 .hopick .hopk-list{max-height:240px;overflow:auto;display:grid;gap:8px}
 .hopick .hopk-p{display:grid;grid-template-columns:repeat(auto-fill,minmax(170px,1fr));gap:2px 10px}
 .hopick .hopk-p .hopk-pp{grid-column:1/-1;border-bottom:1px solid var(--line);padding-bottom:2px}
-.hopick label{display:flex;gap:6px;align-items:center;font-size:.8rem;color:var(--text);cursor:pointer}
+/* ต้องเจาะจงกว่า .hobox label (display:grid) ที่ประกาศทีหลัง ไม่งั้นช่องติ๊กกว้างไม่เท่ากัน */
+.hobox .hopick label{display:flex;gap:6px;align-items:center;font-size:.8rem;color:var(--text);cursor:pointer;min-width:0}
+.hobox .hopick input[type=checkbox]{flex:none;width:15px;height:15px;margin:0;padding:0;border:0;accent-color:var(--accent)}
 .hopick label .hint{font-size:.7rem;color:var(--dim)}
 .hobox .hopick input{padding:0}
 .hoturn{display:grid;gap:2px;padding:6px;min-width:220px;background:var(--surface);border:1px solid var(--line);border-radius:10px;box-shadow:0 8px 24px rgba(0,0,0,.25)}
@@ -26252,7 +26254,7 @@ async function relHistDraw(pub, fmt){
 // ═══ เวอร์ชันของหน้า — แท็บที่เปิดค้างโค้ดเก่าต้องไม่ซิงก์ทีม ═══
 // เจอจริง 2026-10-27: แท็บเก่าดึงคีย์ใหม่ลงผิดที่ + ดันรายการที่ลบแล้วกลับขึ้นทุกนาที
 // APP_VER ประทับตอน deploy (kol-tools\stamp-version.py) · version.json คู่กันบนเซิร์ฟเวอร์ — ไม่ตรง = รีเฟรช
-const APP_VER = "20261112-062334";
+const APP_VER = "20261112-062949";
 let STALE = false;
 async function verCheck(){
   if (STALE || APP_VER === "dev") return;
