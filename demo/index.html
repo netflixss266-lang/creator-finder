@@ -1462,11 +1462,22 @@ tr.dropover td{border-top:2px solid var(--accent)}
 .homini{display:inline-block;margin-left:4px;padding:0 4px;border-radius:5px;font-size:.66rem;font-weight:700;
   background:rgba(var(--hi-rgb),.14);color:var(--hi);vertical-align:1px;white-space:nowrap}
 .mapleaf.fromho{outline:1.5px dashed rgba(var(--hi-rgb),.6);outline-offset:1px}
+.hopick{border:1px solid var(--line);border-radius:10px;padding:8px 10px;display:grid;gap:6px}
+.hopick .hopk-h{font-size:.8rem;display:flex;gap:6px;align-items:center;flex-wrap:wrap}
+.hopick .hopk-list{max-height:240px;overflow:auto;display:grid;gap:8px}
+.hopick .hopk-p{display:grid;grid-template-columns:repeat(auto-fill,minmax(170px,1fr));gap:2px 10px}
+.hopick .hopk-p .hopk-pp{grid-column:1/-1;border-bottom:1px solid var(--line);padding-bottom:2px}
+.hopick label{display:flex;gap:6px;align-items:center;font-size:.8rem;color:var(--text);cursor:pointer}
+.hopick label .hint{font-size:.7rem;color:var(--dim)}
+.hobox .hopick input{padding:0}
+.hoturn{display:grid;gap:2px;padding:6px;min-width:220px;background:var(--surface);border:1px solid var(--line);border-radius:10px;box-shadow:0 8px 24px rgba(0,0,0,.25)}
+.hoturn button{display:flex;align-items:center;gap:6px;text-align:left;background:none;border:0;padding:6px 8px;border-radius:7px;font:inherit;color:var(--text);cursor:pointer}
+.hoturn button:hover{background:var(--surface2)}
 .hotag.mine{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
 .hobtn{margin-left:8px} .hobanner{margin-top:6px;padding:6px 10px;border-radius:9px;font-size:.82rem;
   background:rgba(var(--hi-rgb),.1);border:1px solid rgba(var(--hi-rgb),.3)}
 .hopop{position:fixed;inset:0;z-index:9500;background:rgba(0,0,0,.35);display:grid;place-items:center;padding:16px}
-.hobox{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:16px 18px;width:min(440px,100%);
+.hobox{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:16px 18px;width:min(560px,100%);max-height:calc(100vh - 32px);overflow:auto;
   display:grid;gap:10px;box-shadow:0 12px 40px rgba(0,0,0,.3)}
 .hobox .hohead{display:flex;justify-content:space-between;align-items:center;font-size:1rem}
 .hobox label{display:grid;gap:4px;font-size:.8rem;color:var(--dim)} .hobox .hint{margin:0;font-size:.8rem;color:var(--dim)}
@@ -8691,10 +8702,12 @@ function hoCovering(me){ me = me || sbUid(); return Object.keys(HO).filter(k => 
 // แถวนี้เป็น "งานของฉัน" ไหม — โอนแล้วผู้ดูแลคือคนรับฝากอยู่แล้ว เทียบตรงๆ พอ
 function isMyWork(r){ return !!r && r.assignee === sbUid(); }
 const hoDate = d => d ? new Date(d + "T00:00:00").toLocaleDateString("th-TH", { day:"numeric", month:"short" }) : "";
-// แถวนี้มาจากการฝากของใคร (ยังอยู่กับคนรับฝาก)
+// คนที่ถืองานฝากอยู่ได้ = คนรับฝาก + คนที่ถูก "ส่งต่อ" รายคน (alt) — ครบวันโอนคืนเจ้าของเดิมจากทุกคน
+const hoHolders = e => [e.to].concat(e.alt || []).filter(Boolean);
+// แถวนี้มาจากการฝากของใคร (ยังอยู่กับคนรับฝาก / คนที่ถูกส่งต่อ)
 function hoFromOf(r){
   if (!r || !r._id) return "";
-  return Object.keys(HO).find(k => HO[k] && HO[k].to === r.assignee && (HO[k].ids || []).includes(r._id)) || "";
+  return Object.keys(HO).find(k => HO[k] && hoHolders(HO[k]).includes(r.assignee) && (HO[k].ids || []).includes(r._id)) || "";
 }
 // ป้ายเล็กบนใบใน Map — ใบแคบ ใส่แค่ 🤝 + ชื่อสั้นของเจ้าของงานเดิม ชื่อเต็มดูจากการชี้ค้าง
 function hoMini(r){
@@ -8706,29 +8719,69 @@ function hoMini(r){
 function hoTag(r){
   const k = TEAM_MODE && hoFromOf(r);
   if (!k) return "";
-  const e = HO[k], mine = e.to === sbUid();
-  return `<span class="hotag${mine ? " mine" : ""}" title="${esc(memName(k))} ฝากไว้กับ ${esc(memName(e.to))}${
+  const e = HO[k], mine = r.assignee === sbUid();
+  return `<span class="hotag${mine ? " mine" : ""}" title="${esc(memName(k))} ฝากไว้กับ ${esc(memName(r.assignee))}${
     e.until ? " ถึง " + esc(hoDate(e.until)) + " แล้วโอนคืนเอง" : ""}${e.note ? " — " + esc(e.note) : ""}">🤝 ฝากจาก ${esc(memName(k))}</span>`;
 }
 // แถวที่ "ของ from" ตอนนี้ — ทุกโปรเจกต์ทีมที่ยังไม่ปิด ไม่นับแถวที่จบ/ยกเลิกแล้ว
 const hoRowsOf = uid => PROJECTS.filter(p => isTeamProj(p) && !(projMeta(p) || {}).done)
   .flatMap(p => (COORD[p] || []).filter(r => r.assignee === uid && r._id && !mapClosed(r)));
+// filterTo = uid หรือ array ของ uid — โอนเฉพาะแถวที่ผู้ดูแลตอนนี้เป็นคนพวกนี้ (กันไปทับแถวที่ย้ายไปที่อื่นแล้ว)
 async function hoPatch(ids, filterTo, assignee){
+  const F = filterTo ? [].concat(filterTo) : null;
   for (let i = 0; i < ids.length; i += 80){
     const part = ids.slice(i, i + 80).map(encodeURIComponent).join(",");
-    await sbSend(SB_URL + `/rest/v1/coord?id=in.(${part})` + (filterTo ? `&assignee=eq.${encodeURIComponent(filterTo)}` : ""),
+    await sbSend(SB_URL + `/rest/v1/coord?id=in.(${part})` + (F ? `&assignee=in.(${F.map(encodeURIComponent).join(",")})` : ""),
       "PATCH", { assignee }, "โอนงานไม่ได้");
   }
   const set = new Set(ids);
   PROJECTS.forEach(p => (COORD[p] || []).forEach(r => {
-    if (set.has(r._id) && (!filterTo || r.assignee === filterTo)) r.assignee = assignee;
+    if (set.has(r._id) && (!F || F.includes(r.assignee))) r.assignee = assignee;
   }));
+}
+async function hoSaveKv(k, v){
+  await sbSend(SB_URL + "/rest/v1/team_kv?on_conflict=team_id,ns,k", "POST",
+    [{ team_id: TEAM.id, ns: "ho", k, v }], "บันทึกการฝากงานไม่ได้", "resolution=merge-duplicates,return=minimal");
+  HO[k] = v;
+}
+// ↪ ส่งต่อรายคน — งานฝากบางคน PM ให้คนอื่นทำ: ย้ายแค่แถวนี้ไปให้คนอื่น หรือคืนเจ้าของเดิมเลย
+// ยังนับเป็นงานฝาก (ป้าย 🤝 ยังอยู่) ครบวันโอนคืนเจ้าของเดิมพร้อมกัน
+function hoTurnover(r, anchor){
+  const k = hoFromOf(r); if (!k) return;
+  const e = HO[k];
+  document.getElementById("hoTurnPop")?.remove();
+  const pop = document.createElement("div"); pop.id = "hoTurnPop"; pop.className = "fpop hoturn";
+  const others = TEAM.members.filter(m => m.id !== r.assignee && m.id !== k);
+  pop.innerHTML = `<div class="fhead">↪ ส่งต่อ @${esc(normId(r.handle))}</div>
+    <button type="button" data-turn="${esc(k)}"><b>↩ คืน ${esc(memName(k))}</b> <span class="hint">(เจ้าของเดิม · ไม่นับเป็นงานฝากแล้ว)</span></button>
+    ${others.map(m => `<button type="button" data-turn="${esc(m.id)}">${avatar(m.id)} ${esc(m.name || m.email)}</button>`).join("")}`;
+  document.body.appendChild(pop);
+  const b = anchor.getBoundingClientRect();
+  pop.style.position = "fixed"; pop.style.zIndex = 9600;
+  pop.style.top = Math.min(innerHeight - pop.offsetHeight - 8, b.bottom + 4) + "px";
+  pop.style.left = Math.max(8, Math.min(innerWidth - pop.offsetWidth - 8, b.right - pop.offsetWidth)) + "px";
+  const close = ev => { if (!pop.contains(ev.target)){ pop.remove(); document.removeEventListener("mousedown", close, true); } };
+  setTimeout(() => document.addEventListener("mousedown", close, true));
+  pop.addEventListener("click", async ev => {
+    const t = ev.target.closest("[data-turn]"); if (!t) return;
+    const to = t.dataset.turn, back = to === k;
+    pop.remove(); document.removeEventListener("mousedown", close, true);
+    try {
+      const v = Object.assign({}, e, back
+        ? { ids: (e.ids || []).filter(x => x !== r._id) }
+        : { alt: [...new Set((e.alt || []).concat(to))] });
+      await hoSaveKv(k, v);                                     // จดก่อนโอน — พังกลางทางยังรู้ว่าต้องคืนใคร
+      await hoPatch([r._id], r.assignee, to);
+    } catch(err){ return alert(err.message); }
+    renderProjTabs(); renderCoord();
+    histToast(back ? `คืน @${normId(r.handle)} ให้ ${memName(k)} แล้ว` : `ส่งต่อ @${normId(r.handle)} ให้ ${memName(to)} แล้ว (ยังเป็นงานฝากของ ${memName(k)})`);
+  });
 }
 // โอนคืน + ลบการฝาก
 async function hoReturn(k, quiet){
   const e = HO[k]; if (!e) return 0;
   const back = (e.ids || []).length;
-  if (back) await hoPatch(e.ids, e.to, k);
+  if (back) await hoPatch(e.ids, hoHolders(e), k);
   await sbSend(SB_URL + `/rest/v1/team_kv?team_id=eq.${encodeURIComponent(TEAM.id)}&ns=eq.ho&k=eq.${encodeURIComponent(k)}`, "DELETE", null, "ยกเลิกการฝากงานไม่ได้");
   delete HO[k];
   if (!quiet) histToast(`โอนงานคืน ${memName(k)} แล้ว`);
@@ -8780,16 +8833,36 @@ function openHandover(fromUid){
         `<option value="${esc(m.id)}"${m.id === cur.to ? " selected" : ""}>${esc(m.name || m.email)}</option>`).join("")}</select></label>
       <label>ถึงวันที่ (วันสุดท้ายที่ลา — วันถัดไปโอนคืนเอง)<input type="date" id="hoUntil" min="${hoToday()}" value="${esc(cur.until || "")}"></label>
       <label>ฝากบอกอะไร (ไม่บังคับ)<input id="hoNote" maxlength="200" value="${esc(cur.note || "")}" placeholder="เช่น คนที่รอดราฟต์ 2 ตามให้ด้วย · ติดอะไรโทรมาได้"></label>
+      ${(() => { const rows = hoRowsOf(from); if (!rows.length) return "";
+        const byP = [...new Set(rows.map(r => r.project))];
+        return `<div class="hopick"><div class="hopk-h"><b>เลือกครีเอเตอร์ที่จะโอน</b> <span id="hoCnt"></span>
+            <button type="button" class="linkish" data-hoall="1">เลือกทั้งหมด</button> · <button type="button" class="linkish" data-hoall="0">ไม่เลือกเลย</button></div>
+          <div class="hopk-list">${byP.map(p => `<div class="hopk-p"><label class="hopk-pp"><input type="checkbox" data-hoproj="${esc(p)}" checked> <b>${esc(p)}</b></label>${
+            rows.filter(r => r.project === p).map(r => `<label><input type="checkbox" data-hoid="${esc(r._id)}" data-hop="${esc(p)}" checked> @${esc(normId(r.handle))}
+              <span class="hint">${esc(ST_TH[r.status] || r.status || "")}</span></label>`).join("")}</div>`).join("")}</div></div>`; })()}
       <div class="hobtns">${HO[from] ? `<button class="cmdbtn" data-hodel>กลับมาแล้ว — โอนงานคืน</button>` : ""}
         <button class="primary" data-hosave>${HO[from] ? "บันทึก" : "โอนงาน"}</button></div></div>`;
     const f = d.querySelector("#hoFrom"); if (f) f.onchange = () => { from = f.value; draw(); };
+    hoCount();
   };
+  const hoCount = () => { const c = d.querySelector("#hoCnt"); if (!c) return;
+    const all = d.querySelectorAll("[data-hoid]"), on = d.querySelectorAll("[data-hoid]:checked");
+    c.textContent = `(${on.length}/${all.length})`;
+    d.querySelectorAll("[data-hoproj]").forEach(pc => { const L = [...d.querySelectorAll(`[data-hop="${CSS.escape(pc.dataset.hoproj)}"]`)];
+      pc.checked = L.every(x => x.checked); pc.indeterminate = !pc.checked && L.some(x => x.checked); }); };
+  d.addEventListener("change", e => {
+    const pc = e.target.closest("[data-hoproj]");
+    if (pc) d.querySelectorAll(`[data-hop="${CSS.escape(pc.dataset.hoproj)}"]`).forEach(x => x.checked = pc.checked);
+    hoCount();
+  });
   draw();
   document.body.appendChild(d);
   const after = () => { d.remove(); renderProjTabs(); renderCoord(); if (document.querySelector("#usersList .ucard")) renderUsers(); };
   let busy = false;
   d.addEventListener("click", async e => {
     if (e.target === d || e.target.closest("[data-hox]")) return d.remove();
+    const al = e.target.closest("[data-hoall]");
+    if (al){ d.querySelectorAll("[data-hoid]").forEach(x => x.checked = al.dataset.hoall === "1"); return hoCount(); }
     if (busy) return;
     if (e.target.closest("[data-hodel]")){
       busy = true;
@@ -8802,18 +8875,18 @@ function openHandover(fromUid){
       if (!until) return alert("ใส่วันสุดท้ายที่ลาด้วย — วันถัดไปงานจะโอนคืนเอง");
       if (until < hoToday()) return alert("วันสุดท้ายต้องเป็นวันนี้หรือหลังจากนี้");
       const cur = HO[from] || {};
-      const fresh = hoRowsOf(from).map(r => r._id);
+      // เฉพาะคนที่ติ๊กไว้ — ไม่มีรายชื่อให้เลือก (ไม่มีงานค้าง) = ไม่มีอะไรโอนเพิ่ม
+      const fresh = [...d.querySelectorAll("[data-hoid]:checked")].map(x => x.dataset.hoid);
+      if (!fresh.length && !(cur.ids || []).length) return alert("ยังไม่ได้เลือกครีเอเตอร์ที่จะโอน");
       // เปลี่ยนคนรับฝาก = ย้ายแถวที่ยังอยู่กับคนเดิมไปคนใหม่ด้วย
-      const held = cur.to && cur.to !== to ? (cur.ids || []) : [];
+      const held = cur.to && cur.to !== to ? (cur.ids || []).filter(id => PROJECTS.some(p => (COORD[p] || []).some(r => r._id === id && r.assignee === cur.to))) : [];
       if (!confirm(`โอนงาน ${fresh.length + held.length} คนของ ${memName(from)} ไปให้ ${memName(to)} ถึง ${hoDate(until)}?\n\nผู้ดูแลในตารางจะเปลี่ยนเป็น ${memName(to)} ทันที · วันถัดจากวันสุดท้ายโอนคืนเอง`)) return;
       busy = true;
       const v = { to, from: hoToday(), until, note: d.querySelector("#hoNote").value.trim(), by: me,
-                  ids: [...new Set((cur.ids || []).concat(fresh))] };
+                  ids: [...new Set((cur.ids || []).concat(fresh))], alt: cur.alt || [] };
       try {
         // จดการฝากก่อนค่อยโอน — โอนพังกลางทาง ยังรู้ว่าแถวไหนต้องคืน
-        await sbSend(SB_URL + "/rest/v1/team_kv?on_conflict=team_id,ns,k", "POST",
-          [{ team_id: TEAM.id, ns: "ho", k: from, v }], "บันทึกการฝากงานไม่ได้", "resolution=merge-duplicates,return=minimal");
-        HO[from] = v;
+        await hoSaveKv(from, v);
         if (held.length) await hoPatch(held, cur.to, to);
         if (fresh.length) await hoPatch(fresh, from, to);
       } catch(err){ busy = false; return alert(err.message); }
@@ -8878,7 +8951,8 @@ function renderMine(){
           <td>${esc(r.postdate || "–")} / ${esc(r.deadline || "–")}</td>
           <td><input data-mnote value="${esc(PNOTES[pnKey(p, r.handle)] || "")}" placeholder="ไม่มีใครเห็นนอกจากคุณ"></td>
           <td style="white-space:nowrap"><button class="cmdbtn" data-mdet title="ดู/แก้ทุกช่อง">⤢</button>
-            <button class="cmdbtn" data-mcmd title="เปิด Command">✉</button></td></tr>`).join("");
+            <button class="cmdbtn" data-mcmd title="เปิด Command">✉</button>${hoFromOf(r)
+              ? `<button class="cmdbtn" data-mturn title="ส่งต่อคนนี้ให้คนอื่นทำ หรือคืนเจ้าของเดิม">↪ ส่งต่อ</button>` : ""}</td></tr>`).join("");
   }
   const at = el => { const tr = el.closest("tr"); const p = tr.dataset.mp, i = +tr.dataset.mi;
                      return { p, i, r: (COORD[p] || [])[i] }; };
@@ -8892,6 +8966,7 @@ function renderMine(){
   });
   body.querySelectorAll("[data-mdet]").forEach(el => el.onclick = () => { const { p, i } = at(el); openDetail(p, i); });
   body.querySelectorAll("[data-mcmd]").forEach(el => el.onclick = () => { const { p, r } = at(el); if (r) openCmd(p, r.handle); });
+  body.querySelectorAll("[data-mturn]").forEach(el => el.onclick = () => { const { r } = at(el); if (r) hoTurnover(r, el); });
   body.querySelectorAll("[data-mtab]").forEach(el => el.onclick = () => {
     MINE_VIEW = false; PROJ = el.dataset.mtab; renderProjTabs(); renderCoord(); vlog("project", { p: PROJ });
   });
