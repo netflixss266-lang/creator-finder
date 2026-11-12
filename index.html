@@ -23,7 +23,7 @@
   base-uri 'none';
   object-src 'none'">
 <title>Creataew — KOL Sourcing</title>
-<meta name="cf-ver" content="20261112-090654">
+<meta name="cf-ver" content="20261112-092047">
 <!-- Beta / Publish (2026-11-06): หน้าแรก = เวอร์ชันล่าสุด (admin เห็นก่อน) · คนอื่นถูกพาไป v/<เวอร์ชันที่ Publish>.html
      จำเวอร์ชันที่ Publish ไว้ในเครื่อง = พาไปได้ทันทีไม่ต้องรอเน็ต แล้วเช็คซ้ำเบื้องหลัง · ฐานข้อมูลไม่มี RPC (sandbox) = อยู่ตัวล่าสุด -->
 <script>(function(){try{
@@ -13661,9 +13661,9 @@ function renderMap(){
   $("#mapKind").innerHTML = [["all","ทั้งหมด"],["KOL","KOL"],["KOC","KOC"]].map(([id, label]) =>
     `<button role="tab" data-mk="${id}" aria-selected="${MAP_KIND === id}">${label}<span class="n">${
       id === "all" ? scope.length : scope.filter(r => kindOf(r) === id).length}</span></button>`).join("") + (() => {
-    // ⏳ ชั่วคราว — โชว์เฉพาะตอนมีครีเอเตอร์ชั่วคราวในขอบเขตนี้ (หรือกำลังกรองอยู่)
-    const nT = TEAM_MODE ? scope.filter(r => r.temp).length : 0;
-    if (!nT && MAP_SHEET === "all") return "";
+    // 📋 งานหลัก / ⏳ ชั่วคราว — โชว์ตลอดในโหมดทีม (Jibli 2026-11-12) ทุกแผ่น รวมทุกโปรเจกต์และ ★ งานของฉัน
+    if (!TEAM_MODE) return "";
+    const nT = scope.filter(r => r.temp).length;
     return `<span class="mksep"></span>` + [["all", "ทุกแท็บ", scope.length], ["main", "📋 งานหลัก", scope.length - nT], ["temp", "⏳ ชั่วคราว", nT]].map(([id, label, n]) =>
       `<button role="tab" data-msheet="${id}" aria-selected="${MAP_SHEET === id}"${id === "temp" ? ` class="tmp" title="ครีเอเตอร์ในแท็บชั่วคราว — งานรับฝาก/รับต่อจากคนอื่น"` : ""}>${label}<span class="n">${n}</span></button>`).join("");
   })();
@@ -26419,7 +26419,7 @@ async function relHistDraw(pub, fmt){
 // ═══ เวอร์ชันของหน้า — แท็บที่เปิดค้างโค้ดเก่าต้องไม่ซิงก์ทีม ═══
 // เจอจริง 2026-10-27: แท็บเก่าดึงคีย์ใหม่ลงผิดที่ + ดันรายการที่ลบแล้วกลับขึ้นทุกนาที
 // APP_VER ประทับตอน deploy (kol-tools\stamp-version.py) · version.json คู่กันบนเซิร์ฟเวอร์ — ไม่ตรง = รีเฟรช
-const APP_VER = "20261112-090654";
+const APP_VER = "20261112-092047";
 let STALE = false;
 async function verCheck(){
   if (STALE || APP_VER === "dev") return;
