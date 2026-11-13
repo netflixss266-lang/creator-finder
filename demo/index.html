@@ -3344,7 +3344,7 @@ body[data-simple][data-mapf] #mapFiltBtn{background:var(--accent);color:var(--ac
 /* Format ขอเรท เด่นขึ้น */
 body[data-simple] #fmtBtn, body[data-simple] #mapFmtBtn{background:var(--accent);color:var(--accent-ink);border-color:var(--accent);font-weight:700}
 /* ของที่แทบไม่มีคนใช้ */
-body[data-simple] #voiceBtn, body[data-simple] #acctMenu [data-am="lang"]{display:none!important}
+body[data-simple] #voiceBtn{display:none!important}
 /* ตัวกรองด่วน (2026-11-13) */
 .qfbar{display:flex;flex-wrap:wrap;align-items:center;gap:5px;margin:4px 0 8px}
 .qfbar:empty{display:none}
@@ -4055,7 +4055,6 @@ html.demo .dm-b:hover{filter:blur(5px)}
   <button type="button" class="mi" role="menuitem" data-am="settings"><span class="ic">⚙</span>ตั้งค่าเว็บ</button>
   <button type="button" class="mi" role="menuitem" data-am="lang"><span class="ic">🌐</span>Language<span class="rt langsw"><b data-lg="th">TH</b> · <b data-lg="en">EN</b></span></button>
   <label class="mi mirow"><span class="ic">A</span>ขนาดตัวอักษร<select id="uiSel" class="uisel" aria-label="ขนาดตัวอักษร"></select></label>
-  <button type="button" class="mi" role="menuitem" data-am="simple" id="amSimple" hidden><span class="ic">✨</span>โหมดเรียบง่าย<span class="rt" id="amSimpleSt">ปิด</span></button>
   <button type="button" class="mi" role="menuitem" data-am="tour"><span class="ic">📖</span>คู่มือการใช้งาน</button>
   <button type="button" class="mi" role="menuitem" data-am="news"><span class="ic">🆕</span>มีอะไรใหม่</button>
   <div class="sep"></div>
