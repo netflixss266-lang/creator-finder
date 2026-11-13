@@ -23,7 +23,7 @@
   base-uri 'none';
   object-src 'none'">
 <title>Creataew — KOL Sourcing</title>
-<meta name="cf-ver" content="20261113-053125">
+<meta name="cf-ver" content="20261113-054226">
 <!-- Beta / Publish (2026-11-06): หน้าแรก = เวอร์ชันล่าสุด (admin เห็นก่อน) · คนอื่นถูกพาไป v/<เวอร์ชันที่ Publish>.html
      จำเวอร์ชันที่ Publish ไว้ในเครื่อง = พาไปได้ทันทีไม่ต้องรอเน็ต แล้วเช็คซ้ำเบื้องหลัง · ฐานข้อมูลไม่มี RPC (sandbox) = อยู่ตัวล่าสุด -->
 <script>(function(){try{
@@ -3079,6 +3079,18 @@ html[data-no-assign] select.asg{pointer-events:none;opacity:.55}
 .mapleafwrap.drin .mapleaf{border-color:var(--accent);background:rgba(var(--accent-rgb),.10)}
 .mapleafwrap.drin .mapst{border-color:var(--accent)}
 .mapleaf .drtag{font-size:.68rem;font-weight:600;color:var(--accent)}
+/* ตัวกรองด่วน (2026-11-13) */
+.qfbar{display:flex;flex-wrap:wrap;align-items:center;gap:5px;margin:4px 0 8px}
+.qfbar:empty{display:none}
+.qfbar .qft{font-size:.72rem;color:var(--dim);margin-right:2px}
+.qfbar button{display:inline-flex;align-items:center;gap:5px;font:inherit;font-size:.74rem;font-weight:600;padding:3px 9px;border-radius:999px;
+  border:1px solid var(--line);background:var(--surface);color:var(--ink);cursor:pointer;white-space:nowrap}
+.qfbar button .n{font-size:.68rem;color:var(--dim);font-weight:700}
+.qfbar button.zero{opacity:.45}
+.qfbar button[aria-selected="true"]{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
+.qfbar button[aria-selected="true"] .n{color:inherit}
+.qfbar .qfx{border-style:dashed;color:var(--dim)}
+#mapView .qfbar{margin:6px 0 2px}
 /* มาร์คขั้นตอน (2026-11-13) — สีต่างจาก 📥 รอตรวจดราฟต์ (accent) ชัดๆ: 📘 ฟ้า · 🚚 ส้ม */
 .stepmk{display:inline-flex;align-items:center;gap:4px;font-size:.68rem;font-weight:700;border-radius:6px;padding:1px 6px;white-space:nowrap;cursor:pointer;margin:2px 4px 0 0}
 .stepmk.sg{background:rgba(96,165,250,.16);color:#3B82F6;border:1px solid rgba(96,165,250,.55)}
@@ -4286,6 +4298,8 @@ details.fold[data-fold="crit"],#critBar{display:none!important}
     <!-- ข้อความทักครั้งแรกเพื่อขอเรท — ยังไม่มีคนในตาราง เลยเป็นของโปรเจกต์ ไม่ใช่ของรายคน -->
     <button class="mapbtn" id="fmtBtn" title="ข้อความขอเรทสำหรับทักครีเอเตอร์ครั้งแรก (กด F)">✉ Format ขอเรท</button>
   </div>
+  <!-- ตัวกรองด่วนตามงานที่ต้องทำ (2026-11-13) — ชุดเดียวกับใน Map เลือกที่ไหนก็ตามกันทั้งสองที่ -->
+  <div class="qfbar" id="qfBar" role="tablist" aria-label="กรองตามงาน"></div>
   <div class="syncbar" id="syncBar"></div>
 
   <div class="coordbar">
@@ -4323,6 +4337,7 @@ details.fold[data-fold="crit"],#critBar{display:none!important}
       <div class="tabs sub" id="mapTabs" role="tablist"></div>
       <!-- KOL กับ KOC เดินคนละกระบวนการแล้ว (11 บล็อก vs 15) ดูรวมกันบางทีก็ไม่ตอบอะไร -->
       <div class="tabs sub mapkind" id="mapKind" role="tablist"></div>
+      <div class="qfbar" id="qfBarMap" role="tablist" aria-label="กรองตามงาน"></div>
       <!-- โหมดทีม: กรองตามผู้ดูแล — ชุดเดียวกับเหนือตาราง -->
       <div class="tabs sub memseg" id="mapMem" role="tablist" hidden></div>
       <div class="online" id="mapOnline"></div>
@@ -8733,7 +8748,7 @@ function myRows(){
     .filter(x => !isTeamProj(x.p) || isMyWork(x.r));
 }
 function renderMine(){
-  const list = myRows();
+  const list = myRows().filter(x => qfPass(x.r));
   const projs = [...new Set(list.map(x => x.p))];
   $("#coordSum").innerHTML = `★ งานของฉัน <b>${list.length}</b> คน · ${projs.length} โปรเจกต์
     <button class="cmdbtn hobtn" id="hoBtn" title="จะลา? ฝากงานทั้งหมดให้เพื่อนดูแลแทนจนถึงวันที่กำหนด">🤝 ฝากงาน (ลา)</button>${hoBanner()}`;
@@ -9508,7 +9523,7 @@ if (TEAM_MODE) $("#coordBody").addEventListener("click", e => {
 });
 
 function renderCoord(){
-  renderKindSeg(); renderColSeg(); renderMemSeg(); renderCoordModes();
+  renderKindSeg(); renderColSeg(); renderMemSeg(); renderCoordModes(); try { renderQF(); } catch(e){}
   if (TEAM_MODE && TEAM && MINE_VIEW){ document.body.dataset.mine = "1"; return renderMine(); }
   delete document.body.dataset.mine;
   if (TEAM_MODE) document.body.dataset.sheet = sheetOf(PROJ); else delete document.body.dataset.sheet;
@@ -9527,7 +9542,7 @@ function renderCoord(){
   const inTemp = sheetOf(PROJ) === "temp";
   const rows = (KINDSEG === "all" ? all : all.filter(r => (r.kind || "") === KINDSEG))
                  .filter(r => !TEAM_MODE || !!r.temp === inTemp)
-                 .filter(passFilter).filter(passMember);
+                 .filter(passFilter).filter(passMember).filter(qfPass);
   if (!all.length && !inTemp){
     $("#coordSum").innerHTML = "";
     $("#coordBody").innerHTML = `<div class="empty"><h3>${esc(PROJ)} ยังไม่มีข้อมูล</h3>
@@ -12453,11 +12468,11 @@ function cmdNavList(proj){
       .map(h => all.find(r => normId(r.handle) === h)).filter(Boolean);
     if (!L.length) L = all;
   } else if (TEAM_MODE && TEAM && MINE_VIEW){
-    L = myRows().filter(x => x.p === proj).map(x => x.r);
+    L = myRows().filter(x => x.p === proj).map(x => x.r).filter(qfPass);
   } else if (proj === PROJ){
     const inTemp = sheetOf(PROJ) === "temp";
     L = (KINDSEG === "all" ? all : all.filter(r => (r.kind || "") === KINDSEG))
-      .filter(r => !TEAM_MODE || !!r.temp === inTemp).filter(passFilter).filter(passMember);
+      .filter(r => !TEAM_MODE || !!r.temp === inTemp).filter(passFilter).filter(passMember).filter(qfPass);
   } else L = all;
   return L.map((r, i) => [r, i]).sort((a, b) => cmdNavRank(a[0]) - cmdNavRank(b[0]) || a[1] - b[1]).map(x => x[0]);
 }
@@ -13643,6 +13658,7 @@ const mapSheetOk = r => !TEAM_MODE || MAP_SHEET === "all" || (MAP_SHEET === "tem
 const mapRows = proj => (COORD[proj] || [])
   .filter(r => MAP_KIND === "all" || kindOf(r) === MAP_KIND)
   .filter(mapSheetOk)
+  .filter(qfPass)
   .filter(r => passMember(r, true));
 
 function openMap(proj){
@@ -13658,6 +13674,7 @@ function openMap(proj){
 
 function renderMap(){
   loadLaw();
+  setTimeout(() => { try { renderQF(); } catch(e){} });
   // โหมดทีม: แท็บชุดเดียวกับหน้าตาราง — ★ งานของฉัน (ทุกโปรเจกต์ กรองเฉพาะที่ฉันดูแล) · 👥 = งานทีม
   const mineTab = TEAM_MODE && TEAM ? [["__mine", "★ งานของฉัน"]] : [];
   const mineOn = !MAP_PROJ && MEMSEG === "me" && mineTab.length;
@@ -13981,6 +13998,38 @@ function drAutoMark(r, st){
   saveCmdOwn();
 }
 const drOk = r => !!r && DR_STAGES.has(r.status || "");
+// ═══ ตัวกรองด่วนตามงาน (Jibli 2026-11-13) — ตาราง + Map + ลูกศรใน Command ใช้ชุดเดียวกัน ═══
+// เลือกได้ทีละอัน · กดซ้ำ = ยกเลิก · จำไว้ระหว่างเปิดเว็บ
+let QFLT = "";
+const QF_DEFS = [
+  ["draft",  "✍️ รอส่งดราฟต์",   "รอครีเอเตอร์ส่งสคริป/ดราฟต์ (ยังไม่มาร์ค 📥)", r => /^(Waiting Draft \d|Waiting Script|Already Sent to SG|Already Feedback Script)$/.test(r.status || "") && !drMark(r)],
+  ["review", "📥 รอตรวจดราฟต์",  "ดราฟต์/สคริปเข้าแล้วรอเราตรวจ (มาร์ค 📥) + รอ PM ฟีดแบค", r => (!!drMark(r) && drInfo(r.status).k !== "post" && drInfo(r.status).k !== "pay") || /^Waiting PM Feedback /.test(r.status || "")],
+  ["post",   "🎬 รอโพสต์",       "ดราฟต์ผ่านแล้ว รอครีเอเตอร์โพสต์", r => r.status === "Waiting to Post"],
+  ["pay",    "💸 รอทำจ่าย",      "รอ Gencode / รอทำจ่าย", r => r.status === "Waiting Gencode" || r.status === "Waiting Payment"],
+  ["sg",     "📘 ยังไม่ส่งคู่มือ", "อยู่รอ Draft 1 แต่ยังไม่ส่งคู่มือการถ่ายทำ", r => sgPending(r)],
+  ["ship",   "🚚 รอของถึง",      "ส่งเลขพัสดุแล้ว รอของถึง", r => shipPending(r)],
+  ["miss",   "⚑ ข้อมูลยังขาด",   "ขาดเรท / SKU / ที่อยู่ / ข้อมูลที่ต้องใช้ในขั้นนั้น", r => !isCancelled(r) && !mapDone(r) && mapFlags(r).length > 0],
+  ["late",   "🔴 ค้างนาน",       "อยู่ขั้นเดิมเกินเกณฑ์ (เหลือง/แดง)", r => { try { const st = ppState(r); return st === "late" || st === "near"; } catch(e){ return false; } }],
+];
+const qfPass = r => { if (!QFLT) return true; const d = QF_DEFS.find(x => x[0] === QFLT); return !d || !!d[3](r); };
+function renderQF(){
+  const tbl = TEAM_MODE && MINE_VIEW ? myRows().map(x => x.r)
+    : (COORD[PROJ] || []).filter(r => (KINDSEG === "all" || (r.kind || "") === KINDSEG) && (!TEAM_MODE || !!r.temp === (sheetOf(PROJ) === "temp")) && passFilter(r) && passMember(r));
+  const mapScope = () => (MAP_PROJ ? [MAP_PROJ] : mapAllProjs()).flatMap(p => (COORD[p] || []).filter(r => (MAP_KIND === "all" || kindOf(r) === MAP_KIND) && mapSheetOk(r) && passMember(r, true)));
+  const html = (rows, id) => `<span class="qft">กรอง:</span>` + QF_DEFS.map(([k, label, tip, fn]) => {
+    const n = rows.filter(r => { try { return fn(r); } catch(e){ return false; } }).length;
+    return `<button type="button" role="tab" data-qf="${k}" aria-selected="${QFLT === k}" title="${esc(tip)}"${!n && QFLT !== k ? " class=\"zero\"" : ""}>${label}<span class="n">${n}</span></button>`;
+  }).join("") + (QFLT ? `<button type="button" class="qfx" data-qf="">✕ ล้างตัวกรอง</button>` : "");
+  const a = $("#qfBar"); if (a) a.innerHTML = html(tbl);
+  const b = $("#qfBarMap"); if (b && !$("#mapView").hidden){ try { b.innerHTML = html(mapScope()); } catch(e){ b.innerHTML = ""; } }
+}
+document.addEventListener("click", e => {
+  const b = e.target.closest && e.target.closest("[data-qf]");
+  if (!b || !b.closest(".qfbar")) return;
+  QFLT = QFLT === b.dataset.qf ? "" : b.dataset.qf;
+  vlog("qf", { d: QFLT || "off" });
+  renderCoord(); if (!$("#mapView").hidden) renderMap();
+});
 // ═══ มาร์คขั้นตอน (Jibli 2026-11-13) — คิดเอง ไม่ต้องกด · แยกจาก 📥 รอตรวจดราฟต์ ═══
 // 📘 เข้ารอ Draft 1 ใหม่ แต่ยังไม่ส่งคู่มือการถ่ายทำ (กล่อง Command "ส่งคู่มือการถ่ายทำ" ครบทุกชุด = มาร์คหาย)
 //    ใช้กับทุกคนที่อยู่รอ Draft 1 (แปะย้อนหลังแล้ว) · ส่งคู่มือนอกเว็บไปแล้ว = กดส่งแล้วที่กล่องคู่มือใน Command มาร์คก็หาย
@@ -26185,6 +26234,10 @@ i18nStart();
 // ⚠️ อัปเดตครั้งใหม่ = เพิ่มรายการบนสุด n+1 · คนที่ใช้ช่อง Publish เห็นตอนเปิดเวอร์ชันที่มีรายการนั้นครั้งแรก
 //    ข้ามหลายเวอร์ชัน = เห็นรวมทุกรายการที่พลาดไป · เข้าเว็บครั้งแรกในชีวิต = ไม่เด้งของเก่า (เริ่มนับจากตอนนี้)
 const RELEASE_NOTES = [
+  { n: 15, d: "13 พ.ย. 2569", t: "ตัวกรองด่วนตามงาน (ตาราง + Map)", items: [
+    ["🔎", "แถว <b>กรอง:</b> ใต้หัวตารางและใน Map — <b>✍️ รอส่งดราฟต์ · 📥 รอตรวจดราฟต์ · 🎬 รอโพสต์ · 💸 รอทำจ่าย · 📘 ยังไม่ส่งคู่มือ · 🚚 รอของถึง · ⚑ ข้อมูลยังขาด · 🔴 ค้างนาน</b>"],
+    ["🔁", "ตัวเลขบนปุ่มบอกว่ามีกี่คน · กดอีกครั้งหรือ <b>✕ ล้างตัวกรอง</b> = ดูทั้งหมด · เลือกที่ตารางแล้ว Map กับลูกศร ‹ › ใน Command ก็กรองตาม"],
+  ]},
   { n: 14, d: "13 พ.ย. 2569", t: "มาร์คขั้นตอน 📘 ยังไม่ส่งคู่มือ · 🚚 รอของถึง", items: [
     ["📘", "คนที่อยู่ <b>รอ Draft 1</b> แต่ยังไม่ได้ส่ง <b>คู่มือการถ่ายทำ</b> ขึ้นป้ายฟ้า <b>📘 ยังไม่ส่งคู่มือ</b> — กดป้าย = เปิด Command ไปที่กล่องคู่มือ · ส่งครบทุกชุดแล้วป้ายหายเอง"],
     ["🚚", "คนที่ส่งเลขพัสดุแล้ว ขึ้นป้ายส้ม <b>🚚 ส่งของแล้ว · รอของถึง</b> — กด <b>ของถึงแล้ว ✓</b> = ย้ายไปรอ Draft 1 (ถ้ายังไม่ส่งคู่มือ จะขึ้น 📘 ต่อ)"],
@@ -26323,6 +26376,8 @@ document.addEventListener("keydown", e => { if (!ST) return;
 // ขั้นสอนของแต่ละอัปเดต (คีย์ = n ใน RELEASE_NOTES) · อัปเดตที่ทีมเห็นได้ ควรมีขั้นสอนเสมอ
 const goCoord = async () => { $("#todoPop").hidden = true; if (document.body.dataset.view !== "coord") await setView("coord"); if (!$("#mapView").hidden) $("#mapView").hidden = true; };
 const RELEASE_TOURS = {
+  15: [ { pre: goCoord, sel: "#qfBar", t: "แถว <b>กรอง:</b> — กดเลือกงานที่อยากเห็น เช่น <b>📥 รอตรวจดราฟต์</b> ตารางจะเหลือแค่คนกลุ่มนั้น · กดซ้ำ = ยกเลิก" },
+        { pre: async () => { await goCoord(); openMap(); }, sel: "#qfBarMap", t: "ใน <b>Map</b> ก็มีแถวเดียวกัน — เลือกที่ไหนก็ตามกันทั้งสองหน้า" } ],
   14: [ { pre: goCoord, sel: ".stepmk.sg, .stepmk.ship, .ctable td.w-status", t: "ในช่อง <b>สถานะ</b> จะมีป้ายใหม่ 2 แบบ<br><b>📘 ยังไม่ส่งคู่มือ</b> (ฟ้า) — กดแล้วไปที่กล่องคู่มือใน Command<br><b>🚚 ส่งของแล้ว · รอของถึง</b> (ส้ม) — ของถึงแล้วกด <b>ของถึงแล้ว ✓</b>" },
         { pre: async () => { await goCoord(); openMap(); }, sel: "#mapBody", t: "ใน <b>Map</b> ป้ายเดียวกันขึ้นใต้ชื่อครีเอเตอร์ · ต่างจาก <b>📥 ดราฟต์เข้า รอตรวจ</b> ที่ต้องกดมาร์คเอง" } ],
   13: [ { pre: async () => { $("#todoPop").hidden = true; }, sel: "#acctBtn", t: "กด <b>วงชื่อของคุณ</b> มุมขวาบน" },
@@ -26490,7 +26545,7 @@ async function relHistDraw(pub, fmt){
 // ═══ เวอร์ชันของหน้า — แท็บที่เปิดค้างโค้ดเก่าต้องไม่ซิงก์ทีม ═══
 // เจอจริง 2026-10-27: แท็บเก่าดึงคีย์ใหม่ลงผิดที่ + ดันรายการที่ลบแล้วกลับขึ้นทุกนาที
 // APP_VER ประทับตอน deploy (kol-tools\stamp-version.py) · version.json คู่กันบนเซิร์ฟเวอร์ — ไม่ตรง = รีเฟรช
-const APP_VER = "20261113-053125";
+const APP_VER = "20261113-054226";
 let STALE = false;
 async function verCheck(){
   if (STALE || APP_VER === "dev") return;
@@ -26498,7 +26553,18 @@ async function verCheck(){
   //   ไม่ใช่ admin: เวอร์ชันที่ Publish ≠ ที่เปิดอยู่ = ขึ้นแถบ · admin (Beta): ไม่ขึ้น (เปิดใหม่ได้ตัวล่าสุดเองอยู่แล้ว)
   const pub = await relPublished();
   if (pub !== null){
-    if (!isBeta() && pub !== APP_VER){ STALE = true; $("#staleBar").hidden = false; vlog("stale", { d: APP_VER + "→" + pub + " (publish)" }); }
+    if (!isBeta() && pub !== APP_VER){
+      // (Jibli 2026-11-13) อัปเดตเล็ก = ไม่มีหัวข้อใหม่ในหน้า "มีอะไรใหม่" (เลข nn เท่าเดิม) → ไม่ขึ้นแถบเตือน
+      //   เปลี่ยนเงียบๆ ตอนแท็บถูกพับไว้ (ไม่ได้ดูอยู่) และไม่มีของค้างซิงก์ · อัปเดตใหญ่ = แถบเตือนเหมือนเดิม
+      let minor = false;
+      try {
+        const j = await (await fetch(relRoot() + "versions.json?x=" + Date.now(), { cache:"no-store" })).json();
+        const row = (j.versions || []).find(x => x.v === pub);
+        minor = !!row && row.nn === ((RELEASE_NOTES[0] || {}).n || 0);
+      } catch(e){}
+      if (minor){ VER_SILENT = pub; silentReload(); return; }
+      STALE = true; $("#staleBar").hidden = false; vlog("stale", { d: APP_VER + "→" + pub + " (publish)" });
+    }
     return;
   }
   try {
@@ -26512,6 +26578,14 @@ async function verCheck(){
     }
   } catch(e){}
 }
+let VER_SILENT = "";
+function silentReload(){
+  if (!VER_SILENT || !document.hidden || DIRTY || SYNCING) return;
+  vlog("stale", { d: APP_VER + "→" + VER_SILENT + " (เงียบ)" });
+  try { sessionStorage.removeItem("cf_hop"); } catch(e){}
+  location.href = relRoot() + location.hash;
+}
+document.addEventListener("visibilitychange", () => setTimeout(silentReload, 1500));
 $("#staleReload").onclick = () => { try { sessionStorage.removeItem("cf_hop"); } catch(e){} location.href = relRoot() + location.hash; };   // หน้าแรก — ตัวพาใน <head> เลือกเวอร์ชันที่ถูกให้
 setTimeout(verCheck, 20000);
 setInterval(verCheck, 3 * 60000);
