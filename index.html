@@ -23,7 +23,7 @@
   base-uri 'none';
   object-src 'none'">
 <title>Creataew — KOL Sourcing</title>
-<meta name="cf-ver" content="20261113-092133">
+<meta name="cf-ver" content="20261113-095829">
 <!-- Beta / Publish (2026-11-06): หน้าแรก = เวอร์ชันล่าสุด (admin เห็นก่อน) · คนอื่นถูกพาไป v/<เวอร์ชันที่ Publish>.html
      จำเวอร์ชันที่ Publish ไว้ในเครื่อง = พาไปได้ทันทีไม่ต้องรอเน็ต แล้วเช็คซ้ำเบื้องหลัง · ฐานข้อมูลไม่มี RPC (sandbox) = อยู่ตัวล่าสุด -->
 <script>(function(){try{
@@ -11277,14 +11277,16 @@ function tlDraft1(text){
     if (n) return n[2] === "1" && !/\d/.test(l.slice(n.index + n[0].length, n.index + n[0].length + 1));
     return /ส่ง\s*(draft|ดราฟ)|draft\s*แรก|ดราฟ\S*\s*แรก/i.test(l);
   };
-  const line = lines.find(l => isD1(l) && TL_DATE.test(l)) || lines.find(isD1);
+  // Timeline บรรทัดเดียวที่มีแค่วันที่ (เช่น "16 Nov :") = วันนัด Draft 1 — ทีมเขียนสั้นแบบนี้บ่อย
+  const only = lines.length === 1 && TL_DATE.test(lines[0]) ? lines[0] : null;
+  const line = lines.find(l => isD1(l) && TL_DATE.test(l)) || only || lines.find(isD1);
   if (!line) return null;
   // ตัดคำว่า "Draft 1" ออกก่อน — ไม่งั้นเลข 1 ของ Draft ไปถูกอ่านเป็นวันที่
   const rest = line.replace(/(draft|ดราฟ\S*)\s*#?\s*1(?!\d)/ig, " ");
   const m = rest.match(TL_DATE) || rest.match(new RegExp(`(${TL_MON})[a-z]*\\.?\\s*(\\d{1,2})(?!\\d)`, "i"));
   return { date: m ? m[0].trim() : "", line };
 }
-function cmdTimelineNote(proj, handle, b){
+function cmdTimelineNote(proj, handle, b, fromEdit){
   const body = String(b.b || b.body || (b.base && b.base.b) || "");
   if (!/\{\{\s*timeline\s*\}\}/i.test(body) && !/timeline|ไทม์ไลน์/i.test(b.t || "")) return;
   const r = (COORD[proj] || []).find(x => normId(x.handle) === normId(handle));
@@ -11295,7 +11297,8 @@ function cmdTimelineNote(proj, handle, b){
   const tag = d ? (d.date ? `📅 นัดส่ง Draft 1: ${d.date}` : `📅 นัดส่ง Draft 1: ${d.line.slice(0, 60)}`) : `📅 ส่ง Timeline แล้ว (${today}) — ยังไม่เจอวันนัดส่ง Draft 1 ในข้อความ`;
   const base = String(r.note || "").replace(/\s*(·\s*)?📅 (นัดส่ง Draft 1|ส่ง Timeline แล้ว)[^·]*/g, "").trim();
   setField(r, "note", (base ? base + " · " : "") + tag);
-  if (d && d.date && !r.deadline) setField(r, "deadline", d.date);   // ช่องกำหนดส่งยังว่าง = ใส่ให้ด้วย
+  // ช่องกำหนดส่งยังว่าง = ใส่ให้ด้วย · แก้ข้อความ Timeline ทีหลัง (fromEdit) = วันนัดใหม่แทนของเดิม
+  if (d && d.date && (!r.deadline || fromEdit) && r.deadline !== d.date) setField(r, "deadline", d.date);
   if (TEAM_MODE && isTeamProj(proj)){ clearTimeout(AUTO_T); syncCoord(false); }
   renderCoord();
   histToast(d && d.date ? `จดนัดส่ง Draft 1 (${d.date}) ลงโน้ตของ ${normId(handle)} แล้ว` : `ส่ง Timeline แล้ว — ไม่เจอวันนัดส่ง Draft 1 ในข้อความ Timeline ลองเช็กอีกที`, !(d && d.date));
@@ -13258,6 +13261,12 @@ function openCmd(proj, handle){
     function commitLink(k, v, msg){
       if (mine) setCmdOwnLink(proj, handle, k, v);
       else { CMDLINKS[k] = v; saveCmdLinks(); }
+      // (บั๊ก 2026-11-13) กดส่งกล่อง Timeline ไปก่อนกรอกข้อความ → จดว่า "ยังไม่เจอวันนัด" แล้วไม่อ่านอีก
+      //   ตอนนี้: บันทึกช่อง Timeline เมื่อไหร่ ถ้ากล่อง Timeline ส่งแล้ว = อ่านวันนัดใหม่ จดลงโน้ต + กำหนดส่ง (ขึ้นชีตด้วย)
+      if (k === "timeline" && v) try {
+        const blk = cmdBlocksFor(proj, handle).find(b => /timeline|ไทม์ไลน์/i.test(b.t || "") && isSent(proj, handle, b.id, 1));
+        if (blk) cmdTimelineNote(proj, handle, blk, true);
+      } catch(e){}
       renderCoord();
       const wasOpen = !$("#linkBox").hidden;
       openCmd(proj, handle);
@@ -26743,7 +26752,7 @@ async function relHistDraw(pub, fmt){
 // ═══ เวอร์ชันของหน้า — แท็บที่เปิดค้างโค้ดเก่าต้องไม่ซิงก์ทีม ═══
 // เจอจริง 2026-10-27: แท็บเก่าดึงคีย์ใหม่ลงผิดที่ + ดันรายการที่ลบแล้วกลับขึ้นทุกนาที
 // APP_VER ประทับตอน deploy (kol-tools\stamp-version.py) · version.json คู่กันบนเซิร์ฟเวอร์ — ไม่ตรง = รีเฟรช
-const APP_VER = "20261113-092133";
+const APP_VER = "20261113-095829";
 let STALE = false;
 async function verCheck(){
   if (STALE || APP_VER === "dev") return;
