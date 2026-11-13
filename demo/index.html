@@ -11511,7 +11511,13 @@ const TL_MON = "ม\\.?ค\\.?|ก\\.?พ\\.?|มี\\.?ค\\.?|เม\\.?ย\\.
 const TL_DATE = new RegExp(`(\\d{1,2})\\s*[/.-]\\s*(\\d{1,2})(?:\\s*[/.-]\\s*(\\d{2,4}))?|(\\d{1,2})\\s*(${TL_MON})[a-z]*\\.?(?:\\s*(\\d{2,4}))?`, "i");
 function tlDraft1(text){
   const lines = String(text || "").split(/\n/).map(x => x.trim()).filter(Boolean);
-  const isD1 = l => /(draft|ดราฟ|ดราฟท์|ดราฟต์)\s*#?\s*1(?!\d)|ส่ง\s*(draft|ดราฟ)|draft\s*แรก|ดราฟ\S*\s*แรก/i.test(l);
+  // มีเลขรอบดราฟต์ในบรรทัด = ต้องเป็นรอบ 1 เท่านั้น (เดิม "ส่งดราฟ 2" หลุดมาเป็น Draft 1 ได้ — แก้ 2026-11-13)
+  // ไม่มีเลข = "ส่งดราฟ" เฉยๆ / "ดราฟแรก" นับเป็นรอบ 1
+  const isD1 = l => {
+    const n = l.match(/(draft|ดราฟ\S*)\s*#?\s*(\d)/i);
+    if (n) return n[2] === "1" && !/\d/.test(l.slice(n.index + n[0].length, n.index + n[0].length + 1));
+    return /ส่ง\s*(draft|ดราฟ)|draft\s*แรก|ดราฟ\S*\s*แรก/i.test(l);
+  };
   const line = lines.find(l => isD1(l) && TL_DATE.test(l)) || lines.find(isD1);
   if (!line) return null;
   // ตัดคำว่า "Draft 1" ออกก่อน — ไม่งั้นเลข 1 ของ Draft ไปถูกอ่านเป็นวันที่
