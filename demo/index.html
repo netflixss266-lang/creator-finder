@@ -3307,6 +3307,17 @@ html[data-no-assign] select.asg{pointer-events:none;opacity:.55}
 .mapleafwrap.drin .mapleaf{border-color:var(--accent);background:rgba(var(--accent-rgb),.10)}
 .mapleafwrap.drin .mapst{border-color:var(--accent)}
 .mapleaf .drtag{font-size:.68rem;font-weight:600;color:var(--accent)}
+/* ‹ › ย้อนกลับ / ไปข้างหน้า — ลอยมุมซ้ายบน เหนือทุกแผง · กันรอยบาก/ขอบจอมือถือด้วย safe-area */
+.navhist{position:fixed;z-index:15000;top:calc(env(safe-area-inset-top, 0px) + 8px);left:calc(env(safe-area-inset-left, 0px) + 8px);
+  display:flex;gap:2px;padding:3px;border-radius:12px;background:var(--surface);border:1px solid var(--line);box-shadow:0 4px 14px rgba(0,0,0,.12)}
+.navhist button{width:32px;height:30px;border:0;border-radius:9px;background:none;color:var(--ink);font:inherit;font-size:1.25rem;font-weight:700;line-height:1;
+  cursor:pointer;touch-action:manipulation;-webkit-tap-highlight-color:transparent}
+.navhist button:hover:not(:disabled){background:var(--surface2)}
+.navhist button:active:not(:disabled){background:var(--accent);color:var(--accent-ink)}
+.navhist button:disabled{opacity:.3;cursor:default}
+header{padding-left:calc(env(safe-area-inset-left, 0px) + 92px)!important}
+#mapView .maphead, #settings .modal-head, #pipePanel > :first-child, #prosPanel > :first-child{padding-left:84px!important}
+@media (pointer:coarse){ .navhist button{width:40px;height:38px} header{padding-left:calc(env(safe-area-inset-left, 0px) + 104px)!important} }
 /* ✨ โหมดเรียบง่าย (Beta) */
 #navBar .simpleonly{display:none}
 body[data-simple] #navBar .simpleonly{display:inline-flex}
@@ -3972,6 +3983,12 @@ html.demo .dm-b:hover{filter:blur(5px)}
 </head>
 <body>
 
+<!-- ‹ › ย้อนกลับ / ไปข้างหน้า (2026-11-13) — ใช้ประวัติของเบราว์เซอร์ จึงตรงกับปุ่ม back ของ Android · ปัดย้อนของ iOS/Mac
+     · ปุ่มเมาส์/Alt+← → ของ Windows · ⌘[ ⌘] ของ Mac — ทุกทางพาไปที่เดียวกัน -->
+<div class="navhist" id="navHist" role="group" aria-label="ย้อนกลับ / ไปข้างหน้า">
+  <button type="button" id="navBack" aria-label="ย้อนกลับ" title="ย้อนกลับ (Alt+← · ⌘[ · ปัดขวา)" disabled>‹</button>
+  <button type="button" id="navFwd" aria-label="ไปข้างหน้า" title="ไปข้างหน้า (Alt+→ · ⌘] · ปัดซ้าย)" disabled>›</button>
+</div>
 <header>
   <button class="brand" id="brandBtn" title="กลับหน้าแรก">
     <svg class="mark" viewBox="0 0 32 32" aria-hidden="true">
@@ -15915,6 +15932,82 @@ async function doLogout(){
 }
 
 $("#closeCmd").onclick = () => { $("#cmdPanel").classList.remove("on"); CMD_JUMPED = ""; };
+// ═══ ‹ › ย้อนกลับ / ไปข้างหน้า ทุกขั้นตอน (2026-11-13) ═══
+// จดว่า "ตอนนี้อยู่ตรงไหน" (หน้า · โปรเจกต์ · Map · Command ของใคร · ลิ้นชัก · ตั้งค่า · Pipeline · คัดเลือก)
+// ทุกครั้งที่เปลี่ยน = เพิ่มลงประวัติของเบราว์เซอร์ (pushState) → ปุ่ม back/forward ของเครื่องทุกแบบใช้ได้ด้วย
+// ย้อน = popstate → พากลับไปสภาพนั้น (ไม่โหลดหน้าใหม่ ข้อมูลที่แก้ค้างไม่หาย)
+const NAV = { i: 0, max: 0, last: "", busy: false, on: false };
+function navSnap(){
+  const on = id => { const el = document.getElementById(id); return !!el && !el.hidden; };
+  return {
+    v: document.body.dataset.view || "", p: PROJ || "", mine: !!MINE_VIEW,
+    map: $("#mapView").hidden ? null : (MAP_PROJ || "*"),
+    cmd: $("#cmdPanel").classList.contains("on") && CMD_NOW ? CMD_NOW.proj + "|" + CMD_NOW.handle : null,
+    det: $("#detailPanel").classList.contains("on") && DETAIL ? DETAIL.proj + "|" + DETAIL.handle : null,
+    set: on("settings"), pipe: on("pipePanel"), pros: on("prosPanel"),
+  };
+}
+const navSig = s => JSON.stringify(s);
+function navBtns(){
+  const b = $("#navBack"), f = $("#navFwd"); if (!b) return;
+  b.disabled = NAV.i <= 0; f.disabled = NAV.i >= NAV.max;
+}
+function navCheck(){
+  if (!NAV.on || NAV.busy) return;
+  const s = navSnap(), k = navSig(s);
+  if (k === NAV.last) return;
+  NAV.last = k; NAV.i++; NAV.max = NAV.i;
+  try { history.pushState({ cfnav: s, i: NAV.i }, "", location.href); } catch(e){}
+  navBtns();
+}
+function navStart(){
+  if (NAV.on) return;
+  NAV.on = true; const s = navSnap(); NAV.last = navSig(s);
+  try { history.replaceState({ cfnav: s, i: 0 }, "", location.href); } catch(e){}
+  navBtns();
+}
+async function navApply(s){
+  const keyOf = (pk) => { const i = pk.lastIndexOf("|"); return [pk.slice(0, i), pk.slice(i + 1)]; };
+  if (s.v && s.v !== document.body.dataset.view) await setView(s.v);
+  if (s.v === "coord"){
+    let re = false;
+    if (!!s.mine !== !!MINE_VIEW){ MINE_VIEW = !!s.mine; re = true; }
+    if (s.p && s.p !== PROJ && PROJECTS.includes(s.p)){ PROJ = s.p; re = true; }
+    if (re){ renderProjTabs(); renderCoord(); }
+  }
+  // Map
+  if (!s.map && !$("#mapView").hidden){ $("#mapView").hidden = true; measureStick(); }
+  else if (s.map && ($("#mapView").hidden || (MAP_PROJ || "*") !== s.map)) openMap(s.map === "*" ? null : s.map);
+  // แผงเต็มจอ
+  if (!s.set && !$("#settings").hidden) closeSettings(); else if (s.set && $("#settings").hidden) openSettings();
+  if (!s.pipe && !$("#pipePanel").hidden){ $("#pipePanel").hidden = true; $("#ppDrawer").hidden = true; } else if (s.pipe && $("#pipePanel").hidden) try { openPipe(); } catch(e){}
+  if (!s.pros && !$("#prosPanel").hidden) $("#prosPanel").hidden = true; else if (s.pros && $("#prosPanel").hidden) try { openPros(); } catch(e){}
+  // ลิ้นชักรายละเอียด
+  if (!s.det){ if ($("#detailPanel").classList.contains("on")) closeDetail(); }
+  else { const [pj, h] = keyOf(s.det); const i = (COORD[pj] || []).findIndex(r => normId(r.handle) === h); if (i >= 0) openDetail(pj, i); }
+  // Command
+  if (!s.cmd){ if ($("#cmdPanel").classList.contains("on")){ $("#cmdPanel").classList.remove("on"); CMD_JUMPED = ""; } }
+  else { const [pj, h] = keyOf(s.cmd); if (!$("#cmdPanel").classList.contains("on") || !CMD_NOW || CMD_NOW.proj !== pj || normId(CMD_NOW.handle) !== normId(h)) openCmd(pj, h); }
+}
+addEventListener("popstate", async e => {
+  const st = e.state; if (!st || !st.cfnav) return;
+  NAV.busy = true;
+  try { await navApply(st.cfnav); } catch(err){ console.warn("nav", err); }
+  NAV.i = st.i || 0; NAV.last = navSig(navSnap()); NAV.busy = false;
+  navBtns();
+});
+// เช็กหลังทุกการกด/คีย์ — ตัวจัดการของปุ่มนั้นๆ ทำงานเสร็จก่อน (setTimeout) แล้วค่อยดูว่าสภาพเปลี่ยนไหม
+["click", "keyup", "change"].forEach(ev => document.addEventListener(ev, () => setTimeout(navCheck, 80)));
+$("#navBack").onclick = e => { e.stopPropagation(); if (NAV.i > 0) history.back(); };
+$("#navFwd").onclick = e => { e.stopPropagation(); if (NAV.i < NAV.max) history.forward(); };
+// Mac: ⌘[ / ⌘] (Safari/Chrome บน Mac ไม่ได้ผูกให้ทุกตัว) · Windows: Alt+← → เบราว์เซอร์ทำเองอยู่แล้ว
+document.addEventListener("keydown", e => {
+  if (!e.metaKey || e.altKey || e.ctrlKey) return;
+  const a = document.activeElement;
+  if (a && (a.tagName === "INPUT" || a.tagName === "TEXTAREA" || a.isContentEditable)) return;
+  if (e.key === "[" ){ e.preventDefault(); $("#navBack").click(); }
+  else if (e.key === "]"){ e.preventDefault(); $("#navFwd").click(); }
+});
 // โหมดเรียบง่าย: เปิด Command คนใหม่ = เลื่อนไปที่กล่อง 👉 ควรส่งต่อ ให้เลย (คนเดิมที่วาดใหม่ไม่เลื่อน)
 let SIMPLE_LAST = "";
 // (2) พับกล่องที่ไกลจากขั้นปัจจุบัน — เห็นแค่ 👉 ควรส่งต่อ + 2 กล่องถัดไป · ชิปในแถบ "ไปที่กล่อง" ยังกดไปได้ทุกกล่อง (กดแล้วกางทั้งหมด)
@@ -26674,6 +26767,10 @@ i18nStart();
 // ⚠️ อัปเดตครั้งใหม่ = เพิ่มรายการบนสุด n+1 · คนที่ใช้ช่อง Publish เห็นตอนเปิดเวอร์ชันที่มีรายการนั้นครั้งแรก
 //    ข้ามหลายเวอร์ชัน = เห็นรวมทุกรายการที่พลาดไป · เข้าเว็บครั้งแรกในชีวิต = ไม่เด้งของเก่า (เริ่มนับจากตอนนี้)
 const RELEASE_NOTES = [
+  { n: 17, d: "13 พ.ย. 2569", t: "‹ › ปุ่มย้อนกลับ / ไปข้างหน้า ทุกหน้า", items: [
+    ["‹", "มุมซ้ายบนมีปุ่ม <b>‹ ย้อนกลับ</b> · <b>› ไปข้างหน้า</b> ทุกหน้า — ย้อนได้ทั้งหน้า · Map · Command ของใคร · ลิ้นชัก ⤢ · ตั้งค่า"],
+    ["📱", "ใช้ทางลัดของเครื่องได้ด้วย: <b>Android</b> ปุ่ม back · <b>iPhone/iPad</b> ปัดจากขอบซ้าย · <b>Mac</b> ⌘[ ⌘] หรือปัดทัชแพด · <b>Windows</b> Alt+← → หรือปุ่มข้างเมาส์"],
+  ]},
   { n: 16, d: "13 พ.ย. 2569", t: "✨ โหมดเรียบง่าย — หน้าตาใหม่ ใช้ง่ายขึ้น", items: [
     ["🧭", "หัวเว็บเหลือ 4 ปุ่ม: <b>Coordinator · 📋 วันนี้ต้องทำ · ◈ Map · ⋯ เพิ่มเติม</b> (หน้าแรก ค้นหา ตรวจดราฟต์ แชต คำสั่งด่วน อยู่ใน ⋯) · เปิดเว็บมาเจอตารางงานเลย"],
     ["✉", "เปิด <b>Command</b> แล้วเลื่อนไปกล่อง 👉 ที่ควรส่งต่อให้เอง · เห็นแค่กล่องนั้น + 2 กล่องถัดไป ที่เหลือกด <b>▾ ดูกล่องอื่นทั้งหมด</b>"],
@@ -26822,6 +26919,7 @@ document.addEventListener("keydown", e => { if (!ST) return;
 // ขั้นสอนของแต่ละอัปเดต (คีย์ = n ใน RELEASE_NOTES) · อัปเดตที่ทีมเห็นได้ ควรมีขั้นสอนเสมอ
 const goCoord = async () => { $("#todoPop").hidden = true; if (document.body.dataset.view !== "coord") await setView("coord"); if (!$("#mapView").hidden) $("#mapView").hidden = true; };
 const RELEASE_TOURS = {
+  17: [ { pre: goCoord, sel: "#navHist", t: "ปุ่ม <b>‹</b> ย้อนกลับไปหน้าก่อน · <b>›</b> ไปข้างหน้า — ใช้ได้ทุกหน้า รวมถึงตอนเปิด Map / Command" } ],
   16: [ { pre: goCoord, sel: "#navBar", t: "หัวเว็บเหลือปุ่มหลัก 4 ปุ่ม — ของอื่นทั้งหมดอยู่ใน <b>⋯ เพิ่มเติม</b>" },
         { pre: goCoord, sel: "#tblFiltBtn", t: "ตัวกรองทั้งหมดอยู่ในปุ่ม <b>⚙ ตัวกรอง ▾</b> · คีย์ลัด <b>L</b> = KOL · <b>C</b> = KOC" } ],
   15: [ { pre: async () => { await goCoord(); document.body.dataset.tblf = "1"; }, sel: "#qfBar", t: "แถว <b>กรอง:</b> — กดเลือกงานที่อยากเห็น เช่น <b>📥 รอตรวจดราฟต์</b> ตารางจะเหลือแค่คนกลุ่มนั้น · กดซ้ำ = ยกเลิก" },
@@ -27255,6 +27353,7 @@ requireLogin().then(async () => {
   if (isCrew() && !lsGet(LS_TOUR)) await openCoach();
   await setView(last);
   if (document.body.dataset.view !== last) await setView("home");
+  navStart();
 });
 </script>
 </body>
