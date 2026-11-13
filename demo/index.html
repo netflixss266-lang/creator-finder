@@ -5781,7 +5781,8 @@ let HIDDEN_EX = 0;      // ถูกตัดเพราะอยู่ใน�
 let HIDDEN_BL = 0;      // ถูกซ่อนเพราะติด Blacklist
 // (2026-11-06) คลังกลาง (owner ว่าง) ไม่ขึ้นในรายการ — แต่ละบัญชีเห็นคลังส่วนตัวของตัวเอง · คนใหม่เริ่มที่ 0
 // ค้นคนในคลังกลางได้ด้วย Ctrl+F (แผ่นข้อมูลย่อ) · ฐานข้อมูลที่ยังไม่มีคลังส่วนตัว (sandbox) = โชว์ทุกคนเหมือนเดิม
-const POOL_PRIV_ONLY = () => TEAM_MODE && OWN_READY === true;
+// (Jibli 2026-11-13) เปิดคลังกลางให้ค้นได้ในหน้าค้นหาแล้ว — เห็นคลังกลาง + คลังส่วนตัว (มีป้าย 🔒) รวมกัน
+const POOL_PRIV_ONLY = () => false;
 const poolVisN = () => POOL_PRIV_ONLY() ? POOL.filter(p => p.priv).length : POOL.length;
 let HIDDEN_SHARED = 0;
 // ── ซ่อนคนที่เปิดแล้ว ──
