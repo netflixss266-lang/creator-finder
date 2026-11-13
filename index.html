@@ -23,7 +23,7 @@
   base-uri 'none';
   object-src 'none'">
 <title>Creataew — KOL Sourcing</title>
-<meta name="cf-ver" content="20261113-060921">
+<meta name="cf-ver" content="20261113-062636">
 <!-- Beta / Publish (2026-11-06): หน้าแรก = เวอร์ชันล่าสุด (admin เห็นก่อน) · คนอื่นถูกพาไป v/<เวอร์ชันที่ Publish>.html
      จำเวอร์ชันที่ Publish ไว้ในเครื่อง = พาไปได้ทันทีไม่ต้องรอเน็ต แล้วเช็คซ้ำเบื้องหลัง · ฐานข้อมูลไม่มี RPC (sandbox) = อยู่ตัวล่าสุด -->
 <script>(function(){try{
@@ -3808,7 +3808,7 @@ details.fold[data-fold="crit"],#critBar{display:none!important}
   <button type="button" class="mi" role="menuitem" data-am="settings"><span class="ic">⚙</span>ตั้งค่าเว็บ</button>
   <button type="button" class="mi" role="menuitem" data-am="lang"><span class="ic">🌐</span>Language<span class="rt langsw"><b data-lg="th">TH</b> · <b data-lg="en">EN</b></span></button>
   <label class="mi mirow"><span class="ic">A</span>ขนาดตัวอักษร<select id="uiSel" class="uisel" aria-label="ขนาดตัวอักษร"></select></label>
-  <button type="button" class="mi" role="menuitem" data-am="simple" id="amSimple" hidden><span class="ic">✨</span>โหมดเรียบง่าย (Beta)<span class="rt" id="amSimpleSt">ปิด</span></button>
+  <button type="button" class="mi" role="menuitem" data-am="simple" id="amSimple" hidden><span class="ic">✨</span>โหมดเรียบง่าย<span class="rt" id="amSimpleSt">ปิด</span></button>
   <button type="button" class="mi" role="menuitem" data-am="tour"><span class="ic">📖</span>คู่มือการใช้งาน</button>
   <button type="button" class="mi" role="menuitem" data-am="news"><span class="ic">🆕</span>มีอะไรใหม่</button>
   <div class="sep"></div>
@@ -20486,18 +20486,19 @@ function closeAcctMenu(){
 //   4) ซ่อนของที่ใช้เฉพาะหน้าค้นหาครีเอเตอร์ (pool / ตะกร้า / แหล่งข้อมูล) ตอนอยู่หน้างาน
 // เปิด/ปิดได้ที่เมนูบัญชี · จำต่อเครื่อง · ปิด = กลับหน้าตาเดิมทุกอย่าง
 const LS_SIMPLE = "cf_simple_v1";
-let SIMPLE = false;
-try { SIMPLE = lsGet(LS_SIMPLE) === "1"; } catch(e){}
+// (Jibli 2026-11-13) เปิดใช้ทุกคนแล้ว — ค่าเริ่มต้น = เปิด · ใครปิดเองในเมนูบัญชี เครื่องนั้นจำว่าปิด
+let SIMPLE = true;
+try { SIMPLE = lsGet(LS_SIMPLE) !== "0"; } catch(e){}
 function simpleApply(){
-  const ok = SIMPLE && (PROFILE || {}).role === "admin";
+  const ok = SIMPLE;
   if (ok) document.body.dataset.simple = "1"; else delete document.body.dataset.simple;
-  const b = $("#amSimple"); if (b) b.hidden = (PROFILE || {}).role !== "admin";
+  const b = $("#amSimple"); if (b) b.hidden = false;
   const st = $("#amSimpleSt"); if (st) st.textContent = ok ? "เปิด" : "ปิด";
 }
 function simpleSet(on){
   SIMPLE = !!on; try { lsSet(LS_SIMPLE, SIMPLE ? "1" : "0"); } catch(e){}
   simpleApply(); vlog("simple", { d: SIMPLE ? "on" : "off" });
-  acctToast(SIMPLE ? "✨ เปิดโหมดเรียบง่าย (Beta) — หัวเว็บเหลือปุ่มหลัก ที่เหลืออยู่ใน ⋯ เพิ่มเติม" : "ปิดโหมดเรียบง่าย — กลับหน้าตาเดิม");
+  acctToast(SIMPLE ? "✨ เปิดโหมดเรียบง่าย — หัวเว็บเหลือปุ่มหลัก ที่เหลืออยู่ใน ⋯ เพิ่มเติม" : "ปิดโหมดเรียบง่าย — กลับหน้าตาเต็ม (เปิดคืนได้ที่เมนูบัญชี)");
 }
 $("#mapFiltBtn").onclick = () => { if (document.body.dataset.mapf) delete document.body.dataset.mapf; else document.body.dataset.mapf = "1"; };
 // ตาราง: ปุ่มเดียวกัน กาง/พับ แถวตัวกรอง · ตัวเลขบนปุ่ม = มีตัวกรองเปิดอยู่กี่อัน (พับอยู่ก็รู้ว่ากำลังกรอง)
@@ -26410,6 +26411,12 @@ i18nStart();
 // ⚠️ อัปเดตครั้งใหม่ = เพิ่มรายการบนสุด n+1 · คนที่ใช้ช่อง Publish เห็นตอนเปิดเวอร์ชันที่มีรายการนั้นครั้งแรก
 //    ข้ามหลายเวอร์ชัน = เห็นรวมทุกรายการที่พลาดไป · เข้าเว็บครั้งแรกในชีวิต = ไม่เด้งของเก่า (เริ่มนับจากตอนนี้)
 const RELEASE_NOTES = [
+  { n: 16, d: "13 พ.ย. 2569", t: "✨ โหมดเรียบง่าย — หน้าตาใหม่ ใช้ง่ายขึ้น", items: [
+    ["🧭", "หัวเว็บเหลือ 4 ปุ่ม: <b>Coordinator · 📋 วันนี้ต้องทำ · ◈ Map · ⋯ เพิ่มเติม</b> (หน้าแรก ค้นหา ตรวจดราฟต์ แชต คำสั่งด่วน อยู่ใน ⋯) · เปิดเว็บมาเจอตารางงานเลย"],
+    ["✉", "เปิด <b>Command</b> แล้วเลื่อนไปกล่อง 👉 ที่ควรส่งต่อให้เอง · เห็นแค่กล่องนั้น + 2 กล่องถัดไป ที่เหลือกด <b>▾ ดูกล่องอื่นทั้งหมด</b>"],
+    ["🗂", "ใบใน Map ขึ้นป้ายสำคัญสุดอันเดียว ที่เหลือเป็น <b>+N</b> (ชี้ค้างดู) · ตารางแก้ได้แค่สถานะกับเรท ช่องอื่นแก้ที่ ⤢ · เมนูสถานะเหลือขั้นที่ใช้จริง"],
+    ["↩", "อยากได้หน้าตาเต็มแบบเดิม: วงชื่อมุมขวาบน → <b>✨ โหมดเรียบง่าย</b> กดปิดได้"],
+  ]},
   { n: 15, d: "13 พ.ย. 2569", t: "ตัวกรองด่วนตามงาน (ตาราง + Map)", items: [
     ["🔎", "แถว <b>กรอง:</b> ใต้หัวตารางและใน Map — <b>✍️ รอส่งดราฟต์ · 📥 รอตรวจดราฟต์ · 🎬 รอโพสต์ · 💸 รอทำจ่าย · 📘 ยังไม่ส่งคู่มือ · 🚚 รอของถึง · ⚑ ข้อมูลยังขาด · 🔴 ค้างนาน</b>"],
     ["🔁", "ตัวเลขบนปุ่มบอกว่ามีกี่คน · กดอีกครั้งหรือ <b>✕ ล้างตัวกรอง</b> = ดูทั้งหมด · เลือกที่ตารางแล้ว Map กับลูกศร ‹ › ใน Command ก็กรองตาม"],
@@ -26553,6 +26560,9 @@ document.addEventListener("keydown", e => { if (!ST) return;
 // ขั้นสอนของแต่ละอัปเดต (คีย์ = n ใน RELEASE_NOTES) · อัปเดตที่ทีมเห็นได้ ควรมีขั้นสอนเสมอ
 const goCoord = async () => { $("#todoPop").hidden = true; if (document.body.dataset.view !== "coord") await setView("coord"); if (!$("#mapView").hidden) $("#mapView").hidden = true; };
 const RELEASE_TOURS = {
+  16: [ { pre: goCoord, sel: "#navBar", t: "หัวเว็บเหลือปุ่มหลัก 4 ปุ่ม — ของอื่นทั้งหมดอยู่ใน <b>⋯ เพิ่มเติม</b>" },
+        { pre: goCoord, sel: "#tblFiltBtn", t: "ตัวกรองทั้งหมดอยู่ในปุ่ม <b>⚙ ตัวกรอง ▾</b> · คีย์ลัด <b>L</b> = KOL · <b>C</b> = KOC" },
+        { pre: async () => { $("#acctMenu").hidden && $("#acctBtn").click(); }, sel: "#amSimple", t: "อยากได้หน้าตาเต็มแบบเดิม กดปิด <b>✨ โหมดเรียบง่าย</b> ตรงนี้ได้เลย" } ],
   15: [ { pre: async () => { await goCoord(); document.body.dataset.tblf = "1"; }, sel: "#qfBar", t: "แถว <b>กรอง:</b> — กดเลือกงานที่อยากเห็น เช่น <b>📥 รอตรวจดราฟต์</b> ตารางจะเหลือแค่คนกลุ่มนั้น · กดซ้ำ = ยกเลิก" },
         { pre: async () => { await goCoord(); openMap(); }, sel: "#qfBarMap", t: "ใน <b>Map</b> ก็มีแถวเดียวกัน — เลือกที่ไหนก็ตามกันทั้งสองหน้า" } ],
   14: [ { pre: goCoord, sel: ".stepmk.sg, .stepmk.ship, .ctable td.w-status", t: "ในช่อง <b>สถานะ</b> จะมีป้ายใหม่ 2 แบบ<br><b>📘 ยังไม่ส่งคู่มือ</b> (ฟ้า) — กดแล้วไปที่กล่องคู่มือใน Command<br><b>🚚 ส่งของแล้ว · รอของถึง</b> (ส้ม) — ของถึงแล้วกด <b>ของถึงแล้ว ✓</b>" },
@@ -26722,7 +26732,7 @@ async function relHistDraw(pub, fmt){
 // ═══ เวอร์ชันของหน้า — แท็บที่เปิดค้างโค้ดเก่าต้องไม่ซิงก์ทีม ═══
 // เจอจริง 2026-10-27: แท็บเก่าดึงคีย์ใหม่ลงผิดที่ + ดันรายการที่ลบแล้วกลับขึ้นทุกนาที
 // APP_VER ประทับตอน deploy (kol-tools\stamp-version.py) · version.json คู่กันบนเซิร์ฟเวอร์ — ไม่ตรง = รีเฟรช
-const APP_VER = "20261113-060921";
+const APP_VER = "20261113-062636";
 let STALE = false;
 async function verCheck(){
   if (STALE || APP_VER === "dev") return;
