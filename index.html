@@ -23,7 +23,7 @@
   base-uri 'none';
   object-src 'none'">
 <title>Creataew — KOL Sourcing</title>
-<meta name="cf-ver" content="20261113-060307">
+<meta name="cf-ver" content="20261113-060921">
 <!-- Beta / Publish (2026-11-06): หน้าแรก = เวอร์ชันล่าสุด (admin เห็นก่อน) · คนอื่นถูกพาไป v/<เวอร์ชันที่ Publish>.html
      จำเวอร์ชันที่ Publish ไว้ในเครื่อง = พาไปได้ทันทีไม่ต้องรอเน็ต แล้วเช็คซ้ำเบื้องหลัง · ฐานข้อมูลไม่มี RPC (sandbox) = อยู่ตัวล่าสุด -->
 <script>(function(){try{
@@ -3089,6 +3089,13 @@ body[data-simple][data-view="coord"] .poolstat, body[data-simple][data-view="coo
 .morepop button{display:flex;align-items:center;gap:6px;text-align:left;background:none;border:0;padding:7px 10px;border-radius:7px;font:inherit;color:var(--ink);cursor:pointer}
 .morepop button:hover{background:var(--surface2)}
 .morepop .nbadge{margin-left:auto}
+/* ⚙ ตัวกรองในตาราง (2026-11-13) */
+.filtbtn .n{margin-left:5px;font-size:.68rem;font-weight:800;background:var(--accent);color:var(--accent-ink);border-radius:999px;padding:0 6px}
+.filtbtn .n:empty{display:none}
+.filtbtn.on{border-color:var(--accent);color:var(--accent)}
+body:not([data-tblf]) #coordView #kindSeg, body:not([data-tblf]) #coordView #memSeg, body:not([data-tblf]) #coordView #qfBar{display:none!important}
+body[data-tblf] #tblFiltBtn{background:var(--accent);color:var(--accent-ink)}
+body[data-tblf] #tblFiltBtn .n{background:var(--accent-ink);color:var(--accent)}
 /* ✨ โหมดเรียบง่าย รอบ 2 */
 body[data-simple] #cmdBody .cmdblk.far{display:none}
 .cmdfoldbar{display:block;width:100%;margin:6px 0 12px;padding:9px;border:1.5px dashed var(--line);border-radius:10px;background:none;
@@ -4320,6 +4327,7 @@ details.fold[data-fold="crit"],#critBar{display:none!important}
     <div class="tabs sub" id="projTabs" role="tablist"></div>
   </div>
   <div class="coord-head2">
+    <button type="button" class="mapbtn filtbtn" id="tblFiltBtn" title="กลุ่ม KOL/KOC (L / C) · ผู้ดูแล · กรองตามงาน">⚙ ตัวกรอง ▾<span class="n" id="tblFiltN"></span></button>
     <div class="tabs sub kindseg" id="kindSeg" role="tablist"></div>
     <!-- โหมดทีม: กรองตามผู้ดูแลแถว (เฉพาะโปรเจกต์ทีม) -->
     <div class="tabs sub memseg" id="memSeg" role="tablist" hidden></div>
@@ -8380,10 +8388,11 @@ let KINDSEG = "all";     // ทั้งหมด / KOL / KOC ในโปรเ
 // โหมดย่อ — ซ่อน โพสต์/กำหนดส่ง/บรีฟ/โน้ต ให้ที่เหลือพอดีจอ 1280 โดยไม่ต้องเลื่อนขวา
 // ตั้งเป็นค่าตั้งต้น เพราะ 4 ช่องนั้นแตะน้อยกว่าเรทกับสถานะมาก และยังแก้ได้ครบในลิ้นชัก
 const LS_LEAN = "cf_lean_v1";
-let LEAN = true;
-try { const v = lsGet(LS_LEAN); if (v !== null) LEAN = v === "1"; } catch(e){}
+// (Jibli 2026-11-13) ทุกคอลัมน์เสมอ — ไม่มีแท็บให้เลือกแล้ว · ซ่อนคอลัมน์รายตัวยังทำได้ที่ ☰ จัดคอลัมน์
+let LEAN = false;
 
 function renderColSeg(){
+  $("#colSeg").innerHTML = ""; $("#colSeg").hidden = true; return;
   $("#colSeg").innerHTML = [[true,"คอลัมน์หลัก"],[false,"ทุกคอลัมน์"]].map(([v,label]) =>
     `<button role="tab" data-lean="${v}" aria-selected="${v === LEAN}"
        title="${v ? "ซ่อน โพสต์/กำหนดส่ง/บรีฟ/โน้ต — กด ⤢ ท้ายชื่อเพื่อดูและแก้ครบ"
@@ -9571,6 +9580,7 @@ if (TEAM_MODE) $("#coordBody").addEventListener("click", e => {
 
 function renderCoord(){
   renderKindSeg(); renderColSeg(); renderMemSeg(); renderCoordModes(); try { renderQF(); } catch(e){}
+  try { const n = filtCount(); $("#tblFiltN").textContent = n ? String(n) : ""; $("#tblFiltBtn").classList.toggle("on", !!n); } catch(e){}
   if (TEAM_MODE && TEAM && MINE_VIEW){ document.body.dataset.mine = "1"; return renderMine(); }
   delete document.body.dataset.mine;
   if (TEAM_MODE) document.body.dataset.sheet = sheetOf(PROJ); else delete document.body.dataset.sheet;
@@ -20490,6 +20500,17 @@ function simpleSet(on){
   acctToast(SIMPLE ? "✨ เปิดโหมดเรียบง่าย (Beta) — หัวเว็บเหลือปุ่มหลัก ที่เหลืออยู่ใน ⋯ เพิ่มเติม" : "ปิดโหมดเรียบง่าย — กลับหน้าตาเดิม");
 }
 $("#mapFiltBtn").onclick = () => { if (document.body.dataset.mapf) delete document.body.dataset.mapf; else document.body.dataset.mapf = "1"; };
+// ตาราง: ปุ่มเดียวกัน กาง/พับ แถวตัวกรอง · ตัวเลขบนปุ่ม = มีตัวกรองเปิดอยู่กี่อัน (พับอยู่ก็รู้ว่ากำลังกรอง)
+$("#tblFiltBtn").onclick = () => { if (document.body.dataset.tblf) delete document.body.dataset.tblf; else document.body.dataset.tblf = "1"; };
+function filtCount(){
+  let n = 0;
+  if (KINDSEG !== "all") n++;
+  if (TEAM_MODE && typeof MEMSEG !== "undefined" && MEMSEG !== "all") n++;
+  if (QFLT) n++;
+  for (const f in COLFILTER) if (COLFILTER[f].length) n++;
+  for (const f in COLTEXT) if (COLTEXT[f] && (COLTEXT[f].text || COLTEXT[f].mode)) n++;
+  return n;
+}
 $("#mapNavBtn").onclick = async () => { if (document.body.dataset.view !== "coord") await setView("coord"); openMap(MINE_VIEW ? null : PROJ); };
 $("#moreNavBtn").onclick = e => {
   e.stopPropagation();
@@ -23118,6 +23139,25 @@ document.addEventListener("keydown", e => {
   if (!DIRTY) return histToast("ไม่มีอะไรค้างรอซิงก์", true);
   syncCoord(true);
 });
+// ── L = KOL · C = KOC (Jibli 2026-11-13) — กดซ้ำ = กลับทั้งหมด · ตาราง + Map ใช้ชุดเดียวกัน ──
+// แป้นไทย: L = ส · C = แ
+document.addEventListener("keydown", e => {
+  if (e.ctrlKey || e.metaKey || e.altKey || e.shiftKey || e.repeat) return;
+  const k = e.code === "KeyL" || /^[lLส]$/.test(e.key) ? "KOL" : e.code === "KeyC" || /^[cCแ]$/.test(e.key) ? "KOC" : "";
+  if (!k) return;
+  const a = document.activeElement;
+  if (a && (a.tagName === "INPUT" || a.tagName === "TEXTAREA" || a.tagName === "SELECT" || a.isContentEditable)) return;
+  if (!$("#lockView").hidden || !$("#coachView").hidden) return;
+  if (document.body.dataset.view !== "coord") return;
+  const cover = ["#fmtPanel", "#projPanel", "#addPanel", "#settings"].some(s => $(s) && !$(s).hidden)
+    || ["#detailPanel", "#cmdPanel"].some(s => $(s) && $(s).classList.contains("on"))
+    || !!document.querySelector(".fpop") || !$("#qFind").hidden;
+  if (cover) return;
+  e.preventDefault();
+  KINDSEG = KINDSEG === k ? "all" : k; MAP_KIND = KINDSEG;
+  renderCoord(); if (!$("#mapView").hidden) renderMap();
+  histToast(KINDSEG === "all" ? "ดูทั้งหมด (KOL + KOC)" : `ดูเฉพาะ ${KINDSEG} — กด ${KINDSEG === "KOL" ? "L" : "C"} อีกครั้งเพื่อดูทั้งหมด`);
+});
 // ── M เปิด/ปิดแผนผังของโปรเจกต์ที่เปิดอยู่ ──
 // แป้นเดียวไม่มีตัวกด — ต้องไม่แย่งตอนพิมพ์ ไม่งั้นพิมพ์ชื่อที่มีตัว m ไม่ได้
 // ⚠️ e.code ด้วย — แป้นไทยส่ง e.key เป็น "ท"
@@ -24831,8 +24871,7 @@ function applyQuickOrder(){
       case "goto":    PROJ = q.proj; break;
       case "migrate": after = migrateStatuses; break;
       case "filter":  clearFilters(); break;
-      case "cols":    LEAN = !LEAN;
-        try { lsSet(LS_LEAN, LEAN ? "1" : "0"); } catch(e){} break;
+      case "cols":    LEAN = false; break;          // (2026-11-13) ทุกคอลัมน์เสมอ
       case "setting": after = openSettings; break;
       case "export":  after = () => $("#coordExport").click(); break;
       case "reload":  after = () => $("#coordReload").click(); break;
@@ -26374,6 +26413,7 @@ const RELEASE_NOTES = [
   { n: 15, d: "13 พ.ย. 2569", t: "ตัวกรองด่วนตามงาน (ตาราง + Map)", items: [
     ["🔎", "แถว <b>กรอง:</b> ใต้หัวตารางและใน Map — <b>✍️ รอส่งดราฟต์ · 📥 รอตรวจดราฟต์ · 🎬 รอโพสต์ · 💸 รอทำจ่าย · 📘 ยังไม่ส่งคู่มือ · 🚚 รอของถึง · ⚑ ข้อมูลยังขาด · 🔴 ค้างนาน</b>"],
     ["🔁", "ตัวเลขบนปุ่มบอกว่ามีกี่คน · กดอีกครั้งหรือ <b>✕ ล้างตัวกรอง</b> = ดูทั้งหมด · เลือกที่ตารางแล้ว Map กับลูกศร ‹ › ใน Command ก็กรองตาม"],
+    ["⚙", "ในตาราง แถวตัวกรองพับอยู่ใต้ปุ่ม <b>⚙ ตัวกรอง ▾</b> (ตัวเลขบนปุ่ม = กรองอยู่กี่อัน) · ตารางโชว์ทุกคอลัมน์เสมอ · คีย์ลัด <b>L</b> = KOL · <b>C</b> = KOC (กดซ้ำ = ทั้งหมด)"],
   ]},
   { n: 14, d: "13 พ.ย. 2569", t: "มาร์คขั้นตอน 📘 ยังไม่ส่งคู่มือ · 🚚 รอของถึง", items: [
     ["📘", "คนที่อยู่ <b>รอ Draft 1</b> แต่ยังไม่ได้ส่ง <b>คู่มือการถ่ายทำ</b> ขึ้นป้ายฟ้า <b>📘 ยังไม่ส่งคู่มือ</b> — กดป้าย = เปิด Command ไปที่กล่องคู่มือ · ส่งครบทุกชุดแล้วป้ายหายเอง"],
@@ -26513,7 +26553,7 @@ document.addEventListener("keydown", e => { if (!ST) return;
 // ขั้นสอนของแต่ละอัปเดต (คีย์ = n ใน RELEASE_NOTES) · อัปเดตที่ทีมเห็นได้ ควรมีขั้นสอนเสมอ
 const goCoord = async () => { $("#todoPop").hidden = true; if (document.body.dataset.view !== "coord") await setView("coord"); if (!$("#mapView").hidden) $("#mapView").hidden = true; };
 const RELEASE_TOURS = {
-  15: [ { pre: goCoord, sel: "#qfBar", t: "แถว <b>กรอง:</b> — กดเลือกงานที่อยากเห็น เช่น <b>📥 รอตรวจดราฟต์</b> ตารางจะเหลือแค่คนกลุ่มนั้น · กดซ้ำ = ยกเลิก" },
+  15: [ { pre: async () => { await goCoord(); document.body.dataset.tblf = "1"; }, sel: "#qfBar", t: "แถว <b>กรอง:</b> — กดเลือกงานที่อยากเห็น เช่น <b>📥 รอตรวจดราฟต์</b> ตารางจะเหลือแค่คนกลุ่มนั้น · กดซ้ำ = ยกเลิก" },
         { pre: async () => { await goCoord(); openMap(); }, sel: "#qfBarMap", t: "ใน <b>Map</b> ก็มีแถวเดียวกัน — เลือกที่ไหนก็ตามกันทั้งสองหน้า" } ],
   14: [ { pre: goCoord, sel: ".stepmk.sg, .stepmk.ship, .ctable td.w-status", t: "ในช่อง <b>สถานะ</b> จะมีป้ายใหม่ 2 แบบ<br><b>📘 ยังไม่ส่งคู่มือ</b> (ฟ้า) — กดแล้วไปที่กล่องคู่มือใน Command<br><b>🚚 ส่งของแล้ว · รอของถึง</b> (ส้ม) — ของถึงแล้วกด <b>ของถึงแล้ว ✓</b>" },
         { pre: async () => { await goCoord(); openMap(); }, sel: "#mapBody", t: "ใน <b>Map</b> ป้ายเดียวกันขึ้นใต้ชื่อครีเอเตอร์ · ต่างจาก <b>📥 ดราฟต์เข้า รอตรวจ</b> ที่ต้องกดมาร์คเอง" } ],
@@ -26682,7 +26722,7 @@ async function relHistDraw(pub, fmt){
 // ═══ เวอร์ชันของหน้า — แท็บที่เปิดค้างโค้ดเก่าต้องไม่ซิงก์ทีม ═══
 // เจอจริง 2026-10-27: แท็บเก่าดึงคีย์ใหม่ลงผิดที่ + ดันรายการที่ลบแล้วกลับขึ้นทุกนาที
 // APP_VER ประทับตอน deploy (kol-tools\stamp-version.py) · version.json คู่กันบนเซิร์ฟเวอร์ — ไม่ตรง = รีเฟรช
-const APP_VER = "20261113-060307";
+const APP_VER = "20261113-060921";
 let STALE = false;
 async function verCheck(){
   if (STALE || APP_VER === "dev") return;
