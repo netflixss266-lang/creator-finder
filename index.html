@@ -23,7 +23,7 @@
   base-uri 'none';
   object-src 'none'">
 <title>Creataew — KOL Sourcing</title>
-<meta name="cf-ver" content="20261113-041256">
+<meta name="cf-ver" content="20261113-053125">
 <!-- Beta / Publish (2026-11-06): หน้าแรก = เวอร์ชันล่าสุด (admin เห็นก่อน) · คนอื่นถูกพาไป v/<เวอร์ชันที่ Publish>.html
      จำเวอร์ชันที่ Publish ไว้ในเครื่อง = พาไปได้ทันทีไม่ต้องรอเน็ต แล้วเช็คซ้ำเบื้องหลัง · ฐานข้อมูลไม่มี RPC (sandbox) = อยู่ตัวล่าสุด -->
 <script>(function(){try{
@@ -13983,7 +13983,7 @@ function drAutoMark(r, st){
 const drOk = r => !!r && DR_STAGES.has(r.status || "");
 // ═══ มาร์คขั้นตอน (Jibli 2026-11-13) — คิดเอง ไม่ต้องกด · แยกจาก 📥 รอตรวจดราฟต์ ═══
 // 📘 เข้ารอ Draft 1 ใหม่ แต่ยังไม่ส่งคู่มือการถ่ายทำ (กล่อง Command "ส่งคู่มือการถ่ายทำ" ครบทุกชุด = มาร์คหาย)
-//    นับเฉพาะคนที่เข้าขั้นนี้ตั้งแต่ 13 พ.ย. 2569 — คนที่รอ Draft 1 อยู่ก่อนแล้วไม่ขึ้น (ส่วนใหญ่ส่งคู่มือนอกเว็บไปแล้ว)
+//    ใช้กับทุกคนที่อยู่รอ Draft 1 (แปะย้อนหลังแล้ว) · ส่งคู่มือนอกเว็บไปแล้ว = กดส่งแล้วที่กล่องคู่มือใน Command มาร์คก็หาย
 // 🚚 ส่งเลขพัสดุแล้ว รอของถึง (มีเลขพัสดุ หรือส่งกล่อง "อัปเดตเลขที่จัดส่ง" แล้ว) · กด "ของถึงแล้ว" = ย้ายไปรอ Draft 1 → ได้ 📘 ต่อ
 const SG_LAUNCH = Date.parse("2026-11-13T00:00:00+07:00");
 const cmdBlockId = re => String(CMD_BLOCKS.findIndex(b => re.test(b.t)));
@@ -13993,8 +13993,9 @@ function guideSent(r){
   for (let c = 1; c <= clipCount(r); c++) if (!isSent(r.project, r.handle, id, c)) return false;
   return true;
 }
-const sgPending = r => !!r && r.status === "Waiting Draft 1" && !isCancelled(r)
-  && (Date.parse(r._sat) || 0) >= SG_LAUNCH && !guideSent(r);
+// (Jibli 2026-11-13) แปะย้อนหลังทุกคนที่อยู่รอ Draft 1 — เดิมนับเฉพาะคนที่เข้าตั้งแต่ SG_LAUNCH
+//   ยกเว้นคนที่ดราฟต์เข้าแล้ว (มาร์ค 📥) — ได้ดราฟต์มาแล้วแปลว่าได้คู่มือไปแล้วแน่ๆ
+const sgPending = r => !!r && r.status === "Waiting Draft 1" && !isCancelled(r) && !drMark(r) && !guideSent(r);
 const SHIP_PRE = new Set(["Confirmed", "Waiting Delivery", "Sent Tracking", "Already Delivered"]);
 const shipPending = r => !!r && SHIP_PRE.has(r.status || "") && !isCancelled(r) && (!!String(r.tracking || "").trim()
   || (cmdBlockId(/^อัปเดตเลขที่จัดส่ง/) !== "-1" && isSent(r.project, r.handle, cmdBlockId(/^อัปเดตเลขที่จัดส่ง/), 1)));
@@ -26185,7 +26186,7 @@ i18nStart();
 //    ข้ามหลายเวอร์ชัน = เห็นรวมทุกรายการที่พลาดไป · เข้าเว็บครั้งแรกในชีวิต = ไม่เด้งของเก่า (เริ่มนับจากตอนนี้)
 const RELEASE_NOTES = [
   { n: 14, d: "13 พ.ย. 2569", t: "มาร์คขั้นตอน 📘 ยังไม่ส่งคู่มือ · 🚚 รอของถึง", items: [
-    ["📘", "คนที่เพิ่งเข้า <b>รอ Draft 1</b> แต่ยังไม่ได้ส่ง <b>คู่มือการถ่ายทำ</b> ขึ้นป้ายฟ้า <b>📘 ยังไม่ส่งคู่มือ</b> — กดป้าย = เปิด Command ไปที่กล่องคู่มือ · ส่งครบทุกชุดแล้วป้ายหายเอง"],
+    ["📘", "คนที่อยู่ <b>รอ Draft 1</b> แต่ยังไม่ได้ส่ง <b>คู่มือการถ่ายทำ</b> ขึ้นป้ายฟ้า <b>📘 ยังไม่ส่งคู่มือ</b> — กดป้าย = เปิด Command ไปที่กล่องคู่มือ · ส่งครบทุกชุดแล้วป้ายหายเอง"],
     ["🚚", "คนที่ส่งเลขพัสดุแล้ว ขึ้นป้ายส้ม <b>🚚 ส่งของแล้ว · รอของถึง</b> — กด <b>ของถึงแล้ว ✓</b> = ย้ายไปรอ Draft 1 (ถ้ายังไม่ส่งคู่มือ จะขึ้น 📘 ต่อ)"],
     ["📥", "แยกจาก <b>📥 ดราฟต์เข้า · รอตรวจ</b> ชัดๆ — คนละสี คนละความหมาย ขึ้นทั้งในตาราง Map และหัว Command"],
   ]},
@@ -26489,7 +26490,7 @@ async function relHistDraw(pub, fmt){
 // ═══ เวอร์ชันของหน้า — แท็บที่เปิดค้างโค้ดเก่าต้องไม่ซิงก์ทีม ═══
 // เจอจริง 2026-10-27: แท็บเก่าดึงคีย์ใหม่ลงผิดที่ + ดันรายการที่ลบแล้วกลับขึ้นทุกนาที
 // APP_VER ประทับตอน deploy (kol-tools\stamp-version.py) · version.json คู่กันบนเซิร์ฟเวอร์ — ไม่ตรง = รีเฟรช
-const APP_VER = "20261113-041256";
+const APP_VER = "20261113-053125";
 let STALE = false;
 async function verCheck(){
   if (STALE || APP_VER === "dev") return;
