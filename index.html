@@ -23,7 +23,7 @@
   base-uri 'none';
   object-src 'none'">
 <title>Creataew — KOL Sourcing</title>
-<meta name="cf-ver" content="20261113-054226">
+<meta name="cf-ver" content="20261113-055105">
 <!-- Beta / Publish (2026-11-06): หน้าแรก = เวอร์ชันล่าสุด (admin เห็นก่อน) · คนอื่นถูกพาไป v/<เวอร์ชันที่ Publish>.html
      จำเวอร์ชันที่ Publish ไว้ในเครื่อง = พาไปได้ทันทีไม่ต้องรอเน็ต แล้วเช็คซ้ำเบื้องหลัง · ฐานข้อมูลไม่มี RPC (sandbox) = อยู่ตัวล่าสุด -->
 <script>(function(){try{
@@ -3079,6 +3079,16 @@ html[data-no-assign] select.asg{pointer-events:none;opacity:.55}
 .mapleafwrap.drin .mapleaf{border-color:var(--accent);background:rgba(var(--accent-rgb),.10)}
 .mapleafwrap.drin .mapst{border-color:var(--accent)}
 .mapleaf .drtag{font-size:.68rem;font-weight:600;color:var(--accent)}
+/* ✨ โหมดเรียบง่าย (Beta) */
+#navBar .simpleonly{display:none}
+body[data-simple] #navBar .simpleonly{display:inline-flex}
+body[data-simple] #navBar [data-go="home"], body[data-simple] #navBar [data-go="find"], body[data-simple] #navBar [data-go="review"],
+body[data-simple] #navBar #qoNavBtn, body[data-simple] #navBar #openNavBtn, body[data-simple] #navBar #chatNavBtn, body[data-simple] #navBar #pipeNavBtn{display:none!important}
+body[data-simple][data-view="coord"] .poolstat, body[data-simple][data-view="coord"] #srcChip, body[data-simple][data-view="coord"] #cartBtn, body[data-simple][data-view="coord"] #foldBtn{display:none!important}
+.morepop{display:grid;gap:2px;padding:6px;min-width:220px;background:var(--surface);border:1px solid var(--line);border-radius:10px;box-shadow:0 8px 24px rgba(0,0,0,.25)}
+.morepop button{display:flex;align-items:center;gap:6px;text-align:left;background:none;border:0;padding:7px 10px;border-radius:7px;font:inherit;color:var(--ink);cursor:pointer}
+.morepop button:hover{background:var(--surface2)}
+.morepop .nbadge{margin-left:auto}
 /* ตัวกรองด่วน (2026-11-13) */
 .qfbar{display:flex;flex-wrap:wrap;align-items:center;gap:5px;margin:4px 0 8px}
 .qfbar:empty{display:none}
@@ -3709,6 +3719,8 @@ details.fold[data-fold="crit"],#critBar{display:none!important}
     <button type="button" id="chatNavBtn" class="teamonly" aria-expanded="false" aria-controls="chatPanel">💬 แชตทีม<span class="nbadge" id="chatBadge" hidden></span></button>
     <button type="button" id="qoNavBtn" class="teamonly" aria-expanded="false" aria-controls="qoPop">⚡ คำสั่งด่วน</button>
     <button type="button" id="openNavBtn" class="teamonly" aria-expanded="false" aria-controls="openPop">🔗 เปิดโปรไฟล์</button>
+    <button type="button" id="mapNavBtn" class="simpleonly" title="Map ของโปรเจกต์ที่เปิดอยู่">◈ Map</button>
+    <button type="button" id="moreNavBtn" class="simpleonly" aria-expanded="false">⋯ เพิ่มเติม</button>
   </nav>
   <div class="hgroup">
     <button class="gear" id="foldBtn" aria-expanded="true"
@@ -3768,6 +3780,7 @@ details.fold[data-fold="crit"],#critBar{display:none!important}
   <button type="button" class="mi" role="menuitem" data-am="settings"><span class="ic">⚙</span>ตั้งค่าเว็บ</button>
   <button type="button" class="mi" role="menuitem" data-am="lang"><span class="ic">🌐</span>Language<span class="rt langsw"><b data-lg="th">TH</b> · <b data-lg="en">EN</b></span></button>
   <label class="mi mirow"><span class="ic">A</span>ขนาดตัวอักษร<select id="uiSel" class="uisel" aria-label="ขนาดตัวอักษร"></select></label>
+  <button type="button" class="mi" role="menuitem" data-am="simple" id="amSimple" hidden><span class="ic">✨</span>โหมดเรียบง่าย (Beta)<span class="rt" id="amSimpleSt">ปิด</span></button>
   <button type="button" class="mi" role="menuitem" data-am="tour"><span class="ic">📖</span>คู่มือการใช้งาน</button>
   <button type="button" class="mi" role="menuitem" data-am="news"><span class="ic">🆕</span>มีอะไรใหม่</button>
   <div class="sep"></div>
@@ -15586,6 +15599,15 @@ async function doLogout(){
 }
 
 $("#closeCmd").onclick = () => { $("#cmdPanel").classList.remove("on"); CMD_JUMPED = ""; };
+// โหมดเรียบง่าย: เปิด Command คนใหม่ = เลื่อนไปที่กล่อง 👉 ควรส่งต่อ ให้เลย (คนเดิมที่วาดใหม่ไม่เลื่อน)
+let SIMPLE_LAST = "";
+new MutationObserver(() => {
+  if (!document.body.dataset.simple || !CMD_NOW || !$("#cmdPanel").classList.contains("on")) return;
+  const key = CMD_NOW.proj + "|" + CMD_NOW.handle;
+  if (key === SIMPLE_LAST) return;
+  const rec = $("#cmdJump button.rec"); if (!rec) return;
+  SIMPLE_LAST = key; setTimeout(() => rec.click(), 60);
+}).observe(document.getElementById("cmdBody") || document.body, { childList: true });
 function voiceRedraw(){
   renderVoiceBtn();
   if (CMD_NOW && $("#cmdPanel").classList.contains("on") && !CMD_EDITING){
@@ -20368,6 +20390,40 @@ function closeAcctMenu(){
   m.hidden = true;
   $("#acctBtn").setAttribute("aria-expanded", "false");
 }
+// ═══ ✨ โหมดเรียบง่าย (Beta · admin ลองก่อน · 2026-11-13) ═══
+// จากข้อมูลการใช้งาน 30 วัน: งานหลักคือ ตาราง/Map → Command → คัดลอกข้อความ · ปุ่มอื่นในหัวเว็บแทบไม่มีคนกด
+//   1) หัวเว็บเหลือ 4 ปุ่มหลัก: Coordinator · ◈ Map · 📋 วันนี้ต้องทำ · 🗂 คัดเลือก — ที่เหลือย้ายไป "⋯ เพิ่มเติม"
+//   2) เปิดเว็บมาเจอตารางงานเลย (ไม่ผ่านหน้าแรก)
+//   3) เปิด Command แล้วเลื่อนไปกล่องที่ "ควรส่งต่อ" (👉) ให้เอง — ไม่ต้องไล่หา
+//   4) ซ่อนของที่ใช้เฉพาะหน้าค้นหาครีเอเตอร์ (pool / ตะกร้า / แหล่งข้อมูล) ตอนอยู่หน้างาน
+// เปิด/ปิดได้ที่เมนูบัญชี · จำต่อเครื่อง · ปิด = กลับหน้าตาเดิมทุกอย่าง
+const LS_SIMPLE = "cf_simple_v1";
+let SIMPLE = false;
+try { SIMPLE = lsGet(LS_SIMPLE) === "1"; } catch(e){}
+function simpleApply(){
+  const ok = SIMPLE && (PROFILE || {}).role === "admin";
+  if (ok) document.body.dataset.simple = "1"; else delete document.body.dataset.simple;
+  const b = $("#amSimple"); if (b) b.hidden = (PROFILE || {}).role !== "admin";
+  const st = $("#amSimpleSt"); if (st) st.textContent = ok ? "เปิด" : "ปิด";
+}
+function simpleSet(on){
+  SIMPLE = !!on; try { lsSet(LS_SIMPLE, SIMPLE ? "1" : "0"); } catch(e){}
+  simpleApply(); vlog("simple", { d: SIMPLE ? "on" : "off" });
+  acctToast(SIMPLE ? "✨ เปิดโหมดเรียบง่าย (Beta) — หัวเว็บเหลือปุ่มหลัก ที่เหลืออยู่ใน ⋯ เพิ่มเติม" : "ปิดโหมดเรียบง่าย — กลับหน้าตาเดิม");
+}
+$("#mapNavBtn").onclick = async () => { if (document.body.dataset.view !== "coord") await setView("coord"); openMap(MINE_VIEW ? null : PROJ); };
+$("#moreNavBtn").onclick = e => {
+  e.stopPropagation();
+  document.getElementById("morePop")?.remove();
+  const pop = document.createElement("div"); pop.id = "morePop"; pop.className = "fpop morepop";
+  const items = [...document.querySelectorAll("#navBar > button:not(.simpleonly)")].filter(b => !b.hidden && getComputedStyle(b).display === "none");
+  pop.innerHTML = `<div class="fhead">เพิ่มเติม</div>` + items.map((b, i) => `<button type="button" data-more="${i}">${b.innerHTML}</button>`).join("");
+  document.body.appendChild(pop);
+  const r = e.currentTarget.getBoundingClientRect();
+  pop.style.cssText = `position:fixed;z-index:9600;top:${r.bottom + 4}px;left:${Math.max(8, Math.min(innerWidth - 240, r.left))}px`;
+  pop.onclick = ev => { const x = ev.target.closest("[data-more]"); if (!x) return; pop.remove(); items[+x.dataset.more].click(); };
+  setTimeout(() => document.addEventListener("click", function c(ev){ if (!pop.contains(ev.target)){ pop.remove(); document.removeEventListener("click", c); } }));
+};
 $("#acctBtn").onclick = e => { e.stopPropagation(); $("#acctMenu").hidden ? openAcctMenu() : closeAcctMenu(); };
 $("#acctMenu").onclick = e => {
   const b = e.target.closest("[data-am]");
@@ -20375,6 +20431,7 @@ $("#acctMenu").onclick = e => {
   const k = b.dataset.am;
   if (k === "ui"){ cycleUI(); return; }          // เมนูค้างไว้ กดสลับได้หลายครั้ง
   if (k === "lang"){ setLang(LANG === "en" ? "th" : "en"); return; }
+  if (k === "simple"){ simpleSet(!SIMPLE); return; }
   closeAcctMenu();
   if (k === "profile") openSettings("acct");
   else if (k === "settings") openSettings("web");
@@ -25493,6 +25550,7 @@ function applyPerms(){
   FEATS.forEach(f => de.toggleAttribute("data-no-" + f.k, !can(f.k)));
 }
 function applyRole(){
+  try { simpleApply(); } catch(e){}
   if (isCrew()) document.body.dataset.crew = "1";
   else delete document.body.dataset.crew;
   const de = document.documentElement;
@@ -26545,7 +26603,7 @@ async function relHistDraw(pub, fmt){
 // ═══ เวอร์ชันของหน้า — แท็บที่เปิดค้างโค้ดเก่าต้องไม่ซิงก์ทีม ═══
 // เจอจริง 2026-10-27: แท็บเก่าดึงคีย์ใหม่ลงผิดที่ + ดันรายการที่ลบแล้วกลับขึ้นทุกนาที
 // APP_VER ประทับตอน deploy (kol-tools\stamp-version.py) · version.json คู่กันบนเซิร์ฟเวอร์ — ไม่ตรง = รีเฟรช
-const APP_VER = "20261113-054226";
+const APP_VER = "20261113-055105";
 let STALE = false;
 async function verCheck(){
   if (STALE || APP_VER === "dev") return;
@@ -26810,6 +26868,7 @@ requireLogin().then(async () => {
     setTimeout(chatInit, 5000); }
   startLiveWarn();           // แจ้งเตือนก่อนไลฟ์ ทำงานทุกหน้า
   applyRole();                  // ต้องรู้สิทธิ์ก่อนวาดอะไร ไม่งั้นปุ่มที่กดไม่ได้จะโผล่แวบนึง
+  simpleApply();
   if (ACCT_NOTE){ acctToast(ACCT_NOTE); ACCT_NOTE = ""; }
   if (TEAM_MODE) tsPull(true).then(() => setTimeout(migrateSentTracking, 1500));   // ลิงก์/ข้อมูล Command ของทีม · แล้วย้าย Sent Tracking ย้อนหลัง
   await selectSheet();          // โหลด Creator Pool จาก Supabase
@@ -26817,6 +26876,7 @@ requireLogin().then(async () => {
   try { last = lsGet(LS_VIEW) || "home"; } catch(e){}
   if (!["find","coord","home","review"].includes(last) || (last === "review" && !TEAM_MODE)) last = "home";
   if (last === "find" && !can("find")) last = "home";
+  if (document.body.dataset.simple && last === "home") last = "coord";
   // คนสมัครเองไม่มีใครสอน — กางคู่มือให้ก่อนตั้งแต่ยังไม่เจอประตูรหัส Coordinator
   if (isCrew() && !lsGet(LS_TOUR)) await openCoach();
   await setView(last);
