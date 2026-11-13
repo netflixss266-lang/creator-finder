@@ -3317,6 +3317,27 @@ body[data-simple][data-view="coord"] .poolstat, body[data-simple][data-view="coo
 .morepop button{display:flex;align-items:center;gap:6px;text-align:left;background:none;border:0;padding:7px 10px;border-radius:7px;font:inherit;color:var(--ink);cursor:pointer}
 .morepop button:hover{background:var(--surface2)}
 .morepop .nbadge{margin-left:auto}
+/* ✨ โหมดเรียบง่าย รอบ 2 */
+body[data-simple] #cmdBody .cmdblk.far{display:none}
+.cmdfoldbar{display:block;width:100%;margin:6px 0 12px;padding:9px;border:1.5px dashed var(--line);border-radius:10px;background:none;
+  color:var(--dim);font:inherit;font-size:.8rem;cursor:pointer}
+.cmdfoldbar:hover{border-color:var(--accent);color:var(--accent)}
+body[data-simple] .mapleaf .tagfar{display:none!important}
+.tagmore{display:inline-block;margin-left:4px;font-size:.62rem;font-weight:700;color:var(--dim);background:var(--surface2);border-radius:999px;padding:0 5px;vertical-align:1px;cursor:help}
+/* ตาราง: แก้ได้แค่สถานะกับเรท · ช่องอื่นอ่านอย่างเดียว (แก้ผ่าน ⤢) */
+body[data-simple] #coordBody td input[data-f]:not([data-f="rate"]),
+body[data-simple] #coordBody td select[data-f]:not([data-f="status"]){pointer-events:none;border-color:transparent!important;background:transparent!important;-webkit-appearance:none;appearance:none}
+body[data-simple] #coordBody .skuadd, body[data-simple] #coordBody .skuchip button, body[data-simple] #coordBody td.w-asg select{display:none}
+/* Map: แถวเดียว — ที่เหลืออยู่ใน ⚙ ตัวกรอง */
+body[data-simple]:not([data-mapf]) #mapView #mapKind, body[data-simple]:not([data-mapf]) #mapView #qfBarMap,
+body[data-simple]:not([data-mapf]) #mapView #mapMem, body[data-simple]:not([data-mapf]) #mapView #mapFmt,
+body[data-simple]:not([data-mapf]) #mapView #mapOnline{display:none!important}
+body[data-simple][data-mapf] #mapFiltBtn{background:var(--accent);color:var(--accent-ink)}
+#mapView .simpleonly{display:none} body[data-simple] #mapView .simpleonly{display:inline-flex}
+/* Format ขอเรท เด่นขึ้น */
+body[data-simple] #fmtBtn, body[data-simple] #mapFmtBtn{background:var(--accent);color:var(--accent-ink);border-color:var(--accent);font-weight:700}
+/* ของที่แทบไม่มีคนใช้ */
+body[data-simple] #voiceBtn, body[data-simple] #acctMenu [data-am="lang"]{display:none!important}
 /* ตัวกรองด่วน (2026-11-13) */
 .qfbar{display:flex;flex-wrap:wrap;align-items:center;gap:5px;margin:4px 0 8px}
 .qfbar:empty{display:none}
@@ -4596,6 +4617,7 @@ html.demo .dm-b:hover{filter:blur(5px)}
       </div>
       <div class="tabs sub" id="mapTabs" role="tablist"></div>
       <!-- KOL กับ KOC เดินคนละกระบวนการแล้ว (11 บล็อก vs 15) ดูรวมกันบางทีก็ไม่ตอบอะไร -->
+      <button type="button" class="mapbtn simpleonly" id="mapFiltBtn" title="กลุ่ม KOL/KOC · งานหลัก/ชั่วคราว · กรองตามงาน · ผู้ดูแล · รูปแบบ">⚙ ตัวกรอง ▾</button>
       <div class="tabs sub mapkind" id="mapKind" role="tablist"></div>
       <div class="qfbar" id="qfBarMap" role="tablist" aria-label="กรองตามงาน"></div>
       <!-- โหมดทีม: กรองตามผู้ดูแล — ชุดเดียวกับเหนือตาราง -->
@@ -6909,13 +6931,25 @@ function statusOptions(cur){
   const legacy = LEGACY_STATUS.filter(v => v === cur);   // โชว์เฉพาะตัวที่แถวนี้ใช้อยู่จริง
   // ยกเลิกแยกกลุ่มไว้ท้ายสุด ไม่ปนกับลำดับขั้น — มันไม่ใช่ขั้นถัดไปของใคร
   // และไม่มีเลขนำหน้า เพราะเลขในเมนูนี้แปลว่า "ขั้นที่เท่าไหร่ของเส้นทาง"
+  // ✨ โหมดเรียบง่าย: เหลือขั้นหลัก + ขั้นที่มีคนอยู่จริงตอนนี้ (เลขขั้นเดิม ไม่เลื่อน)
+  const simple = typeof document !== "undefined" && document.body && document.body.dataset.simple;
+  const used = simple ? stUsedNow() : null;
   return `<option value=""${!cur ? " selected" : ""}>— ยังไม่เริ่ม —</option>` +
-    STAGES.map((s, i) => one(s.v, s.show || s.v, i + 1)).join("") +
+    STAGES.map((s, i) => !simple || s.v === cur || ST_CORE.has(s.v) || used.has(s.v) ? one(s.v, s.show || s.v, i + 1) : "").join("") +
     `<optgroup label="ออกจากงาน">${one(ST_CANCEL, ST_CANCEL, 0)}</optgroup>` +
     (legacy.length ? `<optgroup label="ค่าเดิมในชีต">${
       legacy.map(v => one(v, ST_TH[v] || v, 0)).join("")}</optgroup>` : "");
 }
 
+const ST_CORE = new Set(["Waiting Confirm", "Confirmed", "Waiting Delivery", "Waiting Draft 1", "Waiting PM Feedback Draft 1",
+  "Waiting Draft 2", "Waiting PM Feedback Draft 2", "Waiting Draft 3", "Waiting to Post", "Already Posted", "Waiting Gencode", "Waiting Payment", "Already Submitted Payment"]);
+let ST_USED = null, ST_USED_AT = 0;
+function stUsedNow(){
+  if (ST_USED && Date.now() - ST_USED_AT < 30000) return ST_USED;
+  ST_USED = new Set(); ST_USED_AT = Date.now();
+  try { for (const p in COORD) for (const r of COORD[p] || []) if (r.status) ST_USED.add(r.status); } catch(e){}
+  return ST_USED;
+}
 // สีของงาน — กวาดตาดูคอลัมน์เดียวรู้เลยว่าใครทำอะไร
 const CODE_CLASS = { B:"j-b", E:"j-e", L:"j-l", F:"j-f", C:"j-c" };
 function codeClass(code){
@@ -13926,8 +13960,24 @@ function openMap(proj){
   renderMap();
 }
 
+// (2) ป้ายบนใบ — เรียงความสำคัญ: 📘/🚚 ขั้นตอน > 📥📝💸🎬 มาร์ค > 🔷 รอ PM > 🤝/🏖 งานฝาก > 📅 วัน
+function simpleLeafTags(){
+  if (!document.body.dataset.simple) return;
+  const ORDER = [".stepmk", ".drtag", ".pmtag", ".homini", ".shipd"];
+  document.querySelectorAll("#mapBody .mapleaf").forEach(leaf => {
+    leaf.querySelectorAll(".tagmore").forEach(x => x.remove());
+    const tags = ORDER.flatMap(sel => [...leaf.querySelectorAll(sel)]);
+    if (tags.length < 2) return;
+    tags.forEach((t, i) => t.classList.toggle("tagfar", i > 0));
+    const more = document.createElement("span"); more.className = "tagmore";
+    more.textContent = "+" + (tags.length - 1);
+    more.title = tags.slice(1).map(t => t.textContent.replace(/\s+/g, " ").trim()).join("\n");
+    tags[0].after(more);
+  });
+}
 function renderMap(){
   loadLaw();
+  setTimeout(simpleLeafTags);
   setTimeout(() => { try { renderQF(); } catch(e){} });
   // โหมดทีม: แท็บชุดเดียวกับหน้าตาราง — ★ งานของฉัน (ทุกโปรเจกต์ กรองเฉพาะที่ฉันดูแล) · 👥 = งานทีม
   const mineTab = TEAM_MODE && TEAM ? [["__mine", "★ งานของฉัน"]] : [];
@@ -15842,9 +15892,33 @@ async function doLogout(){
 $("#closeCmd").onclick = () => { $("#cmdPanel").classList.remove("on"); CMD_JUMPED = ""; };
 // โหมดเรียบง่าย: เปิด Command คนใหม่ = เลื่อนไปที่กล่อง 👉 ควรส่งต่อ ให้เลย (คนเดิมที่วาดใหม่ไม่เลื่อน)
 let SIMPLE_LAST = "";
+// (2) พับกล่องที่ไกลจากขั้นปัจจุบัน — เห็นแค่ 👉 ควรส่งต่อ + 2 กล่องถัดไป · ชิปในแถบ "ไปที่กล่อง" ยังกดไปได้ทุกกล่อง (กดแล้วกางทั้งหมด)
+function simpleFoldCmd(){
+  const body = $("#cmdBody"); if (!body) return;
+  body.querySelectorAll(".cmdfoldbar").forEach(x => x.remove());
+  if (!document.body.dataset.simple || body.dataset.showall) { body.querySelectorAll(".cmdblk.far").forEach(x => x.classList.remove("far")); return; }
+  const blks = [...body.querySelectorAll(".cmdblk[data-j]")]; if (blks.length < 5) return;
+  const rec = body.querySelector(".cmdblk .cmdrectag"); const recEl = rec ? rec.closest(".cmdblk") : blks.find(b => !b.classList.contains("sent")) || blks[0];
+  const at = blks.indexOf(recEl);
+  let far = 0;
+  blks.forEach((b, i) => { const keep = i >= at && i <= at + 2; b.classList.toggle("far", !keep); if (!keep) far++; });
+  if (!far) return;
+  const bar = document.createElement("button"); bar.type = "button"; bar.className = "cmdfoldbar";
+  bar.textContent = `▾ ดูกล่องอื่นทั้งหมด (${far}) — ตอนนี้เห็นเฉพาะกล่องที่ควรส่งต่อ + 2 กล่องถัดไป`;
+  bar.onclick = () => { body.dataset.showall = "1"; simpleFoldCmd(); };
+  const last = blks[Math.min(blks.length - 1, at + 2)]; last.after(bar);
+}
+document.addEventListener("click", e => {
+  const c = e.target.closest && e.target.closest("#cmdJump [data-jump]");
+  if (!c || !document.body.dataset.simple) return;
+  const el = $(`#cmdBody .cmdblk[data-j="${c.dataset.jump}"]`);
+  if (el && el.classList.contains("far")){ $("#cmdBody").dataset.showall = "1"; simpleFoldCmd(); }
+}, true);
 new MutationObserver(() => {
   if (!document.body.dataset.simple || !CMD_NOW || !$("#cmdPanel").classList.contains("on")) return;
   const key = CMD_NOW.proj + "|" + CMD_NOW.handle;
+  if (key !== SIMPLE_LAST) delete $("#cmdBody").dataset.showall;     // เปิดคนใหม่ = พับใหม่
+  simpleFoldCmd();
   if (key === SIMPLE_LAST) return;
   const rec = $("#cmdJump button.rec"); if (!rec) return;
   SIMPLE_LAST = key; setTimeout(() => rec.click(), 60);
@@ -20486,6 +20560,10 @@ function setMsg(text, kind){
 
 function openSettings(tab){
   setSetTab(tab === "acct" ? "acct" : "web");
+  if (document.body.dataset.simple) setTimeout(() => {
+    const d = [...document.querySelectorAll("#settings details.sect")].filter(x => x.getClientRects().length);
+    d.forEach((x, i) => { if (i >= 2 && x.id !== "usersSect") x.open = false; });
+  });
   if (tab === "acct") renderAcct();
   if (TEAM_MODE){
     vlog("settings");
@@ -20652,6 +20730,7 @@ function simpleSet(on){
   simpleApply(); vlog("simple", { d: SIMPLE ? "on" : "off" });
   acctToast(SIMPLE ? "✨ เปิดโหมดเรียบง่าย (Beta) — หัวเว็บเหลือปุ่มหลัก ที่เหลืออยู่ใน ⋯ เพิ่มเติม" : "ปิดโหมดเรียบง่าย — กลับหน้าตาเดิม");
 }
+$("#mapFiltBtn").onclick = () => { if (document.body.dataset.mapf) delete document.body.dataset.mapf; else document.body.dataset.mapf = "1"; };
 $("#mapNavBtn").onclick = async () => { if (document.body.dataset.view !== "coord") await setView("coord"); openMap(MINE_VIEW ? null : PROJ); };
 $("#moreNavBtn").onclick = e => {
   e.stopPropagation();
