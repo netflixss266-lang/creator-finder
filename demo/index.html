@@ -26980,15 +26980,7 @@ async function verCheck(){
   const pub = await relPublished();
   if (pub !== null){
     if (!isBeta() && pub !== APP_VER){
-      // (Jibli 2026-11-13) อัปเดตเล็ก = ไม่มีหัวข้อใหม่ในหน้า "มีอะไรใหม่" (เลข nn เท่าเดิม) → ไม่ขึ้นแถบเตือน
-      //   เปลี่ยนเงียบๆ ตอนแท็บถูกพับไว้ (ไม่ได้ดูอยู่) และไม่มีของค้างซิงก์ · อัปเดตใหญ่ = แถบเตือนเหมือนเดิม
-      let minor = false;
-      try {
-        const j = await (await fetch(relRoot() + "versions.json?x=" + Date.now(), { cache:"no-store" })).json();
-        const row = (j.versions || []).find(x => x.v === pub);
-        minor = !!row && row.nn === ((RELEASE_NOTES[0] || {}).n || 0);
-      } catch(e){}
-      if (minor){ VER_SILENT = pub; silentReload(); return; }
+      // (Jibli 2026-11-13) กลับมาใช้แถบ "มีเวอร์ชันใหม่ — รีเฟรช" ทุกครั้ง · ลองเปลี่ยนเงียบๆ ตอนพับแท็บแล้วรู้สึกหน่วง
       STALE = true; $("#staleBar").hidden = false; vlog("stale", { d: APP_VER + "→" + pub + " (publish)" });
     }
     return;
@@ -27004,14 +26996,6 @@ async function verCheck(){
     }
   } catch(e){}
 }
-let VER_SILENT = "";
-function silentReload(){
-  if (!VER_SILENT || !document.hidden || DIRTY || SYNCING) return;
-  vlog("stale", { d: APP_VER + "→" + VER_SILENT + " (เงียบ)" });
-  try { sessionStorage.removeItem("cf_hop"); } catch(e){}
-  location.href = relRoot() + location.hash;
-}
-document.addEventListener("visibilitychange", () => setTimeout(silentReload, 1500));
 $("#staleReload").onclick = () => { try { sessionStorage.removeItem("cf_hop"); } catch(e){} location.href = relRoot() + location.hash; };   // หน้าแรก — ตัวพาใน <head> เลือกเวอร์ชันที่ถูกให้
 setTimeout(verCheck, 20000);
 setInterval(verCheck, 3 * 60000);
