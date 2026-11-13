@@ -3307,6 +3307,14 @@ html[data-no-assign] select.asg{pointer-events:none;opacity:.55}
 .mapleafwrap.drin .mapleaf{border-color:var(--accent);background:rgba(var(--accent-rgb),.10)}
 .mapleafwrap.drin .mapst{border-color:var(--accent)}
 .mapleaf .drtag{font-size:.68rem;font-weight:600;color:var(--accent)}
+/* มาร์คขั้นตอน (2026-11-13) — สีต่างจาก 📥 รอตรวจดราฟต์ (accent) ชัดๆ: 📘 ฟ้า · 🚚 ส้ม */
+.stepmk{display:inline-flex;align-items:center;gap:4px;font-size:.68rem;font-weight:700;border-radius:6px;padding:1px 6px;white-space:nowrap;cursor:pointer;margin:2px 4px 0 0}
+.stepmk.sg{background:rgba(96,165,250,.16);color:#3B82F6;border:1px solid rgba(96,165,250,.55)}
+.stepmk.ship{background:rgba(245,158,11,.14);color:#D97706;border:1px solid rgba(245,158,11,.5);cursor:default}
+.stepmk.ship.leaf{cursor:pointer}
+.stepmk.ship .arr{font:inherit;font-size:.64rem;border:0;border-radius:5px;padding:1px 6px;background:#D97706;color:#fff;cursor:pointer}
+.stepmk.leaf{display:flex;width:max-content;max-width:100%}
+.stepmk.cmd{font-size:.74rem;margin-left:6px}
 .mapstage .lab .drcount{font-style:normal;font-weight:600;color:var(--accent);margin-left:4px}
 .mapnote.drnote{border-color:rgba(var(--accent-rgb),.45)}
 .stcell{display:flex;align-items:center;gap:4px}
@@ -10610,7 +10618,7 @@ function coordRow(r, i){
         return `<button type="button" class="mapdr tbdr ${I.k}${d ? " on" : ""}" data-drin="${esc(r.handle)}" data-mapproj="${esc(r.project || PROJ)}"
           title="${d ? I.off : I.on}">${I.ic}</button>`;
       })()}</div>${(() => { const d = drMark(r), I = drInfo(r.status);
-        return d ? `<span class="drtag tb ${I.k}" title="มาร์คเมื่อ ${esc(new Date(d.at).toLocaleString("th-TH"))}">${I.ic} ${I.tag} · ${drAgo(d.at)}</span>` : ""; })()}${stAgeChip(r)}</td>
+        return d ? `<span class="drtag tb ${I.k}" title="มาร์คเมื่อ ${esc(new Date(d.at).toLocaleString("th-TH"))}">${I.ic} ${I.tag} · ${drAgo(d.at)}</span>` : ""; })()}${stepMark(r, r.project || PROJ, "tb")}${stAgeChip(r)}</td>
     <td class="mono ${noRate&&!isKOC ? "warn" : amb ? "warn" : ""}">
       <input class="mono" data-i="${i}" data-f="rate" style="width:92px" inputmode="numeric"
              value="${rateText(r.rate)}"
@@ -12741,7 +12749,7 @@ function openCmd(proj, handle){
     $("#cmdSt").innerHTML = `<select class="st-sel ${stClass(r.status)}" id="cmdStSel" title="เปลี่ยนสถานะของ ${esc(r.handle)}">${
         statusOptions(r.status)}</select>${drOk(r) && !isCancelled(r)
       ? (() => { const I = drInfo(r.status); return `<button type="button" class="mapdr tbdr cmddr ${I.k}${d ? " on" : ""}" data-drin="${esc(r.handle)}" data-mapproj="${esc(proj)}"
-          title="${d ? I.off : I.on}">${I.ic}${d ? ` <span>${I.tag} · ${drAgo(d.at)}</span>` : ""}</button>`; })() : ""}`;
+          title="${d ? I.off : I.on}">${I.ic}${d ? ` <span>${I.tag} · ${drAgo(d.at)}</span>` : ""}</button>`; })() : ""}${stepMark(r, proj, "cmd")}`;
     $("#cmdStSel").onchange = e => {
       const v = e.target.value;
       if (mapSetStatus(proj, r.handle, v)){
@@ -13136,6 +13144,11 @@ function openCmd(proj, handle){
     b.sent = !b.sent;
     if (b.sent) cmdAdvance(proj, handle, b); else cmdRetreat(proj, handle, b);
     if (b.sent) cmdTimelineNote(proj, handle, b);
+    // มาร์ค 📘/🚚 คิดจากกล่องที่ส่งแล้ว — ส่งคู่มือ/เลขพัสดุครบ มาร์คหายทันทีทั้งหัว Command ตาราง และ Map
+    { const rr = (COORD[proj] || []).find(x => normId(x.handle) === normId(handle));
+      const mk = $("#cmdSt .stepmk"); if (mk) mk.outerHTML = rr ? stepMark(rr, proj, "cmd") : "";
+      else if (rr && $("#cmdSt")) $("#cmdSt").insertAdjacentHTML("beforeend", stepMark(rr, proj, "cmd"));
+      renderCoord(); if (!$("#mapView").hidden) renderMap(); }
     const blk = btn.closest(".cmdblk");
     blk.classList.toggle("sent", b.sent);
     // ── ส่งแล้ว = บินออกไปใน ~2.5 วิ (2026-11-04) ── ระหว่างรอยังกดกลับได้ (ยกเลิกการบิน)
@@ -14209,6 +14222,56 @@ function drAutoMark(r, st){
   saveCmdOwn();
 }
 const drOk = r => !!r && DR_STAGES.has(r.status || "");
+// ═══ มาร์คขั้นตอน (Jibli 2026-11-13) — คิดเอง ไม่ต้องกด · แยกจาก 📥 รอตรวจดราฟต์ ═══
+// 📘 เข้ารอ Draft 1 ใหม่ แต่ยังไม่ส่งคู่มือการถ่ายทำ (กล่อง Command "ส่งคู่มือการถ่ายทำ" ครบทุกชุด = มาร์คหาย)
+//    นับเฉพาะคนที่เข้าขั้นนี้ตั้งแต่ 13 พ.ย. 2569 — คนที่รอ Draft 1 อยู่ก่อนแล้วไม่ขึ้น (ส่วนใหญ่ส่งคู่มือนอกเว็บไปแล้ว)
+// 🚚 ส่งเลขพัสดุแล้ว รอของถึง (มีเลขพัสดุ หรือส่งกล่อง "อัปเดตเลขที่จัดส่ง" แล้ว) · กด "ของถึงแล้ว" = ย้ายไปรอ Draft 1 → ได้ 📘 ต่อ
+const SG_LAUNCH = Date.parse("2026-11-13T00:00:00+07:00");
+const cmdBlockId = re => String(CMD_BLOCKS.findIndex(b => re.test(b.t)));
+function guideSent(r){
+  const id = cmdBlockId(/ส่งคู่มือการถ่ายทำ/);
+  if (id === "-1") return true;
+  for (let c = 1; c <= clipCount(r); c++) if (!isSent(r.project, r.handle, id, c)) return false;
+  return true;
+}
+const sgPending = r => !!r && r.status === "Waiting Draft 1" && !isCancelled(r)
+  && (Date.parse(r._sat) || 0) >= SG_LAUNCH && !guideSent(r);
+const SHIP_PRE = new Set(["Confirmed", "Waiting Delivery", "Sent Tracking", "Already Delivered"]);
+const shipPending = r => !!r && SHIP_PRE.has(r.status || "") && !isCancelled(r) && (!!String(r.tracking || "").trim()
+  || (cmdBlockId(/^อัปเดตเลขที่จัดส่ง/) !== "-1" && isSent(r.project, r.handle, cmdBlockId(/^อัปเดตเลขที่จัดส่ง/), 1)));
+// ป้ายมาร์คขั้นตอน — ใช้ทั้งใบใน Map · ตาราง · หัว Command
+function stepMark(r, proj, where){
+  const P = esc(proj || r.project || PROJ), H = esc(r.handle);
+  if (sgPending(r)) return `<span class="stepmk sg ${where || ""}" data-sgopen="${H}" data-mapproj="${P}" role="button" tabindex="0"
+    title="เข้ารอ Draft 1 แล้ว แต่ยังไม่ส่งคู่มือการถ่ายทำ — กดเพื่อเปิด Command ไปที่กล่องคู่มือ · ส่งครบทุกชุดแล้วมาร์คหายเอง">📘 ยังไม่ส่งคู่มือ</span>`;
+  // ใบใน Map เป็น <button> อยู่แล้ว — ใส่ปุ่มซ้อนไม่ได้ (HTML แตก) ใช้ทั้งป้ายเป็นปุ่มแทน
+  if (shipPending(r)) return where === "leaf"
+    ? `<span class="stepmk ship leaf" data-shiparr="${H}" data-mapproj="${P}" role="button" title="ส่งเลขพัสดุแล้ว ${esc(String(r.tracking || "").slice(0, 40))} — กดเมื่อของถึงแล้ว (ย้ายไปรอ Draft 1)">🚚 รอของถึง · <u>ของถึงแล้ว?</u></span>`
+    : `<span class="stepmk ship ${where || ""}" title="ส่งเลขพัสดุแล้ว ${esc(String(r.tracking || "").slice(0, 40))} — รอของถึง"
+    >🚚 ส่งของแล้ว · รอของถึง<button type="button" class="arr" data-shiparr="${H}" data-mapproj="${P}" title="ของถึงแล้ว → ย้ายไปรอ Draft 1">ของถึงแล้ว ✓</button></span>`;
+  return "";
+}
+document.addEventListener("click", e => {
+  const a = e.target.closest && e.target.closest("[data-shiparr]");
+  const g = !a && e.target.closest && e.target.closest("[data-sgopen]");
+  if (!a && !g) return;
+  e.preventDefault(); e.stopPropagation();
+  const el = a || g, proj = el.dataset.mapproj;
+  const r = (COORD[proj] || []).find(x => normId(x.handle) === normId(a ? a.dataset.shiparr : g.dataset.sgopen));
+  if (!r) return;
+  if (g){
+    openCmd(proj, r.handle);
+    // เลื่อนไปที่กล่องคู่มือ — กดชิปในแถบ "ไปที่กล่อง" ให้ (ตัวเลื่อนอยู่ใน openCmd)
+    setTimeout(() => { const c = [...document.querySelectorAll("#cmdJump [data-jump]")].find(x => /คู่มือ/.test(x.textContent)); if (c) c.click(); }, 150);
+    return;
+  }
+  if (!canWorkRow(r)) return workDenied(r);
+  if (!confirm(`ของถึง @${normId(r.handle)} แล้ว?\n\nย้ายไป "รอ Draft 1" — ถ้ายังไม่ได้ส่งคู่มือการถ่ายทำ จะขึ้นมาร์ค 📘 ให้ต่อ`)) return;
+  mapSetStatus(proj, r.handle, "Waiting Draft 1");
+  vlog("ship:arrived", { p: proj, h: normId(r.handle) });
+  if (CMD_NOW && normId(CMD_NOW.handle) === normId(r.handle)) openCmd(proj, r.handle);
+  histToast(`${normId(r.handle)} ของถึงแล้ว → รอ Draft 1`, false, doUndo, "ย้อนกลับ");
+}, true);
 function drInfo(st){
   if (DR_SCRIPT.includes(st)) return { k:"script", ic:"📝", tag:"สคริปเข้า · รอตรวจ",
     on:"มาร์คว่าครีเอเตอร์ส่งสคริปมาแล้ว รอตรวจ", off:"ตรวจแล้ว — เอามาร์คออก = ย้ายไปรอ PM ฟีดแบคสคริป" };
@@ -14378,7 +14441,7 @@ function mapLeaf(r, proj, color, drag, sub){
           : r.rate != null ? mBaht(r.rate) : `<span class="flag">ไม่มีเรท</span>`}
         ${clips > 1 && !cancel ? `· ${clips} ชุด` : ""}
         ${flags.length ? `<span class="flag" title="${esc(flags.join(" · "))}">⚑${flags.length}</span>` : ""}
-      </span>`}${pm ? `<span class="pmtag">🔷 รอ PM ฟีดแบค</span>` : ""}${dr ? `<span class="drtag ${drInfo(r.status).k}" title="มาร์คเมื่อ ${esc(new Date(dr.at).toLocaleString("th-TH"))}">${drInfo(r.status).ic} ${drInfo(r.status).tag} · ${drAgo(dr.at)}</span>` : ""}${shipDays(r)}</button>
+      </span>`}${pm ? `<span class="pmtag">🔷 รอ PM ฟีดแบค</span>` : ""}${dr ? `<span class="drtag ${drInfo(r.status).k}" title="มาร์คเมื่อ ${esc(new Date(dr.at).toLocaleString("th-TH"))}">${drInfo(r.status).ic} ${drInfo(r.status).tag} · ${drAgo(dr.at)}</span>` : ""}${stepMark(r, proj, "leaf")}${shipDays(r)}</button>
     ${drCan ? `<button type="button" class="mapdr ${drInfo(r.status).k}${dr ? " on" : ""}" data-drin="${esc(r.handle)}" data-mapproj="${esc(proj)}"
       title="${dr ? drInfo(r.status).off : drInfo(r.status).on} — ${esc(r.handle)}">${drInfo(r.status).ic}</button>` : ""}
     <button class="mapst" data-mapst="${esc(r.handle)}" data-mapproj="${esc(proj)}"
@@ -26362,6 +26425,11 @@ i18nStart();
 // ⚠️ อัปเดตครั้งใหม่ = เพิ่มรายการบนสุด n+1 · คนที่ใช้ช่อง Publish เห็นตอนเปิดเวอร์ชันที่มีรายการนั้นครั้งแรก
 //    ข้ามหลายเวอร์ชัน = เห็นรวมทุกรายการที่พลาดไป · เข้าเว็บครั้งแรกในชีวิต = ไม่เด้งของเก่า (เริ่มนับจากตอนนี้)
 const RELEASE_NOTES = [
+  { n: 14, d: "13 พ.ย. 2569", t: "มาร์คขั้นตอน 📘 ยังไม่ส่งคู่มือ · 🚚 รอของถึง", items: [
+    ["📘", "คนที่เพิ่งเข้า <b>รอ Draft 1</b> แต่ยังไม่ได้ส่ง <b>คู่มือการถ่ายทำ</b> ขึ้นป้ายฟ้า <b>📘 ยังไม่ส่งคู่มือ</b> — กดป้าย = เปิด Command ไปที่กล่องคู่มือ · ส่งครบทุกชุดแล้วป้ายหายเอง"],
+    ["🚚", "คนที่ส่งเลขพัสดุแล้ว ขึ้นป้ายส้ม <b>🚚 ส่งของแล้ว · รอของถึง</b> — กด <b>ของถึงแล้ว ✓</b> = ย้ายไปรอ Draft 1 (ถ้ายังไม่ส่งคู่มือ จะขึ้น 📘 ต่อ)"],
+    ["📥", "แยกจาก <b>📥 ดราฟต์เข้า · รอตรวจ</b> ชัดๆ — คนละสี คนละความหมาย ขึ้นทั้งในตาราง Map และหัว Command"],
+  ]},
   { n: 13, d: "12 พ.ย. 2569", t: "📷 เปลี่ยนรูปโปรไฟล์ได้", items: [
     ["📷", "กดวงชื่อมุมขวาบน → <b>บัญชีของฉัน</b> → <b>รูปโปรไฟล์</b> → <b>เลือกรูป</b> · ระบบตัดเป็นวงกลมตรงกลางและย่อให้เอง"],
     ["👥", "รูปขึ้นแทนตัวอักษรในวงกลมทุกที่ — ผู้ดูแลแถว, Map, Pipeline, คนที่ออนไลน์ · ไม่อยากใช้แล้วกด <b>ลบรูป</b>"],
@@ -26495,6 +26563,8 @@ document.addEventListener("keydown", e => { if (!ST) return;
 // ขั้นสอนของแต่ละอัปเดต (คีย์ = n ใน RELEASE_NOTES) · อัปเดตที่ทีมเห็นได้ ควรมีขั้นสอนเสมอ
 const goCoord = async () => { $("#todoPop").hidden = true; if (document.body.dataset.view !== "coord") await setView("coord"); if (!$("#mapView").hidden) $("#mapView").hidden = true; };
 const RELEASE_TOURS = {
+  14: [ { pre: goCoord, sel: ".stepmk.sg, .stepmk.ship, .ctable td.w-status", t: "ในช่อง <b>สถานะ</b> จะมีป้ายใหม่ 2 แบบ<br><b>📘 ยังไม่ส่งคู่มือ</b> (ฟ้า) — กดแล้วไปที่กล่องคู่มือใน Command<br><b>🚚 ส่งของแล้ว · รอของถึง</b> (ส้ม) — ของถึงแล้วกด <b>ของถึงแล้ว ✓</b>" },
+        { pre: async () => { await goCoord(); openMap(); }, sel: "#mapBody", t: "ใน <b>Map</b> ป้ายเดียวกันขึ้นใต้ชื่อครีเอเตอร์ · ต่างจาก <b>📥 ดราฟต์เข้า รอตรวจ</b> ที่ต้องกดมาร์คเอง" } ],
   13: [ { pre: async () => { $("#todoPop").hidden = true; }, sel: "#acctBtn", t: "กด <b>วงชื่อของคุณ</b> มุมขวาบน" },
         { pre: async () => { if ($("#acctMenu").hidden) $("#acctBtn").click(); }, sel: '#acctMenu [data-am="profile"]', t: "กด <b>บัญชีของฉัน</b>" },
         { pre: async () => { $("#acctMenu").hidden = true; openSettings("acct"); }, sel: "#myAvSect", t: "กด <b>📷 เลือกรูป</b> แล้วเลือกรูปจากเครื่อง — ระบบตัดตรงกลางและย่อให้เอง คนในทีมเห็นรูปนี้แทนตัวอักษร" } ],
