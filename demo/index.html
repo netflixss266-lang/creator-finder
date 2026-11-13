@@ -26535,8 +26535,14 @@ async function tsPull(force){
       const S = TS[ns], obj = S.all(), last = TS_LAST[ns] || (TS_LAST[ns] = {});
       let changed = false, mine = false;
       for (const k in srv[ns]){
-        const sv = tsStr(srv[ns][k]);
-        if (tsStr(obj[k]) !== sv){ S.put(k, srv[ns][k]); changed = true; }
+        const sv = tsStr(srv[ns][k]), lv = obj[k] != null ? tsStr(obj[k]) : null, base = last[k];
+        if (lv === sv){ last[k] = sv; continue; }
+        // ⚠️ (บั๊ก Timeline หาย 2026-11-13) เครื่องนี้แก้ไว้แต่ยังส่งไม่ทัน (รอ 1.2 วิ / แท็บเวอร์ชันเก่าหยุดส่ง / เน็ตหลุด)
+        //    เดิมเอาค่าบนเซิร์ฟเวอร์ (ของเก่า) ทับของที่เพิ่งพิมพ์ทันที → ข้อความที่เขียนหาย
+        //    ตอนนี้: ของในเครื่องเปลี่ยนจากรอบซิงก์ก่อน + เซิร์ฟเวอร์ยังเป็นค่าเดิม = เก็บของในเครื่อง แล้วดันขึ้น
+        //    (คนอื่นแก้บนเซิร์ฟเวอร์ด้วย = ของเซิร์ฟเวอร์ชนะเหมือนเดิม)
+        if (lv !== null && base !== undefined && lv !== base && sv === base && !TS_FRESH && S.ok(k)){ mine = true; continue; }
+        S.put(k, srv[ns][k]); changed = true;
         last[k] = sv;
       }
       for (const k of Object.keys(obj)){
