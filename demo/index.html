@@ -348,7 +348,7 @@
   try { console.log("%c\u00A9 " + SEAL.owner + " \u00B7 Creataew", "font:700 16px sans-serif;color:#be1e2d", "\nSeal " + SEAL.seal + " \u00B7 " + SEAL.rights); } catch(e){}
 })();
 </script>
-<script>try{var t=localStorage.getItem("cf_theme_last2")||"light";if(t!=="dark")document.documentElement.dataset.theme=t;var u=localStorage.getItem("cf_ui_last2");document.documentElement.style.setProperty("--ui",(u||13)+"px");}catch(e){}</script>
+<script>try{var t=localStorage.getItem("cf_theme_last2")||"auto";if(t==="auto")t=matchMedia("(prefers-color-scheme: dark)").matches?"dark":"light";if(t!=="dark")document.documentElement.dataset.theme=t;var u=localStorage.getItem("cf_ui_last2");document.documentElement.style.setProperty("--ui",(u||13)+"px");}catch(e){}</script>
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Thai:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&family=Bebas+Neue&family=Stardos+Stencil:wght@700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
@@ -2973,6 +2973,7 @@ button.tag.work:hover{border-color:#8fc1ff}
    ปุ่มที่สามขึ้นมาเมื่อไหร่จะโดนดันแยกออกไปเอง ถ้าไม่ล้างค่าให้ (เดิมเขียนไว้แค่ปุ่มถัดไปตัวเดียว) */
 .cmdblk > header .mark ~ button{margin-left:9px}
 .cmdblk > header button.rst{color:var(--dim)}
+.cmdblk > header button.blkmenu{margin-left:6px;padding:4px 9px;font-weight:700;letter-spacing:1px}
 .cmdblk > header button.rst:hover{border-color:var(--accent);color:var(--accent)}
 .cmdblk.sent > header .mark{border-color:var(--hi);color:var(--hi)}
 .cmdblk > header .no i{font-style:normal;font-size:.78em;opacity:.75}
@@ -4227,6 +4228,12 @@ html.demo .dm-b:hover{filter:blur(5px)}
     <!-- ชื่อที่จะโชว์ในทีม — ใช้เฉพาะตอนสมัคร ว่างได้ เดี๋ยวตัดจากอีเมลให้เอง -->
     <input id="lockName" type="text" autocomplete="name" placeholder="ชื่อที่ให้ทีมเห็น (เว้นว่างได้)"
            class="lockemail" hidden>
+    <!-- เพศ — ใช้ปรับคำลงท้ายในข้อความ Command (ครับ / ค่ะ) · เปลี่ยนทีหลังได้ที่ตั้งค่า > บัญชีของฉัน -->
+    <select id="lockGender" class="lockemail" hidden>
+      <option value="">— คำลงท้ายในข้อความ —</option>
+      <option value="f">หญิง · ลงท้าย ค่ะ / คะ</option>
+      <option value="m">ชาย · ลงท้าย ครับ</option>
+    </select>
     <!-- โหมดทีม: สมัครต้องเลือกทีม + ใส่รหัสทีมที่ได้จากหัวทีม ถึงจะเข้าใช้งานได้ -->
     <select id="lockTeamSel" class="lockemail" hidden><option value="">— เลือกทีม —</option></select>
     <!-- รหัสหน้า Coordinator ตั้งตอนสมัคร ไม่ใช่รหัสกลางของทีมอีกแล้ว — ของใครของมัน -->
@@ -5067,6 +5074,16 @@ html.demo .dm-b:hover{filter:blur(5px)}
           <div class="pwrules" id="myNameLabel"></div>
           <button type="button" class="run" id="myNameSave">บันทึกชื่อ</button></div>
         <div class="addmsg" id="myNameMsg"></div>
+      </section>
+      <!-- เพศ / คำลงท้าย (2026-11-14) — ผ่าน RPC set_my_gender -->
+      <section class="sect" id="myGenSect" hidden>
+        <h3>คำลงท้ายในข้อความ</h3>
+        <p class="sect-sub">ใช้ปรับข้อความ Command ที่ส่งให้ครีเอเตอร์ — ระบบเปลี่ยน ครับ ↔ ค่ะ / คะ ให้เองทุกกล่อง</p>
+        <div class="tabs sub" id="myGenSeg" role="tablist">
+          <button type="button" data-gen="f">หญิง · ค่ะ / คะ</button>
+          <button type="button" data-gen="m">ชาย · ครับ</button>
+        </div>
+        <div class="addmsg" id="myGenMsg"></div>
       </section>
       <section class="sect" id="acctPwSect">
         <h3>เปลี่ยนรหัสผ่าน</h3>
@@ -12294,6 +12311,14 @@ function cmdStd(def){
   const o = CMD_STD_TXT[def.t];
   return { t: (o && o.t) || String(def.t || "").replace(/^\d+\.\s*/, ""), b: o && o.b != null ? o.b : def.b };
 }
+// ═══ เพศของบัญชี (2026-11-14) — app_users.gender คือค่าเริ่มต้นหางเสียง (VOICE) ของบัญชีนั้นทุกเครื่อง ═══
+// ตัวแปลง ครับ↔ค่ะ ใช้ voiceText เดิม (ใน fillBlock) · ตั้งเฉพาะครีเอเตอร์รายคนยังทับได้เหมือนเดิม
+const myGender = () => (PROFILE && PROFILE.gender) || "";
+function voiceFromProfile(){
+  const g = myGender();
+  if (g !== "f" && g !== "m") return;
+  VOICE = g; try { lsSet(LS_VOICE, VOICE); } catch(e){}
+}
 const cmdBlocks = (proj, kind, level) => cmdBlocksAll(proj, kind, level).filter(b => !b.hidden);
 
 // ข้อความจริงของครีเอเตอร์คนหนึ่ง — ทับต้นแบบด้วยของตัวเองถ้ามี
@@ -13470,7 +13495,7 @@ function openCmd(proj, handle){
         <button class="mark" data-sent="${j}"
           title="${b.sent ? "ยังไม่ได้ส่ง — กดเพื่อเอาเครื่องหมายออก" : "ทำเครื่องหมายว่าส่งบล็อกนี้ให้ " + esc(normId(handle)) + " แล้ว"}"
           >${b.sent ? "✓ ส่งแล้ว" : "ส่งแล้ว"}</button>
-        <button data-copy="${j}">คัดลอก</button>${
+        <button data-copy="${j}">คัดลอก</button>${b.law || (b.clip && b.clip > 1) ? "" : `<button type="button" class="blkmenu" data-blkmenu="${j}" title="แก้ · เพิ่มกล่อง · ลบกล่อง">⋯</button>`}${
         // ปุ่มคืนต้นแบบขึ้นเฉพาะบล็อกที่คนนี้มีข้อความของตัวเอง — บล็อกที่ใช้ต้นแบบอยู่แล้วไม่มีอะไรให้คืน
         // บล็อกที่แตกเป็นชุดรายคลิปใช้ข้อความก้อนเดียวกันทุกชุด ปุ่มจึงขึ้นที่ชุดแรกที่เดียว
         // ไม่งั้นจะเห็นปุ่มเหมือนกัน 2-3 ปุ่มที่ทำสิ่งเดียวกันเป๊ะ
@@ -13549,6 +13574,32 @@ function openCmd(proj, handle){
   // ถอดเฉพาะข้อความของบล็อกนั้นออก บล็อกอื่นที่แก้ไว้และเครื่องหมาย "ส่งแล้ว" ไม่ถูกแตะ
   // (ปุ่มคืนทั้งหมดอยู่ในหน้าแก้ข้อความ ซึ่งล้างทีเดียวทุกบล็อก — คนละอันกับตรงนี้)
   // ข้อความที่พิมพ์เองหายแล้วเอากลับไม่ได้ ถามก่อนหนึ่งครั้งเสมอ
+  // ── ⋯ ที่หัวกล่อง (2026-11-14) — แก้ / เพิ่มกล่องต่อจากนี้ / ลบ · เขียนลงชุดของฉัน (📌 ทุกโปรเจกต์ของฉัน) ──
+  document.querySelectorAll("#cmdBody [data-blkmenu]").forEach(btn => btn.onclick = e => {
+    e.stopPropagation();
+    const b = blocks[+btn.dataset.blkmenu];
+    const name = b.t.replace(/^\d+\.\s*/, "").replace(/\s+—.*$/, "");
+    const sc = b.onlyMine ? "mine" : "me";
+    pickPop(btn.parentElement, name, [
+      { k: "edit", label: "✎ แก้ข้อความกล่องนี้", note: b.onlyMine ? "เฉพาะ " + normId(handle) : "ทุกครีเอเตอร์ของฉัน" },
+      { k: "add", label: "＋ เพิ่มกล่องใหม่ต่อจากกล่องนี้" },
+      { k: "del", label: "🗑 ลบกล่องนี้", note: b.custom ? "ลบทิ้ง" : "ซ่อน · คืนได้ในหน้า ✎ แก้ข้อความ" },
+    ], it => {
+      if (it.k === "del"){
+        const blk = cmdScopeView(sc, proj, handle).find(x => x.id === b.id) || b;
+        if (!confirm(blk.custom ? `ลบกล่อง “${name}” ทิ้ง?\n\nเอากลับไม่ได้` : `ซ่อนกล่อง “${name}”?\n\nไม่ขึ้นใน Command ของครีเอเตอร์ทุกคนของคุณ · กดคืนได้ในหน้า ✎ แก้ข้อความ`)) return;
+        cmdDropAt(sc, proj, handle, blk);
+        const top = $("#cmdBody").scrollTop; openCmd(proj, handle); $("#cmdBody").scrollTop = top;
+        return histToast(blk.custom ? `ลบ “${name}” แล้ว` : `ซ่อน “${name}” แล้ว`);
+      }
+      const id = it.k === "add" ? cmdAddAt(sc, proj, handle, b.id) : b.id;
+      CMD_SCOPE = sc; CMD_EDITING = true; renderCmdEditor(proj, handle);
+      const t = document.querySelector(`#cmdBody ${it.k === "add" ? ".cmdt" : ".cmdb"}[data-id="${CSS.escape(id)}"]`);
+      const box = t && t.closest(".cmdblk");
+      if (box){ box.classList.add("justadded"); box.scrollIntoView({ block: "center" }); t.focus({ preventScroll: true }); if (it.k === "add") t.select();
+        setTimeout(() => box.classList.remove("justadded"), 2400); }
+    });
+  });
   document.querySelectorAll("#cmdBody [data-blkreset]").forEach(btn => btn.onclick = () => {
     const b = blocks[+btn.dataset.blkreset];
     const name = b.t.replace(/^\d+\.\s*/, "");
@@ -16408,6 +16459,7 @@ $("#voiceDef").onclick = () => {
   VOICE = VOICE === "f" ? "m" : "f";
   try { lsSet(LS_VOICE, VOICE); } catch(e){}
   vlog("voice", { d: { v: VOICE } });
+  if (TEAM_MODE && PROFILE && GENDER_COL !== false) sbRpc("set_my_gender", { p: VOICE }).then(j => { if (j && j.ok) PROFILE.gender = VOICE; }).catch(() => {});
   voiceRedraw();
   if (!$("#fmtPanel").hidden) renderFormat();
 };
@@ -16453,6 +16505,7 @@ const SB_URL = "https://sosfberpszbqvghyymzi.supabase.co";
 const SB_KEY = "sb_publishable_hucMkquwdBpVLWC6dx_o9w_ZGF2iMO5";
 const LS_SESSION = "cf_session_v1";
 let SESSION = null;    // { access_token, refresh_token, expires_at, user }
+let GENDER_COL = null;   // false = ฐานข้อมูลยังไม่มีคอลัมน์ gender (ตกไปโหลดแบบเดิม)
 let PROFILE = null;    // { display_name, role, is_active }
 
 function sbHeaders(auth){
@@ -16559,9 +16612,13 @@ async function sbProfile(){
   if (!SESSION || !SESSION.user) return null;
   const uid = SESSION.user.id;
   const get = () => fetch(SB_URL + "/rest/v1/app_users?id=eq." + encodeURIComponent(uid) +
-    "&select=display_name,role,is_active" + (PERMS_COL === false ? "" : ",perms"), { headers: sbHeaders(true) });
+    "&select=display_name,role,is_active" + (PERMS_COL === false ? "" : ",perms") + (GENDER_COL === false ? "" : ",gender"), { headers: sbHeaders(true) });
   let r;
   try { r = await get(); } catch(e){ SB_NET_FAIL = true; return null; }
+  if (r.status === 400 && GENDER_COL !== false){           // ยังไม่มีคอลัมน์ gender — ลองใหม่โดยไม่ขอ
+    GENDER_COL = false;
+    try { r = await get(); } catch(e){ SB_NET_FAIL = true; return null; }
+  }
   if (r.status === 400 && PERMS_COL !== false){            // ยังไม่มีคอลัมน์ perms (ยังไม่ได้รัน SQL)
     PERMS_COL = false;
     try { r = await get(); } catch(e){ SB_NET_FAIL = true; return null; }
@@ -16572,6 +16629,7 @@ async function sbProfile(){
   if (!r.ok){ if (r.status >= 500 || r.status === 429) SB_NET_FAIL = true; return null; }
   const rows = await r.json().catch(() => []);
   PROFILE = rows[0] || null;
+  try { voiceFromProfile(); } catch(e){}
   return PROFILE;
 }
 
@@ -19962,9 +20020,11 @@ const sbAddCreators = list => sbPostPool(list.map(sbCreatorRow));
 // สมัครสมาชิกเอง — สิทธิ์ที่ได้ถูกกำหนดโดย trigger ฝั่งฐานข้อมูล (handle_new_auth_user)
 // ไม่ได้ส่งมาจากหน้าเว็บ ต่อให้แก้โค้ดหน้านี้ให้ส่ง role:'admin' ไปก็ไม่มีผล
 // ส่งไปแค่ชื่อที่จะให้ทีมเห็น ที่เหลือฝั่งเซิร์ฟเวอร์ตัดสินเองทั้งหมด
-async function sbSignUp(email, password, displayName){
+async function sbSignUp(email, password, displayName, gender){
   const body = { email, password };
-  if (displayName) body.data = { display_name: displayName };
+  body.data = {};
+  if (displayName) body.data.display_name = displayName;
+  if (gender === "f" || gender === "m") body.data.gender = gender;
   const r = await fetch(SB_URL + "/auth/v1/signup",
     { method:"POST", headers: sbHeaders(false), body: JSON.stringify(body) });
   const j = await r.json().catch(() => ({}));
@@ -20060,6 +20120,7 @@ function askLogin(){
   $("#lockPin").hidden = true;
   $("#lockEmail").hidden = false;
   $("#lockName").hidden = !signup;
+  $("#lockGender").hidden = !signup;
   $("#lockCoord").hidden = !signup || TEAM_MODE;
   $("#lockTeamSel").hidden = !(signup && TEAM_MODE) || !!inv;
   $("#lockTeamCode").hidden = !(signup && TEAM_MODE) || !!inv;
@@ -20073,7 +20134,7 @@ function askLogin(){
   $("#lockForgot").hidden = signup;
   $("#lockPw2").hidden = true;
   $("#lockEmail").value = "";
-  $("#lockName").value = "";
+  $("#lockName").value = ""; $("#lockGender").value = "";
   $("#lockCoord").value = "";
   $("#lockPw").value = "";
   $("#lockPw").placeholder = signup ? "ตั้งรหัสผ่าน (อย่างน้อย 10 ตัว)" : "รหัสผ่าน";
@@ -20137,6 +20198,12 @@ function askLogin(){
       // โหมดทีมยกเลิกรหัส Coordinator แล้ว (ช่องถูกซ่อน) — เดิมยังเช็คอยู่ สมัครไม่ผ่านทั้งที่ไม่มีช่องให้กรอก
       const tsel = $("#lockTeamSel").value, tcode = $("#lockTeamCode").value.replace(/\D/g, "");
       const viaInvite = TEAM_MODE && INVITE && INVITE.ok;
+      if (signup && !$("#lockGender").value){
+        $("#lockMsg").className = "lockmsg err";
+        $("#lockMsg").textContent = "เลือกคำลงท้ายในข้อความ (ค่ะ / ครับ) ก่อน";
+        $("#lockGender").focus();
+        return;
+      }
       if (signup && TEAM_MODE && !viaInvite && (!tsel || tcode.length !== 6)){
         $("#lockMsg").className = "lockmsg err";
         $("#lockMsg").textContent = !tsel ? "เลือกทีมก่อน" : "ใส่รหัสทีม 6 หลัก (ขอจากหัวทีม)";
@@ -20154,7 +20221,7 @@ function askLogin(){
       $("#lockMsg").textContent = signup ? "กำลังสมัคร..." : "กำลังเข้าสู่ระบบ...";
       try {
         if (signup){
-          await sbSignUp(email, pw, $("#lockName").value.trim());
+          await sbSignUp(email, pw, $("#lockName").value.trim(), $("#lockGender").value);
           // ยังไม่ได้ session = ระบบตั้งให้ต้องยืนยันอีเมลก่อน ล็อกอินต่อทันทีไม่ได้
           if (!SESSION) throw new Error("สมัครแล้ว — เปิดอีเมลกดยืนยันก่อน แล้วค่อยเข้าสู่ระบบ");
         } else {
@@ -20250,7 +20317,7 @@ function askNewPassword(invite){
     (invite ? " — ตั้งรหัสสำหรับเข้าใช้งานครั้งต่อไป" : " — ตั้งรหัสใหม่แล้วเข้าใช้งานได้เลย");
   $("#lockPin").hidden = true;
   $("#lockEmail").hidden = true;
-  $("#lockName").hidden = true;
+  $("#lockName").hidden = true; $("#lockGender").hidden = true;
   $("#lockCoord").hidden = true;
   $("#lockSwap").hidden = true;
   $("#lockForgot").hidden = true;
@@ -20487,7 +20554,7 @@ async function askGate(name){
   $("#lockMsg").textContent = "";
   // ช่องของฟอร์มสมัคร/ล็อกอินยังค้างอยู่จากรอบก่อน ประตูชั้นในไม่ได้ใช้ ต้องเก็บก่อน
   $("#lockEmail").hidden = true;
-  $("#lockName").hidden = true;
+  $("#lockName").hidden = true; $("#lockGender").hidden = true;
   $("#lockCoord").hidden = true;
   $("#lockSwap").hidden = true;
   $("#lockForgot").hidden = true;
@@ -21041,7 +21108,7 @@ function openSettings(tab){
     // admin/manager เห็นทั้งหมด (ยกเว้น 3 ส่วน adminonly ที่ admin เห็นคนเดียว) · editor เห็น 4 ส่วน + ชื่อที่แสดง
     const limited = !canManageProjects();
     $("#myNameSect").hidden = false;
-    avSectInit();
+    avSectInit(); genSectInit();
     $("#myName").value = (PROFILE || {}).display_name || "";
     $("#myNameMsg").textContent = "";
     $("#myNameSave").onclick = async () => {
@@ -21127,6 +21194,25 @@ async function avSave(url){
     msg.className = "addmsg on err";
     msg.textContent = /set_my_avatar|function|404|PGRST202/i.test(e.message) ? "ฐานข้อมูลยังไม่รองรับรูปโปรไฟล์ — แจ้งแอดมิน" : e.message;
   }
+}
+function genSectInit(){
+  const sec = $("#myGenSect"); if (!sec) return;
+  sec.hidden = GENDER_COL === false;
+  const g = myGender() || VOICE || "m";
+  sec.querySelectorAll("[data-gen]").forEach(b => {
+    b.setAttribute("aria-selected", String(b.dataset.gen === g));
+    b.onclick = async () => {
+      const msg = $("#myGenMsg"); msg.className = "addmsg on"; msg.textContent = "กำลังบันทึก…";
+      try {
+        const j = await sbRpc("set_my_gender", { p: b.dataset.gen });
+        if (!j || !j.ok) throw new Error((j && j.error) || "บันทึกไม่ได้");
+        PROFILE.gender = b.dataset.gen; voiceFromProfile(); genSectInit();
+        try { voiceRedraw(); } catch(e){}
+        msg.className = "addmsg on ok"; msg.textContent = b.dataset.gen === "f" ? "บันทึกแล้ว — ข้อความ Command ลงท้าย ค่ะ / คะ" : "บันทึกแล้ว — ข้อความ Command ลงท้าย ครับ";
+        vlog("gender", { d: b.dataset.gen });
+      } catch(e){ msg.className = "addmsg on err"; msg.textContent = e.message; }
+    };
+  });
 }
 function avSectInit(){
   const sec = $("#myAvSect"); if (!sec) return;
@@ -23207,6 +23293,10 @@ const THEMES = [
 ];
 const LS_THEME = "cf_theme_v1";
 let THEME = "dark";
+// อัตโนมัติ = ตามโทนของเครื่อง (สว่าง/มืด) และเปลี่ยนตามทันทีเมื่อเครื่องสลับ (2026-11-14) — ตั้งต้นของทุกคนที่ยังไม่เคยเลือกเอง
+let THEME_AUTO = true;
+const THEME_MQ = (() => { try { return matchMedia("(prefers-color-scheme: dark)"); } catch(e){ return null; } })();
+const sysTheme = () => THEME_MQ && THEME_MQ.matches ? "dark" : "light";
 const themeBg = () => (THEMES.find(t => t.k === THEME) || THEMES[0]).bg;
 function applyTheme(k){
   THEME = THEMES.some(t => t.k === k) ? k : "dark";
@@ -23214,19 +23304,24 @@ function applyTheme(k){
   if (THEME === "dark") delete de.dataset.theme; else de.dataset.theme = THEME;
   const m = document.querySelector('meta[name="theme-color"]');
   if (m) m.setAttribute("content", themeBg());
-  try { localStorage.setItem("cf_theme_last2", THEME); } catch(e){}  // ไว้ใช้ตอนเปิดหน้า ก่อนรู้ว่าบัญชีไหน (v2: ตั้งต้นสว่าง 2026-11-10)
+  try { localStorage.setItem("cf_theme_last2", THEME_AUTO ? "auto" : THEME); } catch(e){}  // ไว้ใช้ตอนเปิดหน้า ก่อนรู้ว่าบัญชีไหน (v2: ตั้งต้นสว่าง 2026-11-10)
   applyAccent(ACCENT);                                               // สีหลักต้องอ่านออกบนพื้นใหม่
 }
 function renderTheme(){
   const g = $("#themeGrid");
   if (!g) return;
-  g.innerHTML = THEMES.map(t => `<button type="button" class="themecard${t.k === THEME ? " on" : ""}" data-theme-k="${t.k}"
+  g.innerHTML = `<button type="button" class="themecard auto${THEME_AUTO ? " on" : ""}" data-theme-k="auto" aria-pressed="${THEME_AUTO}"
+      style="--tbg:linear-gradient(135deg,#F7F7F5 50%,#0B0B0B 50%);--tsf:#888;--tink:#888;--tmute:#888">
+      <span class="tprev"><span class="tbar"></span><span class="tline l1"></span><span class="tline l2"></span><span class="tdot"></span></span>
+      <b>อัตโนมัติ</b><span class="tsub">ตามเครื่อง · ตอนนี้${sysTheme() === "dark" ? "มืด" : "สว่าง"}</span></button>` +
+    THEMES.map(t => `<button type="button" class="themecard${!THEME_AUTO && t.k === THEME ? " on" : ""}" data-theme-k="${t.k}"
       style="--tbg:${t.bg};--tsf:${t.sf};--tink:${t.ink};--tmute:${t.mute}" aria-pressed="${t.k === THEME}">
       <span class="tprev"><span class="tbar"></span><span class="tline l1"></span><span class="tline l2"></span><span class="tdot"></span></span>
       <b>${esc(t.th)}</b><span class="tsub">${esc(t.sub)}</span></button>`).join("");
   g.querySelectorAll("[data-theme-k]").forEach(b => b.onclick = () => {
-    applyTheme(b.dataset.themeK);
-    try { lsSet(LS_THEME, THEME); } catch(e){}
+    THEME_AUTO = b.dataset.themeK === "auto";
+    applyTheme(THEME_AUTO ? sysTheme() : b.dataset.themeK);
+    try { lsSet(LS_THEME, THEME_AUTO ? "auto" : THEME); } catch(e){}
     vlog("theme", { d: THEME });
     renderTheme(); renderAccent();
   });
@@ -23288,9 +23383,17 @@ function renderAccent(){
 try { const v = lsGet(LS_ACCENT); if (v) ACCENT = v; } catch(e){}
 // โทนที่จำไว้ของบัญชีนี้ — ตั้งก่อนสีหลัก (สีหลักปรับความเข้มตามพื้นของโทน)
 // ตั้งต้น = สว่าง (2026-11-10) · ใช้ของเดิมเฉพาะคนที่เคยกดเลือกโทนเอง (LS_THEME)
-THEME = "light";
-try { const t = lsGet(LS_THEME); if (t) THEME = t; } catch(e){}
-applyTheme(THEME);
+// (2026-11-14) ตั้งต้น = อัตโนมัติตามเครื่อง · คนที่เคยกดเลือกโทนเองยังได้โทนนั้น
+try { const t = lsGet(LS_THEME); if (t && t !== "auto"){ THEME = t; THEME_AUTO = false; } } catch(e){}
+applyTheme(THEME_AUTO ? sysTheme() : THEME);
+if (THEME_MQ){
+  const onSys = () => { if (!THEME_AUTO) return; applyTheme(sysTheme()); try { renderTheme(); renderAccent(); } catch(e){} };
+  try { THEME_MQ.addEventListener("change", onSys); } catch(e){ try { THEME_MQ.addListener(onSys); } catch(e2){} }
+  // สำรอง: บางเบราว์เซอร์/แอปไม่ยิง change ตอนเครื่องสลับโทน — เช็คซ้ำตอนกลับมาที่แท็บ
+  const onBack = () => { if (THEME_AUTO && THEME !== sysTheme()) onSys(); };
+  addEventListener("focus", onBack);
+  document.addEventListener("visibilitychange", () => { if (!document.hidden) onBack(); });
+}
 
 // input จะยิง input ถี่มากระหว่างลากในวงสี — ทาสีทันทีให้เห็นผลสด แต่เพิ่งบันทึกตอนปล่อย
 // บันทึกทุกครั้งที่ขยับ = เขียน localStorage เป็นร้อยครั้งต่อการเลือกสีหนึ่งครั้ง
@@ -27123,6 +27226,9 @@ const RELEASE_NOTES = [
   { n: 18, d: "14 พ.ย. 2569", t: "✉ Command เป็นของใครของมัน", items: [
     ["🔒", "ชุดข้อความ <b>Command</b> ของแต่ละคนเป็น<b>ส่วนตัว</b> — คนอื่นในทีมไม่เห็น (admin ดูได้) · เริ่มจาก<b>ค่ามาตรฐานของระบบครบทุกขั้นตอน</b> แล้วแก้ถ้อยคำ เพิ่ม ซ่อน เรียงใหม่เป็นของตัวเองได้"],
     ["🎓", "เปิด Command ครั้งแรกจะมี<b>บทเรียนสั้นๆ</b> ให้สร้างบล็อกของตัวเอง 1 อัน (ตั้งชื่อ · เขียนข้อความ · กดตัวแปร) ผ่านแล้วใช้งานได้เลย ไม่ถามอีก"],
+    ["⋯", "ทุกกล่องใน Command มีปุ่ม <b>⋯</b> ที่หัวกล่อง — <b>แก้ข้อความ · เพิ่มกล่องต่อจากนี้ · ลบกล่อง</b> ได้ทันที ไม่ต้องเข้าหน้าแก้ข้อความ"],
+    ["♀", "ตั้ง<b>เพศ</b>ได้ที่ ตั้งค่า › บัญชีของฉัน (สมัครใหม่เลือกตอนสมัคร) — ข้อความ Command ลงท้าย <b>ค่ะ / คะ</b> หรือ <b>ครับ</b> ให้เองทุกกล่อง ทุกเครื่อง"],
+    ["🌗", "โทนสีเว็บตั้งต้นเป็น <b>อัตโนมัติ</b> — สว่าง/มืด ตามเครื่อง · เลือกโทนเองได้ที่ ตั้งค่า › โทนสีของเว็บ"],
     ["🧩", "หน้า <b>✎ แก้ข้อความ</b> มีตาราง<b>ตัวแปร {{…}}</b> พร้อมคำอธิบายทุกตัว — คลิกในช่องข้อความแล้วกดตัวแปรเพื่อแทรก ไม่ต้องพิมพ์เอง"],
   ]},
   { n: 17, d: "13 พ.ย. 2569", t: "‹ › ปุ่มย้อนกลับ / ไปข้างหน้า ทุกหน้า", items: [
