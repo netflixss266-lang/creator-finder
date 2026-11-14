@@ -2868,6 +2868,36 @@ button.tag.work:hover{border-color:#8fc1ff}
 .cmdwho .facts{flex-basis:100%;font-size:.82rem;color:var(--mute);
   border-top:1px solid var(--line);padding-top:11px;line-height:1.7}
 .cmdwho .facts b{color:var(--ink);font-family:'IBM Plex Mono',monospace;font-weight:500}
+/* ตัวแปร {{…}} · บทเรียนบล็อกแรก · admin ดูชุดสมาชิก (2026-11-14) */
+.cmdvar{cursor:pointer;user-select:none;border-radius:5px;padding:1px 4px}
+.cmdvar:hover{background:var(--accent);color:var(--accent-ink)}
+.cmdvars{margin:6px 0;border:1px solid var(--line);border-radius:9px;padding:6px 10px;background:var(--surface)}
+.cmdvars summary{cursor:pointer;font-weight:600}
+.cmdvars table{border-collapse:collapse;margin-top:8px;width:100%;font-size:.92em}
+.cmdvars th{text-align:left;vertical-align:top;padding:4px 10px 4px 0;color:var(--dim);white-space:nowrap;border-top:1px solid var(--line)}
+.cmdvars td{padding:3px 8px 3px 0;border-top:1px solid var(--line);vertical-align:top}
+.cmdvarnote{margin-top:8px;color:var(--dim);font-size:.9em}
+.cmdlesson{max-width:760px;margin:0 auto;padding:6px 2px 30px;line-height:1.6}
+.cmdlesson h3{margin:0 0 8px;font-size:1.25em}
+.cmdlesson h3 span{font-size:.7em;font-weight:500;color:var(--dim);margin-left:8px}
+.cmdlesson ol{padding-left:20px}
+.cmdlesson li{margin-bottom:14px}
+.cmdlesson input,.cmdlesson textarea{display:block;width:100%;box-sizing:border-box;margin-top:6px;padding:8px 10px;border:1px solid var(--line);border-radius:8px;
+  background:var(--surface);color:var(--ink);font:inherit}
+.cmdlesson .lsprev{margin-top:6px;padding:10px 12px;border:1px dashed var(--line);border-radius:8px;white-space:pre-wrap;word-break:break-word;font:inherit;min-height:44px;background:var(--surface2)}
+.cmdlesson .lscheck{list-style:none;padding:0;margin:4px 0 12px;color:var(--dim)}
+.cmdlesson .lscheck li{margin:2px 0}
+.cmdlesson .lscheck li.ok{color:var(--ok, #1a7f4b);font-weight:600}
+.cmdlesson .cmdbtn.primary{background:var(--accent);color:var(--accent-ink);border-color:var(--accent);font-weight:700;padding:9px 16px}
+.cmdlesson .cmdbtn.primary:disabled{opacity:.45;cursor:not-allowed}
+.cmdlesson .lsnote{color:var(--dim);font-size:.92em;margin-top:12px}
+.cmdpeek{position:fixed;z-index:14000;inset:5vh 50% auto auto;transform:translateX(50%);width:min(760px,94vw);max-height:90vh;display:flex;flex-direction:column;
+  background:var(--bg, var(--surface));border:1px solid var(--line);border-radius:14px;box-shadow:0 18px 60px rgba(0,0,0,.35)}
+.cmdpeek > header{display:flex;gap:10px;align-items:center;padding:10px 14px;border-bottom:1px solid var(--line);flex-wrap:wrap}
+.cmdpeek > header select{margin-left:auto;padding:5px 8px;border-radius:8px;border:1px solid var(--line);background:var(--surface);color:var(--ink);font:inherit}
+.cmdpeek .body{padding:12px 14px;overflow:auto}
+.cmdpeek pre{white-space:pre-wrap;word-break:break-word;font:inherit;margin:0;padding:8px 10px}
+.cmdpeek h4{margin:14px 0 6px}
 .cmdblk{border:1px solid var(--line);border-radius:9px;margin-bottom:13px;
   background:var(--surface);overflow:hidden}
 /* หัวข้อบล็อกต้องเจอได้จากการกวาดตา ไม่ใช่อ่านไล่ — ตัวใหญ่ ขาว มีเลขวงกลมแดงนำ */
@@ -5430,6 +5460,14 @@ let PRES = {}, PRES_JOINED = false, PRES_LAST = "", TEAM_TOPIC = "", RDRAG = {},
 let MINE_VIEW = false;   // แท็บ ★ งานของฉัน — ครีเอเตอร์ที่ตัวเองดูแลจากทุกโปรเจกต์
 // Command ตั้งต้นของฉัน (2026-11-06) { idบล็อก: { t, b } } — เก็บที่ private_notes เห็นเฉพาะเจ้าของบัญชี
 let MYTPL = {};
+// ═══ Command ส่วนตัว (2026-11-14 Jibli) ═══
+// แต่ละคนมีชุดของตัวเอง: เริ่มจากค่ามาตรฐานในระบบ (CMD_BLOCKS) + ที่ตัวเองแก้/เพิ่ม/ซ่อน/เรียง — คนอื่นไม่เห็น (private_notes) ยกเว้น admin
+// ไม่อิงต้นแบบทีมเดิม (CMDEDIT/CMDADD/CMDHIDE/CMDKIND/CMDMETA) อีก — ยกเว้น admin กับบัญชีใน TPL_LEGACY_UIDS (Ji) ที่ยังใช้ของเดิมต่อ
+// MYSET เก็บใน private_notes โปรเจกต์ __mytpl__ : handle "_add" = บล็อกที่เพิ่มเอง · "_meta" = {hide, ord} · "_trained" = ผ่านบทเรียนสร้างบล็อกแรกแล้ว
+let MYSET = { add: [], hide: [], ord: {} };
+let MYTRAINED = false;
+const TPL_LEGACY_UIDS = ["5440f003-4abe-4253-a020-7c5c928a9f47"];
+const cmdFresh = () => TEAM_MODE && !!TEAM && !!PROFILE && PROFILE.role !== "admin" && !TPL_LEGACY_UIDS.includes(sbUid());
 let MYTPL_K = {};          // ของฉันรายโปรเจกต์+กลุ่ม { "โปรเจกต์|KOL": { idบล็อก: {t,b} } }
 const MYTPL_P = "__mytpl__";
 // Format ส่วนตัว (2026-11-09) — เดิมใช้ร่วมทั้งทีม (team_kv ns fmt) · ตอนนี้ของใครของมัน เก็บที่ private_notes
@@ -8834,11 +8872,15 @@ function renderMapMem(){
 const pnKey = (p, h) => p + "|" + normId(h);
 async function loadPNotes(){
   try {
-    const r = await sbAuthed(SB_URL + "/rest/v1/private_notes?select=project,handle,note");
+    // owner=ตัวเอง เสมอ — admin มีสิทธิ์อ่านชุด Command ของสมาชิก (policy private_notes_admin_tpl) ถ้าไม่กรองจะได้ของทุกคนมาปนกัน
+    const r = await sbAuthed(SB_URL + "/rest/v1/private_notes?select=project,handle,note" + (sbUid() ? "&owner=eq." + sbUid() : ""));
     if (!r.ok) return;
-    PNOTES = {}; MYTPL = {}; MYTPL_K = {}; PFMT = {}; PFMT_SEEDED = false;
+    PNOTES = {}; MYTPL = {}; MYTPL_K = {}; PFMT = {}; PFMT_SEEDED = false; MYSET = { add: [], hide: [], ord: {} }; MYTRAINED = false;
     (await r.json()).forEach(x => {
       if (x.project === FMT_P){ if (x.handle === "_seeded") PFMT_SEEDED = true; else { try { PFMT[x.handle] = JSON.parse(x.note); } catch(e){} } return; }
+      if (x.project === MYTPL_P && x.handle === "_trained"){ MYTRAINED = true; return; }
+      if (x.project === MYTPL_P && x.handle === "_add"){ try { const a = JSON.parse(x.note); if (Array.isArray(a)) MYSET.add = a.filter(b => b && b.id); } catch(e){} return; }
+      if (x.project === MYTPL_P && x.handle === "_meta"){ try { const m = JSON.parse(x.note) || {}; MYSET.hide = Array.isArray(m.hide) ? m.hide : []; MYSET.ord = m.ord && typeof m.ord === "object" ? m.ord : {}; } catch(e){} return; }
       if (x.project === MYTPL_P){ try { MYTPL[x.handle] = JSON.parse(x.note); } catch(e){} return; }
       if (x.project.startsWith(MYTPL_P + "|")){ const sk = x.project.slice(MYTPL_P.length + 1);
         try { (MYTPL_K[sk] || (MYTPL_K[sk] = {}))[x.handle] = JSON.parse(x.note); } catch(e){} return; }
@@ -8860,6 +8902,22 @@ async function myTplPut(id, v, sk){
     else await sbSend(SB_URL + `/rest/v1/private_notes?project=${sbEq(pj)}&handle=${sbEq(id)}`, "DELETE", null,
       "ลบค่าตั้งต้นของคุณไม่ได้");
   } catch(e){ alert(e.message); }
+}
+// ชุดของฉัน (บล็อกที่เพิ่มเอง · ที่ซ่อน · ลำดับ) — เขียนทั้งก้อน 2 แถว
+async function mySetSave(){
+  try {
+    await sbSend(SB_URL + "/rest/v1/private_notes?on_conflict=owner,project,handle", "POST",
+      [{ project: MYTPL_P, handle: "_add", note: JSON.stringify(MYSET.add) },
+       { project: MYTPL_P, handle: "_meta", note: JSON.stringify({ hide: MYSET.hide, ord: MYSET.ord }) }],
+      "บันทึกชุดข้อความของคุณไม่ได้", "resolution=merge-duplicates,return=minimal");
+  } catch(e){ alert(e.message); }
+}
+async function myTrainedSave(){
+  MYTRAINED = true;
+  try {
+    await sbSend(SB_URL + "/rest/v1/private_notes?on_conflict=owner,project,handle", "POST",
+      [{ project: MYTPL_P, handle: "_trained", note: new Date().toISOString() }], "บันทึกไม่ได้", "resolution=merge-duplicates,return=minimal");
+  } catch(e){}
 }
 async function savePNote(p, h, note){
   note = String(note || "").trim();
@@ -11042,6 +11100,21 @@ Hashtag:📱
 📌📌
 
 {{feedback5}}` },
+  // ── ขั้นตอนมาตรฐานเพิ่มเติม (2026-11-14) · std:true = เฉพาะชุดส่วนตัว (cmdFresh) ──
+  { t:"ต่อรองเรท", std:true, pay:true, ord:0.5, b:
+`สวัสดีครับครีเอเตอร์🙇‍♂️ ทางแบรนด์พิจารณาแล้วและสนใจร่วมงานกับครีเอเตอร์มากครับ จึงขอเสนอเรทดังนี้
+
+{{videos}} video + gencode 60 days + ติดตะกร้า = {{rate}} บาท
+
+ครีเอเตอร์สะดวกที่เรทนี้ไหมครับ😊` },
+  { t:"รับดราฟต์แล้ว", std:true, ord:8.5, b:
+`ได้รับดราฟต์แล้วครับ ขอบคุณมากครับ🙏 แอดมินส่งให้ทางแบรนด์พิจารณาก่อนนะครับ มีฟีดแบคแล้วจะรีบแจ้งกลับครับ😊` },
+  { t:"เช็คตะกร้าก่อนโพสต์", std:true, ord:12.5, b:
+`ก่อนโพสต์ รบกวนครีเอเตอร์แคปหน้าจอตะกร้าสินค้าให้แอดมินเช็คด้วยนะครับ🛒
+📦สำหรับ: {{sku}}
+{{cart}}` },
+  { t:"ขอบคุณ / ปิดงาน", std:true, ord:52, b:
+`ขอบคุณที่ร่วมงานกับแบรนด์ {{brandname}} นะครับ😊 หากมีงานอื่นที่น่าสนใจ แอดมินจะติดต่อไปอีกครับ🙏` },
 ];
 
 // ─── ต้นแบบรุ่นก่อนหน้า ───
@@ -12125,31 +12198,37 @@ function cmdBlocksAll(proj, kind, level, noMine){
   level = level || (kind ? "K" : "P");
   const up = { G:1, P:2, K:3 }[level];
   if (up < 3) kind = "";
-  const GM = cmdMetaRead(ALLP), PM = cmdMetaRead("P:" + proj);
-  const KM = kind ? cmdMetaRead(cmdMetaKey("K", proj, kind)) : null;
-  const pHide = new Set(CMDHIDE[proj] || []);
+  const F = cmdFresh();                               // ชุดส่วนตัว: ไม่อ่านต้นแบบทีมเลย
+  const MYS = noMine !== true ? MYSET : null;          // ชุดของฉัน (เพิ่ม/ซ่อน/เรียง) — หน้าต้นแบบทีมของ admin ไม่นับ
+  const NOM = { hide: [], show: [], ord: {} };
+  const GM = F ? NOM : cmdMetaRead(ALLP), PM = F ? NOM : cmdMetaRead("P:" + proj);
+  const KM = kind && !F ? cmdMetaRead(cmdMetaKey("K", proj, kind)) : null;
+  const pHide = new Set(F ? [] : CMDHIDE[proj] || []);
+  const myOn = !!MYS && Object.keys(MYS.ord).length > 0;
   let badOrd = 0;
   const mk = (id, def, dord, custom, from) => {
-    const ed = up >= 2 ? ((CMDEDIT[proj] || {})[id] || null) : null;         // ของโปรเจกต์นี้
-    const ge = custom ? null : ((CMDEDIT[ALLP] || {})[id] || null);           // ของทุกโปรเจกต์
+    const ed = up >= 2 && !F ? ((CMDEDIT[proj] || {})[id] || null) : null;         // ของโปรเจกต์นี้
+    const ge = custom || F ? null : ((CMDEDIT[ALLP] || {})[id] || null);           // ของทุกโปรเจกต์
     const gt = (ge && ge.t) || def.t, gb = (ge && ge.b != null) ? ge.b : def.b;
     const pt = (ed && ed.t) || gt, pb = (ed && ed.b != null) ? ed.b : gb;
     // 📌 ของฉัน (2026-11-06 Jibli: "ใครของมัน") — ทับข้อความทีมทุกชั้น ของบัญชีนี้คนเดียว
     const my = MYTPL[id] || null;
-    const ke = up >= 3 ? cmdKindOne(proj, kind, id) : null;
+    const ke = up >= 3 && !F ? cmdKindOne(proj, kind, id) : null;
     // ของกลุ่มไหนแก้แยกไว้บ้าง — โชว์ป้ายในแท็บโปรเจกต์ จะได้รู้ว่าแก้ตรงนั้นแล้วบางกลุ่มไม่เปลี่ยนตาม
-    const split = up === 2 ? ["KOL", "KOC"].filter(k => cmdKindOne(proj, k, id)) : [];
+    const split = up === 2 && !F ? ["KOL", "KOC"].filter(k => cmdKindOne(proj, k, id)) : [];
     let hidBy = GM.hide.includes(id) ? "G" : "";
     if (up >= 2){ if (PM.show.includes(id)) hidBy = ""; if (pHide.has(id)) hidBy = "P"; }
     if (KM){ if (KM.show.includes(id)) hidBy = ""; if (KM.hide.includes(id)) hidBy = "K"; }
+    if (MYS && MYS.hide.includes(id)) hidBy = "M";
     let ord = Number.isFinite(+dord) && dord !== null && dord !== "" ? +dord : 900 + (++badOrd);
     if (GM.ord[id] != null) ord = GM.ord[id];
     const bord = ord;                                   // ลำดับระดับทุกโปรเจกต์ — ใช้หากล่องที่ยึด
     if (up >= 2 && PM.ord[id] != null) ord = PM.ord[id];
     if (KM && KM.ord[id] != null) ord = KM.ord[id];
+    if (MYS && MYS.ord[id] != null) ord = MYS.ord[id];
     // เลขจากชั้นที่เรียงใหม่ — ชั้นที่ "เจาะจงที่สุดที่มีการเรียง" เท่านั้นนับ (KOL/KOC ทับโปรเจกต์)
     const kmOn = KM && Object.keys(KM.ord).length, pmOn = up >= 2 && Object.keys(PM.ord).length;
-    const mapped = kmOn ? KM.ord[id] != null : pmOn ? PM.ord[id] != null : true;
+    const mapped = myOn ? MYS.ord[id] != null : kmOn ? KM.ord[id] != null : pmOn ? PM.ord[id] != null : true;
     const teamT = up === 1 ? gt : up === 2 ? pt : ((ke && ke.t) || pt);
     const teamB = up === 1 ? gb : up === 2 ? pb : ((ke && ke.b != null) ? ke.b : pb);
     const useMy = my && noMine !== true;
@@ -12167,10 +12246,11 @@ function cmdBlocksAll(proj, kind, level, noMine){
   };
   // บล็อกที่เพิ่มเฉพาะกลุ่ม (kind) — แท็บโปรเจกต์เห็นทุกกลุ่ม (มีป้ายบอก) · แท็บกลุ่มเห็นแค่ของกลุ่มตัวเอง
   const kindOk = x => !x.kind || up === 2 || x.kind === kind;
-  const all = CMD_BLOCKS.map((b, i) => mk(String(i), b, b.ord ?? i, false, "code"))
-    .concat(cmdAddFor(ALLP).map(x => mk(x.id, x, x.ord, true, "G")))
+  const all = CMD_BLOCKS.map((b, i) => b.std && !F ? null : mk(String(i), b, b.ord ?? i, false, "code")).filter(Boolean)
+    .concat(F ? [] : cmdAddFor(ALLP).map(x => mk(x.id, x, x.ord, true, "G")))
+    .concat(MYS ? MYS.add.map(x => Object.assign(mk(x.id, x, x.ord, true, "me"), { mapped: true })) : [])
     // บล็อกที่เพิ่มในชั้นโปรเจกต์/กลุ่มเอง ถือว่าอยู่ในลำดับของชั้นนั้นแล้ว (เลขของมันตั้งในชั้นนั้น)
-    .concat(up >= 2 ? cmdAddFor(proj).filter(kindOk).map(x => Object.assign(mk(x.id, x, x.ord, true, x.kind ? "K" : "P"), { mapped: true })) : []);
+    .concat(up >= 2 && !F ? cmdAddFor(proj).filter(kindOk).map(x => Object.assign(mk(x.id, x, x.ord, true, x.kind ? "K" : "P"), { mapped: true })) : []);
   return cmdOrdAnchor(all).sort((a, b) => a.ord - b.ord);
 }
 const cmdBlocks = (proj, kind, level) => cmdBlocksAll(proj, kind, level).filter(b => !b.hidden);
@@ -12357,6 +12437,9 @@ function cmdAddAt(scope, proj, handle, afterId){
   if (scope === "mine"){
     blk.id = cmdNewId("m");
     cmdOwn(proj, handle).add.push(blk);
+  } else if (cmdMeScope(scope)){
+    blk.id = cmdNewId("p");
+    MYSET.add.push(blk);
   } else if (scope === "global"){
     blk.id = cmdNewId("g");
     (CMDADD[ALLP] || (CMDADD[ALLP] = [])).push(blk);
@@ -12374,17 +12457,23 @@ function cmdAddAt(scope, proj, handle, afterId){
     const byId = new Map(after.map(b => [b.id, b]));
     want.forEach((id, n) => { const b = byId.get(id); if (b) cmdSetOrd(scope, proj, handle, b, n); });
   }
-  if (scope === "mine"){ pruneCmdOwn(proj, handle); saveCmdOwn(); } else saveCmdEdit();
+  if (scope === "mine"){ pruneCmdOwn(proj, handle); saveCmdOwn(); } else if (cmdMeScope(scope)) mySetSave(); else saveCmdEdit();
   return blk.id;
 }
 // บล็อกนี้เกิดในชั้นของแท็บนี้เองไหม — ใช่ = ลบทิ้งได้จริง/แก้ที่ตัวมันตรงๆ · ไม่ใช่ = ซ่อนเฉพาะชั้นนี้
+const cmdMeScope = scope => scope === "me" || scope === "meKOL" || scope === "meKOC";
 function cmdOwnLayer(scope, b){
-  return !!b.custom && ((scope === "global" && b.from === "G") || (scope === "all" && b.from === "P")
+  return !!b.custom && ((cmdMeScope(scope) && b.from === "me") || (scope === "global" && b.from === "G") || (scope === "all" && b.from === "P")
     || ((scope === "KOL" || scope === "KOC") && b.from === "K"));
 }
 const cmdRm = (arr, id) => { const k = arr.indexOf(id); if (k >= 0) arr.splice(k, 1); };
 function cmdDropAt(scope, proj, handle, b){
   if (scope === "mine") return dropOwnBlock(proj, handle, b.id);
+  if (cmdMeScope(scope)){
+    if (b.from === "me") MYSET.add = MYSET.add.filter(x => x.id !== b.id);
+    else if (!MYSET.hide.includes(b.id)) MYSET.hide.push(b.id);
+    return mySetSave();
+  }
   if (cmdOwnLayer(scope, b)){
     const key = scope === "global" ? ALLP : proj;
     CMDADD[key] = cmdAddFor(key).filter(x => x.id !== b.id);
@@ -12407,6 +12496,7 @@ function cmdDropAt(scope, proj, handle, b){
 // คืนบล็อกที่ซ่อน — ซ่อนไว้ที่ชั้นนี้ = ถอดออก · ซ่อนมาจากชั้นบน = คืนเฉพาะชั้นนี้ (ชั้นบนยังซ่อนอยู่)
 function cmdShowAt(scope, proj, handle, b){
   if (scope === "mine") return showOwnBlock(proj, handle, b.id);
+  if (cmdMeScope(scope)){ cmdRm(MYSET.hide, b.id); return mySetSave(); }
   if (scope === "global") cmdRm(cmdMetaW(ALLP).hide, b.id);
   else if (scope === "all"){
     if ((CMDHIDE[proj] || []).includes(b.id)) CMDHIDE[proj] = CMDHIDE[proj].filter(x => x !== b.id);
@@ -12432,10 +12522,15 @@ function cmdMoveAt(scope, proj, handle, id, dir){
     rest.splice(at, 0, view[i]);
     rest.forEach((b, n) => cmdSetOrd(scope, proj, handle, b, n));
   } else cmdSetOrd(scope, proj, handle, view[i], ord);
-  if (scope === "mine"){ pruneCmdOwn(proj, handle); saveCmdOwn(); } else saveCmdEdit();
+  if (scope === "mine"){ pruneCmdOwn(proj, handle); saveCmdOwn(); } else if (cmdMeScope(scope)) mySetSave(); else saveCmdEdit();
   return true;
 }
 function cmdSetOrd(scope, proj, handle, b, ord){
+  if (cmdMeScope(scope)){
+    const e = MYSET.add.find(x => x.id === b.id);
+    if (e) e.ord = ord; else MYSET.ord[b.id] = ord;
+    return;
+  }
   if (scope === "mine"){
     const own = cmdOwn(proj, handle);
     const solo = own.add.find(x => x.id === b.id);
@@ -12594,7 +12689,7 @@ function renderCmdEditor(proj, handle){
               ? `<br><span style="color:var(--warn)">${esc(normId(handle))} เป็น ${myKind} — ที่แก้ตรงนี้ไม่ไปถึงข้อความของคนนี้</span>` : ""}`
          : me
          ? `📌 <b>ข้อความของคุณเอง</b> — แก้แล้วใช้กับครีเอเตอร์ทุกคนทุกโปรเจกต์ที่<b>คุณ</b>เปิด · คนอื่นในทีมไม่เห็น ไม่เปลี่ยนตาม
-            <span style="color:var(--dim)">(ที่ตั้งเฉพาะครีเอเตอร์รายคนยังชนะ · กด ↺ = กลับไปใช้ข้อความทีม)</span>`
+            <span style="color:var(--dim)">(ที่ตั้งเฉพาะครีเอเตอร์รายคนยังชนะ · กด ↺ = กลับไปใช้${cmdFresh() ? "ค่ามาตรฐาน" : "ข้อความทีม"})</span>`
          : gs
          ? `แก้แล้ว<b> ใช้กับทุกโปรเจกต์</b> รวมโปรเจกต์ที่เปิดใหม่ทีหลัง
             <span style="color:var(--dim)">(ยกเว้นโปรเจกต์ / กลุ่ม KOL-KOC / คนที่ตั้งบล็อกนั้นแยกไว้แล้ว — ดูป้าย "แก้แยก")</span>`
@@ -12605,9 +12700,10 @@ function renderCmdEditor(proj, handle){
          : `แก้แล้ว<b> ใช้กับครีเอเตอร์ทุกคนใน ${esc(proj)}</b> โปรเจกต์อื่นไม่เปลี่ยนตาม
             <span style="color:var(--dim)">(ยกเว้นคนที่ตั้งของตัวเอง และบล็อกที่แก้แยกกลุ่ม KOL/KOC ไว้)</span>`}<br>
        <span style="color:var(--dim)">↑ ↓ ย้ายลำดับ · 🗑 ${mine ? "ไม่ส่งบล็อกนี้ / ลบ" : "ซ่อน / ลบ"} · ＋ แทรกบล็อกใหม่ — มีผลเฉพาะแท็บนี้</span><br>
-       ตัวแปรที่ใส่ได้: ${Object.keys(CMD_GAP).map(k => `<code>{{${k}}}</code>`).join(" ")}
+       ${cmdVarBar()}
+       ${cmdTeamEdit() && TEAM_MODE && TEAM ? `<button class="cmdbtn" id="cmdPeekBtn" title="ดูชุด Command ส่วนตัวของสมาชิกแต่ละคน (อ่านอย่างเดียว · เฉพาะ admin)">👁 Command ของสมาชิก</button>` : ""}
        <button class="cmdbtn" id="cmdDone">เสร็จแล้ว</button>
-       <button class="cmdbtn" id="cmdResetAll">${mk ? `ล้างของฉัน (${mk} ใน ${esc(proj)}) ทั้งหมด` : me ? "คืนเป็นต้นแบบของทีมทั้งหมด" : mine ? "คืนให้เหมือนต้นแบบทั้งหมด"
+       <button class="cmdbtn" id="cmdResetAll">${mk ? `ล้างของฉัน (${mk} ใน ${esc(proj)}) ทั้งหมด` : me ? (cmdFresh() ? "ล้างชุดของฉัน กลับเป็นค่ามาตรฐาน" : "คืนเป็นต้นแบบของทีมทั้งหมด") : mine ? "คืนให้เหมือนต้นแบบทั้งหมด"
          : ks ? `คืนของ ${ks} ทั้งหมด` : gs ? "คืนต้นแบบทุกโปรเจกต์ทั้งหมด" : "คืนค่าต้นแบบทั้งหมด"}</button>
      </div>` +
     list.map((b, i) => {
@@ -12656,7 +12752,14 @@ function renderCmdEditor(proj, handle){
             >คืน “${esc(h.t)}”</button>`).join(" ")}</div>`
       : "");
 
+  // บล็อกที่ฉันเพิ่มเอง — แก้ที่ตัวมันตรงๆ
+  const saveMyAdd = (id, key, val) => {
+    const e = MYSET.add.find(x => x.id === id);
+    if (!e) return false;
+    e[key] = val; mySetSave(); return true;
+  };
   const saveMeK = (id, key, val) => {
+    if (saveMyAdd(id, key, val)) return true;
     const blk = cmdBlocksAll(proj, mk, "K", "g").find(b => b.id === id);
     if (!blk) return false;
     const cur = Object.assign({}, (MYTPL_K[mkKey] || {})[id] || {});
@@ -12667,6 +12770,7 @@ function renderCmdEditor(proj, handle){
     return true;
   };
   const saveMe = (id, key, val) => {
+    if (saveMyAdd(id, key, val)) return true;
     const blk = cmdBlocksAll(proj, cmdRowKind(proj, handle), "K", true).find(b => b.id === id);
     if (!blk) return false;
     const cur = Object.assign({}, MYTPL[id] || {});
@@ -12804,8 +12908,10 @@ function renderCmdEditor(proj, handle){
       return renderCmdEditor(proj, handle);
     }
     if (me){
-      if (!confirm(`ล้างค่าตั้งต้นของคุณ (${Object.keys(MYTPL).length} บล็อก) กลับไปใช้ต้นแบบของทีม?`)) return;
+      const nSet = MYSET.add.length + MYSET.hide.length + Object.keys(MYSET.ord).length;
+      if (!confirm(`ล้างชุดของคุณทั้งหมด กลับไปเป็น${cmdFresh() ? "ค่ามาตรฐาน" : "ต้นแบบของทีม"}?\n\nข้อความที่แก้ ${Object.keys(MYTPL).length} บล็อก · บล็อกที่เพิ่มเอง ${MYSET.add.length} · ที่ซ่อน/เรียงไว้ ${nSet - MYSET.add.length}\nเอากลับไม่ได้`)) return;
       Object.keys(MYTPL).forEach(id => myTplPut(id, null));
+      if (nSet){ MYSET = { add: [], hide: [], ord: {} }; mySetSave(); }
       return renderCmdEditor(proj, handle);
     }
     if (mine){
@@ -12838,6 +12944,142 @@ function renderCmdEditor(proj, handle){
     renderCmdEditor(proj, handle);
   };
   $("#cmdDone").onclick = () => { CMD_EDITING = false; openCmd(proj, handle); };
+  { const pk = $("#cmdPeekBtn"); if (pk) pk.onclick = () => cmdPeek(); }
+}
+
+// ═══ ตัวแปร {{…}} — คำอธิบาย + กดเพื่อแทรก (2026-11-14) ═══
+const CMD_VAR_HELP = {
+  handle:"ชื่อช่องของครีเอเตอร์", brandname:"ชื่อแบรนด์ของโปรเจกต์", sku:"สินค้า / SKU ที่ครีเอเตอร์รับ", videos:"จำนวนวิดีโอ",
+  rate:"เรทค่าจ้าง (บาท)", paytype:"รูปแบบภาษี / การชำระเงิน", net:"ยอดที่ครีเอเตอร์ได้รับจริงหลังหักภาษี", commission:"ค่าคอมมิชชัน",
+  brief:"ลิงก์บรีฟ / คู่มือถ่ายทำของ SKU นั้น", guide:"ลิงก์ Shooting Guide", sg:"ลิงก์ SG", script:"ลิงก์สคริปต์", docs:"ลิงก์เอกสารร่วมงาน (แยก KOL / KOC)",
+  agreement:"ลิงก์สัญญา / Agreement", form:"ลิงก์ฟอร์มเอกสารหัก ณ ที่จ่าย", sign:"ลิงก์ใบรับเงิน", timeline:"ข้อความ Timeline (วันนัดส่งดราฟต์ / โพสต์)",
+  cart:"ลิงก์ตะกร้าสินค้า", hashtag:"แฮชแท็กที่ต้องใส่ตอนโพสต์",
+  tracking:"เลขพัสดุ", carrier:"ชื่อขนส่ง", trackurl:"ลิงก์เช็คพัสดุ", tracklist:"เลขพัสดุทุกกล่องพร้อมขนส่ง",
+  feedback:"ฟีดแบคล่าสุด", feedback1:"ฟีดแบค Draft 1", feedback2:"ฟีดแบค Draft 2", feedback3:"ฟีดแบค Draft 3", feedback4:"ฟีดแบค Draft 4", feedback5:"ฟีดแบค Draft 5",
+  liveslot:"วัน + เวลาไลฟ์", livedate:"วันไลฟ์", livetime:"เวลาไลฟ์", livehours:"จำนวนชั่วโมงไลฟ์" };
+const CMD_VAR_GROUPS = [
+  ["งาน", ["brandname", "sku", "videos", "rate", "paytype", "net", "commission"]],
+  ["ลิงก์เอกสาร", ["brief", "guide", "sg", "script", "docs", "agreement", "form", "sign", "timeline"]],
+  ["โพสต์", ["cart", "hashtag"]],
+  ["จัดส่ง", ["tracking", "carrier", "trackurl", "tracklist"]],
+  ["ฟีดแบค", ["feedback", "feedback1", "feedback2", "feedback3", "feedback4", "feedback5"]],
+  ["ไลฟ์", ["liveslot", "livedate", "livetime", "livehours"]],
+];
+const cmdVarChip = k => `<code class="cmdvar" data-var="${k}" role="button" tabindex="0" title="${esc(CMD_VAR_HELP[k] || CMD_GAP[k] || k)} — กดเพื่อแทรกตรงที่เคอร์เซอร์อยู่">{{${k}}}</code>`;
+function cmdVarBar(){
+  const known = new Set(CMD_VAR_GROUPS.flatMap(g => g[1]));
+  const rest = Object.keys(CMD_GAP).filter(k => !known.has(k));
+  const groups = CMD_VAR_GROUPS.concat(rest.length ? [["อื่นๆ", rest]] : []);
+  return `<details class="cmdvars"><summary>🧩 ตัวแปร <b>{{…}}</b> — ช่องที่ระบบเติมข้อมูลของครีเอเตอร์คนนั้นให้เอง · คลิกในช่องข้อความแล้วกดตัวแปรเพื่อแทรก</summary>
+    <table>${groups.map(([g, ks]) => ks.map((k, i) => `<tr>${i ? "" : `<th rowspan="${ks.length}">${esc(g)}</th>`}<td>${cmdVarChip(k)}</td><td>${esc(CMD_VAR_HELP[k] || CMD_GAP[k] || "")}</td></tr>`).join("")).join("")}</table>
+    <div class="cmdvarnote">ครีเอเตอร์ทำหลายคลิป: ต่อเลขท้ายสำหรับคลิปที่ 2 ขึ้นไป เช่น <code>{{cart2}}</code> · ช่องที่ยังไม่มีข้อมูลจะขึ้นสีแดงตอนเปิด Command ไม่ส่งค่าว่างออกไป</div></details>`;
+}
+let CMD_LAST_TA = null;
+document.addEventListener("focusin", e => { if (e.target && e.target.matches && e.target.matches("#cmdBody textarea")) CMD_LAST_TA = e.target; });
+document.addEventListener("mousedown", e => { if (e.target.closest && e.target.closest("#cmdBody .cmdvar")) e.preventDefault(); });   // ไม่ให้ช่องข้อความเสียโฟกัส
+document.addEventListener("click", e => {
+  const c = e.target.closest && e.target.closest("#cmdBody .cmdvar");
+  if (!c) return;
+  const v = "{{" + c.dataset.var + "}}";
+  let ta = CMD_LAST_TA && document.contains(CMD_LAST_TA) ? CMD_LAST_TA : document.querySelector("#cmdBody #lsB");
+  if (!ta){
+    try { navigator.clipboard.writeText(v); } catch(err){}
+    return histToast(`คัดลอก ${v} แล้ว — คลิกในช่องข้อความก่อน แล้วกดตัวแปรอีกครั้งเพื่อแทรกตรงนั้น`);
+  }
+  const a = ta.selectionStart != null ? ta.selectionStart : ta.value.length, b = ta.selectionEnd != null ? ta.selectionEnd : a;
+  ta.value = ta.value.slice(0, a) + v + ta.value.slice(b);
+  try { ta.focus(); ta.setSelectionRange(a + v.length, a + v.length); } catch(err){}
+  ta.dispatchEvent(new Event("input", { bubbles: true }));
+});
+
+// ═══ บทเรียนสร้างบล็อกแรก (2026-11-14) — ต้องสร้างเองให้ได้ 1 บล็อกก่อนใช้ Command ═══
+// เฉพาะคนที่ใช้ชุดส่วนตัว (cmdFresh) และยังไม่เคยผ่าน · ผ่านแล้วจดใน private_notes (_trained) ไม่ถามอีกทุกเครื่อง
+function renderCmdLesson(proj, handle, r){
+  const vals = cmdValues(r);
+  const nStd = cmdBlocksAll(proj, cmdRowKind(proj, handle), "K").filter(b => !b.hidden && !b.law).length;
+  const varOk = t => (t.match(/\{\{([\w]+)\??\}\}/g) || []).some(m => { const k = m.slice(2, -2).replace(/\?$/, "");
+    return k in CMD_GAP || k.replace(/\d+$/, "") in CMD_GAP || k === "handle"; });
+  $("#cmdBody").classList.remove("cmdme");
+  $("#cmdBody").innerHTML = `<div class="cmdlesson">
+    <h3>สร้าง Command ของคุณเอง <span>ทำครั้งเดียว ประมาณ 2 นาที</span></h3>
+    <p><b>Command</b> คือชุดข้อความสำเร็จรูปที่ใช้ส่งให้ครีเอเตอร์ทีละขั้นตอน ชุดนี้เป็น<b>ของคุณคนเดียว</b> คนอื่นในทีมไม่เห็น (ยกเว้น admin)
+       ระบบเตรียม<b>ค่ามาตรฐานไว้ให้ ${nStd} ขั้นตอน</b> ตั้งแต่ขอคอนเฟิร์มจนถึงทำจ่าย คุณแก้ถ้อยคำ เพิ่ม ซ่อน หรือเรียงใหม่ได้ทั้งหมด</p>
+    <p>ก่อนเริ่มใช้งาน ลองสร้างบล็อกของคุณเอง 1 อัน จะได้รู้วิธีเพิ่มขั้นตอนใหม่เองในครั้งต่อไป</p>
+    <ol>
+      <li><b>ตั้งชื่อขั้นตอน</b> — เห็นเฉพาะคุณ ใช้บอกว่าข้อความนี้ส่งตอนไหน
+        <input id="lsT" maxlength="80" placeholder="เช่น ทักทายครั้งแรก · ตามงาน · แจ้งวันโพสต์"></li>
+      <li><b>เขียนข้อความ</b> — พิมพ์เหมือนแชตปกติ ตรงไหนที่ข้อมูลเปลี่ยนตามครีเอเตอร์แต่ละคน (ชื่อแบรนด์ สินค้า เรท ลิงก์) ให้<b>กดตัวแปรด้านล่าง</b>แทนการพิมพ์เอง
+        <textarea id="lsB" rows="6" placeholder="เช่น สวัสดีครับ แอดมินดูแลงานแบรนด์ {{brandname}} นะครับ สินค้าที่ร่วมงานคือ {{sku}} ครับ"></textarea>
+        ${cmdVarBar().replace("<details ", "<details open ")}</li>
+      <li><b>ดูตัวอย่างจริง</b> — ระบบเติมข้อมูลของ <b>@${esc(normId(handle))}</b> ลงในตัวแปรให้ ช่องสีแดง = ครีเอเตอร์คนนี้ยังไม่มีข้อมูลช่องนั้น (ไม่ใช่ความผิดของข้อความ)
+        <pre id="lsPrev" class="lsprev"></pre></li>
+    </ol>
+    <ul class="lscheck" id="lsCheck"></ul>
+    <button class="cmdbtn primary" id="lsSave" disabled>บันทึกบล็อกแรกของฉัน แล้วเริ่มใช้ Command</button>
+    <p class="lsnote">หลังจากนี้ กด <b>✎ แก้ข้อความ</b> ในหน้า Command เมื่อไหร่ก็ได้ เพื่อแก้ค่ามาตรฐาน · ＋ เพิ่มบล็อก · ↑ ↓ เรียงลำดับ · 🗑 ซ่อนขั้นตอนที่ไม่ใช้</p>
+  </div>`;
+  const T = $("#lsT"), B = $("#lsB");
+  const check = () => {
+    const t = T.value.trim(), b = B.value.trim();
+    const c = [[!!t, "ตั้งชื่อขั้นตอนแล้ว"], [b.length >= 15, "เขียนข้อความแล้ว (อย่างน้อย 15 ตัวอักษร)"], [varOk(b), "ใส่ตัวแปร {{…}} อย่างน้อย 1 ตัว"]];
+    $("#lsCheck").innerHTML = c.map(([ok, th]) => `<li class="${ok ? "ok" : ""}">${ok ? "✓" : "○"} ${esc(th)}</li>`).join("");
+    $("#lsPrev").innerHTML = b ? fillBlock(b, vals, 0).html : `<span style="color:var(--dim)">ตัวอย่างจะขึ้นตรงนี้เมื่อเริ่มพิมพ์</span>`;
+    $("#lsSave").disabled = !c.every(x => x[0]);
+  };
+  T.oninput = check; B.oninput = check; check();
+  $("#lsSave").onclick = async () => {
+    $("#lsSave").disabled = true;
+    const top = Math.max(60, ...cmdBlocksAll(proj, cmdRowKind(proj, handle), "K").filter(b => !b.law).map(b => +b.ord || 0));
+    MYSET.add.push({ id: cmdNewId("p"), t: T.value.trim(), b: B.value.trim(), ord: top + 1 });
+    await mySetSave(); await myTrainedSave();
+    vlog("mytpl", { d: "lesson done" });
+    histToast("บันทึกแล้ว — บล็อกของคุณอยู่ท้ายสุดของ Command · กด ✎ แก้ข้อความ เพื่อย้ายตำแหน่งหรือเพิ่มอีก");
+    openCmd(proj, handle);
+  };
+  T.focus();
+}
+
+// ═══ admin ดูชุด Command ส่วนตัวของสมาชิก (อ่านอย่างเดียว) ═══
+// สิทธิ์อ่านอยู่ที่ฐานข้อมูล (policy private_notes_admin_tpl) — คนที่ไม่ใช่ admin เรียกแล้วได้ของตัวเองเท่านั้น
+async function cmdPeek(uid){
+  let box = $("#cmdPeek");
+  if (!box){ box = document.createElement("div"); box.id = "cmdPeek"; box.className = "cmdpeek"; document.body.appendChild(box); }
+  const mem = (TEAM && TEAM.members || []).filter(m => m.id !== sbUid());
+  uid = uid || (mem[0] || {}).id || "";
+  const head = `<header><b>👁 Command ส่วนตัวของสมาชิก</b>
+      <select id="cmdPeekSel">${mem.map(m => `<option value="${esc(m.id)}"${m.id === uid ? " selected" : ""}>${esc(m.name || m.email)}</option>`).join("")}</select>
+      <button class="cmdbtn" id="cmdPeekX">ปิด</button></header>`;
+  box.innerHTML = head + `<div class="body">กำลังโหลด…</div>`;
+  const wire = () => { $("#cmdPeekX").onclick = () => box.remove(); $("#cmdPeekSel").onchange = e => cmdPeek(e.target.value); };
+  wire();
+  if (!uid){ box.querySelector(".body").textContent = "ยังไม่มีสมาชิกคนอื่นในทีม"; return; }
+  let rows = [];
+  try {
+    const r = await sbAuthed(SB_URL + "/rest/v1/private_notes?select=project,handle,note,updated_at&owner=eq." + uid + "&project=like." + encodeURIComponent(MYTPL_P + "*"));
+    if (!r.ok) throw new Error("โหลดไม่ได้ (" + r.status + ")");
+    rows = await r.json();
+  } catch(e){ box.querySelector(".body").textContent = e.message; return; }
+  const J = x => { try { return JSON.parse(x.note); } catch(e){ return null; } };
+  const g = rows.filter(x => x.project === MYTPL_P);
+  const add = (J(g.find(x => x.handle === "_add") || {}) || []).filter(b => b && b.id);
+  const meta = J(g.find(x => x.handle === "_meta") || {}) || {};
+  const trained = g.find(x => x.handle === "_trained");
+  const name = id => { const d = CMD_BLOCKS[+id]; const a = add.find(b => b.id === id); return d && /^\d+$/.test(id) ? d.t : a ? a.t : "บล็อก " + id; };
+  const blk = (t, b, tag) => `<div class="cmdblk"><header><span class="kindtag add">${esc(tag)}</span> <b>${esc(t)}</b></header><pre>${esc(b == null ? "(ใช้ข้อความมาตรฐาน)" : b)}</pre></div>`;
+  const ed = g.filter(x => !x.handle.startsWith("_")).map(x => [x.handle, J(x) || {}]);
+  const byK = {};
+  rows.filter(x => x.project.startsWith(MYTPL_P + "|")).forEach(x => (byK[x.project.slice(MYTPL_P.length + 1)] || (byK[x.project.slice(MYTPL_P.length + 1)] = [])).push([x.handle, J(x) || {}]));
+  const isLegacy = TPL_LEGACY_UIDS.includes(uid);
+  box.innerHTML = head + `<div class="body">
+    <p>${isLegacy ? "บัญชีนี้ยังใช้<b>ต้นแบบทีมเดิม</b>เป็นฐาน" : "ฐาน = <b>ค่ามาตรฐานของระบบ</b>"} · ${trained ? "ผ่านบทเรียนสร้างบล็อกแรกแล้ว" : isLegacy ? "ไม่ต้องทำบทเรียน" : "<b style=\"color:var(--warn)\">ยังไม่ได้สร้างบล็อกแรก</b> (ยังเปิด Command ใช้งานไม่ได้)"}
+       · เพิ่มเอง ${add.length} · แก้ข้อความ ${ed.length} · ซ่อน ${(meta.hide || []).length}</p>
+    ${add.length ? `<h4>บล็อกที่เพิ่มเอง</h4>` + add.map(b => blk(b.t, b.b, "เพิ่มเอง")).join("") : ""}
+    ${ed.length ? `<h4>ข้อความมาตรฐานที่แก้ (ทุกโปรเจกต์)</h4>` + ed.map(([id, v]) => blk(v.t || name(id), v.b, "แก้")).join("") : ""}
+    ${Object.keys(byK).map(k => `<h4>เฉพาะ ${esc(k.replace("|", " · "))}</h4>` + byK[k].map(([id, v]) => blk(v.t || name(id), v.b, "แก้")).join("")).join("")}
+    ${(meta.hide || []).length ? `<h4>ขั้นตอนที่ซ่อนไว้</h4><p>${meta.hide.map(id => esc(name(id))).join(" · ")}</p>` : ""}
+    ${!add.length && !ed.length && !Object.keys(byK).length && !(meta.hide || []).length ? `<p style="color:var(--dim)">ยังไม่ได้แก้อะไร — ใช้${isLegacy ? "ต้นแบบทีม" : "ค่ามาตรฐาน"}ล้วน</p>` : ""}
+  </div>`;
+  wire();
 }
 
 // ─── รายชื่อที่ลูกศร ‹ › เดินไปมา ───
@@ -12941,6 +13183,7 @@ function openCmd(proj, handle){
     $("#cmdNext").onclick = () => step(1);
   }
   CMD_STEP = nav.length > 1 ? step : null;
+  if (cmdFresh() && !MYTRAINED){ CMD_EDITING = false; return renderCmdLesson(proj, handle, r); }
   if (CMD_EDITING) return renderCmdEditor(proj, handle);
 
   const vals = cmdValues(r);
@@ -26834,6 +27077,11 @@ i18nStart();
 // ⚠️ อัปเดตครั้งใหม่ = เพิ่มรายการบนสุด n+1 · คนที่ใช้ช่อง Publish เห็นตอนเปิดเวอร์ชันที่มีรายการนั้นครั้งแรก
 //    ข้ามหลายเวอร์ชัน = เห็นรวมทุกรายการที่พลาดไป · เข้าเว็บครั้งแรกในชีวิต = ไม่เด้งของเก่า (เริ่มนับจากตอนนี้)
 const RELEASE_NOTES = [
+  { n: 18, d: "14 พ.ย. 2569", t: "✉ Command เป็นของใครของมัน", items: [
+    ["🔒", "ชุดข้อความ <b>Command</b> ของแต่ละคนเป็น<b>ส่วนตัว</b> — คนอื่นในทีมไม่เห็น (admin ดูได้) · เริ่มจาก<b>ค่ามาตรฐานของระบบครบทุกขั้นตอน</b> แล้วแก้ถ้อยคำ เพิ่ม ซ่อน เรียงใหม่เป็นของตัวเองได้"],
+    ["🎓", "เปิด Command ครั้งแรกจะมี<b>บทเรียนสั้นๆ</b> ให้สร้างบล็อกของตัวเอง 1 อัน (ตั้งชื่อ · เขียนข้อความ · กดตัวแปร) ผ่านแล้วใช้งานได้เลย ไม่ถามอีก"],
+    ["🧩", "หน้า <b>✎ แก้ข้อความ</b> มีตาราง<b>ตัวแปร {{…}}</b> พร้อมคำอธิบายทุกตัว — คลิกในช่องข้อความแล้วกดตัวแปรเพื่อแทรก ไม่ต้องพิมพ์เอง"],
+  ]},
   { n: 17, d: "13 พ.ย. 2569", t: "‹ › ปุ่มย้อนกลับ / ไปข้างหน้า ทุกหน้า", items: [
     ["‹", "มุมซ้ายบนมีปุ่ม <b>‹ ย้อนกลับ</b> · <b>› ไปข้างหน้า</b> ทุกหน้า — ย้อนได้ทั้งหน้า · Map · Command ของใคร · ลิ้นชัก ⤢ · ตั้งค่า"],
     ["📱", "ใช้ทางลัดของเครื่องได้ด้วย: <b>Android</b> ปุ่ม back · <b>iPhone/iPad</b> ปัดจากขอบซ้าย · <b>Mac</b> ⌘[ ⌘] หรือปัดทัชแพด · <b>Windows</b> Alt+← → หรือปุ่มข้างเมาส์"],
@@ -26986,6 +27234,7 @@ document.addEventListener("keydown", e => { if (!ST) return;
 // ขั้นสอนของแต่ละอัปเดต (คีย์ = n ใน RELEASE_NOTES) · อัปเดตที่ทีมเห็นได้ ควรมีขั้นสอนเสมอ
 const goCoord = async () => { $("#todoPop").hidden = true; if (document.body.dataset.view !== "coord") await setView("coord"); if (!$("#mapView").hidden) $("#mapView").hidden = true; };
 const RELEASE_TOURS = {
+  18: [ { pre: goCoord, sel: "header", t: "เปิด <b>Command</b> ของครีเอเตอร์คนไหนก็ได้ — ครั้งแรกจะมีบทเรียนให้สร้างบล็อกข้อความของตัวเอง 1 อัน แล้วชุด Command นั้นเป็นของคุณคนเดียว" } ],
   17: [ { pre: goCoord, sel: "#navHist", t: "ปุ่ม <b>‹</b> ย้อนกลับไปหน้าก่อน · <b>›</b> ไปข้างหน้า — ใช้ได้ทุกหน้า รวมถึงตอนเปิด Map / Command" } ],
   16: [ { pre: goCoord, sel: "#navBar", t: "หัวเว็บเหลือปุ่มหลัก 4 ปุ่ม — ของอื่นทั้งหมดอยู่ใน <b>⋯ เพิ่มเติม</b>" },
         { pre: goCoord, sel: "#tblFiltBtn", t: "ตัวกรองทั้งหมดอยู่ในปุ่ม <b>⚙ ตัวกรอง ▾</b> · คีย์ลัด <b>L</b> = KOL · <b>C</b> = KOC" } ],
