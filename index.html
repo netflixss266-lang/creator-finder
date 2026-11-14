@@ -23,7 +23,7 @@
   base-uri 'none';
   object-src 'none'">
 <title>Creataew — KOL Sourcing</title>
-<meta name="cf-ver" content="20261114-074158">
+<meta name="cf-ver" content="20261114-080349">
 <!-- Beta / Publish (2026-11-06): หน้าแรก = เวอร์ชันล่าสุด (admin เห็นก่อน) · คนอื่นถูกพาไป v/<เวอร์ชันที่ Publish>.html
      จำเวอร์ชันที่ Publish ไว้ในเครื่อง = พาไปได้ทันทีไม่ต้องรอเน็ต แล้วเช็คซ้ำเบื้องหลัง · ฐานข้อมูลไม่มี RPC (sandbox) = อยู่ตัวล่าสุด -->
 <script>(function(){try{
@@ -3185,9 +3185,24 @@ html[data-no-assign] select.asg{pointer-events:none;opacity:.55}
 .navhist button:hover:not(:disabled){background:var(--surface2)}
 .navhist button:active:not(:disabled){background:var(--accent);color:var(--accent-ink)}
 .navhist button:disabled{opacity:.3;cursor:default}
-header{padding-left:calc(env(safe-area-inset-left, 0px) + 92px)!important}
-#mapView .maphead, #settings .modal-head, #pipePanel > :first-child, #prosPanel > :first-child{padding-left:84px!important}
-@media (pointer:coarse){ .navhist button{width:40px;height:38px} header{padding-left:calc(env(safe-area-inset-left, 0px) + 104px)!important} }
+/* (2026-11-14) กันที่ให้ปุ่มทุกแผงที่ชิดมุมซ้ายบน — --navr = ขอบขวาของปุ่ม + ช่องหายใจ
+   แผงเต็มจอ (.modal-head / .pp-head) เว้นเสมอ · ลิ้นชักขวา (.drawer-head) เว้นเฉพาะจอแคบที่ลิ้นชักกว้างจนชิดซ้าย */
+:root{--navr:calc(env(safe-area-inset-left, 0px) + 92px)}
+@media (pointer:coarse){ :root{--navr:calc(env(safe-area-inset-left, 0px) + 108px)} .navhist button{width:40px;height:38px} }
+header{padding-left:var(--navr)!important}
+.modal-head, .pp-head{padding-left:var(--navr)!important}
+/* ตอนคู่มือ/ทัวร์/หน้าล็อกอินเปิดอยู่ ไม่ต้องมีปุ่ม ‹ › (ไม่มีที่ให้ย้อน และจะไปทับการ์ดคู่มือ) */
+body:has(#coachView:not([hidden])) .navhist, body:has(#spotTour:not([hidden])) .navhist, body:has(#lockView:not([hidden])) .navhist{display:none}
+/* ลิ้นชักแบบเต็มจอ (Command / ⤢) ชิดซ้ายทุกขนาดจอ */
+.drawer .panel.sheet .drawer-head{padding-left:var(--navr)!important}
+/* ลิ้นชักบนจอแคบ: แถวบน = ช่องว่างใต้ปุ่ม ‹ › + ปุ่มของลิ้นชัก · หัวข้อ/สถานะลงแถวสองเต็มความกว้าง (ไม่ถูกบีบเหลือตัวเดียว) */
+@media (max-width:520px){
+  .drawer-head{flex-wrap:wrap;row-gap:8px}
+  .drawer-head::before{content:"";flex:none;width:calc(var(--navr) - 30px);height:38px}
+  .drawer-head > .x{margin-left:auto}
+  .drawer-head > h2{order:1;flex:1 1 100%;min-width:0}
+  .drawer-head > .cmdst, .drawer-head > .voicebtn, .drawer-head > .voicedef{order:2}
+}
 /* ✨ โหมดเรียบง่าย (Beta) */
 #navBar .simpleonly{display:none}
 body[data-simple] #navBar .simpleonly{display:inline-flex}
@@ -27315,7 +27330,7 @@ async function relHistDraw(pub, fmt){
 // ═══ เวอร์ชันของหน้า — แท็บที่เปิดค้างโค้ดเก่าต้องไม่ซิงก์ทีม ═══
 // เจอจริง 2026-10-27: แท็บเก่าดึงคีย์ใหม่ลงผิดที่ + ดันรายการที่ลบแล้วกลับขึ้นทุกนาที
 // APP_VER ประทับตอน deploy (kol-tools\stamp-version.py) · version.json คู่กันบนเซิร์ฟเวอร์ — ไม่ตรง = รีเฟรช
-const APP_VER = "20261114-074158";
+const APP_VER = "20261114-080349";
 let STALE = false;
 async function verCheck(){
   if (STALE || APP_VER === "dev") return;
