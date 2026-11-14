@@ -23,7 +23,7 @@
   base-uri 'none';
   object-src 'none'">
 <title>Creataew — KOL Sourcing</title>
-<meta name="cf-ver" content="20261114-080349">
+<meta name="cf-ver" content="20261114-081704">
 <!-- Beta / Publish (2026-11-06): หน้าแรก = เวอร์ชันล่าสุด (admin เห็นก่อน) · คนอื่นถูกพาไป v/<เวอร์ชันที่ Publish>.html
      จำเวอร์ชันที่ Publish ไว้ในเครื่อง = พาไปได้ทันทีไม่ต้องรอเน็ต แล้วเช็คซ้ำเบื้องหลัง · ฐานข้อมูลไม่มี RPC (sandbox) = อยู่ตัวล่าสุด -->
 <script>(function(){try{
@@ -16389,7 +16389,8 @@ async function sbProfile(){
     "&select=display_name,role,is_active" + (PERMS_COL === false ? "" : ",perms") + (GENDER_COL === false ? "" : ",gender"), { headers: sbHeaders(true) });
   let r;
   try { r = await get(); } catch(e){ SB_NET_FAIL = true; return null; }
-  if (r.status === 400 && GENDER_COL !== false){           // ยังไม่มีคอลัมน์ gender — ลองใหม่โดยไม่ขอ
+  // ยังไม่มีคอลัมน์ gender (400) หรือยังไม่ได้ grant ให้อ่าน (403) — ลองใหม่โดยไม่ขอ · ห้ามให้ช่องเสริมทำล็อกอินพัง (เจอจริง 2026-11-14)
+  if ((r.status === 400 || r.status === 403) && GENDER_COL !== false){
     GENDER_COL = false;
     try { r = await get(); } catch(e){ SB_NET_FAIL = true; return null; }
   }
@@ -27330,7 +27331,7 @@ async function relHistDraw(pub, fmt){
 // ═══ เวอร์ชันของหน้า — แท็บที่เปิดค้างโค้ดเก่าต้องไม่ซิงก์ทีม ═══
 // เจอจริง 2026-10-27: แท็บเก่าดึงคีย์ใหม่ลงผิดที่ + ดันรายการที่ลบแล้วกลับขึ้นทุกนาที
 // APP_VER ประทับตอน deploy (kol-tools\stamp-version.py) · version.json คู่กันบนเซิร์ฟเวอร์ — ไม่ตรง = รีเฟรช
-const APP_VER = "20261114-080349";
+const APP_VER = "20261114-081704";
 let STALE = false;
 async function verCheck(){
   if (STALE || APP_VER === "dev") return;

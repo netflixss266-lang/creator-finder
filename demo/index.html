@@ -16630,7 +16630,8 @@ async function sbProfile(){
     "&select=display_name,role,is_active" + (PERMS_COL === false ? "" : ",perms") + (GENDER_COL === false ? "" : ",gender"), { headers: sbHeaders(true) });
   let r;
   try { r = await get(); } catch(e){ SB_NET_FAIL = true; return null; }
-  if (r.status === 400 && GENDER_COL !== false){           // ยังไม่มีคอลัมน์ gender — ลองใหม่โดยไม่ขอ
+  // ยังไม่มีคอลัมน์ gender (400) หรือยังไม่ได้ grant ให้อ่าน (403) — ลองใหม่โดยไม่ขอ · ห้ามให้ช่องเสริมทำล็อกอินพัง (เจอจริง 2026-11-14)
+  if ((r.status === 400 || r.status === 403) && GENDER_COL !== false){
     GENDER_COL = false;
     try { r = await get(); } catch(e){ SB_NET_FAIL = true; return null; }
   }
