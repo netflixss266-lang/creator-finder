@@ -3689,6 +3689,7 @@ html[data-theme="light"] .mapcard:has(.mapstamp) > *:not(.mapstamp),html[data-th
 .cmdjump button .n{display:inline-grid;place-items:center;min-width:1.7em;height:1.7em;padding:0 4px;border-radius:7px;background:var(--surface2);font-size:.72rem;font-weight:700;color:var(--mute)}
 .cmdjump button:hover{border-color:var(--accent);background:rgba(var(--accent-rgb),.08)}
 .cmdjump button.sent{color:var(--dim);border-style:dashed;font-weight:500}
+.cmdjump button.past{color:var(--dim);border-style:dotted;font-weight:500;opacity:.7}
 .cmdjump button.sent .n{background:rgba(var(--hi-rgb,70,211,105),.16);color:var(--hi)}
 .cmdjump button.rec{background:var(--accent);color:var(--accent-ink);border-color:var(--accent);font-weight:700;box-shadow:0 2px 10px rgba(var(--accent-rgb),.35)}
 .cmdjump button.rec .n{background:rgba(255,255,255,.25);color:inherit}
@@ -12209,7 +12210,8 @@ function cmdBlocksAll(proj, kind, level, noMine){
   const mk = (id, def, dord, custom, from) => {
     const ed = up >= 2 && !F ? ((CMDEDIT[proj] || {})[id] || null) : null;         // ของโปรเจกต์นี้
     const ge = custom || F ? null : ((CMDEDIT[ALLP] || {})[id] || null);           // ของทุกโปรเจกต์
-    const gt = (ge && ge.t) || def.t, gb = (ge && ge.b != null) ? ge.b : def.b;
+    const sd = F && !custom ? cmdStd(def) : def;          // ชุดส่วนตัว = ข้อความกลาง
+    const gt = (ge && ge.t) || sd.t, gb = (ge && ge.b != null) ? ge.b : sd.b;
     const pt = (ed && ed.t) || gt, pb = (ed && ed.b != null) ? ed.b : gb;
     // 📌 ของฉัน (2026-11-06 Jibli: "ใครของมัน") — ทับข้อความทีมทุกชั้น ของบัญชีนี้คนเดียว
     const my = MYTPL[id] || null;
@@ -12252,6 +12254,45 @@ function cmdBlocksAll(proj, kind, level, noMine){
     // บล็อกที่เพิ่มในชั้นโปรเจกต์/กลุ่มเอง ถือว่าอยู่ในลำดับของชั้นนั้นแล้ว (เลขของมันตั้งในชั้นนั้น)
     .concat(up >= 2 && !F ? cmdAddFor(proj).filter(kindOk).map(x => Object.assign(mk(x.id, x, x.ord, true, x.kind ? "K" : "P"), { mapped: true })) : []);
   return cmdOrdAnchor(all).sort((a, b) => a.ord - b.ord);
+}
+// ═══ ค่ามาตรฐานกลาง (2026-11-14 Jibli) ═══
+// ข้อความใน CMD_BLOCKS คือรูปแบบเดิมของทีม Alta (ชื่อบริษัท · LINE @altathailand) — ชุดส่วนตัวต้องเริ่มจากข้อความกลาง
+// คีย์ = หัวข้อเดิมใน CMD_BLOCKS · ไม่มีในนี้ = ใช้เนื้อเดิม แค่ตัดเลขหน้าหัวข้อ (ลำดับเลขขึ้นเองตามที่ส่งจริง)
+const CMD_STD_TXT = {
+  "1. ขอคอนเฟิร์มการร่วมงาน": { t:"ขอคอนเฟิร์มการร่วมงาน", b:
+`สวัสดีครับ🙏 แอดมินขออนุญาตคอนเฟิร์มการร่วมงานนะครับ
+
+📦 แบรนด์: {{brandname}} ({{sku}})
+🎬 {{videos}} วิดีโอ = {{rate}} บาท
+💰 Commission: {{commission?}}
+
+หากครีเอเตอร์สะดวกร่วมงาน รบกวนตอบกลับ “Confirm” ได้เลยครับ😊` },
+  "1. ขอคอนเฟิร์มการร่วมงาน (ไม่มีเรทชำระ)": { t:"ขอคอนเฟิร์มการร่วมงาน", b:
+`สวัสดีครับ🙏 แอดมินขออนุญาตคอนเฟิร์มการร่วมงานนะครับ
+
+📦 แบรนด์: {{brandname}} ({{sku}})
+🎬 {{videos}} วิดีโอ
+💰 Commission: {{commission}}
+
+หากครีเอเตอร์สะดวกร่วมงาน รบกวนตอบกลับ “Confirm” ได้เลยครับ😊` },
+  "2. ขอให้แอดไลน์": { t:"ขอช่องทางติดต่อ", b:
+`ขอบคุณที่คอนเฟิร์มนะครับ😊 เพื่อความสะดวกในการติดต่อ รบกวนครีเอเตอร์แอดไลน์ของแอดมินด้วยนะครับ
+LINE ID: (ใส่ LINE ID ของคุณ)` },
+  "3. คอนเฟิร์มเรท + รูปแบบนำจ่าย": { t:"คอนเฟิร์มเรท + รูปแบบการจ่าย", b:
+`ขออนุญาตสรุปเรทและรูปแบบการจ่ายนะครับ🙏
+📦 แบรนด์: {{brandname}} ({{sku}})
+
+🎬 {{videos}} วิดีโอ = {{rate}} บาท
+🧾 รูปแบบการจ่าย: {{paytype}} → ได้รับจริง {{net}} บาท
+💰 Commission: {{commission?}}
+
+ถ้าถูกต้อง รบกวนตอบกลับ “Confirm” ครับ` },
+  "4. ขอที่อยู่จัดส่ง": { t:"ขอที่อยู่จัดส่ง", b:
+`รบกวนครีเอเตอร์ส่งชื่อ ที่อยู่ และเบอร์โทรสำหรับจัดส่งสินค้าให้แอดมินด้วยนะครับ📦` },
+};
+function cmdStd(def){
+  const o = CMD_STD_TXT[def.t];
+  return { t: (o && o.t) || String(def.t || "").replace(/^\d+\.\s*/, ""), b: o && o.b != null ? o.b : def.b };
 }
 const cmdBlocks = (proj, kind, level) => cmdBlocksAll(proj, kind, level).filter(b => !b.hidden);
 
@@ -13397,12 +13438,14 @@ function openCmd(proj, handle){
      </div>
      ` + // แถบทางลัดติดหัว — กดแล้วกระโดดไปกล่องนั้น · ที่ส่งแล้วจาง · 👉 = กล่องที่ควรส่งต่อ
     (shownJ.length > 2 ? `<div class="cmdjump" id="cmdJump"><div class="cj-head"><b>⚡ ไปที่กล่อง</b><span class="cj-leg">
-        <span><i style="background:var(--accent)"></i>👉 ควรส่งต่อ</span><span><i style="background:var(--line)"></i>ยังไม่ส่ง</span><span><i style="background:var(--hi)"></i>✓ ส่งแล้ว</span></span></div>
+        <span><i style="background:var(--accent)"></i>👉 ควรส่งต่อ</span><span><i style="background:var(--line)"></i>ยังไม่ส่ง</span><span><i style="background:var(--hi)"></i>✓ ส่งแล้ว</span><span><i style="background:var(--surface2);border:1px dashed var(--line)"></i>ผ่านขั้นแล้ว</span></span></div>
       <div class="cj-list">${shownJ.map(j => {
       const b = blocks[j];
       const name = b.t.replace(/^\d+\.\s*/, "").replace(/\s+—.*$/, "");
-      return `<button type="button" data-jump="${j}" class="${b.sent ? "sent" : ""}${j === recJ ? " rec" : ""}"
-        title="${esc(b.t)}${b.sent ? " · ส่งแล้ว" : ""}"><span class="n">${b.sent ? "✓" : b.step}${b.clip ? "." + b.clip : ""}</span>${j === recJ ? "👉 " : ""}${esc(name.length > 28 ? name.slice(0, 27) + "…" : name)}</button>`;
+      // ขั้นที่ครีเอเตอร์คนนี้ผ่านมาแล้ว (ตามสถานะ) แต่ไม่ได้กดส่งในเว็บ — จางแบบ "ผ่านแล้ว" ไม่ใช่ "ยังไม่ส่ง"
+      const past = !b.sent && b.to && curIx >= 0 && stageAt(b.to) <= curIx;
+      return `<button type="button" data-jump="${j}" class="${b.sent ? "sent" : past ? "past" : ""}${j === recJ ? " rec" : ""}"
+        title="${esc(b.t)}${b.sent ? " · ส่งแล้ว" : past ? " · " + esc(normId(handle)) + " ผ่านขั้นนี้แล้ว (ตามสถานะ)" : ""}"><span class="n">${b.sent ? "✓" : b.step}${b.clip ? "." + b.clip : ""}</span>${j === recJ ? "👉 " : ""}${esc(name.length > 28 ? name.slice(0, 27) + "…" : name)}</button>`;
     }).join("")}</div></div>` : "") + `<div class="cmdlist">` +
     (blocks.some(b => b.old) ? `<div class="sentbar">✓ ส่งไปแล้ว ${blocks.filter(b => b.old).length} กล่อง${
       CMD_SHOW_SENT ? "" : " — ซ่อนไว้"} <button type="button" class="cmdbtn" id="cmdShowSent">${
