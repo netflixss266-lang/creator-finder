@@ -3027,6 +3027,12 @@ button.tag.work:hover{border-color:#8fc1ff}
 .linkbox .fbhead{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
 .linkbox .linkscope{margin-bottom:0;flex:none}
 .linkrow{display:flex;align-items:center;gap:10px;padding:5px 0}
+.linkrow.many{align-items:flex-start}
+.linkrow.many label{padding-top:8px}
+.linkrow.many label .n{font-style:normal;color:var(--accent);font-size:.9em}
+.linkrow .manyin{flex:1;min-width:0;display:flex;flex-direction:column;gap:5px}
+.linkrow .manyin input{width:100%;box-sizing:border-box}
+.linkrow .manyin .manyadd{align-self:flex-start;font-size:.78rem;padding:4px 10px}
 .linkrow label{flex:0 0 11em;font-size:.8rem;color:var(--mute);
   overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .linkrow input,.linkrow textarea{flex:1;min-width:0;font-size:.84rem;padding:7px 10px}
@@ -13909,6 +13915,23 @@ function openCmd(proj, handle){
       const eff = mine ? (vals[k] || "") : "";
       const ph = mine ? (eff || (multi ? "ยังไม่ได้ตั้งของร่วม" : "ยังไม่ได้ตั้งลิงก์ร่วม"))
                       : (multi ? "พิมพ์ได้หลายบรรทัด" : "วางลิงก์ที่นี่");
+      // (Jibli 2026-11-16) ตะกร้า / แฮชแท็ก ติดได้หลายอันต่อคลิป — ช่องละ 1 อัน กด ＋ เพิ่มช่อง · เก็บรวมกันบรรทัดละอัน
+      const many = d && (d.k === "cart" || d.k === "hashtag");
+      if (many){
+        const parts = String(v || "").split(/\n+/).map(x => x.trim()).filter(Boolean);
+        if (!parts.length) parts.push("");
+        const ph1 = String(ph).split("\n")[0];
+        const what = d.k === "cart" ? "ตะกร้า" : "แฮชแท็ก";
+        return `<div class="linkrow many${mine && own[k] != null ? " own" : ""}">
+          <label title="${esc(label)}">${esc(label)}${parts.length > 1 ? ` <i class="n">${parts.length} อัน</i>` : ""}</label>
+          <div class="manyin">${parts.map((x, i) => `<input data-linkpart="${esc(k)}" value="${esc(x)}" spellcheck="false"
+              placeholder="${esc(i ? (d.k === "cart" ? "https://… ตะกร้าอันที่ " + (i + 1) : "#แฮชแท็กชุดที่ " + (i + 1)) : ph1)}">`).join("")}
+            <button type="button" class="manyadd" data-linkadd="${esc(k)}" title="ครีเอเตอร์ติด${what}มากกว่า 1 อัน — เพิ่มช่อง">＋ เพิ่ม${what}</button></div>
+          <textarea data-link="${esc(k)}" hidden>${esc(parts.filter(Boolean).join("\n"))}</textarea>
+          <button type="button" data-linkok="${esc(k)}" title="ยืนยันช่องนี้ — บันทึกทันทีและ Command จะได้ค่านี้จริง">✓</button>
+          ${mine && own[k] != null ? `<button type="button" data-linkclr="${esc(k)}" title="ใช้ลิงก์ร่วมแทน">↺</button>` : ""}
+        </div>`;
+      }
       return `<div class="linkrow${mine && own[k] != null ? " own" : ""}${multi ? " multi" : ""}">
         <label title="${esc(label)}">${esc(label)}</label>
         ${multi
@@ -13957,6 +13980,29 @@ function openCmd(proj, handle){
     }
     $("#linkRows").querySelectorAll("[data-link]").forEach(inp => inp.onchange = () =>
       commitLink(inp.dataset.link, inp.value.trim(), "✓ บันทึกแล้ว — ตรงกับที่ Command ใช้จริงแล้ว"));
+    // ตะกร้า / แฮชแท็กหลายอัน: รวมทุกช่องเป็นบรรทัดละอัน → ช่องซ่อน [data-link] แล้วบันทึกทางเดียวกับช่องอื่น
+    const manyJoin = row => { const ta = row.querySelector("[data-link]");
+      ta.value = [...row.querySelectorAll("[data-linkpart]")].map(x => x.value.trim()).filter(Boolean).join("\n"); return ta; };
+    $("#linkRows").querySelectorAll("[data-linkpart]").forEach(inp => {
+      inp.oninput = () => manyJoin(inp.closest(".linkrow"));
+      inp.onchange = () => { const ta = manyJoin(inp.closest(".linkrow"));
+        if (ta.dataset.link.startsWith("cart") && ta.value.split("\n").some(x => !/^https?:\/\//i.test(x)))
+          return alert("ลิงก์ตะกร้าต้องขึ้นต้นด้วย http — ช่องละ 1 ลิงก์");
+        commitLink(ta.dataset.link, ta.value, "✓ บันทึกแล้ว — ตรงกับที่ Command ใช้จริงแล้ว"); };
+    });
+    $("#linkRows").querySelectorAll("[data-linkadd]").forEach(b => {
+      b.onmousedown = e => e.preventDefault();
+      b.onclick = () => {
+        const box = b.closest(".manyin"), last = [...box.querySelectorAll("[data-linkpart]")].pop();
+        if (last && !last.value.trim()) return last.focus();
+        const inp = document.createElement("input");
+        inp.dataset.linkpart = b.dataset.linkadd; inp.spellcheck = false;
+        inp.placeholder = b.dataset.linkadd.startsWith("cart") ? "https://… ตะกร้าอีกอัน" : "#แฮชแท็กอีกชุด";
+        inp.oninput = () => manyJoin(b.closest(".linkrow"));
+        inp.onchange = last ? last.onchange : null;
+        box.insertBefore(inp, b); inp.focus();
+      };
+    });
     // ⚠️ กัน onchange ยิงซ้อนกับปุ่มเอง — คลิกปุ่มที่อยู่นอกช่องพิมพ์ทำให้ช่องเสียโฟกัส (blur)
     // ก่อนจะถึง click ของปุ่มเสมอ ถ้าไม่กัน onchange (จาก blur) จะยิงคอมมิทค่าไปทีนึง แล้วปุ่มเองก็คอมมิทซ้ำ
     // อีกที คนละรอบ DOM คนละชุด — เห็นกล่องกระพริบ/ปิดเปิดซ้อนสองรอบ ทั้งที่ค่าสุดท้ายถูกทั้งคู่
