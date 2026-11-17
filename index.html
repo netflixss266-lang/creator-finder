@@ -24,7 +24,7 @@
   base-uri 'none';
   object-src 'none'">
 <title>Creataew — KOL Sourcing</title>
-<meta name="cf-ver" content="20261117-090319">
+<meta name="cf-ver" content="20261117-100920">
 <!-- Beta / Publish (2026-11-06): หน้าแรก = เวอร์ชันล่าสุด (admin เห็นก่อน) · คนอื่นถูกพาไป v/<เวอร์ชันที่ Publish>.html
      จำเวอร์ชันที่ Publish ไว้ในเครื่อง = พาไปได้ทันทีไม่ต้องรอเน็ต แล้วเช็คซ้ำเบื้องหลัง · ฐานข้อมูลไม่มี RPC (sandbox) = อยู่ตัวล่าสุด -->
 <script>(function(){try{
@@ -19246,7 +19246,8 @@ function draftUploadPick(btn){
   const r = (COORD[proj] || []).find(x => normId(x.handle) === normId(handle));
   if (!r) return;
   const cur = drRoundOf(r);
-  pickPop(btn.parentElement, "แนบไฟล์เข้าช่องไหนในชีต", [1, 2, 3].map(n => ({ n, label: `Draft ${n}`, note: n === cur ? "รอบตอนนี้" : "", on: n === cur })), it => {
+  // (แก้ 2026-11-17) ห้ามติ๊กรอบปัจจุบันไว้ก่อน — กดตัวที่ติ๊กอยู่แล้วไม่เกิด change = เลือกไฟล์ไม่ได้ (เจอจริงที่ Draft 1)
+  pickPop(btn.parentElement, "แนบไฟล์เข้าช่องไหนในชีต", [1, 2, 3].map(n => ({ n, label: `Draft ${n}`, note: n === cur ? "รอบตอนนี้" : "", on: false })), it => {
     const inp = document.createElement("input");
     inp.type = "file"; inp.accept = "video/*,image/*,.mov,.mp4";
     inp.onchange = () => { const f = inp.files && inp.files[0]; if (f) draftUploadRun(r, it.n, f); };
@@ -27576,7 +27577,7 @@ async function relHistDraw(pub, fmt){
 // ═══ เวอร์ชันของหน้า — แท็บที่เปิดค้างโค้ดเก่าต้องไม่ซิงก์ทีม ═══
 // เจอจริง 2026-10-27: แท็บเก่าดึงคีย์ใหม่ลงผิดที่ + ดันรายการที่ลบแล้วกลับขึ้นทุกนาที
 // APP_VER ประทับตอน deploy (kol-tools\stamp-version.py) · version.json คู่กันบนเซิร์ฟเวอร์ — ไม่ตรง = รีเฟรช
-const APP_VER = "20261117-090319";
+const APP_VER = "20261117-100920";
 let STALE = false;
 async function verCheck(){
   if (STALE || APP_VER === "dev") return;
