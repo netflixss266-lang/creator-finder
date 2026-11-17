@@ -9743,6 +9743,15 @@ function sheetVals(x){
   return o;
 }
 async function larkLoad(){
+  // (2026-11-17) ALTA: lark_links อ่านตรงไม่ได้ (RLS) → ใช้ RPC lark_projects (คืนแค่ชื่อโปรเจกต์ที่ซิงก์อยู่)
+  try {
+    const j = await sbRpc("lark_projects");
+    if (Array.isArray(j)){
+      const L = {};
+      for (const x of j) L[x.project] = { owner: x.owner, extra_cols: [], headers: [] };
+      LARK = L; return;
+    }
+  } catch(e){}
   try {
     const r = await sbAuthed(SB_URL + "/rest/v1/lark_links?select=owner,project,extra_cols,headers&enabled=eq.true");
     if (!r.ok) return;
