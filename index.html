@@ -23,7 +23,7 @@
   base-uri 'none';
   object-src 'none'">
 <title>Creataew — KOL Sourcing</title>
-<meta name="cf-ver" content="20261117-050636">
+<meta name="cf-ver" content="20261117-075200">
 <!-- Beta / Publish (2026-11-06): หน้าแรก = เวอร์ชันล่าสุด (admin เห็นก่อน) · คนอื่นถูกพาไป v/<เวอร์ชันที่ Publish>.html
      จำเวอร์ชันที่ Publish ไว้ในเครื่อง = พาไปได้ทันทีไม่ต้องรอเน็ต แล้วเช็คซ้ำเบื้องหลัง · ฐานข้อมูลไม่มี RPC (sandbox) = อยู่ตัวล่าสุด -->
 <script>(function(){try{
@@ -8347,8 +8347,8 @@ function skuCell(r, i){
       const own = briefs[n] || "";
       // ดูคู่มือชุดเดียวกับที่ Command ใช้จริง — KOC ใช้ชุด KOC (ไม่มีค่อยถอยไปของ KOL)
       // เดิมดูแค่ชุด KOL ทำให้ KOC ที่ตั้งคู่มือไว้แล้วยังขึ้นธง ⚑ (เจอ RC130 2026-11-11)
-      const ck = kindOf(r), key = own || !bindValForOne("guide", p, ck) ? ""
-        : (ck === "KOC" ? bindKeyForOne(skuMergedFor("guide"), p) : guideKeyForOne(p));
+      const ck = kindOf(r), key = own || !bindValForOne("guide", p, ck, r.project) ? ""
+        : (ck === "KOC" ? bindKeyForOne(skuMergedFor("guide", r.project), p) : guideKeyForOne(p, r.project));
       const src = own ? "แปะบรีฟไว้เองแล้ว"
                 : key ? `ได้คู่มือจาก “${key}”`
                 : "ยังไม่มีบรีฟและยังไม่มีคู่มือของ SKU นี้";
@@ -8378,7 +8378,7 @@ function briefCell(r, i){
         }<button data-briefdel="${i}" data-v="${esc(p)}" title="เอาออก">✕</button></span>`; }).join("")
     // SKU ที่ยังไม่ได้แปะบรีฟเอง แต่มีคู่มือในตั้งค่า SKU — โชว์เป็นการ์ด ✦ (กดเปิดได้ ลบไม่ได้ เพราะไม่ใช่ของแถวนี้)
     // ให้คอลัมน์บรีฟบอกครบว่า SKU ไหนมีบรีฟแล้ว ไม่ต้องไปดูธงที่คอลัมน์ SKU อีกที
-    }${skus.slice(parts.length).map(s => { const g = bindValForOne("guide", s, kindOf(r)), url = g && safeLinkUrl(g);
+    }${skus.slice(parts.length).map(s => { const g = bindValForOne("guide", s, kindOf(r), r.project), url = g && safeLinkUrl(g);
       return url ? `<span class="skuchip autobrief" title="คู่มือของ SKU จากตั้งค่า — ${esc(s)}"><a class="t" href="${esc(url)}"
         target="_blank" rel="noopener noreferrer">✦ ${esc(skuShort(s))}</a></span>` : ""; }).join("")
     }<button class="skuadd" data-briefadd="${i}" title="เพิ่มลิงก์บรีฟ">${
@@ -11146,9 +11146,31 @@ let SKUBIND = { guide:{}, hashtag:{}, cart:{} };
 // KOC ที่ SKU นั้นยังไม่ได้ตั้งแยก → ใช้ของ KOL (ของเดิมไม่เปลี่ยนจนกว่าจะตั้งของ KOC เอง)
 let SKUBIND_KOC = { guide:{}, hashtag:{}, cart:{} };
 const LS_SKU_KOC = k => "cf_sku_koc_" + k + "_v1";
-const skuMapOf = (kind, ck) => ck === "KOC"
+// ═══ แยกตามโปรเจกต์ (Jibli 2026-11-17) ═══
+// เดิมผูกตามชื่อ SKU อย่างเดียว — โปรเจกต์ที่ SKU ชื่อคล้ายกัน (RC130 กับ RC Phase 2) เลยใช้คู่มือ/ตะกร้า/แฮชแท็กข้ามกัน
+// ตอนนี้คีย์จริงในที่เก็บ = "โปรเจกต์ @@ ชื่อ SKU" · ทุกที่อ่านผ่าน skuMapOf(kind, ck, proj) ซึ่งเห็นเฉพาะของโปรเจกต์นั้น
+// โปรเจกต์ใหม่ = ว่างเปล่า ไม่ยืมของโปรเจกต์อื่น · คีย์เก่าที่ไม่มีชื่อโปรเจกต์ = ไม่ถูกอ่านอีก (ย้ายเข้าโปรเจกต์ที่ใช้อยู่แล้ว)
+const SKU_SEP = " @@ ";
+const skuProjDefault = () => SG_PROJF || PROJ || "";
+const SKU_VIEWS = new WeakMap();
+function skuView(base, proj){
+  let byP = SKU_VIEWS.get(base);
+  if (!byP){ byP = {}; SKU_VIEWS.set(base, byP); }
+  if (byP[proj]) return byP[proj];
+  const pre = proj + SKU_SEP;
+  return byP[proj] = new Proxy({}, {
+    get: (_, k) => typeof k === "string" ? base[pre + k] : undefined,
+    set: (_, k, v) => { base[pre + k] = v; return true; },
+    deleteProperty: (_, k) => { delete base[pre + k]; return true; },
+    has: (_, k) => typeof k === "string" && (pre + k) in base,
+    ownKeys: () => Object.keys(base).filter(x => x.startsWith(pre)).map(x => x.slice(pre.length)),
+    getOwnPropertyDescriptor: (_, k) => typeof k === "string" && (pre + k) in base
+      ? { value: base[pre + k], enumerable: true, configurable: true, writable: true } : undefined,
+  });
+}
+const skuMapOf = (kind, ck, proj) => skuView(ck === "KOC"
   ? (SKUBIND_KOC[kind] || (SKUBIND_KOC[kind] = {}))
-  : (SKUBIND[kind] || (SKUBIND[kind] = {}));
+  : (SKUBIND[kind] || (SKUBIND[kind] = {})), proj == null ? skuProjDefault() : proj);
 let SKUGUIDE = {};                      // ตัวเดียวกับ SKUBIND.guide — ของเดิมอ้างชื่อนี้อยู่หลายที่
 function loadSkuBind(){
   SKU_BIND.forEach(b => {
@@ -11189,8 +11211,7 @@ function loadSkuGuide(){
   if (seeded) return;
   let added = 0;
   // ไม่ทับของที่มีอยู่แล้ว — เครื่องที่ทีมตั้งเองไว้ก่อนหน้านี้ต้องไม่โดนกลบ
-  for (const k in DEFAULT_SKUGUIDE)
-    if (!SKUGUIDE[k]){ SKUGUIDE[k] = DEFAULT_SKUGUIDE[k]; added++; }
+  // (2026-11-17) คู่มือตั้งต้นไม่มีชื่อโปรเจกต์ — แยกตามโปรเจกต์แล้วไม่ใช้
   try { lsSet(LS_SKUSEED, "1"); } catch(e){}
   if (added) saveSkuGuide();
 }
@@ -11248,44 +11269,45 @@ function bindKeyForOne(MAP, one){
   return pick;
 }
 // คู่มือถ่ายทำยังเรียกด้วยชื่อเดิม — ของเดิมอ้างชื่อนี้อยู่หลายที่ ไม่ต้องไล่แก้
-const guideKeyForOne = one => bindKeyForOne(SKUGUIDE, one);
+const guideKeyForOne = (one, proj) => bindKeyForOne(skuMapOf("guide", "KOL", proj), one);
 // คืนค่าของ SKU ก้อนเดียว (ไม่ใช่ทั้งช่องที่อาจมีหลายอันคั่นด้วย +)
 // ck = กลุ่มของครีเอเตอร์ (KOL/KOC)
 // KOC: เอาชื่อของทั้งสองชุดมาแข่งกันในกองเดียว แล้วใช้ค่าของ KOC ถ้าชื่อที่ชนะมีในชุด KOC
 // ⚠️ ห้าม "ดูชุด KOC ก่อน แล้วค่อยตกไป KOL" — ชุด KOC ที่มีไม่กี่ชื่อจะชนะแบบหลวมๆ
 //    (เจอจริง 2026-10-27: "Feather eyeshadow #FE300" ไปคุม "Eyeshadow - CP301" ทั้งที่ "eyeshadow" ของ KOL ตรงกว่า)
-const skuMergedFor = kind => Object.assign({}, SKUBIND[kind] || {}, SKUBIND_KOC[kind] || {});
-function bindValForOne(kind, one, ck){
+const skuMergedFor = (kind, proj) => Object.assign({}, skuMapOf(kind, "KOL", proj), skuMapOf(kind, "KOC", proj));
+function bindValForOne(kind, one, ck, proj){
   if (ck === "KOC"){
-    const KM = SKUBIND_KOC[kind] || {}, M = skuMergedFor(kind), kk = bindKeyForOne(M, one);
+    const KM = skuMapOf(kind, "KOC", proj), M = skuMergedFor(kind, proj), kk = bindKeyForOne(M, one);
     return kk ? ((kk in KM ? KM[kk] : M[kk]) || "") : "";
   }
-  const MAP = SKUBIND[kind] || {};
+  const MAP = skuMapOf(kind, "KOL", proj);
   const k = bindKeyForOne(MAP, one);
   return k ? (MAP[k] || "") : "";
 }
-function guideForOne(one, ck){ return bindValForOne("guide", one, ck); }
+function guideForOne(one, ck, proj){ return bindValForOne("guide", one, ck, proj); }
 // n = SKU ตัวที่เท่าไหร่ (1 = ตัวแรก) · 0 = เอาอันแรกที่หาเจอจากทุก SKU ที่คนนี้ได้
-function bindForSku(kind, sku, n, ck){
+function bindForSku(kind, sku, n, ck, proj){
   const parts = skuParts(sku);
-  if (n) return bindValForOne(kind, parts[n - 1], ck);
-  for (const p of parts){ const v = bindValForOne(kind, p, ck); if (v) return v; }
+  if (n) return bindValForOne(kind, parts[n - 1], ck, proj);
+  for (const p of parts){ const v = bindValForOne(kind, p, ck, proj); if (v) return v; }
   return "";
 }
 // SKU ทั้งหมดที่คู่มือใบนี้คุมอยู่จริง — ใช้โชว์ในหน้าตั้งค่า
 // ตั้งกว้างเกินไป (คู่มือของ Moomin ไปคุมเฉดที่ไม่ใช่ Moomin ด้วย) จะเห็นทันทีตั้งแต่ตอนตั้ง
-function skusUnderKey(kind, key, ck){
-  const all = [...new Set(PROJECTS.flatMap(p => (COORD[p] || []).flatMap(r => skuParts(r.sku))))];
-  const pool = [...new Set(all.concat(projLibSkus(PROJECTS)))];
-  const MAP = ck === "KOC" ? skuMergedFor(kind) : (SKUBIND[kind] || {});
+function skusUnderKey(kind, key, ck, proj){
+  proj = proj == null ? skuProjDefault() : proj;
+  const all = [...new Set((COORD[proj] || []).flatMap(r => skuParts(r.sku)))];
+  const pool = [...new Set(all.concat(projLibSkus([proj])))];
+  const MAP = ck === "KOC" ? skuMergedFor(kind, proj) : skuMapOf(kind, "KOL", proj);
   return pool.filter(s => bindKeyForOne(MAP, s) === key).sort();
 }
 const skusUnderGuide = key => skusUnderKey("guide", key);
 // n = คลิปที่เท่าไหร่ (1 = SKU ตัวแรก) · 0 = เอาอันแรกที่หาเจอจากทุก SKU ที่คนนี้ได้
-function guideForSku(sku, n, ck){
+function guideForSku(sku, n, ck, proj){
   const parts = skuParts(sku);
-  if (n) return guideForOne(parts[n - 1], ck);
-  for (const p of parts){ const g = guideForOne(p, ck); if (g) return g; }
+  if (n) return guideForOne(parts[n - 1], ck, proj);
+  for (const p of parts){ const g = guideForOne(p, ck, proj); if (g) return g; }
   return "";
 }
 
@@ -11616,7 +11638,7 @@ function cmdValues(r){
       const k = d.k + n;
       // คู่มือ / แฮชแท็ก / ตะกร้า เลือกตาม SKU ของคลิปนั้น — คลิป 2 ได้คนละ SKU ก็ได้คนละชุด
       // ลำดับ: ที่แปะไว้เฉพาะคนนี้ → ที่ผูกไว้กับ SKU → ลิงก์ที่ใช้ร่วมกันทุกคน
-      const bySku = SKU_BIND_BY[d.k] ? bindForSku(d.k, r.sku, n, kindOf(r)) : "";
+      const bySku = SKU_BIND_BY[d.k] ? bindForSku(d.k, r.sku, n, kindOf(r), r.project) : "";
       // ⚠️ หน้า "ลิงก์" ไม่มีแถว "ชุดที่ 1" แยกต่างหาก — แถว "ลิงก์ตะกร้า" คือช่องของชุดแรก (own.cart)
       // เดิมตรงนี้เช็คแค่ own.cart1 ซึ่งไม่มีวันถูกตั้งจากหน้านั้น แล้วตกไปใช้ SKU ทันที
       // ผลคือบล็อกที่แยกคลิป (เช่น 13. Hashtag + ตะกร้า) ไม่เปลี่ยนตามหน้าลิงก์ ทั้งที่บล็อกที่
@@ -11699,7 +11721,7 @@ function cmdValues(r){
     // ในบล็อกที่ไม่ได้แตกเป็นชุด จะได้ของกลางทั้งที่ตั้งผูกกับ SKU ไว้แล้ว
     // (guide มีบรรทัดของตัวเองอยู่ล่างสุดแล้ว จึงข้ามตรงนี้ไป)
     ...Object.fromEntries(SKU_BIND.filter(b => b.k !== "guide").map(b =>
-      [b.k, own[b.k] != null ? own[b.k] : (bindForSku(b.k, r.sku, 0, kindOf(r)) || L(b.k))])),
+      [b.k, own[b.k] != null ? own[b.k] : (bindForSku(b.k, r.sku, 0, kindOf(r), r.project) || L(b.k))])),
     ...perClip,
     guide,
     clips,
@@ -12209,10 +12231,10 @@ function cmdTagState(r, n, kd = "hashtag"){
   const own = cmdOwnRead(r.project, r.handle).links || {};
   const mine = n >= 2 ? own[kd + n] : (own[kd + "1"] != null ? own[kd + "1"] : own[kd]);
   const ck = kindOf(r);
-  const sku = bindForSku(kd, r.sku, n || 0, ck) || bindForSku(kd, r.sku, 0, ck);
+  const sku = bindForSku(kd, r.sku, n || 0, ck, r.project) || bindForSku(kd, r.sku, 0, ck, r.project);
   // ค่านี้มาจากชุดไหน — KOC ที่ยังไม่ได้ตั้งแยกจะตกไปใช้ของ KOL
   const one = skuParts(r.sku)[(n || 1) - 1];
-  const fromKoc = ck === "KOC" && sku && (() => { const kk = bindKeyForOne(skuMergedFor(kd), one); return kk && kk in (SKUBIND_KOC[kd] || {}); })();
+  const fromKoc = ck === "KOC" && sku && (() => { const kk = bindKeyForOne(skuMergedFor(kd, r.project), one); return kk && kk in skuMapOf(kd, "KOC", r.project); })();
   return { mine: mine != null ? String(mine) : null, sku: sku || "", shared: CMDLINKS[kd] || "", ck, fromKoc };
 }
 function cmdTagEditHTML(r, n, j, kd = "hashtag"){
@@ -12241,7 +12263,7 @@ function cmdCartOptions(r, n){
   const mine = skuParts(r.sku)[(n || 1) - 1] || "";
   const byLink = new Map();
   skus.forEach(s => {
-    const v = bindValForOne("cart", s, ck);
+    const v = bindValForOne("cart", s, ck, proj);
     if (!v) return;
     const k = skuLinkNorm(v);
     const o = byLink.get(k) || { v, names: [], match: false };
@@ -13715,7 +13737,7 @@ function openCmd(proj, handle){
         // (Jibli 2026-11-16) 2 ช่องสำหรับ 2 สินค้า — ขึ้นค่าตาม SKU ของแต่ละสินค้าเป็นตัวจาง · วางทับช่องไหนก็เปลี่ยนเฉพาะช่องนั้น
         const sp = docSplit(k) || {}, cn = sp.n || 1;
         const prods = !mine ? [] : (cn > 1 ? [skuOf(r, cn)] : skuParts(r.sku)).filter(Boolean);
-        const defs = prods.map(x => SKU_BIND_BY[d.k] ? (bindValForOne(d.k, x, kindOf(r)) || "") : "");
+        const defs = prods.map(x => SKU_BIND_BY[d.k] ? (bindValForOne(d.k, x, kindOf(r), r.project) || "") : "");
         const parts = String(v || "").split(/\n+/).map(x => x.trim()).filter(Boolean);
         const nF = Math.max(2, parts.length, defs.length);
         const what = d.k === "cart" ? "ตะกร้า" : "แฮชแท็ก";
@@ -14224,7 +14246,7 @@ function mapFlags(r){
   }
   if ((r.rate_all || []).length > 1) f.push("เรทไม่ตรงกันในชีต");
   if (!String(r.sku || "").trim()) f.push("ไม่มี SKU");
-  else if (!guideForSku(r.sku, 0, kindOf(r)) && !CMDLINKS.guide) f.push("SKU นี้ยังไม่มีคู่มือถ่ายทำ");
+  else if (!guideForSku(r.sku, 0, kindOf(r), r.project) && !CMDLINKS.guide) f.push("SKU นี้ยังไม่มีคู่มือถ่ายทำ");
   if (!r.status) f.push("ไม่มีสถานะ");
   return f;
 }
@@ -16030,7 +16052,7 @@ function mapGapSheet(proj){
       fix:"/sku", test:r => !String(r.sku || "").trim() },
     { th:"SKU นี้ยังไม่มีคู่มือถ่ายทำ", why:"มี SKU แล้วแต่ยังไม่ได้ผูกคู่มือของไลน์นั้นไว้",
       fix:"/skuguide", test:r => String(r.sku || "").trim() &&
-        !guideForSku(r.sku, 0, kindOf(r)) && !CMDLINKS.guide },
+        !guideForSku(r.sku, 0, kindOf(r), r.project) && !CMDLINKS.guide },
     { th:"ไม่มีสถานะ", why:"ไม่รู้ว่าคนนี้เดินไปถึงไหนแล้ว ตกจากทุกแถบสรุป",
       fix:"/status", test:r => !r.status },
   // คนที่ปิดเรื่องแล้วตัดออกทุกกลุ่ม — จ่ายจบหรือยกเลิกไปแล้ว ไล่เก็บข้อมูลย้อนหลังไม่มีประโยชน์
@@ -16121,7 +16143,7 @@ function mapMoneySheet(proj){
             <span class="sub">คู่มือถ่ายทำผูกตาม SKU</span></header>
           <div class="mapstages">${bySku.map(x => `<div class="mapstage">
             <div class="lab">${esc(x.k)} <i>${x.list.length}</i>${
-              guideForSku(x.k, 0) ? ` <span style="color:var(--hi);font-weight:400">มีคู่มือ</span>`
+              guideForSku(x.k, 0, undefined, proj) ? ` <span style="color:var(--hi);font-weight:400">มีคู่มือ</span>`
                                   : ` <span style="color:var(--warn);font-weight:400">ยังไม่มีคู่มือ</span>`}</div>
             <div class="mapleaves">${x.list.map(r => mapLeaf(r, proj, "#8B8BFF")).join("")}</div>
           </div>`).join("") + (noSku.length ? `<div class="mapstage">
@@ -21791,6 +21813,8 @@ function renderSkuGuide(){
   const kind = SKU_BIND_KIND;
   const meta = SKU_BIND_BY[kind] || SKU_BIND_BY.guide;
   const CK = SKU_CK;
+  // (2026-11-17) แยกตามโปรเจกต์ — ต้องมีโปรเจกต์ที่กำลังตั้งเสมอ (ค่าตั้งต้น = โปรเจกต์ที่เปิดอยู่)
+  if (!PROJECTS.includes(SG_PROJF)) SG_PROJF = PROJECTS.includes(PROJ) ? PROJ : (PROJECTS.find(p => !(projMeta(p) || {}).done) || PROJECTS[0] || "");
   const MAP = skuMapOf(kind, CK);
 
   const ckt = $("#skuCkTabs");
@@ -21831,7 +21855,7 @@ function renderSkuGuide(){
     : ` · ใช้ที่ <code>{{${esc(kind)}}}</code> (หลายคลิปแยกตาม SKU ของคลิป)`) + `</span>`;
   const cpk = $("#skuCopyKol");
   if (cpk) cpk.onclick = () => {
-    const src = SKUBIND[kind] || {}, miss = Object.keys(src).filter(k => !(k in MAP) && !(meta.url && skuDupOn(kind) && skuDupKeys(MAP, src[k]).length));
+    const src = skuMapOf(kind, "KOL"), miss = Object.keys(src).filter(k => !(k in MAP) && !(meta.url && skuDupOn(kind) && skuDupKeys(MAP, src[k]).length));
     if (!miss.length) return alert(`KOC มี${meta.th}ครบทุกรายการของ KOL แล้ว`);
     if (!confirm(`คัดลอก${meta.th}ของ KOL ${miss.length} รายการมาเป็นของ KOC?\n\nรายการที่ KOC ตั้งไว้แล้วไม่ถูกทับ`)) return;
     miss.forEach(k => { MAP[k] = src[k]; });
@@ -21849,7 +21873,7 @@ function renderSkuGuide(){
     const L = (cmdOwnRead(p, r.handle).links) || {};
     const n = Math.max(1, clipCount(r));
     for (let c = 1; c <= n; c++){
-      const sk = bindForSku(kind, r.sku, c, kindOf(r));
+      const sk = bindForSku(kind, r.sku, c, kindOf(r), p);
       if (!sk) continue;
       const mine = L[kind + c] != null ? L[kind + c] : (c === 1 ? L[kind] : null);
       if (mine != null && String(mine).trim() !== String(sk).trim()){ over.push({ p, h: r.handle }); break; }
@@ -21877,16 +21901,18 @@ function renderSkuGuide(){
     };
   }
 
-  const all = PROJECTS.flatMap(p => (COORD[p] || []));
+  const all = COORD[SG_PROJF] || [];
   const isDone = p => !!(projMeta(p) || {}).done;
-  const actRows = PROJECTS.filter(p => !isDone(p)).flatMap(p => (COORD[p] || []));
-  const actLib = PROJECTS.filter(p => !isDone(p)).flatMap(p => PROJ_SKU[p] || []);
-  const doneRows = PROJECTS.filter(isDone).flatMap(p => (COORD[p] || []));
+  // นับเฉพาะคนในโปรเจกต์ที่กำลังตั้ง
+  const pDone = isDone(SG_PROJF);
+  const actRows = pDone ? [] : all;
+  const actLib = pDone ? [] : (PROJ_SKU[SG_PROJF] || []);
+  const doneRows = pDone ? all : [];
   // ใบนี้คุม SKU ไหนบ้าง — จับคู่แบบเดียวกับ Command (bindKeyForOne) ไม่ใช่ขึ้นต้นด้วยชื่อ
   // ⚠️ "ปิดตามโปรเจกต์" ต้องดูทุกคนทุกกลุ่ม ไม่ใช่เฉพาะ KOL/KOC ที่เลือกอยู่ —
   //    เดิมกรองตามกลุ่ม: แฮชแท็ก Tiny 2 Lite ของ OBSBOT-KOC (ปิดแล้ว) อยู่แท็บ KOL → นับได้ 0 คน → ไม่ถูกซ่อน (2026-10-27)
-  const matchMap = CK === "KOC" ? skuMergedFor(kind) : (SKUBIND[kind] || {});
-  const doneLib = PROJECTS.filter(isDone).flatMap(p => PROJ_SKU[p] || []);
+  const matchMap = CK === "KOC" ? skuMergedFor(kind) : skuMapOf(kind, "KOL");
+  const doneLib = pDone ? (PROJ_SKU[SG_PROJF] || []) : [];
   const hits = (rows, key) => rows.filter(r => skuParts(r.sku).some(x => bindKeyForOne(matchMap, x) === key));
   const libHit = (lib, key) => lib.some(x => bindKeyForOne(matchMap, x) === key);
   const HS = sgHideState()[kind] || (SGHIDE[kind] = {});
@@ -21919,14 +21945,14 @@ function renderSkuGuide(){
         </div>`; };
   const nAuto = hid.filter(x => x.doneOnly && HS[x.k] !== "hide").length;
   // แยกกลุ่มตามโปรเจกต์ที่ใช้ใบนั้นจริง (2026-11-10) — เดิมกองรวมกันจนหาไม่เจอว่าตะกร้าไหนของงานไหน
-  const openP = PROJECTS.filter(p => !isDone(p));
-  const projsOf = k => openP.filter(p => hits(COORD[p] || [], k).length || libHit(PROJ_SKU[p] || [], k));
+  const openP = PROJECTS.filter(p => !isDone(p) || p === SG_PROJF);
+  const projsOf = () => [SG_PROJF];
   const pf = $("#sgProjFilter");
   if (pf){
-    const cur = SG_PROJF || "";
-    pf.innerHTML = `<option value="">📁 ทุกโปรเจกต์ (แยกกลุ่ม)</option>` + openP.map(p => `<option value="${esc(p)}"${p === cur ? " selected" : ""}>${esc(p)}</option>`).join("");
-    pf.value = openP.includes(cur) ? cur : "";
-    pf.onchange = () => { SG_PROJF = pf.value; renderSkuGuide(); };
+    pf.innerHTML = openP.map(p => `<option value="${esc(p)}"${p === SG_PROJF ? " selected" : ""}>📁 ${esc(p)}</option>`).join("");
+    pf.value = SG_PROJF;
+    pf.title = "คู่มือ / แฮชแท็ก / ตะกร้า แยกตามโปรเจกต์ — โปรเจกต์อื่นไม่ใช้ร่วม";
+    pf.onchange = () => { SG_PROJF = pf.value; SG_PICK.clear(); renderSkuGuide(); };
   }
   const grouped = list => {
     const G = new Map();
@@ -21943,7 +21969,7 @@ function renderSkuGuide(){
           <span style="color:var(--dim)">(${[nAuto ? `โปรเจกต์ปิดแล้ว ${nAuto}` : "", hid.length - nAuto ? `ซ่อนเอง ${hid.length - nAuto}` : ""]
             .filter(Boolean).join(" · ")})</span></button>` + (SG_SHOWHID ? hid.map(row).join("") : "")
       : "")
-    : `<p class="hint">ยังไม่ได้ตั้งไว้ — ทุกคนจะได้${esc(meta.th)}ชุดเดียวกันจาก “ลิงก์ที่ใช้ร่วมกัน”</p>`;
+    : `<p class="hint">${esc(SG_PROJF)} ยังไม่ได้ตั้ง${esc(meta.th)}ตาม SKU — แต่ละโปรเจกต์ตั้งแยกกัน ไม่ใช้ของโปรเจกต์อื่น</p>`;
 
   // ตัวเลือกให้พิมพ์ง่าย: SKU ที่ใช้จริงในทุกโปรเจกต์ + ชื่อไลน์ที่ตัดมาจากหน้า SKU
   const used = [...new Set(all.flatMap(r => skuParts(r.sku)).concat(projLibSkus(PROJECTS)))];
@@ -25103,7 +25129,7 @@ function parseSlashLine(line, pending){
     loadSkuGuide();
     const key = whoRaw.trim();
     if (!key){
-      const rows = Object.keys(SKUGUIDE).filter(k => SKUGUIDE[k]);
+      const rows = Object.keys(skuMapOf("guide", "KOL", PROJ)).filter(k => skuMapOf("guide", "KOL", PROJ)[k]);
       if (!rows.length) return bad(
         `ยังไม่ได้ตั้งคู่มือของ SKU ไหนเลย — เช่น /skuguide Blush : https://…\n` +
         `ใส่แค่ชื่อไลน์ (Blush · Lip · Eyeshadow) = ใช้กับทุกเฉดในไลน์นั้น`);
@@ -25115,7 +25141,7 @@ function parseSlashLine(line, pending){
       skuParts(r.sku).some(x => x === key ||
         x.toLowerCase().startsWith(key.toLowerCase()))).length, 0);
     if (!value)
-      return SKUGUIDE[key]
+      return skuMapOf("guide", "KOL", PROJ)[key]
         ? [{ line, ok:true, admin:"skuguide", skuKey:key, skuUrl:"", changes:{},
              note:`ลบคู่มือของ "${key}" (มีผลกับ ${hitN} คน)` }]
         : bad(`"${key}" ยังไม่ได้ตั้งคู่มือไว้ ไม่มีอะไรให้ลบ`);
@@ -25521,7 +25547,7 @@ function applyQuickOrder(){
       case "skuguide": {
         if (!can("sku")){ alert("บัญชีนี้ไม่มีสิทธิ์ตั้งค่าคู่มือ/แฮชแท็ก/ตะกร้าตาม SKU — ขอแอดมินเปิดให้ที่ ตั้งค่าเว็บ → คนที่เข้าใช้เว็บนี้"); break; }
         loadSkuGuide();
-        if (q.skuUrl) SKUGUIDE[q.skuKey] = q.skuUrl; else delete SKUGUIDE[q.skuKey];
+        { const GM = skuMapOf("guide", "KOL", PROJ); if (q.skuUrl) GM[q.skuKey] = q.skuUrl; else delete GM[q.skuKey]; }
         saveSkuGuide(); renderSkuGuide();
         break;
       }
@@ -27411,7 +27437,7 @@ async function relHistDraw(pub, fmt){
 // ═══ เวอร์ชันของหน้า — แท็บที่เปิดค้างโค้ดเก่าต้องไม่ซิงก์ทีม ═══
 // เจอจริง 2026-10-27: แท็บเก่าดึงคีย์ใหม่ลงผิดที่ + ดันรายการที่ลบแล้วกลับขึ้นทุกนาที
 // APP_VER ประทับตอน deploy (kol-tools\stamp-version.py) · version.json คู่กันบนเซิร์ฟเวอร์ — ไม่ตรง = รีเฟรช
-const APP_VER = "20261117-050636";
+const APP_VER = "20261117-075200";
 let STALE = false;
 async function verCheck(){
   if (STALE || APP_VER === "dev") return;
