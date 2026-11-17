@@ -16436,6 +16436,7 @@ function navSnap(){
     cmd: $("#cmdPanel").classList.contains("on") && CMD_NOW ? CMD_NOW.proj + "|" + CMD_NOW.handle : null,
     det: $("#detailPanel").classList.contains("on") && DETAIL ? DETAIL.proj + "|" + DETAIL.handle : null,
     set: on("settings"), pipe: on("pipePanel"), pros: on("prosPanel"),
+    todo: on("todoPop"),                                     // (2026-11-17) 📋 วันนี้ต้องทำ — กดชื่อแล้วย้อนกลับต้องกลับมาที่ลิสต์
   };
 }
 const navSig = s => JSON.stringify(s);
@@ -16473,6 +16474,9 @@ async function navApply(s){
   if (!s.set && !$("#settings").hidden) closeSettings(); else if (s.set && $("#settings").hidden) openSettings();
   if (!s.pipe && !$("#pipePanel").hidden){ $("#pipePanel").hidden = true; $("#ppDrawer").hidden = true; } else if (s.pipe && $("#pipePanel").hidden) try { openPipe(); } catch(e){}
   if (!s.pros && !$("#prosPanel").hidden) $("#prosPanel").hidden = true; else if (s.pros && $("#prosPanel").hidden) try { openPros(); } catch(e){}
+  // 📋 วันนี้ต้องทำ
+  if (s.todo && $("#todoPop").hidden) try { openTodo(); } catch(e){}
+  else if (!s.todo && !$("#todoPop").hidden) closeTodo();
   // ลิ้นชักรายละเอียด
   if (!s.det){ if ($("#detailPanel").classList.contains("on")) closeDetail(); }
   else { const [pj, h] = keyOf(s.det); const i = (COORD[pj] || []).findIndex(r => normId(r.handle) === h); if (i >= 0) openDetail(pj, i); }
