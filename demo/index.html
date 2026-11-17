@@ -11758,6 +11758,20 @@ function tlApply(proj, handle, text){
   if (TEAM_MODE && isTeamProj(proj)){ clearTimeout(AUTO_T); syncCoord(false); }
   histToast(`อัปเดตจาก Timeline: ${done.join(" · ")} — ขึ้นชีตให้ด้วย`);
 }
+// ฟีดแบครอบที่ n จากชีต — ข้อความในชีตขึ้นต้นแต่ละรอบด้วย "Draft #1" / "Draft #2" · ไม่มีหัวรอบ = ถือเป็นรอบ 1
+function sheetFbRound(r, n){
+  const t = String((r && r.sheet_fb) || "");
+  if (!t.trim()) return "";
+  const marks = [...t.matchAll(/Draft\s*#?\s*(\d)\s*:?\s*/ig)];
+  if (marks.length){
+    const i = marks.findIndex(m => +m[1] === n);
+    if (i < 0) return "";
+    const st = marks[i].index + marks[i][0].length, en = i + 1 < marks.length ? marks[i + 1].index : t.length;
+    return t.slice(st, en).replace(/\s*·\s*$/, "").trim();
+  }
+  // ไม่มีหัวรอบ: ตัดสถานะสั้นๆ ข้างหน้า ("Done · …") ออก
+  return n === 1 ? t.replace(/^[^·\n]{1,20}\s·\s/, "").trim() : "";
+}
 // ชื่อไทยของขั้น — ใช้ในแจ้งเตือน
 const stTh = v => (STAGES.find(x => x.v === v) || {}).th || (v ? v : "ยังไม่มีสถานะ");
 
@@ -11884,7 +11898,8 @@ function cmdValues(r){
   }
   // ฟีดแบคเป็นของใครของมันเสมอ ไม่มีตัวกลาง — แต่ละ Draft ก็คนละข้อความ
   // (เดิมทั้ง 3 Draft ใช้ตัวแปรเดียวกัน แก้ Draft 2 แล้ว Draft 1 เปลี่ยนตาม)
-  const fb = n => own["feedback" + n] || "";
+  // (Jibli 2026-11-17) ยังไม่ได้พิมพ์ฟีดแบคในเว็บ = ใช้ IBD Feedback จากชีต (ซิงก์มาใน sheet_fb แยกรอบด้วย "Draft #N")
+  const fb = n => own["feedback" + n] || sheetFbRound(r, n);
   return {
     _voice: cmdOwnRead(r.project, r.handle).voice || VOICE,   // หางเสียงของคนนี้ (ไม่ใช่ตัวแปรในข้อความ)
     // ชื่อช่องของคนนี้ — ใช้ระบุตัวคนในข้อความที่ต้องเจาะจงว่าฉบับนี้ของใคร (หนังสือแจ้งเตือน)
