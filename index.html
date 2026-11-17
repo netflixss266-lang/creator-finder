@@ -23,7 +23,7 @@
   base-uri 'none';
   object-src 'none'">
 <title>Creataew — KOL Sourcing</title>
-<meta name="cf-ver" content="20261117-050529">
+<meta name="cf-ver" content="20261117-050636">
 <!-- Beta / Publish (2026-11-06): หน้าแรก = เวอร์ชันล่าสุด (admin เห็นก่อน) · คนอื่นถูกพาไป v/<เวอร์ชันที่ Publish>.html
      จำเวอร์ชันที่ Publish ไว้ในเครื่อง = พาไปได้ทันทีไม่ต้องรอเน็ต แล้วเช็คซ้ำเบื้องหลัง · ฐานข้อมูลไม่มี RPC (sandbox) = อยู่ตัวล่าสุด -->
 <script>(function(){try{
@@ -11658,7 +11658,9 @@ function cmdValues(r){
   // ฟีดแบคเป็นของใครของมันเสมอ ไม่มีตัวกลาง — แต่ละ Draft ก็คนละข้อความ
   // (เดิมทั้ง 3 Draft ใช้ตัวแปรเดียวกัน แก้ Draft 2 แล้ว Draft 1 เปลี่ยนตาม)
   // (Jibli 2026-11-17) ยังไม่ได้พิมพ์ฟีดแบคในเว็บ = ใช้ IBD Feedback จากชีต (ซิงก์มาใน sheet_fb แยกรอบด้วย "Draft #N")
-  const fb = n => own["feedback" + n] || sheetFbRound(r, n);
+  // (2026-11-17) ซิงก์ฟีดแบค 2 ทางแล้ว — โปรเจกต์ที่เปิดซิงก์ชีต: ชีตคือค่าล่าสุด (แก้ในเว็บ → ขึ้นชีตในไม่กี่วินาที · ทีมแก้ในชีต → ได้ของชีต)
+  //   โปรเจกต์ที่ยังไม่ซิงก์: ของในเว็บก่อน
+  const fb = n => LARK[r.project] ? (sheetFbRound(r, n) || own["feedback" + n] || "") : (own["feedback" + n] || sheetFbRound(r, n));
   return {
     _voice: cmdOwnRead(r.project, r.handle).voice || VOICE,   // หางเสียงของคนนี้ (ไม่ใช่ตัวแปรในข้อความ)
     // ชื่อช่องของคนนี้ — ใช้ระบุตัวคนในข้อความที่ต้องเจาะจงว่าฉบับนี้ของใคร (หนังสือแจ้งเตือน)
@@ -27409,7 +27411,7 @@ async function relHistDraw(pub, fmt){
 // ═══ เวอร์ชันของหน้า — แท็บที่เปิดค้างโค้ดเก่าต้องไม่ซิงก์ทีม ═══
 // เจอจริง 2026-10-27: แท็บเก่าดึงคีย์ใหม่ลงผิดที่ + ดันรายการที่ลบแล้วกลับขึ้นทุกนาที
 // APP_VER ประทับตอน deploy (kol-tools\stamp-version.py) · version.json คู่กันบนเซิร์ฟเวอร์ — ไม่ตรง = รีเฟรช
-const APP_VER = "20261117-050529";
+const APP_VER = "20261117-050636";
 let STALE = false;
 async function verCheck(){
   if (STALE || APP_VER === "dev") return;
