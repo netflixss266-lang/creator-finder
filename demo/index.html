@@ -15,6 +15,7 @@
   style-src 'unsafe-inline' https://fonts.googleapis.com;
   font-src https://fonts.gstatic.com;
   img-src 'self' https: data:;
+  media-src https://sosfberpszbqvghyymzi.supabase.co;
   connect-src 'self' https://docs.google.com https://api.anthropic.com
               https://script.google.com https://*.googleusercontent.com
               https://sosfberpszbqvghyymzi.supabase.co
@@ -2898,6 +2899,19 @@ button.tag.work:hover{border-color:#8fc1ff}
 .cmdpeek .body{padding:12px 14px;overflow:auto}
 .cmdpeek pre{white-space:pre-wrap;word-break:break-word;font:inherit;margin:0;padding:8px 10px}
 .cmdpeek h4{margin:14px 0 6px}
+/* ไฟล์ดราฟต์จากชีต + ตัวเล่น (2026-11-17) */
+.drfiles{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin:10px 0 0}
+.drfiles > b{font-size:.82rem;color:var(--mute);margin-right:4px}
+.drfiles.compact{display:inline-flex;margin:0 6px 0 0}
+.drfile{font:inherit;font-size:.78rem;padding:4px 10px;border-radius:999px;border:1px solid var(--line);background:var(--surface2);color:var(--ink);cursor:pointer;text-decoration:none;white-space:nowrap}
+.drfile:hover{border-color:var(--accent);color:var(--accent)}
+#drPlayer{position:fixed;inset:0;z-index:16000;background:rgba(0,0,0,.6);display:flex;align-items:center;justify-content:center;padding:16px}
+#drPlayer[hidden]{display:none}
+#drPlayer .drp-card{background:var(--bg, var(--surface));border:1px solid var(--line);border-radius:14px;width:min(900px,100%);max-height:94vh;display:flex;flex-direction:column;overflow:hidden}
+#drPlayer header{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:10px 14px;border-bottom:1px solid var(--line)}
+#drPlayer header b{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+#drPlayer .drp-body{padding:12px;display:flex;flex-direction:column;gap:8px;align-items:flex-start;color:var(--mute)}
+#drPlayer video{width:100%;max-height:76vh;background:#000;border-radius:8px}
 .cmdblk{border:1px solid var(--line);border-radius:9px;margin-bottom:13px;
   background:var(--surface);overflow:hidden}
 /* หัวข้อบล็อกต้องเจอได้จากการกวาดตา ไม่ใช่อ่านไล่ — ตัวใหญ่ ขาว มีเลขวงกลมแดงนำ */
@@ -13301,7 +13315,7 @@ function openCmd(proj, handle){
   {
     const d = drMark(r);
     $("#cmdSt").innerHTML = `<select class="st-sel ${stClass(r.status)}" id="cmdStSel" title="เปลี่ยนสถานะของ ${esc(r.handle)}">${
-        statusOptions(r.status)}</select>${drOk(r) && !isCancelled(r)
+        statusOptions(r.status)}</select>${draftFilesHTML(r, true)}${drOk(r) && !isCancelled(r)
       ? (() => { const I = drInfo(r.status); return `<button type="button" class="mapdr tbdr cmddr ${I.k}${d ? " on" : ""}" data-drin="${esc(r.handle)}" data-mapproj="${esc(proj)}"
           title="${d ? I.off : I.on}">${I.ic}${d ? ` <span>${I.tag} · ${drAgo(d.at)}</span>` : ""}</button>`; })() : ""}${stepMark(r, proj, "cmd")}`;
     $("#cmdStSel").onchange = e => {
@@ -17280,7 +17294,7 @@ function sbRowToCoord(o){
     postdate: o.postdate || "", deadline: o.deadline || "", brief: o.brief || "", note: o.note || "",
     commission: o.commission || "", script: o.script || "", rate_all: [], tracking: o.tracking || "",
     assignee: o.assignee || null, _id: o.id, temp: !!o.temp,
-    _sat: o.status_at || null, _sate: !!o.status_at_est, sheet_fb: o.sheet_fb || "", ...sheetVals(o.sheet_x) };
+    _sat: o.status_at || null, _sate: !!o.status_at_est, sheet_fb: o.sheet_fb || "", drafts: Array.isArray(o.drafts) ? o.drafts : null, ...sheetVals(o.sheet_x) };
 }
 // คืน true = จัดการแล้ว · false = ไม่แน่ใจ ให้โหลดใหม่ทั้งหมดแทน (ปลอดภัยกว่าเดา)
 function rtApplyCoord(d){
@@ -19422,6 +19436,42 @@ function rvBadge(){
   if (bm){ bm.textContent = n || ""; bm.hidden = !n; }
 }
 
+// ═══ ไฟล์ดราฟต์จากชีต (Jibli 2026-11-17) ═══
+// ซิงก์ทุกนาทีจากคอลัมน์ 1st/2nd/3rd Draft ในชีต (coord.drafts) · ไฟล์แนบ = เล่นในเว็บ (สตรีมผ่านฟังก์ชัน lark-sync — เบราว์เซอร์ไม่ต่อ Lark ตรง)
+// ลิงก์ (Google Drive ฯลฯ) = เปิดแท็บใหม่
+const drSize = b => b > 1048576 ? (b / 1048576).toFixed(b > 10485760 ? 0 : 1) + " MB" : b ? Math.round(b / 1024) + " KB" : "";
+function draftFilesHTML(r, compact){
+  const L = (r && r.drafts) || [];
+  if (!L.length) return "";
+  return `<div class="drfiles${compact ? " compact" : ""}">${compact ? "" : `<b>🎬 ไฟล์ดราฟต์จากชีต</b>`}${L.map((x, i) => x.tok
+    ? `<button type="button" class="drfile" data-drplay="${esc(x.tok)}" data-drname="${esc(x.name)}" title="${esc(x.name)} · ${esc(drSize(x.size))}">▶ Draft ${x.n}${compact ? "" : ` · ${esc(x.name.length > 28 ? x.name.slice(0, 27) + "…" : x.name)}`}</button>`
+    : `<a class="drfile" href="${esc(safeLinkUrl(x.url) || "#")}" target="_blank" rel="noopener noreferrer" title="${esc(x.url)}">↗ Draft ${x.n}${compact ? "" : " · ลิงก์"}</a>`).join("")}</div>`;
+}
+async function draftPlay(tok, name){
+  let box = $("#drPlayer");
+  if (!box){ box = document.createElement("div"); box.id = "drPlayer"; document.body.appendChild(box); }
+  box.innerHTML = `<div class="drp-card"><header><b>${esc(name || "ดราฟต์")}</b><button type="button" class="cmdbtn" id="drpX">ปิด</button></header>
+    <div class="drp-body">กำลังเปิดไฟล์…</div></div>`;
+  box.hidden = false;
+  const close = () => { const v = box.querySelector("video"); if (v){ v.pause(); v.removeAttribute("src"); v.load(); } box.hidden = true; box.innerHTML = ""; };
+  $("#drpX").onclick = close; box.onclick = e => { if (e.target === box) close(); };
+  try {
+    const r = await fetch(SB_URL + "/functions/v1/lark-sync", { method: "POST",
+      headers: { "Content-Type": "application/json", apikey: SB_KEY, Authorization: "Bearer " + ((SESSION && SESSION.access_token) || "") },
+      body: JSON.stringify({ draftTicket: tok }) });
+    const j = await r.json().catch(() => ({}));
+    if (!r.ok || !j.url) throw new Error(j.error || "เปิดไฟล์ไม่ได้ (" + r.status + ")");
+    box.querySelector(".drp-body").innerHTML = `<video controls autoplay playsinline preload="metadata" src="${esc(j.url)}"></video>
+      <a class="cmdbtn" href="${esc(j.url)}" target="_blank" rel="noopener" download>⬇ ดาวน์โหลด</a>`;
+    vlog("draft:play", { d: name || tok });
+  } catch(e){ box.querySelector(".drp-body").textContent = e.message; }
+}
+document.addEventListener("click", e => {
+  const b = e.target.closest && e.target.closest("[data-drplay]");
+  if (!b) return;
+  e.preventDefault(); e.stopPropagation();
+  draftPlay(b.dataset.drplay, b.dataset.drname);
+}, true);
 function renderReviewDetail(){
   const box = $("#rvDetail");
   const r = (COORD[PROJ] || []).find(x => rvKey(x) === RV_SEL);
@@ -19434,7 +19484,7 @@ function renderReviewDetail(){
         <div class="rv-facts"><span>${esc(r.kind || "—")}</span><span>สถานะ <b>${esc(rvStTh(rvStatus(r)))}</b></span>
           ${r.sku ? `<span>${esc(r.sku)}</span>` : ""}${r.rate != null ? `<span>เรท <b>${mBaht(r.rate)}</b></span>` : ""}</div></div>
       <div class="rv-people">${r.assignee ? `<span>${avatar(r.assignee)} ผู้ดูแล ${esc(memName(r.assignee))}</span>` : ""}
-        <button type="button" class="rv-btn" data-rvcmd="1">✉ เปิด Command</button></div></div>
+        <button type="button" class="rv-btn" data-rvcmd="1">✉ เปิด Command</button></div></div>${draftFilesHTML(r)}
       <div class="rv-steps">${RV_STEPS.map(([k, th], i) => `<div class="rv-st${st === "posted" || i < idx ? " done" : i === idx ? " now" : ""}">${esc(th)}</div>`).join("")}</div></div>
     <div class="rv-card rv-next" style="--c:${rc}"><div class="rv-nextrow">
       <div class="what"><b>${t.role ? (mine ? "ตาคุณ: " : `รอ ${RV_ROLES[t.role].th}: `) : ""}${esc(t.what)}</b>
@@ -19857,6 +19907,15 @@ async function trackColProbe(){
 }
 // ฟีดแบ็กจาก Lark Sheet (Status IBD · IBD Feedback) — เขียนโดยระบบซิงก์ชีต→เว็บเท่านั้น เว็บอ่านอย่างเดียว
 let FB_COL = null;
+let DR_COL = null;      // coord.drafts — ไฟล์ดราฟต์จากชีต (2026-11-17)
+async function drColProbe(){
+  if (DR_COL !== null) return DR_COL;
+  try {
+    const r = await sbAuthed(SB_URL + "/rest/v1/coord?select=drafts&limit=1");
+    if (r.ok) DR_COL = true; else if (r.status === 400) DR_COL = false;
+  } catch(e){}
+  return DR_COL === true;
+}
 async function fbColProbe(){
   if (FB_COL !== null) return FB_COL;
   try {
@@ -19880,7 +19939,7 @@ async function sbFetchCoord(){
   // แล้วอาการจะร้ายกว่า เพราะเว็บซิงก์แบบ "เขียนทับทั้งชุด" — อ่านมาไม่ครบแล้วเขียนกลับ = ของหายจริง
   const cols = ((await trackColProbe()) ? SB_COORD_COLS + ",tracking" : SB_COORD_COLS) +
                (TEAM_MODE ? ",assignee,id,temp,status_at,status_at_est" : "") +
-               ((await fbColProbe()) ? ",sheet_fb" : "") + ((await sxColProbe()) ? ",sheet_x" : "");
+               ((await fbColProbe()) ? ",sheet_fb" : "") + ((await sxColProbe()) ? ",sheet_x" : "") + ((await drColProbe()) ? ",drafts" : "");
   if (TEAM_MODE) await larkLoad();
   return await sbFetchAll("/rest/v1/coord?select=" + cols +
                           "&order=project.asc&order=ord.asc", "อ่านงาน Coordinate ไม่ได้");
