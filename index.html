@@ -24,7 +24,7 @@
   base-uri 'none';
   object-src 'none'">
 <title>Creataew — KOL Sourcing</title>
-<meta name="cf-ver" content="20261117-081652">
+<meta name="cf-ver" content="20261117-084726">
 <!-- Beta / Publish (2026-11-06): หน้าแรก = เวอร์ชันล่าสุด (admin เห็นก่อน) · คนอื่นถูกพาไป v/<เวอร์ชันที่ Publish>.html
      จำเวอร์ชันที่ Publish ไว้ในเครื่อง = พาไปได้ทันทีไม่ต้องรอเน็ต แล้วเช็คซ้ำเบื้องหลัง · ฐานข้อมูลไม่มี RPC (sandbox) = อยู่ตัวล่าสุด -->
 <script>(function(){try{
@@ -2684,6 +2684,9 @@ button.tag.work:hover{border-color:#8fc1ff}
 #drPlayer header b{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 #drPlayer .drp-body{padding:12px;display:flex;flex-direction:column;gap:8px;align-items:flex-start;color:var(--mute)}
 #drPlayer video{width:100%;max-height:76vh;background:#000;border-radius:8px}
+#drPlayer .drp-bar{width:100%;height:8px;border-radius:99px;background:var(--surface2);overflow:hidden}
+#drPlayer .drp-bar i{display:block;height:100%;background:var(--accent);transition:width .3s}
+.drfile.up{border-style:dashed}
 .cmdblk{border:1px solid var(--line);border-radius:9px;margin-bottom:13px;
   background:var(--surface);overflow:hidden}
 /* หัวข้อบล็อกต้องเจอได้จากการกวาดตา ไม่ใช่อ่านไล่ — ตัวใหญ่ ขาว มีเลขวงกลมแดงนำ */
@@ -19201,8 +19204,10 @@ function rvBadge(){
 const drSize = b => b > 1048576 ? (b / 1048576).toFixed(b > 10485760 ? 0 : 1) + " MB" : b ? Math.round(b / 1024) + " KB" : "";
 function draftFilesHTML(r, compact){
   const L = (r && r.drafts) || [];
-  if (!L.length) return "";
-  return `<div class="drfiles${compact ? " compact" : ""}">${compact ? "" : `<b>🎬 ไฟล์ดราฟต์จากชีต</b>`}${L.map((x, i) => x.tok
+  // 📎 แนบไฟล์จากเว็บขึ้นชีต — เฉพาะโปรเจกต์ที่ซิงก์ชีตอยู่
+  const up = r && LARK[r.project] ? `<button type="button" class="drfile up" data-drup="${esc(r.project)}|${esc(r.handle)}" title="แนบไฟล์ดราฟต์ — ขึ้นช่อง Draft ในชีตให้เอง">📎${compact ? "" : " แนบไฟล์ดราฟต์"}</button>` : "";
+  if (!L.length) return up ? `<div class="drfiles${compact ? " compact" : ""}">${up}</div>` : "";
+  return `<div class="drfiles${compact ? " compact" : ""}">${up}${compact ? "" : `<b>🎬 ไฟล์ดราฟต์จากชีต</b>`}${L.map((x, i) => x.tok
     ? `<button type="button" class="drfile" data-drplay="${esc(x.tok)}" data-drname="${esc(x.name)}" title="${esc(x.name)} · ${esc(drSize(x.size))}">▶ Draft ${x.n}${compact ? "" : ` · ${esc(x.name.length > 28 ? x.name.slice(0, 27) + "…" : x.name)}`}</button>`
     : `<a class="drfile" href="${esc(safeLinkUrl(x.url) || "#")}" target="_blank" rel="noopener noreferrer" title="${esc(x.url)}">↗ Draft ${x.n}${compact ? "" : " · ลิงก์"}</a>`).join("")}</div>`;
 }
@@ -19225,6 +19230,64 @@ async function draftPlay(tok, name){
     vlog("draft:play", { d: name || tok });
   } catch(e){ box.querySelector(".drp-body").textContent = e.message; }
 }
+// ── แนบไฟล์ดราฟต์ → ชีต (ส่งทีละ 4 MB ผ่าน lark-sync) ──
+const drRoundOf = r => { const s = String((r && r.status) || ""); const m = s.match(/Draft (\d)/); return m ? +m[1] : 1; };
+function draftUploadPick(btn){
+  const [proj, handle] = [btn.dataset.drup.slice(0, btn.dataset.drup.lastIndexOf("|")), btn.dataset.drup.slice(btn.dataset.drup.lastIndexOf("|") + 1)];
+  const r = (COORD[proj] || []).find(x => normId(x.handle) === normId(handle));
+  if (!r) return;
+  const cur = drRoundOf(r);
+  pickPop(btn.parentElement, "แนบไฟล์เข้าช่องไหนในชีต", [1, 2, 3].map(n => ({ n, label: `Draft ${n}`, note: n === cur ? "รอบตอนนี้" : "", on: n === cur })), it => {
+    const inp = document.createElement("input");
+    inp.type = "file"; inp.accept = "video/*,image/*,.mov,.mp4";
+    inp.onchange = () => { const f = inp.files && inp.files[0]; if (f) draftUploadRun(r, it.n, f); };
+    inp.click();
+  });
+}
+async function draftUploadRun(r, n, file){
+  let box = $("#drPlayer");
+  if (!box){ box = document.createElement("div"); box.id = "drPlayer"; document.body.appendChild(box); }
+  box.innerHTML = `<div class="drp-card"><header><b>📎 แนบ Draft ${n} · ${esc(normId(r.handle))}</b></header>
+    <div class="drp-body"><div>${esc(file.name)} · ${esc(drSize(file.size))}</div><div class="drp-bar"><i style="width:0%"></i></div><div class="drp-msg">กำลังเริ่ม…</div></div></div>`;
+  box.hidden = false;
+  const bar = box.querySelector(".drp-bar i"), msg = box.querySelector(".drp-msg");
+  const H = { apikey: SB_KEY, Authorization: "Bearer " + ((SESSION && SESSION.access_token) || "") };
+  const api = async (q, body, raw) => {
+    const res = await fetch(SB_URL + "/functions/v1/lark-sync" + (q || ""), { method: "POST",
+      headers: raw ? Object.assign({ "Content-Type": "application/octet-stream" }, H) : Object.assign({ "Content-Type": "application/json" }, H),
+      body: raw ? body : JSON.stringify(body) });
+    const j = await res.json().catch(() => ({}));
+    if (!res.ok || j.error) throw new Error(j.error || "ส่งไม่สำเร็จ (" + res.status + ")");
+    return j;
+  };
+  try {
+    const st = await api("", { draftUp: "start", project: r.project, handle: r.handle, n, name: file.name, size: file.size, mime: file.type });
+    let ft = "";
+    for (let i = 0; i < st.blocks; i++){
+      const part = file.slice(i * st.chunk, Math.min(file.size, (i + 1) * st.chunk));
+      msg.textContent = `กำลังส่ง ${i + 1}/${st.blocks}…`;
+      const j = await api(`?up=part&seq=${i}&t=${encodeURIComponent(st.t)}`, part, true);
+      if (j.ft) ft = j.ft;
+      bar.style.width = Math.round((i + 1) / st.blocks * 92) + "%";
+    }
+    msg.textContent = "กำลังใส่ในชีต…";
+    const fin = await api("", { draftUp: "finish", t: st.t, ft });
+    bar.style.width = "100%";
+    r.drafts = fin.drafts || r.drafts;
+    msg.innerHTML = `✓ แนบแล้ว — อยู่ในช่อง <b>${esc(fin.cell)}</b> ของชีต <button type="button" class="cmdbtn" id="drpDone">ปิด</button>`;
+    vlog("draft:upload", { p: r.project, h: normId(r.handle), d: `D${n} ${file.name}` });
+    $("#drpDone").onclick = () => { box.hidden = true; box.innerHTML = ""; };
+    if (CMD_NOW && CMD_NOW.proj === r.project && normId(CMD_NOW.handle) === normId(r.handle)) openCmd(r.project, r.handle);
+    if (document.body.dataset.view === "review") try { renderReviewDetail(); } catch(e){}
+  } catch(e){
+    msg.innerHTML = `✕ ${esc(e.message)} <button type="button" class="cmdbtn" id="drpDone">ปิด</button>`;
+    $("#drpDone").onclick = () => { box.hidden = true; box.innerHTML = ""; };
+  }
+}
+document.addEventListener("click", e => {
+  const u = e.target.closest && e.target.closest("[data-drup]");
+  if (u){ e.preventDefault(); e.stopPropagation(); draftUploadPick(u); }
+}, true);
 document.addEventListener("click", e => {
   const b = e.target.closest && e.target.closest("[data-drplay]");
   if (!b) return;
@@ -27504,7 +27567,7 @@ async function relHistDraw(pub, fmt){
 // ═══ เวอร์ชันของหน้า — แท็บที่เปิดค้างโค้ดเก่าต้องไม่ซิงก์ทีม ═══
 // เจอจริง 2026-10-27: แท็บเก่าดึงคีย์ใหม่ลงผิดที่ + ดันรายการที่ลบแล้วกลับขึ้นทุกนาที
 // APP_VER ประทับตอน deploy (kol-tools\stamp-version.py) · version.json คู่กันบนเซิร์ฟเวอร์ — ไม่ตรง = รีเฟรช
-const APP_VER = "20261117-081652";
+const APP_VER = "20261117-084726";
 let STALE = false;
 async function verCheck(){
   if (STALE || APP_VER === "dev") return;
