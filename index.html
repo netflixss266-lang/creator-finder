@@ -23,7 +23,7 @@
   base-uri 'none';
   object-src 'none'">
 <title>Creataew — KOL Sourcing</title>
-<meta name="cf-ver" content="20261116-100345">
+<meta name="cf-ver" content="20261117-031116">
 <!-- Beta / Publish (2026-11-06): หน้าแรก = เวอร์ชันล่าสุด (admin เห็นก่อน) · คนอื่นถูกพาไป v/<เวอร์ชันที่ Publish>.html
      จำเวอร์ชันที่ Publish ไว้ในเครื่อง = พาไปได้ทันทีไม่ต้องรอเน็ต แล้วเช็คซ้ำเบื้องหลัง · ฐานข้อมูลไม่มี RPC (sandbox) = อยู่ตัวล่าสุด -->
 <script>(function(){try{
@@ -11499,6 +11499,24 @@ function cmdTimelineNote(proj, handle, b, fromEdit){
   renderCoord();
   histToast(d && d.date ? `จดนัดส่ง Draft 1 (${d.date}) ลงโน้ตของ ${normId(handle)} แล้ว` : `ส่ง Timeline แล้ว — ไม่เจอวันนัดส่ง Draft 1 ในข้อความ Timeline ลองเช็กอีกที`, !(d && d.date));
 }
+// วันโพสต์ในข้อความ Timeline — บรรทัดที่พูดถึงโพสต์/ลงคลิป และมีวันที่
+function tlPost(text){
+  const l = String(text || "").split(/\n/).map(x => x.trim()).find(x => /โพสต์|โพส|post|ลงคลิป|ลงงาน/i.test(x) && TL_DATE.test(x));
+  if (!l) return "";
+  const m = l.replace(/(draft|ดราฟ\S*)\s*#?\s*\d(?!\d)/ig, " ").match(TL_DATE);
+  return m ? m[0].trim() : "";
+}
+function tlApply(proj, handle, text){
+  const r = (COORD[proj] || []).find(x => normId(x.handle) === normId(handle));
+  if (!r) return;
+  const d = tlDraft1(text), post = tlPost(text), done = [];
+  if (d && d.date && (r.deadline || "") !== d.date){ setField(r, "deadline", d.date); done.push(`นัดส่ง Draft 1 ${d.date}`); }
+  // งานไลฟ์ใช้ช่องโพสต์เป็นตารางไลฟ์ — ไม่แตะ
+  if (post && mapFmt(proj) !== "cal" && (r.postdate || "") !== post){ setField(r, "postdate", post); done.push(`วันโพสต์ ${post}`); }
+  if (!done.length) return;
+  if (TEAM_MODE && isTeamProj(proj)){ clearTimeout(AUTO_T); syncCoord(false); }
+  histToast(`อัปเดตจาก Timeline: ${done.join(" · ")} — ขึ้นชีตให้ด้วย`);
+}
 // ชื่อไทยของขั้น — ใช้ในแจ้งเตือน
 const stTh = v => (STAGES.find(x => x.v === v) || {}).th || (v ? v : "ยังไม่มีสถานะ");
 
@@ -13733,6 +13751,9 @@ function openCmd(proj, handle){
       if (k === "timeline" && v) try {
         const blk = cmdBlocksFor(proj, handle).find(b => /timeline|ไทม์ไลน์/i.test(b.t || "") && isSent(proj, handle, b.id, 1));
         if (blk) cmdTimelineNote(proj, handle, blk, true);
+        // (Jibli 2026-11-17) แก้ Timeline ที่ช่องนี้ = อัปเดตวันในงานเลย ไม่ต้องรอกดส่งกล่อง Timeline
+        //   วันส่ง Draft 1 → กำหนดส่ง (ชีต: Estimate 1st draft / 1st draft date) · วันโพสต์ → วันโพสต์ (ชีต: Estimate Post)
+        if (mine) tlApply(proj, handle, v);
       } catch(e){}
       renderCoord();
       const wasOpen = !$("#linkBox").hidden;
@@ -27369,7 +27390,7 @@ async function relHistDraw(pub, fmt){
 // ═══ เวอร์ชันของหน้า — แท็บที่เปิดค้างโค้ดเก่าต้องไม่ซิงก์ทีม ═══
 // เจอจริง 2026-10-27: แท็บเก่าดึงคีย์ใหม่ลงผิดที่ + ดันรายการที่ลบแล้วกลับขึ้นทุกนาที
 // APP_VER ประทับตอน deploy (kol-tools\stamp-version.py) · version.json คู่กันบนเซิร์ฟเวอร์ — ไม่ตรง = รีเฟรช
-const APP_VER = "20261116-100345";
+const APP_VER = "20261117-031116";
 let STALE = false;
 async function verCheck(){
   if (STALE || APP_VER === "dev") return;
