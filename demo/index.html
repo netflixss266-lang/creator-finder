@@ -1279,6 +1279,12 @@ body:not([data-view="find"]) #cartBtn{display:none!important}
 .icobtn:hover{border-color:var(--accent);color:var(--accent);background:rgba(var(--accent-rgb),.1)}
 /* จุดแดง = คนนี้มี Command ของตัวเอง ไม่ได้ใช้ข้อความต้นแบบร่วมกับคนอื่น */
 .icobtn.has{color:var(--accent);position:relative}
+/* (Jibli 2026-11-20) ปุ่ม Command ในตารางต้องเด่น — ปุ่มที่ใช้บ่อยที่สุดของแถว */
+.icobtn.cmdgo{background:var(--accent);color:#fff;border-color:var(--accent);border-radius:999px;
+  padding:.18em .6em;font-weight:700;font-size:.82rem;white-space:nowrap;box-shadow:0 1px 4px rgba(var(--accent-rgb),.35)}
+.icobtn.cmdgo:hover{background:var(--accent);color:#fff;filter:brightness(1.1)}
+.icobtn.cmdgo.has::after{background:#fff}
+@media (max-width:700px){ .icobtn.cmdgo .cmdgo-t{display:none} }
 .icobtn.has::after{content:"";position:absolute;top:2px;right:2px;width:5px;height:5px;
   border-radius:50%;background:var(--accent)}
 .ctable td,.ctable th{vertical-align:middle}
@@ -10876,10 +10882,10 @@ function coordRow(r, i){
          rel="noopener noreferrer" title="เปิด TikTok">↗</a>
       <button class="icobtn" data-detail="${i}"
               title="ดู/แก้ทุกอย่างของ ${esc(r.handle)} — ไม่ต้องเลื่อนตารางไปขวา">⤢</button>
-      <button class="icobtn${ownCmd ? " has" : ""}" data-cmd="${esc(normId(r.handle))}"
+      <button class="icobtn cmdgo${ownCmd ? " has" : ""}" data-cmd="${esc(normId(r.handle))}"
               title="${ownCmd
                 ? `${esc(r.handle)} มี Command ของตัวเอง ${ownCmd} จุด — ไม่ใช้ต้นแบบร่วม`
-                : `ข้อความสำเร็จรูปสำหรับคุยกับ ${esc(r.handle)}`}">✉</button>
+                : `ข้อความสำเร็จรูปสำหรับคุยกับ ${esc(r.handle)}`}">✉<span class="cmdgo-t"> Command</span></button>
       ${warned ? `<span class="warnmark" title="${esc(r.handle)} เคยได้รับหนังสือแจ้งเตือนตามสัญญา — ทำเครื่องหมายว่าส่งแล้วเมื่อ ${esc(warnDate(warned))}">⚖</span>` : ""}
     </div></td>
     <td class="vid"><input data-i="${i}" data-f="videos" type="number" min="0" step="1"
