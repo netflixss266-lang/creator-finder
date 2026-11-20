@@ -24,7 +24,7 @@
   base-uri 'none';
   object-src 'none'">
 <title>Creataew — KOL Sourcing</title>
-<meta name="cf-ver" content="20261117-100920">
+<meta name="cf-ver" content="20261120-105708">
 <!-- Beta / Publish (2026-11-06): หน้าแรก = เวอร์ชันล่าสุด (admin เห็นก่อน) · คนอื่นถูกพาไป v/<เวอร์ชันที่ Publish>.html
      จำเวอร์ชันที่ Publish ไว้ในเครื่อง = พาไปได้ทันทีไม่ต้องรอเน็ต แล้วเช็คซ้ำเบื้องหลัง · ฐานข้อมูลไม่มี RPC (sandbox) = อยู่ตัวล่าสุด -->
 <script>(function(){try{
@@ -11643,6 +11643,17 @@ const clipCount = r => Math.min(6, Math.max(1,
 // SKU ของชุดที่ n (1 = ตัวแรก) — ไม่มีก็คืนว่าง
 const skuOf = (r, n) => skuParts(r && r.sku)[(n || 1) - 1] || "";
 
+// (Jibli 2026-11-20) หน้าลิงก์ตั้งตะกร้า/แฮชแท็ก "ช่องละสินค้า" เก็บรวมในช่องเดียวบรรทัดละสินค้า
+// คนที่มีหลาย SKU: บล็อกของคลิป n ต้องได้เฉพาะบรรทัดที่ n — เดิมได้ทุกบรรทัด แฮชแท็กสินค้าตัวที่ 2 เลยโผล่ในคลิปตัวแรก
+// คืน null = ไม่ได้ตั้งไว้แบบช่องละสินค้า (ใช้กติกาเดิม)
+function ownSlotLine(own, kd, n, r){
+  if (kd !== "cart" && kd !== "hashtag") return null;
+  if (own[kd + n] != null || (n === 1 && own[kd + "1"] != null)) return null;
+  if (own[kd] == null || skuParts(r && r.sku).length < 2) return null;
+  const ln = String(own[kd]).split("\n");
+  const v = (ln[n - 1] || "").trim();
+  return v || null;
+}
 function cmdValues(r){
   // {{net}} ปกติคือยอดที่ครีเอเตอร์ได้รับจริง (หลังหัก 3% ฯลฯ) — แต่แบบ NET ยอดนั้นเท่ากับเรทเป๊ะ
   // ซ้ำกับบรรทัดเรทด้านบนพอดี ข้อความเลยไม่มีสาระ เปลี่ยนเป็นยอดที่บริษัทจ่ายจริง (rate/0.97) แทน
@@ -11670,7 +11681,10 @@ function cmdValues(r){
       // ผลคือบล็อกที่แยกคลิป (เช่น 13. Hashtag + ตะกร้า) ไม่เปลี่ยนตามหน้าลิงก์ ทั้งที่บล็อกที่
       // ไม่แยกคลิปเปลี่ยน — ตัวแปร {{cart}} ตัวเดียวกันให้คนละค่าขึ้นกับว่าบล็อกนั้นแยกคลิปไหม
       // หน้าลิงก์เฉพาะคนต้องชนะเสมอ ไม่ว่าค่าจะมาจาก SKU หรือลิงก์ร่วม
-      const mine = own[k] != null ? own[k] : (n === 1 ? own[d.k] : null);
+      const slot = ownSlotLine(own, d.k, n, r);
+      const mine = slot != null ? slot
+                 : skuParts(r.sku).length >= 2 && (d.k === "cart" || d.k === "hashtag") && own[k] == null ? null
+                 : own[k] != null ? own[k] : (n === 1 ? own[d.k] : null);
       perClip[k] = mine != null ? mine
                  : bySku || CMDLINKS[k] || sharedDoc(d.k);
     }
@@ -12255,7 +12269,8 @@ function setCmdOwnBlock(proj, handle, rawId, key, val){
 const cmdTagKey = (n, kd = "hashtag") => n >= 2 ? kd + n : kd;
 function cmdTagState(r, n, kd = "hashtag"){
   const own = cmdOwnRead(r.project, r.handle).links || {};
-  const mine = n >= 2 ? own[kd + n] : (own[kd + "1"] != null ? own[kd + "1"] : own[kd]);
+  const slot = n ? ownSlotLine(own, kd, n, r) : null;
+  const mine = slot != null ? slot : n >= 2 ? own[kd + n] : (own[kd + "1"] != null ? own[kd + "1"] : own[kd]);
   const ck = kindOf(r);
   const sku = bindForSku(kd, r.sku, n || 0, ck, r.project) || bindForSku(kd, r.sku, 0, ck, r.project);
   // ค่านี้มาจากชุดไหน — KOC ที่ยังไม่ได้ตั้งแยกจะตกไปใช้ของ KOL
@@ -13764,7 +13779,8 @@ function openCmd(proj, handle){
         const sp = docSplit(k) || {}, cn = sp.n || 1;
         const prods = !mine ? [] : (cn > 1 ? [skuOf(r, cn)] : skuParts(r.sku)).filter(Boolean);
         const defs = prods.map(x => SKU_BIND_BY[d.k] ? (bindValForOne(d.k, x, kindOf(r), r.project) || "") : "");
-        const parts = String(v || "").split(/\n+/).map(x => x.trim()).filter(Boolean);
+        const parts = String(v || "").split("\n").map(x => x.trim());
+        while (parts.length && !parts[parts.length - 1]) parts.pop();
         const nF = Math.max(2, parts.length, defs.length);
         const what = d.k === "cart" ? "ตะกร้า" : "แฮชแท็ก";
         return `<div class="linkrow many${mine && own[k] != null ? " own" : ""}">
@@ -13833,8 +13849,10 @@ function openCmd(proj, handle){
     // ตะกร้า / แฮชแท็กหลายอัน: รวมทุกช่องเป็นบรรทัดละอัน → ช่องซ่อน [data-link] แล้วบันทึกทางเดียวกับช่องอื่น
     const manyJoin = row => { const ta = row.querySelector("[data-link]");
       const ins = [...row.querySelectorAll("[data-linkpart]")];
-      const vals = ins.map(x => x.value.trim() || x.dataset.def || "").filter(Boolean);
-      const defs = ins.map(x => x.dataset.def || "").filter(Boolean);
+      const vals = ins.map(x => x.value.trim() || x.dataset.def || "");
+      while (vals.length && !vals[vals.length - 1]) vals.pop();
+      const defs = ins.map(x => x.dataset.def || "");
+      while (defs.length && !defs[defs.length - 1]) defs.pop();
       ta.value = ins.every(x => !x.value.trim()) || vals.join("\n") === defs.join("\n") ? "" : vals.join("\n");
       return ta; };
     $("#linkRows").querySelectorAll("[data-linkpart]").forEach(inp => {
@@ -27577,7 +27595,7 @@ async function relHistDraw(pub, fmt){
 // ═══ เวอร์ชันของหน้า — แท็บที่เปิดค้างโค้ดเก่าต้องไม่ซิงก์ทีม ═══
 // เจอจริง 2026-10-27: แท็บเก่าดึงคีย์ใหม่ลงผิดที่ + ดันรายการที่ลบแล้วกลับขึ้นทุกนาที
 // APP_VER ประทับตอน deploy (kol-tools\stamp-version.py) · version.json คู่กันบนเซิร์ฟเวอร์ — ไม่ตรง = รีเฟรช
-const APP_VER = "20261117-100920";
+const APP_VER = "20261120-105708";
 let STALE = false;
 async function verCheck(){
   if (STALE || APP_VER === "dev") return;
