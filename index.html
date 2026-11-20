@@ -25,7 +25,7 @@
   base-uri 'none';
   object-src 'none'">
 <title>Creataew — KOL Sourcing</title>
-<meta name="cf-ver" content="20261120-163752">
+<meta name="cf-ver" content="20261120-164008">
 <!-- Beta / Publish (2026-11-06): หน้าแรก = เวอร์ชันล่าสุด (admin เห็นก่อน) · คนอื่นถูกพาไป v/<เวอร์ชันที่ Publish>.html
      จำเวอร์ชันที่ Publish ไว้ในเครื่อง = พาไปได้ทันทีไม่ต้องรอเน็ต แล้วเช็คซ้ำเบื้องหลัง · ฐานข้อมูลไม่มี RPC (sandbox) = อยู่ตัวล่าสุด -->
 <script>(function(){try{
@@ -18278,7 +18278,7 @@ const prLate = r => { const t = Date.parse(r.last_msg_at || r.contacted_at || ""
 function prRender(){
   if ($("#prosPanel").hidden) return;
   const L = PR.rows.filter(r => r.stage === "list"), N = PR.rows.filter(r => r.stage === "nominate"), A = PR.rows.filter(r => r.stage === "approved");
-  $("#prTabs").innerHTML = [["list", `รายชื่อ`, L.length], ["nom", `คัดเลือก`, N.length], ["plan", "แผน · งบ · เรท", null]].map(([k, th, n]) =>
+  $("#prTabs").innerHTML = [["list", `List`, L.length], ["nom", `Nominate`, N.length], ["plan", "แผน · งบ · เรท", null]].map(([k, th, n]) =>
     `<button role="tab" data-prtab="${k}" aria-selected="${PR.tab === k}">${th}${n != null ? ` <b>${n}</b>` : ""}</button>`).join("");
   // KPI ต่อผู้ดูแล — แทนแท็บ KPI
   const by = {};
@@ -18342,12 +18342,14 @@ function prListHTML(L){
     (!PR.q || (r.handle + " " + (r.note || "")).toLowerCase().includes(PR.q.toLowerCase())));
   const pv = PR.preview;
   return prSteps() + `<details class="pr-box pr-add"${L.length && !pv ? "" : " open"}><summary><b>➕ เพิ่มรายชื่อ</b> <span class="pr-sub" style="display:inline">วางลิงก์หรือชื่อ TikTok ทีละหลายคน</span></summary>
-      <textarea id="prPaste" placeholder="วางได้เลย เช่น&#10;https://www.tiktok.com/@creator1&#10;@creator2&#10;creator3">${esc(PR.pasteText || "")}</textarea>
+      <textarea id="prPaste" placeholder="วางได้เลย เช่น&#10;https://www.tiktok.com/@creator1&#10;@creator2&#10;creator3&#10;&#10;หรือก๊อปทั้งแถวจากชีต (รวมหัวตาราง) — GMV / Women / Avg.View / Engagement / เรท ติดมาด้วย">${esc(PR.pasteText || "")}</textarea>
       <div class="pr-row"><button type="button" class="pr-btn pri" data-pract="check">ตรวจรายชื่อ</button>
         <span class="pr-sub">ระบบเติมผู้ติดตาม/Tier ให้ · เตือนคนซ้ำ คนติดบิด คนที่ทำงานโปรเจกต์อื่นอยู่ · ผู้ดูแล = คุณ</span></div>
       ${pv ? `<div style="display:grid;gap:4px">${pv.map((x, i) => `<label class="pr-row pr-pv">
           <input type="checkbox" data-pvi="${i}"${x.ok ? " checked" : ""}> <b class="pr-hn">@${esc(x.h)}</b>
-          <span class="pr-sub" style="display:inline">${x.f != null ? prFmt(x.f) + " · " + esc(prTierTh(prTier(x.f))) : "ยังไม่มีในคลัง"}</span>${x.w}</label>`).join("")}
+          <span class="pr-sub" style="display:inline">${x.f != null ? prFmt(x.f) + " · " + esc(prTierTh(prTier(x.f))) : "ยังไม่มีในคลัง"}${
+            [x.gmv != null ? "GMV " + prFmt(x.gmv) : "", x.women != null ? "หญิง " + x.women + "%" : "", x.view != null ? "วิว " + prFmt(x.view) : "", x.er != null ? "ER " + x.er + "%" : "", x.rate1 != null ? "เรท " + Number(x.rate1).toLocaleString("en-US") : ""].filter(Boolean).map(v => " · " + esc(v)).join("")}</span>${x.w}</label>`).join("")}
+        ${PR.pasteCols && PR.pasteCols.length ? `<div class="pr-sub">อ่านคอลัมน์จากหัวตาราง: ${esc(PR.pasteCols.map(k => ({ f: "Follower", gmv: "GMV", women: "Women", view: "Avg.View", er: "Engagement", rate: "เรท", note: "note" })[k]).join(" · "))}</div>` : ""}
         <div class="pr-row"><button type="button" class="pr-btn pri" data-pract="add">เพิ่ม ${pv.filter(x => x.ok).length} คน</button>
           <button type="button" class="pr-btn" data-pract="cancelpv">ยกเลิก</button></div></div>` : ""}
     </details>
@@ -18433,18 +18435,47 @@ function prPlanHTML(){
       <b style="margin-top:6px">ข้อความทักครั้งแรก</b><span class="pr-sub">ใช้ {{handle}} {{brand}} {{project}} ได้</span><textarea id="plTpl">${esc(pl.template || "")}</textarea></div>
   </div><div class="pr-row" style="margin-top:10px"><button type="button" class="pr-btn pri" data-pract="saveplan">บันทึกแผน</button></div>`;
 }
+// (Jibli 2026-11-21) วางจากชีตได้ทั้งแถว — ก๊อปหลายคอลัมน์จาก Lark/Google Sheet (คั่นด้วย Tab) พร้อมหัวตาราง
+// จับคอลัมน์ตามชื่อหัว: Tiktok ID/Link · Follower · GMV · Women · Avg.View · Engagement · Rate/เรท/Budget · note
+// ไม่มีหัวตาราง = เอาแค่ชื่อ (แบบเดิม) · data ที่ไม่ได้วางมา เติมจากฐานครีเอเตอร์ (ซิงก์จากชีต Nominate ทุกชั่วโมง)
+const PR_PASTE_COLS = [["h", /tiktok\s*id|^id$|handle|username|tiktok\s*link|^link|ลิงก์|ชื่อ/i], ["f", /follower|ผู้ติดตาม(?!หญิง)/i], ["gmv", /gmv|ยอดขาย/i],
+  ["women", /women|หญิง/i], ["view", /avg\.?\s*view|วิว/i], ["er", /engage|^er\b/i], ["rate", /rate|เรท|ราคา|budget|งบ/i], ["note", /note|หมายเหตุ|โน้ต/i]];
+const prPct = v => { const n = dataNum(v); return n == null ? null : !/%/.test(String(v)) && n <= 1 ? Math.round(n * 10000) / 100 : n; };
 async function prCheck(){
   const t = ($("#prPaste") || {}).value || ""; PR.pasteText = t;
-  const hs = [...new Set(t.split(/[\s,]+/).map(x => normId(stripHandle(x))).filter(x => /^[a-z0-9._]{2,40}$/.test(x)))];
-  PR.preview = hs.map(h => { const p = prPool(h), w = prWarnHTML(h, null), dup = PR.rows.some(r => normId(r.handle) === h);
-    return { h, f: p && p.fol != null ? Number(p.fol) : null, kind: p ? (p.kind || "") : "", w, ok: !dup && !(p && p.blacklist) }; });
+  const lines = t.split(/\r?\n/).filter(l => l.trim());
+  let items = [];
+  const hi = lines.findIndex(l => l.includes("\t") && l.split("\t").some(c => PR_PASTE_COLS[0][1].test(c.trim())));
+  if (hi >= 0){
+    const H = lines[hi].split("\t").map(c => c.replace(/\s+/g, " ").trim()), col = {};
+    PR_PASTE_COLS.forEach(([k, re]) => { const i = H.findIndex((h, j) => re.test(h) && !Object.values(col).includes(j)); if (i >= 0) col[k] = i; });
+    // Tiktok ID กับ Tiktok Link อยู่คู่กัน — เอาช่องที่อ่านชื่อออก
+    items = lines.slice(hi + 1).map(l => { const c = l.split("\t"), g = k => col[k] != null ? (c[col[k]] || "").trim() : "";
+      let h = normId(stripHandle(g("h")));
+      if (!/^[a-z0-9._]{2,40}$/.test(h)) { const any = c.map(x => normId(stripHandle(x.trim()))).find(x => /^[a-z0-9._]{2,40}$/.test(x) && /tiktok|@/i.test(l)); h = any || h; }
+      const rn = v => { const n = dataNum(v); return n == null ? null : Math.round(n); };
+      return { h, f: rn(g("f")), gmv: rn(g("gmv")), women: prPct(g("women")), view: rn(g("view")), er: prPct(g("er")), rate1: rn(g("rate")), note: g("note") }; })
+      .filter(x => /^[a-z0-9._]{2,40}$/.test(x.h));
+    PR.pasteCols = Object.keys(col).filter(k => k !== "h");
+  } else {
+    items = [...new Set(t.split(/[\s,]+/).map(x => normId(stripHandle(x))).filter(x => /^[a-z0-9._]{2,40}$/.test(x)))].map(h => ({ h }));
+    PR.pasteCols = [];
+  }
+  const seen = new Set();
+  PR.preview = items.filter(x => !seen.has(x.h) && seen.add(x.h)).map(x => { const p = prPool(x.h), w = prWarnHTML(x.h, null), dup = PR.rows.some(r => normId(r.handle) === x.h);
+    const d = (p && p.data) || {};
+    return Object.assign({}, x, { f: x.f != null ? x.f : p && p.fol != null ? Number(p.fol) : null, kind: p ? (p.kind || "") : "",
+      gmv: x.gmv != null ? x.gmv : (dataNum(d.gmv) != null ? Math.round(dataNum(d.gmv)) : null), women: x.women != null ? x.women : prPct(d.women), view: x.view != null ? x.view : (dataNum(d.view) != null ? Math.round(dataNum(d.view)) : null), er: x.er != null ? x.er : prPct(d.er),
+      w, ok: !dup && !(p && p.blacklist) }); });
   prRender();
 }
 async function prAdd(){
   const picks = PR.preview.filter((x, i) => { const cb = document.querySelector(`[data-pvi="${i}"]`); return cb ? cb.checked : x.ok; });
   if (!picks.length) return;
   const me = sbUid(), o = prOwner(PR.proj);
-  const body = picks.map(x => ({ owner: o, project: PR.proj, handle: x.h, kind: x.kind || "", finding: me, contact: me, followers: x.f, tier: prTier(x.f) }));
+  const body = picks.map(x => ({ owner: o, project: PR.proj, handle: x.h, kind: x.kind || "", finding: me, contact: me, followers: x.f, tier: prTier(x.f),
+    gmv: x.gmv ?? null, women: x.women ?? null, avg_view: x.view ?? null, er: x.er ?? null, rate1: x.rate1 ?? null, note: x.note || "",
+    status: x.rate1 != null ? "rated" : "todo" }));
   try {
     const got = await prApi("prospects?on_conflict=owner,project,handle", { method:"POST", headers:{ Prefer:"resolution=ignore-duplicates,return=representation" }, body: JSON.stringify(body) });
     PR.rows = PR.rows.concat(got || []); PR.preview = null; PR.pasteText = "";
@@ -28021,7 +28052,7 @@ async function relHistDraw(pub, fmt){
 // ═══ เวอร์ชันของหน้า — แท็บที่เปิดค้างโค้ดเก่าต้องไม่ซิงก์ทีม ═══
 // เจอจริง 2026-10-27: แท็บเก่าดึงคีย์ใหม่ลงผิดที่ + ดันรายการที่ลบแล้วกลับขึ้นทุกนาที
 // APP_VER ประทับตอน deploy (kol-tools\stamp-version.py) · version.json คู่กันบนเซิร์ฟเวอร์ — ไม่ตรง = รีเฟรช
-const APP_VER = "20261120-163752";
+const APP_VER = "20261120-164008";
 let STALE = false;
 async function verCheck(){
   if (STALE || APP_VER === "dev") return;
