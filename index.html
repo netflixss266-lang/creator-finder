@@ -25,7 +25,7 @@
   base-uri 'none';
   object-src 'none'">
 <title>Creataew — KOL Sourcing</title>
-<meta name="cf-ver" content="20261120-164132">
+<meta name="cf-ver" content="20261120-165313">
 <!-- Beta / Publish (2026-11-06): หน้าแรก = เวอร์ชันล่าสุด (admin เห็นก่อน) · คนอื่นถูกพาไป v/<เวอร์ชันที่ Publish>.html
      จำเวอร์ชันที่ Publish ไว้ในเครื่อง = พาไปได้ทันทีไม่ต้องรอเน็ต แล้วเช็คซ้ำเบื้องหลัง · ฐานข้อมูลไม่มี RPC (sandbox) = อยู่ตัวล่าสุด -->
 <script>(function(){try{
@@ -3709,6 +3709,23 @@ body[data-view="coord"] #coordView{padding-top:12px}
 .pp-card.late .stc{color:var(--lo)} .pp-card.near .stc{color:var(--warn)} .pp-card.ok .stc{color:var(--hi)}
 .pp-card.ok{border-left:3px solid var(--hi)}
 .pp-col h4 .own{font-size:.64rem;font-weight:600}
+.pp-card .pp-pm{color:var(--info);font-weight:700}
+.pr-view{display:inline-flex;gap:4px}
+.pr-sheetwrap{overflow:auto;max-height:70vh;border:1px solid var(--line);border-radius:10px}
+.pr-sheet{border-collapse:collapse;width:100%;font-size:.84rem;min-width:980px}
+.pr-sheet th{position:sticky;top:0;background:var(--surface2);z-index:1;text-align:left;padding:6px 6px;font-weight:700;white-space:nowrap;border-bottom:1px solid var(--line)}
+.pr-sheet th small{display:block;font-weight:400;color:var(--dim);font-size:.7rem}
+.pr-sheet td{border-bottom:1px solid var(--line);border-right:1px solid rgba(127,127,127,.12);padding:0;vertical-align:middle}
+.pr-sheet td.hn{padding:4px 8px;white-space:nowrap}
+.pr-sheet td:first-child{text-align:center;padding:0 6px}
+.pr-sheet td input:not([type=checkbox]),.pr-sheet td select{width:100%;min-width:70px;border:0;background:transparent;color:var(--ink);font:inherit;padding:6px 6px}
+.pr-sheet td.tx input{min-width:160px}
+.pr-sheet td input:focus,.pr-sheet td select:focus{outline:2px solid var(--accent);outline-offset:-2px;background:var(--bg)}
+.pr-sheet td.ok input{color:var(--hi);font-weight:700}
+.pr-sheet td.no input{color:var(--lo)}
+.pr-sheet tr.sel td{background:rgba(var(--accent-rgb),.08)}
+.pr-sheet .pr-sw{color:var(--warn);margin-left:4px;cursor:help}
+.pr-sheet td .pr-btn{white-space:nowrap;margin:2px 4px}
 .pp-matrix td.c{cursor:pointer;font-weight:600}
 .pp-matrix td.c:hover{outline:1px solid var(--accent)}
 .pp-matrix td.z{background:transparent;color:var(--dim)}
@@ -3964,7 +3981,7 @@ details.fold[data-fold="crit"],#critBar{display:none!important}
     <button data-go="home">⌂ หน้าแรก</button>
     <button data-go="find">ค้นหาครีเอเตอร์</button>
     <button data-go="coord">Coordinator</button>
-    <button type="button" id="pipeNavBtn" hidden title="หน้าทดลอง เห็นเฉพาะ admin · คีย์ลัด P">🧪 Pipeline</button>
+    <button type="button" id="pipeNavBtn" hidden title="ติดตามงานทุกโปรเจกต์ · คีย์ลัด P">📊 Project Tracking</button>
     <button type="button" id="prosNavBtn" hidden title="หน้าทดลอง เห็นเฉพาะ admin · แทนแท็บ List / Nominate ในชีต">🗂 รายชื่อ &amp; คัดเลือก</button>
     <!-- โหมดทีม: ห้องตรวจดราฟต์ (หน้าของตัวเอง) · คำสั่งด่วน (แผงลอย ใช้ได้จากทุกหน้า) -->
     <button data-go="review" class="teamonly">ตรวจดราฟต์<span class="nbadge" id="rvBadge" hidden></span></button>
@@ -4599,7 +4616,7 @@ details.fold[data-fold="crit"],#critBar{display:none!important}
       <div class="mapnav teamonly" role="navigation" aria-label="ไปหน้าอื่น">
         <button type="button" data-mapgo="home" title="ปิดแผนผัง กลับหน้าแรก">⌂ หน้าแรก</button>
         <button type="button" data-mapgo="coord" title="ปิดแผนผัง ไปที่ตาราง Coordinator">▦ Coordinator</button>
-        <button type="button" data-mapgo="pipe" id="pipeMapBtn" hidden title="หน้าทดลอง เห็นเฉพาะ admin · คีย์ลัด P">🧪 Pipeline</button>
+        <button type="button" data-mapgo="pipe" id="pipeMapBtn" hidden title="ติดตามงานทุกโปรเจกต์ · คีย์ลัด P">📊 Project Tracking</button>
         <button type="button" data-mapgo="review" title="ไปห้องตรวจดราฟต์">ตรวจดราฟต์<span class="nbadge" id="rvBadgeMap" hidden></span></button>
         <button type="button" data-mapgo="todo" title="งานที่ต้องทำวันนี้ทุกโปรเจกต์ (ซ้อนบนแผนผัง)">📋 วันนี้ต้องทำ<span class="nbadge" id="todoBadgeMap" hidden></span></button>
         <button type="button" data-mapgo="chat" title="แชตทีม (ซ้อนบนแผนผัง)">💬 แชตทีม<span class="nbadge" id="chatBadgeMap" hidden></span></button>
@@ -4700,10 +4717,10 @@ details.fold[data-fold="crit"],#critBar{display:none!important}
      ต้องอยู่ใน HTML ตั้งแต่แรก ไม่สร้างตอนรัน — ตัวล็อกสกรอลล์ (syncScrollLock) ผูก
      MutationObserver ไว้กับ .overlay/.drawer ทุกตัวตอนโหลดครั้งเดียว ของที่มาทีหลังจะไม่ถูกเฝ้า -->
 <!-- 🧪 Pipeline (ทดลอง · admin เท่านั้น · 2026-11-07) — บอร์ดรวมทุกโปรเจกต์ทีมตามขั้นงาน ใช้ข้อมูลจริง ไม่มีฐานข้อมูลใหม่ -->
-<div class="pipepanel" id="pipePanel" hidden role="dialog" aria-label="Pipeline">
+<div class="pipepanel" id="pipePanel" hidden role="dialog" aria-label="Project Tracking">
   <div class="pp-head">
-    <b class="pp-title">🧪 Pipeline <span class="pp-beta">ทดลอง · admin</span></b>
-    <div class="pp-tabs" role="tablist"><button role="tab" data-pptab="matrix" aria-selected="true">คอขวด</button><button role="tab" data-pptab="board" aria-selected="false">บอร์ด</button><button role="tab" data-pptab="stats" aria-selected="false">สถิติเวลา</button></div>
+    <b class="pp-title">📊 Project Tracking</b>
+    <div class="pp-tabs" role="tablist"><button role="tab" data-pptab="board" aria-selected="true">บอร์ด</button><button role="tab" data-pptab="matrix" aria-selected="false">ตารางคอขวด</button><button role="tab" data-pptab="stats" aria-selected="false">สถิติเวลา</button></div>
     <div class="pp-tabs" id="ppGroup" role="tablist" aria-label="จัดแถวตาม"><button role="tab" data-ppg="proj" aria-selected="true">ตามโปรเจกต์</button><button role="tab" data-ppg="who" aria-selected="false">ตามผู้ดูแล</button></div>
     <select id="ppProj" class="pp-sel" aria-label="โปรเจกต์"></select>
     <select id="ppWho" class="pp-sel" aria-label="ผู้ดูแล"></select>
@@ -4721,7 +4738,7 @@ details.fold[data-fold="crit"],#critBar{display:none!important}
 <!-- 🗂 รายชื่อ & คัดเลือก (ทดลอง · admin · 2026-11-07) — แทนแท็บ List / Nominate / Rate / Product Plan ในชีต · ตาราง prospects + project_plans -->
 <div class="pipepanel" id="prosPanel" hidden role="dialog" aria-label="รายชื่อและคัดเลือก">
   <div class="pp-head">
-    <b class="pp-title">🗂 รายชื่อ &amp; คัดเลือก <span class="pp-beta">ทดลอง · admin</span></b>
+    <b class="pp-title">📋 List &amp; Nominate</b>
     <select id="prProj" class="pp-sel" aria-label="โปรเจกต์"></select>
     <div class="pp-tabs" role="tablist" id="prTabs"></div>
     <span class="pp-kpis" id="prKpis"></span>
@@ -18008,20 +18025,26 @@ const PP_COLS = [
   { k:"ship", th:"รอส่งของ", who:"คนแพ็กของ", own:"us", st:["Waiting Delivery"] },
   { k:"transit", th:"ระหว่างขนส่ง", who:"ขนส่ง", own:"ext", st:["Already Delivered", "Sent Tracking"] },
   { k:"sg", th:"ส่ง SG", who:"IBD", own:"us", st:["Waiting Sent to SG", "Already Sent to SG"] },
-  { k:"script", th:"สคริปต์", who:"ครีเอเตอร์ / PM", own:"cr", st:["Waiting Script", "Waiting PM Feedback Script", "Already Feedback Script"] },
-  { k:"draft", th:"รอดราฟต์", who:"ครีเอเตอร์", own:"cr", re:/^Waiting Draft \d$/ },
-  { k:"review", th:"ตรวจดราฟต์", who:"IBD + PM", own:"pm", re:/^(Waiting PM Feedback|Feedback) Draft \d$/ },
+  // (Jibli 2026-11-21) แยกรอดราฟต์ตามรอบ · รอ PM ตรวจแยกออกมา (การ์ดบอกว่าตรวจส่วนไหน) · จ่ายเงินแยก รอจ่าย / จ่ายแล้ว
+  { k:"script", th:"รอสคริปต์", who:"ครีเอเตอร์", own:"cr", st:["Waiting Script"] },
+  { k:"draft1", th:"รอ Draft 1", who:"ครีเอเตอร์", own:"cr", st:["Waiting Draft 1", "Already Feedback Script"] },
+  { k:"draft2", th:"รอ Draft 2", who:"ครีเอเตอร์", own:"cr", st:["Waiting Draft 2", "Feedback Draft 1"] },
+  { k:"draft3", th:"รอ Draft 3+", who:"ครีเอเตอร์", own:"cr", re:/^(Waiting Draft [3-5]|Feedback Draft [2-5])$/ },
+  { k:"review", th:"รอ PM ตรวจ", who:"PM / PMA", own:"pm", re:/^Waiting PM Feedback (Script|Draft \d)$/ },
   { k:"topost", th:"รอโพสต์", who:"ครีเอเตอร์", own:"cr", st:["Waiting to Post"] },
-  { k:"posted", th:"โพสต์แล้ว · Gencode", who:"IBD", own:"us", st:["Already Posted", "Waiting Gencode"] },
-  { k:"pay", th:"จ่ายเงิน", who:"บัญชี", own:"ext", st:["Waiting Payment", "Already Submitted Payment"] },
+  { k:"posted", th:"โพสต์แล้ว", who:"IBD", own:"us", st:["Already Posted", "Waiting Gencode"] },
+  { k:"pay", th:"รอจ่ายเงิน", who:"บัญชี", own:"ext", st:["Waiting Payment"] },
+  { k:"paid", th:"จ่ายแล้ว", who:"บัญชี", own:"ext", st:["Already Submitted Payment"] },
 ];
+// รอ PM ตรวจ "ส่วนไหน" — สคริปต์ หรือ Draft รอบไหน
+const ppPmPart = st => { const m = String(st || "").match(/^Waiting PM Feedback (Script|Draft (\d))$/); return !m ? "" : m[2] ? `ตรวจ Draft ${m[2]}` : "ตรวจสคริปต์"; };
 // รอใคร: สัญลักษณ์ + สีประจำ (ไม่ใช้แดง/ส้ม/เขียว — สามสีนั้นสงวนไว้บอก "เกิน/ใกล้/ทัน")
 const PP_OWN = { us:["👥", "ทีมเรา"], cr:["🎬", "ครีเอเตอร์"], pm:["🔷", "PM ตรวจ"], ext:["📦", "ขนส่ง / บัญชี"] };
 // สถานะของช่อง/การ์ด: เกิน > ใกล้ > ทัน
 const PP_ST = { late:["🔴", "เกิน 5 วัน"], near:["🟡", "เกิน 3 วัน"], ok:["🟢", "ไม่เกิน 3 วัน"], done:["✅", "โพสต์แล้ว"], live:["📺", "LIVE"] };
 const ppColOf = st => { const v = STAGES.some(x => x.v === st) ? st : (STATUS_MIGRATE[st] || st || "");
   return PP_COLS.find(c => (c.st && c.st.includes(v)) || (c.re && c.re.test(v))) || null; };
-let PP_TAB = "matrix", PP_ACT = null, PP_GROUP = "proj";
+let PP_TAB = "board", PP_ACT = null, PP_GROUP = "proj";
 function ppRows(){
   const pj = $("#ppProj").value, who = $("#ppWho").value, out = [];
   // โปรเจกต์ทีม + โปรเจกต์ส่วนตัวของฉัน (2026-11-07 — ใช้ทดลองกับโปรเจกต์ส่วนตัวได้ ไม่กระทบงานทีม)
@@ -18062,7 +18085,7 @@ function renderPipe(){
     <div class="pp-live-g">${live.map(r => ppCardHTML(r)).join("")}</div></div>` : "";
   if (PP_TAB === "matrix"){ renderPipeMatrix(rows); $("#ppMatrix").insertAdjacentHTML("beforeend", liveHTML);
     $("#ppMatrix").querySelectorAll(".pp-live .pp-card").forEach(b => b.onclick = () => ppOpen(b.dataset.ppp, b.dataset.pph)); return; }
-  $("#ppBoard").innerHTML = PP_COLS.map(c => {
+  $("#ppBoard").innerHTML = PP_COLS.filter(c => rows.some(r => ppColOf(r.status) === c)).map(c => {
     const list = rows.filter(r => ppColOf(r.status) === c).sort((a, b) => ((ppAge(b) ?? -1) - stSla(b.status || "")) - ((ppAge(a) ?? -1) - stSla(a.status || "")));
     return `<div class="pp-col" style="border-top:3px solid ${c.own === "us" ? "var(--accent)" : c.own === "cr" ? "var(--pay,#BFA2F2)" : c.own === "pm" ? "var(--info)" : "var(--dim)"}"><h4>${esc(c.th)}<small>${list.length}</small></h4><div class="pp-who">${PP_OWN[c.own][0]} ${esc(c.who)}</div>${
       list.length ? list.map(r => ppCardHTML(r, true)).join("")
@@ -18154,9 +18177,9 @@ function ppCardHTML(r, inBoard){
   return `<button type="button" class="pp-card ${ppState(r)}" data-ppp="${esc(r.project)}" data-pph="${esc(normId(r.handle))}">
     <span class="pp-hn"><span>@${esc(normId(r.handle))}</span>${w.some(x => /Blacklist/.test(x)) ? `<span class="bl">Blacklist</span>` : ""}</span>
     <span class="pp-pj" style="--ph:${ppProjHue(r.project)}" title="${esc(r.project)}">${spaceIcon(r.project)}${esc(pj)}</span>
-    ${inBoard ? "" : `<span class="m"><span>${esc(r.status ? (ST_TH[r.status] || r.status) : "ยังไม่เริ่ม")}</span>${rd ? `<span>รอบ ${rd}</span>` : ""}</span>`}
+    ${inBoard ? (ppPmPart(r.status) ? `<span class="m"><span class="pp-pm">🔷 ${esc(ppPmPart(r.status))}</span></span>` : "") : `<span class="m"><span>${esc(r.status ? (ST_TH[r.status] || r.status) : "ยังไม่เริ่ม")}</span>${rd ? `<span>รอบ ${rd}</span>` : ""}</span>`}
     <span class="pp-ft">${r.assignee ? `<span class="pp-asg" style="--mc:${memColor(r.assignee)}">${avatar(r.assignee)}<b>${esc(memName(r.assignee))}</b></span>`
-      : `<span class="pp-asg none">ไม่มีผู้ดูแล</span>`}<span class="pp-r">${inBoard && rd ? `<span class="rd">รอบ ${rd}</span>` : ""}${
+      : `<span class="pp-asg none">ไม่มีผู้ดูแล</span>`}<span class="pp-r">${
       d != null && r.status && !isPostedSt(r.status) && !isLiveRow(r) ? `<span class="age">${d} วัน</span>` : ""}${ppStChip(r)}</span></span></button>`;
 }
 function ppList(list, title){
@@ -18185,7 +18208,7 @@ async function renderPipeStats(){
     const d = (Date.parse(nx.at) - Date.parse(e.at)) / 864e5; if (d < 0) return; if (!spans.has(c.k)) spans.set(c.k, []); spans.get(c.k).push(d); }));
   const med = a => { const x = [...a].sort((p, q) => p - q), m = x.length >> 1; return x.length % 2 ? x[m] : (x[m - 1] + x[m]) / 2; };
   const rows = PP_COLS.filter(c => c.k !== "none").map(c => { const a = spans.get(c.k) || [];
-    const sla = stSla(c.st ? c.st[0] : (c.k === "draft" ? "Waiting Draft 1" : "Waiting PM Feedback Draft 1")); return { c, a, sla, m: a.length ? med(a) : null }; });
+    const sla = stSla(c.st ? c.st[0] : (c.k.startsWith("draft") ? "Waiting Draft 1" : "Waiting PM Feedback Draft 1")); return { c, a, sla, m: a.length ? med(a) : null }; });
   const mx = Math.max(1, ...rows.map(r => r.m || 0));
   box.innerHTML = `<p class="sect-sub" style="margin:0 0 10px">คิดจากการเปลี่ยนสถานะ ${ev.length.toLocaleString()} ครั้งที่ระบบบันทึกไว้${pj ? ` ใน ${esc(pj)}` : " ทุกโปรเจกต์"} · ช่วงเวลาที่ใช้ = จากวันเข้าขั้นถึงวันเปลี่ยนขั้นถัดไป · ข้อมูลก่อนเริ่มบันทึกไม่ถูกนับ</p>
     <table><thead><tr><th>ช่วงงาน</th><th class="n">จำนวนครั้ง</th><th class="n">ค่ากลาง (วัน)</th><th class="n">P75</th><th class="n">แดงเมื่อเกิน</th><th>เทียบ</th></tr></thead><tbody>${
@@ -18237,7 +18260,7 @@ const PR_CH = ["", "Line ส่วนตัว", "Line OA", "TikTok", "IG", "Fac
 const PR_TIERS = [["nano", "Nano < 10K", 0], ["mini", "Mini 10K–20K", 10000], ["s1", "S1 20K–99K", 20000], ["s2", "S2 100K–999K", 100000], ["s3", "S3 1M+", 1000000]];
 const PR_DEF = { criteria: { gmv: 10000, women: 60, view: 1000, er: 2 }, rates: {}, quotas: {}, budget: null,
   template: "สวัสดีครับ แอดมินจาก Alta Global Commerce นะครับ 🙏 สนใจร่วมงานกับแบรนด์ {{brand}} ไหมครับ\nขอเรทงาน 1 วิดีโอ และ 2 วิดีโอ + gencode 60 วัน + ติดตะกร้า ได้เลยครับ" };
-let PR = { proj: "", tab: "list", rows: [], plan: null, filter: "all", q: "", mine: false, sel: new Set(), preview: null, ok: null };
+let PR = { proj: "", tab: "list", rows: [], plan: null, filter: "all", q: "", mine: false, sel: new Set(), preview: null, ok: null, view: (() => { try { return lsGet("cf_prview") || "card"; } catch(_){ return "card"; } })() };
 const prOwner = p => spaceOf(p);
 const prNum = v => { const s = String(v ?? "").trim().replace(/[฿,\s%]/g, ""); if (!s) return null;
   const m = s.match(/^([\d.]+)([kKmM])?\+?$/); if (!m) return null; const n = parseFloat(m[1]) * (m[2] ? (/k/i.test(m[2]) ? 1e3 : 1e6) : 1); return isFinite(n) ? n : null; };
@@ -18357,12 +18380,13 @@ function prListHTML(L){
       ${PR_GROUPS.map(([k, th, f]) => `<button type="button" class="pr-chip" data-prf="${k}" aria-pressed="${PR.filter === k}">${th}<b>${L.filter(f).length}</b></button>`).join("")}
       <button type="button" class="pr-chip" data-prmine="1" aria-pressed="${PR.mine}">👤 เฉพาะของฉัน</button>
       <input type="search" id="prQ" class="pp-sel" placeholder="🔎 ค้นชื่อ" value="${esc(PR.q)}" style="min-width:140px">
+      <span class="pr-view"><button type="button" class="pr-chip" data-prview="card" aria-pressed="${PR.view !== "sheet"}">☰ การ์ด</button><button type="button" class="pr-chip" data-prview="sheet" aria-pressed="${PR.view === "sheet"}">▦ ตารางแบบชีต</button></span>
       ${PR.sel.size ? `<span class="pr-row pr-bulk">เลือก <b>${PR.sel.size}</b> คน ·
         <select id="prBulkWho" class="pp-sel"><option value="">เปลี่ยนผู้ดูแล…</option>${((TEAM && TEAM.members) || []).map(m => `<option value="${esc(m.id)}">${esc(m.name || m.email)}</option>`).join("")}</select>
         <button type="button" class="pr-btn pri" data-pract="bulknom">เสนอชื่อทั้งหมด →</button>
         <button type="button" class="pr-btn no" data-pract="bulkdel">ลบ</button></span>` : ""}
     </div>
-    ${rows.length ? `<div class="pr-list">${rows.map(r => `<div class="pr-item st-${r.status}${PR.sel.has(r.id) ? " sel" : ""}" data-prid="${r.id}">
+    ${rows.length && PR.view === "sheet" ? prSheetHTML(rows) : rows.length ? `<div class="pr-list">${rows.map(r => `<div class="pr-item st-${r.status}${PR.sel.has(r.id) ? " sel" : ""}" data-prid="${r.id}">
         <input type="checkbox" data-prsel="${r.id}"${PR.sel.has(r.id) ? " checked" : ""} aria-label="เลือก">
         <div class="pr-who"><a class="pr-hn" href="https://www.tiktok.com/@${esc(normId(r.handle))}" target="_blank" rel="noopener">@${esc(normId(r.handle))}</a>
           <span class="pr-sub">${r.followers != null ? prFmt(r.followers) + " ผู้ติดตาม · " : ""}${esc(prTierTh(r.tier || prTier(r.followers)))}</span>${prWarnHTML(r.handle, r.id)}</div>
@@ -18371,8 +18395,40 @@ function prListHTML(L){
         ${prNext(r)}</div>`).join("")}</div>`
       : `<p class="pr-empty">${L.length ? "ไม่มีคนในกลุ่มนี้" : "ยังไม่มีรายชื่อ — กด ➕ เพิ่มรายชื่อ แล้ววางลิงก์ได้เลย"}</p>`}`;
 }
+// ═══ ▦ List แบบตารางชีต (Jibli 2026-11-21) ═══
+// แถวละคน ช่องแก้ได้ทุกช่องเหมือนชีต · วางหลายช่องจากชีตทีเดียว (Ctrl+V ที่ช่องไหน = เติมไปทางขวา/ลงล่างจากช่องนั้น)
+// สีช่อง data = ผ่าน/ไม่ผ่านเกณฑ์ของแผนโปรเจกต์ (แท็บ แผน · งบ · เรท)
+const PR_SHEET_COLS = [["followers", "Follower", "k"], ["gmv", "GMV", "k"], ["women", "หญิง %", "k"], ["avg_view", "วิวเฉลี่ย", "k"], ["er", "ER %", "k"],
+  ["rate1", "เรท 1 วิดีโอ", "n"], ["rate2", "เรท 2 วิดีโอ", "n"], ["note", "note", "t"]];
+function prSheetHTML(rows){
+  const cr = prPlan().criteria, lim = { gmv: cr.gmv, women: cr.women, avg_view: cr.view, er: cr.er };
+  const cls = (k, v) => v == null || lim[k] == null || !lim[k] ? "" : Number(v) >= Number(lim[k]) ? " ok" : " no";
+  const show = (k, v) => v == null ? "" : ["gmv", "followers", "avg_view"].includes(k) ? prFmt(v) : String(v);
+  return `<div class="pr-sheetwrap"><table class="pr-sheet"><thead><tr><th><input type="checkbox" data-prall="1" aria-label="เลือกทั้งหมด"></th><th>Tiktok ID</th>${
+      PR_SHEET_COLS.map(([k, th]) => `<th>${esc(th)}${lim[k] ? `<small>≥${esc(prFmt(lim[k]))}</small>` : ""}</th>`).join("")}<th>สถานะ</th><th>ผู้ดูแล</th><th></th></tr></thead>
+    <tbody>${rows.map(r => `<tr data-prid="${r.id}" class="${PR.sel.has(r.id) ? "sel" : ""}"><td><input type="checkbox" data-prsel="${r.id}"${PR.sel.has(r.id) ? " checked" : ""} aria-label="เลือก"></td>
+      <td class="hn"><a href="https://www.tiktok.com/@${esc(normId(r.handle))}" target="_blank" rel="noopener">@${esc(normId(r.handle))}</a>${prWarnHTML(r.handle, r.id) ? `<span class="pr-sw" title="${esc(creatorWarns(r.handle, PR.proj).join(" · "))}">⚠</span>` : ""}</td>
+      ${PR_SHEET_COLS.map(([k, th, t]) => `<td class="${t === "t" ? "tx" : "nm"}${cls(k, r[k])}"><input ${t === "k" ? `data-prk="${k}"` : t === "n" ? `data-prn="${k}" type="number"` : `data-prf2="${k}"`} value="${esc(t === "n" ? (r[k] ?? "") : show(k, r[k]))}" aria-label="${esc(th)} ของ ${esc(normId(r.handle))}"></td>`).join("")}
+      <td><select data-prf2="status" aria-label="สถานะ">${PR_ST.map(([v, th]) => `<option value="${v}"${v === r.status ? " selected" : ""}>${esc(th)}</option>`).join("")}</select></td>
+      <td><select data-prf2="contact" aria-label="ผู้ดูแล">${prMemOpts(r.contact)}</select></td>
+      <td>${r.status === "rated" || r.rate1 != null || r.rate2 != null ? `<button type="button" class="pr-btn pri" data-pract="nom" title="เสนอชื่อให้ PM">เสนอชื่อ →</button>` : ""}</td></tr>`).join("")}</tbody></table></div>
+    <p class="pr-sub">ก๊อปหลายช่องจากชีตแล้ววางที่ช่องแรกได้เลย — เติมไปทางขวาและลงล่างให้เอง · แก้แล้วบันทึกเมื่อออกจากช่อง</p>`;
+}
+// วางหลายช่องในตาราง: แบ่งตาม Tab (ขวา) / บรรทัด (ลง)
+document.addEventListener("paste", e => {
+  const inp = e.target.closest && e.target.closest(".pr-sheet input:not([type=checkbox])"); if (!inp) return;
+  const t = (e.clipboardData || window.clipboardData).getData("text"); if (!/[\t\n]/.test(t.replace(/\n$/, ""))) return;
+  e.preventDefault();
+  const grid = [...document.querySelectorAll(".pr-sheet tbody tr")].map(tr => [...tr.querySelectorAll("input:not([type=checkbox])")]);
+  const ri = grid.findIndex(row => row.includes(inp)), ci = grid[ri].indexOf(inp);
+  t.replace(/\r/g, "").replace(/\n$/, "").split("\n").forEach((line, dy) => line.split("\t").forEach((v, dx) => {
+    const cell = (grid[ri + dy] || [])[ci + dx]; if (!cell) return;
+    cell.value = v.trim(); cell.dispatchEvent(new Event("change", { bubbles: true }));
+  }));
+}, true);
 // SKU ในหน้าคัดเลือก — เลือกได้เฉพาะยศ Manager (และ Admin) · คนอื่นเห็นอย่างเดียว (Jibli 2026-11-10)
-const prCanSku = () => ["admin", "manager"].includes((PROFILE || {}).role);
+// (Jibli 2026-11-21) เลือก SKU / จำนวนวิดีโอ = งานของ PM (manager) ยศเดียว (+ admin) — PMA / สมาชิก ดูได้อย่างเดียว
+const prCanSku = () => ["admin", "manager"].includes(effRole(PROFILE || {}));
 function prNomHTML(){
   const pl = prPlan(), cr = pl.criteria, N = PR.rows.filter(r => r.stage === "nominate"), A = PR.rows.filter(r => r.stage === "approved");
   const B = PR.rows.filter(r => r.stage === "backup"), X = PR.rows.filter(r => r.stage === "rejected");
@@ -18403,10 +18459,10 @@ function prNomHTML(){
         <label class="pr-fp">ราคาที่ตกลง (บาท) <input type="number" data-prn="final_price" value="${r.final_price ?? ""}" placeholder="${(r.rate2 || r.rate1) ?? ""}">
           ${disc != null ? `<span class="pr-pct ${disc > 0 ? "up" : "dn"}">${disc > 0 ? "แพงกว่า" : "ถูกกว่า"}มาตรฐาน ${Math.abs(disc)}%</span>` : ""}</label></div>
       <div class="pr-sec2">งาน</div>
-      <div class="pr-job">${!prCanSku() ? `<span class="pr-skuro" title="SKU เลือกโดย Manager">${r.sku ? `🏷 ${esc(r.sku)}` : "🏷 รอ Manager เลือก SKU"}</span>`
+      <div class="pr-job">${!prCanSku() ? `<span class="pr-skuro" title="SKU เลือกโดย PM (Manager)">${r.sku ? `🏷 ${esc(r.sku)}` : "🏷 รอ PM เลือก SKU"}</span>`
           : skus.length ? `<select data-prf2="sku"><option value="">เลือก SKU…</option>${skus.map(k => `<option${k === r.sku ? " selected" : ""}>${esc(k)}</option>`).join("")}</select>`
           : `<input type="text" data-prf2="sku" value="${esc(r.sku || "")}" placeholder="SKU">`}
-        <label>วิดีโอ <input type="number" data-prn="videos" value="${r.videos ?? ""}" placeholder="1"></label>
+        <label>วิดีโอ <input type="number" data-prn="videos" value="${r.videos ?? ""}" placeholder="1"${prCanSku() ? "" : ` disabled title="จำนวนวิดีโอเลือกโดย PM (Manager)"`}></label>
         <select data-prf2="paytype" title="รูปแบบภาษี">${PAYTYPES.map(p => `<option value="${p.id}"${p.id === (r.paytype || "") ? " selected" : ""}>${esc(p.id ? p.label : "รูปแบบภาษี…")}</option>`).join("")}</select></div>
       <input type="text" class="pr-note" data-prf2="pm_note" value="${esc(r.pm_note || "")}" placeholder="💬 ฟีดแบ็กจาก PM (ผู้ดูแลเห็น)">
       <footer><button type="button" class="pr-btn ok big" data-pract="approve"${can("approve") ? "" : ` disabled title="เฉพาะ PM (manager) ขึ้นไป"`}>✅ อนุมัติ → Coordinator${can("approve") ? "" : " (เฉพาะ PM)"}</button>
@@ -18521,6 +18577,7 @@ $("#prBody").addEventListener("click", async e => {
   const t = e.target, tr = t.closest("[data-prid]"), r = tr && PR.rows.find(x => x.id === tr.dataset.prid);
   if (t.dataset.prf){ PR.filter = t.dataset.prf; return prRender(); }
   if (t.dataset.prmine){ PR.mine = !PR.mine; return prRender(); }
+  if (t.dataset.prview){ PR.view = t.dataset.prview; try { lsSet("cf_prview", PR.view); } catch(_){} return prRender(); }
   if (t.dataset.prst && r){
     const k = t.dataset.prst, ch = { status: k };
     if (["contacted", "waiting"].includes(k) && !r.contacted_at){ ch.contacted_at = new Date().toISOString(); ch.last_msg_at = ch.contacted_at; ch.msg_count = Math.max(1, r.msg_count || 0); }
@@ -18559,7 +18616,7 @@ $("#prBody").addEventListener("change", e => {
   if (t.id === "prBulkSt" && t.value){ [...PR.sel].forEach(id => { const x = PR.rows.find(y => y.id === id); if (x) prPatch(x, { status: t.value }); }); return; }
   if (t.id === "prBulkWho" && t.value){ [...PR.sel].forEach(id => { const x = PR.rows.find(y => y.id === id); if (x) prPatch(x, { contact: t.value }); }); return; }
   if (!r) return;
-  if (t.dataset.prf2 === "sku" && !prCanSku()){ histToast("SKU เลือกได้เฉพาะ Manager", true); return prRender(); }
+  if ((t.dataset.prf2 === "sku" || t.dataset.prn === "videos") && !prCanSku()){ histToast("SKU / จำนวนวิดีโอ เลือกได้เฉพาะ PM (Manager)", true); return prRender(); }
   if (t.dataset.prf2) return prPatch(r, { [t.dataset.prf2]: t.value || (t.dataset.prf2 === "contact" ? null : "") });
   if (t.dataset.prn){ const ch = { [t.dataset.prn]: t.value === "" ? null : Number(t.value) };
     if (/^rate[12]$/.test(t.dataset.prn) && t.value !== "" && ["todo", "contacted", "waiting", "interested"].includes(r.status)) ch.status = "rated";
@@ -18677,7 +18734,7 @@ const HK_ACTS = [
   { id: "format", def: "KeyF", th: "เปิด/ปิด Format ขอเรท" },
   { id: "kol",    def: "KeyL", th: "กรองเฉพาะ KOL (กดซ้ำ = ทั้งหมด)" },
   { id: "koc",    def: "KeyC", th: "กรองเฉพาะ KOC (กดซ้ำ = ทั้งหมด)" },
-  { id: "pipe",   def: "KeyP", th: "🧪 Pipeline (admin)" },
+  { id: "pipe",   def: "KeyP", th: "📊 Project Tracking" },
   { id: "todo",   def: "",     th: "เปิด “วันนี้ต้องทำ”", run: () => openTodo() },
 ];
 let HK_MINE = (() => { try { return JSON.parse(lsGet(LS_HK) || "{}") || {}; } catch(e){ return {}; } })();
@@ -26945,8 +27002,8 @@ const FEATS = [
   // 2026-10-30 — ตั้งต้นเปิดให้ทุกคน (viewer ปิด) · admin ติ๊กออกรายคนได้
   { k:"sku",    th:"ตั้งค่าคู่มือ · แฮชแท็ก · ตะกร้า ตาม SKU", viewer:false },
   // 2026-11-10 — หน้าทดลอง: ตั้งต้นปิด (admin ติ๊กเปิดให้รายคนได้)
-  { k:"pipeline",  th:"🧪 Pipeline (ทดลอง)", def:false },
-  { k:"prospects", th:"🗂 รายชื่อ & คัดเลือก (ทดลอง)", def:false },
+  { k:"pipeline",  th:"📊 Project Tracking", def:false },
+  { k:"prospects", th:"📋 List & Nominate", def:false },
   // 2026-11-21 — อนุมัติครีเอเตอร์เข้า Coordinator: เฉพาะ manager (PM) ขึ้นไป · PMA / สมาชิก ไม่ได้
   { k:"approve", th:"✅ อนุมัติครีเอเตอร์เข้า Coordinator", full:true },
 ];
@@ -28062,7 +28119,7 @@ async function relHistDraw(pub, fmt){
 // ═══ เวอร์ชันของหน้า — แท็บที่เปิดค้างโค้ดเก่าต้องไม่ซิงก์ทีม ═══
 // เจอจริง 2026-10-27: แท็บเก่าดึงคีย์ใหม่ลงผิดที่ + ดันรายการที่ลบแล้วกลับขึ้นทุกนาที
 // APP_VER ประทับตอน deploy (kol-tools\stamp-version.py) · version.json คู่กันบนเซิร์ฟเวอร์ — ไม่ตรง = รีเฟรช
-const APP_VER = "20261120-164132";
+const APP_VER = "20261120-165313";
 let STALE = false;
 async function verCheck(){
   if (STALE || APP_VER === "dev") return;
