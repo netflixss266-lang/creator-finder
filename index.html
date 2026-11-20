@@ -24,7 +24,7 @@
   base-uri 'none';
   object-src 'none'">
 <title>Creataew — KOL Sourcing</title>
-<meta name="cf-ver" content="20261120-110827">
+<meta name="cf-ver" content="20261120-110936">
 <!-- Beta / Publish (2026-11-06): หน้าแรก = เวอร์ชันล่าสุด (admin เห็นก่อน) · คนอื่นถูกพาไป v/<เวอร์ชันที่ Publish>.html
      จำเวอร์ชันที่ Publish ไว้ในเครื่อง = พาไปได้ทันทีไม่ต้องรอเน็ต แล้วเช็คซ้ำเบื้องหลัง · ฐานข้อมูลไม่มี RPC (sandbox) = อยู่ตัวล่าสุด -->
 <script>(function(){try{
@@ -1052,10 +1052,10 @@ body:not([data-view="find"]) #cartBtn{display:none!important}
 /* จุดแดง = คนนี้มี Command ของตัวเอง ไม่ได้ใช้ข้อความต้นแบบร่วมกับคนอื่น */
 .icobtn.has{color:var(--accent);position:relative}
 /* (Jibli 2026-11-20) ปุ่ม Command ในตารางต้องเด่น — ปุ่มที่ใช้บ่อยที่สุดของแถว */
-.icobtn.cmdgo{background:var(--accent);color:#fff;border-color:var(--accent);border-radius:999px;
+.icobtn.cmdgo{background:var(--accent);color:#06231f;border-color:var(--accent);border-radius:999px;
   padding:.18em .6em;font-weight:700;font-size:.82rem;white-space:nowrap;box-shadow:0 1px 4px rgba(var(--accent-rgb),.35)}
-.icobtn.cmdgo:hover{background:var(--accent);color:#fff;filter:brightness(1.1)}
-.icobtn.cmdgo.has::after{background:#fff}
+.icobtn.cmdgo:hover{background:var(--accent);color:#06231f;filter:brightness(1.1)}
+.icobtn.cmdgo.has::after{background:#06231f}
 @media (max-width:700px){ .icobtn.cmdgo .cmdgo-t{display:none} }
 .icobtn.has::after{content:"";position:absolute;top:2px;right:2px;width:5px;height:5px;
   border-radius:50%;background:var(--accent)}
@@ -27601,7 +27601,7 @@ async function relHistDraw(pub, fmt){
 // ═══ เวอร์ชันของหน้า — แท็บที่เปิดค้างโค้ดเก่าต้องไม่ซิงก์ทีม ═══
 // เจอจริง 2026-10-27: แท็บเก่าดึงคีย์ใหม่ลงผิดที่ + ดันรายการที่ลบแล้วกลับขึ้นทุกนาที
 // APP_VER ประทับตอน deploy (kol-tools\stamp-version.py) · version.json คู่กันบนเซิร์ฟเวอร์ — ไม่ตรง = รีเฟรช
-const APP_VER = "20261120-110827";
+const APP_VER = "20261120-110936";
 let STALE = false;
 async function verCheck(){
   if (STALE || APP_VER === "dev") return;
