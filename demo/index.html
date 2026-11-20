@@ -3945,6 +3945,33 @@ body[data-view="coord"] #coordView{padding-top:12px}
 .cflow .cf.hi{background:var(--accent);border-color:var(--accent);color:#06231f;font-weight:700}
 .cflow i{font-style:normal;color:var(--dim);font-size:.8rem}
 .pr-view{display:inline-flex;gap:4px}
+.xg-host{display:flex;flex-direction:column;gap:6px}
+.xg-bar{display:flex;gap:6px;align-items:center;flex-wrap:wrap}
+.xg-ref{min-width:52px;text-align:center;font:700 .82rem/1 ui-monospace,monospace;padding:7px 6px;border:1px solid var(--line);border-radius:6px;background:var(--surface2)}
+.xg-fx{flex:1 1 260px;padding:6px 8px;border:1px solid var(--line);border-radius:6px;background:var(--bg);color:var(--ink);font:13px/1.3 ui-monospace,monospace}
+.xg-scroll{overflow:auto;max-height:68vh;border:1px solid var(--line);border-radius:8px;outline:none;user-select:none}
+.xg-scroll:focus{border-color:var(--accent)}
+.xg{border-collapse:separate;border-spacing:0;font-size:.83rem;min-width:100%}
+.xg th{position:sticky;top:0;z-index:2;background:var(--surface2);text-align:left;padding:5px 8px;font-weight:700;white-space:nowrap;border-bottom:1px solid var(--line);border-right:1px solid var(--line);cursor:pointer}
+.xg th .xg-l{display:block;font:600 .66rem/1 ui-monospace,monospace;color:var(--dim);margin-bottom:2px}
+.xg th i{font-style:normal;color:var(--accent)}
+.xg td{padding:4px 8px;border-bottom:1px solid rgba(127,127,127,.18);border-right:1px solid rgba(127,127,127,.18);white-space:nowrap;max-width:280px;overflow:hidden;text-overflow:ellipsis;position:relative;cursor:cell;height:26px}
+.xg td.n{text-align:right;font-variant-numeric:tabular-nums}
+.xg td.ro{color:var(--mute)}
+.xg td.fx{color:var(--accent)}
+.xg td.err{color:var(--lo)}
+.xg td.s{background:rgba(var(--accent-rgb),.13)}
+.xg td.a{outline:2px solid var(--accent);outline-offset:-2px}
+.xg td.fp{background:rgba(var(--accent-rgb),.06);outline:1px dashed var(--accent);outline-offset:-1px}
+.xg td.ed{padding:0;overflow:visible}
+.xg .xg-in{width:100%;min-width:100%;height:100%;border:2px solid var(--accent);background:var(--bg);color:var(--ink);font:inherit;padding:3px 6px;box-sizing:border-box}
+.xg .xg-rn{position:sticky;left:0;z-index:1;background:var(--surface2);color:var(--dim);text-align:center;font:600 .7rem/1 ui-monospace,monospace;min-width:34px;cursor:default}
+.xg th.xg-rn{z-index:3}
+.xg .xg-act{position:sticky;right:0;background:var(--surface);cursor:default;padding:2px 4px}
+.xg td.xg-act .pr-btn{padding:3px 8px;font-size:.78rem}
+.xg tfoot td{position:sticky;bottom:0;background:var(--surface2);font-weight:700;border-top:1px solid var(--line)}
+.xg-fill{position:absolute;right:-1px;bottom:-1px;width:8px;height:8px;background:var(--accent);border:1px solid var(--bg);cursor:crosshair;z-index:2}
+.xg-status{font-size:.78rem;color:var(--mute);min-height:1.2em}
 .pr-sheetwrap{overflow:auto;max-height:70vh;border:1px solid var(--line);border-radius:10px}
 .pr-sheet{border-collapse:collapse;width:100%;font-size:.84rem;min-width:980px}
 .pr-sheet th{position:sticky;top:0;background:var(--surface2);z-index:1;text-align:left;padding:6px 6px;font-weight:700;white-space:nowrap;border-bottom:1px solid var(--line)}
@@ -18561,6 +18588,7 @@ function prRender(){
   if (PR.ok === false){ body.innerHTML = `<p class="pr-empty">${esc(PR.err || "โหลดไม่ได้")}</p>`; return; }
   if (!PR.proj){ body.innerHTML = `<p class="pr-empty">ยังไม่มีโปรเจกต์ที่เปิดอยู่</p>`; return; }
   body.innerHTML = PR.tab === "list" ? prListHTML(L) : PR.tab === "nom" ? prNomHTML() : prPlanHTML();
+  if (PR.tab === "list" && PR.view === "sheet") xgRender();
 }
 const prMemOpts = cur => `<option value="">—</option>` + ((TEAM && TEAM.members) || []).map(m => `<option value="${esc(m.id)}"${m.id === cur ? " selected" : ""}>${esc(m.name || m.email)}</option>`).join("");
 function prWarnHTML(h, selfId){
@@ -18627,13 +18655,13 @@ function prListHTML(L){
       ${PR_GROUPS.map(([k, th, f]) => `<button type="button" class="pr-chip" data-prf="${k}" aria-pressed="${PR.filter === k}">${th}<b>${L.filter(f).length}</b></button>`).join("")}
       <button type="button" class="pr-chip" data-prmine="1" aria-pressed="${PR.mine}">👤 เฉพาะของฉัน</button>
       <input type="search" id="prQ" class="pp-sel" placeholder="🔎 ค้นชื่อ" value="${esc(PR.q)}" style="min-width:140px">
-      <span class="pr-view"><button type="button" class="pr-chip" data-prview="card" aria-pressed="${PR.view !== "sheet"}">☰ การ์ด</button><button type="button" class="pr-chip" data-prview="sheet" aria-pressed="${PR.view === "sheet"}">▦ ตารางแบบชีต</button></span>
+      <span class="pr-view"><button type="button" class="pr-chip" data-prview="card" aria-pressed="${PR.view !== "sheet"}">☰ การ์ด</button><button type="button" class="pr-chip" data-prview="sheet" aria-pressed="${PR.view === "sheet"}">▦ ตารางแบบ Excel</button></span>
       ${PR.sel.size ? `<span class="pr-row pr-bulk">เลือก <b>${PR.sel.size}</b> คน ·
         <select id="prBulkWho" class="pp-sel"><option value="">เปลี่ยนผู้ดูแล…</option>${((TEAM && TEAM.members) || []).map(m => `<option value="${esc(m.id)}">${esc(m.name || m.email)}</option>`).join("")}</select>
         <button type="button" class="pr-btn pri" data-pract="bulknom">เสนอชื่อทั้งหมด →</button>
         <button type="button" class="pr-btn no" data-pract="bulkdel">ลบ</button></span>` : ""}
     </div>
-    ${rows.length && PR.view === "sheet" ? prSheetHTML(rows) : rows.length ? `<div class="pr-list">${rows.map(r => `<div class="pr-item st-${r.status}${PR.sel.has(r.id) ? " sel" : ""}" data-prid="${r.id}">
+    ${PR.view === "sheet" ? `<div id="prGrid" class="xg-host"></div>` : rows.length ? `<div class="pr-list">${rows.map(r => `<div class="pr-item st-${r.status}${PR.sel.has(r.id) ? " sel" : ""}" data-prid="${r.id}">
         <input type="checkbox" data-prsel="${r.id}"${PR.sel.has(r.id) ? " checked" : ""} aria-label="เลือก">
         <div class="pr-who"><a class="pr-hn" href="https://www.tiktok.com/@${esc(normId(r.handle))}" target="_blank" rel="noopener">@${esc(normId(r.handle))}</a>
           <span class="pr-sub">${r.followers != null ? prFmt(r.followers) + " ผู้ติดตาม · " : ""}${esc(prTierTh(r.tier || prTier(r.followers)))}</span>${prWarnHTML(r.handle, r.id)}</div>
@@ -18642,37 +18670,339 @@ function prListHTML(L){
         ${prNext(r)}</div>`).join("")}</div>`
       : `<p class="pr-empty">${L.length ? "ไม่มีคนในกลุ่มนี้" : "ยังไม่มีรายชื่อ — กด ➕ เพิ่มรายชื่อ แล้ววางลิงก์ได้เลย"}</p>`}`;
 }
-// ═══ ▦ List แบบตารางชีต (Jibli 2026-11-21) ═══
-// แถวละคน ช่องแก้ได้ทุกช่องเหมือนชีต · วางหลายช่องจากชีตทีเดียว (Ctrl+V ที่ช่องไหน = เติมไปทางขวา/ลงล่างจากช่องนั้น)
-// สีช่อง data = ผ่าน/ไม่ผ่านเกณฑ์ของแผนโปรเจกต์ (แท็บ แผน · งบ · เรท)
-const PR_SHEET_COLS = [["followers", "Follower", "k"], ["gmv", "GMV", "k"], ["women", "หญิง %", "k"], ["avg_view", "วิวเฉลี่ย", "k"], ["er", "ER %", "k"],
-  ["rate1", "เรท 1 วิดีโอ", "n"], ["rate2", "เรท 2 วิดีโอ", "n"], ["note", "note", "t"]];
-function prSheetHTML(rows){
-  const cr = prPlan().criteria, lim = { gmv: cr.gmv, women: cr.women, avg_view: cr.view, er: cr.er };
-  const cls = (k, v) => v == null || lim[k] == null || !lim[k] ? "" : Number(v) >= Number(lim[k]) ? " ok" : " no";
-  const show = (k, v) => v == null ? "" : ["gmv", "followers", "avg_view"].includes(k) ? prFmt(v) : String(v);
-  return `<div class="pr-sheetwrap"><table class="pr-sheet"><thead><tr><th><input type="checkbox" data-prall="1" aria-label="เลือกทั้งหมด"></th><th>Tiktok ID</th>${
-      PR_SHEET_COLS.map(([k, th]) => `<th>${esc(th)}${lim[k] ? `<small>≥${esc(prFmt(lim[k]))}</small>` : ""}</th>`).join("")}<th>สถานะ</th><th>ผู้ดูแล</th><th></th></tr></thead>
-    <tbody>${rows.map(r => `<tr data-prid="${r.id}" class="${PR.sel.has(r.id) ? "sel" : ""}"><td><input type="checkbox" data-prsel="${r.id}"${PR.sel.has(r.id) ? " checked" : ""} aria-label="เลือก"></td>
-      <td class="hn"><a href="https://www.tiktok.com/@${esc(normId(r.handle))}" target="_blank" rel="noopener">@${esc(normId(r.handle))}</a>${prWarnHTML(r.handle, r.id) ? `<span class="pr-sw" title="${esc(creatorWarns(r.handle, PR.proj).join(" · "))}">⚠</span>` : ""}</td>
-      ${PR_SHEET_COLS.map(([k, th, t]) => `<td class="${t === "t" ? "tx" : "nm"}${cls(k, r[k])}"><input ${t === "k" ? `data-prk="${k}"` : t === "n" ? `data-prn="${k}" type="number"` : `data-prf2="${k}"`} value="${esc(t === "n" ? (r[k] ?? "") : show(k, r[k]))}" aria-label="${esc(th)} ของ ${esc(normId(r.handle))}"></td>`).join("")}
-      <td><select data-prf2="status" aria-label="สถานะ">${PR_ST.map(([v, th]) => `<option value="${v}"${v === r.status ? " selected" : ""}>${esc(th)}</option>`).join("")}</select></td>
-      <td><select data-prf2="contact" aria-label="ผู้ดูแล">${prMemOpts(r.contact)}</select></td>
-      <td>${r.status === "rated" || r.rate1 != null || r.rate2 != null ? `<button type="button" class="pr-btn pri" data-pract="nom" title="เสนอชื่อให้ PM">เสนอชื่อ →</button>` : ""}</td></tr>`).join("")}</tbody></table></div>
-    <p class="pr-sub">ก๊อปหลายช่องจากชีตแล้ววางที่ช่องแรกได้เลย — เติมไปทางขวาและลงล่างให้เอง · แก้แล้วบันทึกเมื่อออกจากช่อง</p>`;
+// ═══ ▦ XGrid — ตารางแบบ Excel สำหรับหน้า List (Jibli 2026-11-21) ═══
+// คลุม (ลาก / Shift+คลิก / Shift+ลูกศร) · พิมพ์ทับได้เลย · F2 / ดับเบิลคลิก = แก้ในช่อง · Enter ลง · Tab ขวา · Esc ยกเลิก
+// Ctrl+C / X / V ทั้งช่วง (วางจาก Excel / Lark / Google Sheet ได้) · Delete ล้าง · Ctrl+Z / Ctrl+Y · Ctrl+A ทั้งหมด
+// จุดมุมขวาล่าง (fill handle) ลากลง/ขวา = คัดลอกต่อ (สูตรเลื่อนแถวให้แบบ Excel · เลข 2 ช่องขึ้นไป = ต่อลำดับ)
+// สูตร: ขึ้นต้น = · อ้างช่อง A1 / ช่วง A1:B5 / คอลัมน์ในแถวเดียวกัน (เช่น =J*2) · SUM AVERAGE MIN MAX COUNT COUNTA ROUND ABS IF IFERROR AND OR NOT LEN CONCAT UPPER LOWER
+// คอลัมน์ที่เพิ่มเอง (＋ คอลัมน์) เก็บค่าที่ prospects.extra · นิยามที่ project_plans.cols (ตั้ง "สูตรทั้งคอลัมน์" ได้)
+const XG = { sel: null, anchor: null, edit: null, undo: [], redo: [], sort: null, clip: null, drag: null };
+const xgLetter = i => { let s = ""; i++; while (i){ const m = (i - 1) % 26; s = String.fromCharCode(65 + m) + s; i = Math.floor((i - 1) / 26); } return s; };
+const xgIndex = L => { let n = 0; for (const ch of L) n = n * 26 + (ch.charCodeAt(0) - 64); return n - 1; };
+function xgCols(){
+  const mem = ((TEAM && TEAM.members) || []);
+  const base = [
+    { k: "handle", th: "Tiktok ID", kind: "ro", w: 150 },
+    { k: "followers", th: "Follower", kind: "num", w: 90 },
+    { k: "tier", th: "Tier", kind: "ro", w: 90, get: r => prTierTh(r.tier || prTier(r.followers)) },
+    { k: "status", th: "สถานะ", kind: "sel", w: 120, opts: PR_ST.map(([v, th]) => [v, th]) },
+    { k: "contact", th: "ผู้ติดต่อ", kind: "sel", w: 110, opts: [["", "—"]].concat(mem.map(m => [m.id, m.name || m.email])) },
+    { k: "channel", th: "ช่องทาง", kind: "sel", w: 110, opts: PR_CH.map(c => [c, c || "—"]) },
+    { k: "contacted_at", th: "วันที่ทัก", kind: "ro", w: 90, get: r => r.contacted_at ? new Date(r.contacted_at).toLocaleDateString("th-TH", { day: "numeric", month: "short" }) : "" },
+    { k: "msg_count", th: "ทักกี่ครั้ง", kind: "num", w: 70 },
+    { k: "rate1", th: "เรท 1 วิดีโอ", kind: "num", w: 95 },
+    { k: "rate2", th: "เรท 2 วิดีโอ", kind: "num", w: 95 },
+    { k: "note", th: "Note", kind: "text", w: 200 },
+  ];
+  const extra = ((PR.plan || {}).cols || []).map(c => ({ k: c.id, th: c.th, kind: "x", w: 110, f: c.f || "" }));
+  return base.concat(extra);
 }
-// วางหลายช่องในตาราง: แบ่งตาม Tab (ขวา) / บรรทัด (ลง)
-document.addEventListener("paste", e => {
-  const inp = e.target.closest && e.target.closest(".pr-sheet input:not([type=checkbox])"); if (!inp) return;
-  const t = (e.clipboardData || window.clipboardData).getData("text"); if (!/[\t\n]/.test(t.replace(/\n$/, ""))) return;
-  e.preventDefault();
-  const grid = [...document.querySelectorAll(".pr-sheet tbody tr")].map(tr => [...tr.querySelectorAll("input:not([type=checkbox])")]);
-  const ri = grid.findIndex(row => row.includes(inp)), ci = grid[ri].indexOf(inp);
-  t.replace(/\r/g, "").replace(/\n$/, "").split("\n").forEach((line, dy) => line.split("\t").forEach((v, dx) => {
-    const cell = (grid[ri + dy] || [])[ci + dx]; if (!cell) return;
-    cell.value = v.trim(); cell.dispatchEvent(new Event("change", { bubbles: true }));
-  }));
-}, true);
+const xgRaw = (r, c) => c.kind === "x" ? ((r.extra || {})[c.k] ?? "") : c.get ? c.get(r) : (r[c.k] ?? "");
+function xgRows(){
+  const me = sbUid(), g = PR_GROUPS.find(x => x[0] === PR.filter) || PR_GROUPS[0];
+  let rows = PR.rows.filter(r => r.stage === "list" && g[2](r) && (!PR.mine || r.contact === me) &&
+    (!PR.q || (r.handle + " " + (r.note || "")).toLowerCase().includes(PR.q.toLowerCase())));
+  if (XG.sort){ const cols = xgCols(), c = cols[XG.sort.c]; if (c){ const dir = XG.sort.d;
+    rows = rows.slice().sort((a, b) => { const x = xgVal(a, c, rows, cols), y = xgVal(b, c, rows, cols);
+      const nx = typeof x === "number", ny = typeof y === "number";
+      return (nx && ny ? x - y : String(x).localeCompare(String(y), "th")) * dir; }); } }
+  return rows;
+}
+// ── สูตร ── parser เล็กๆ เขียนเอง (ไม่ใช้ eval — ค่าในตารางมาจากคนในทีม)
+function xgNum(v){ if (typeof v === "number") return v; if (v === "" || v == null) return 0; const n = prNum(v); return n == null ? NaN : n; }
+function xgVal(r, c, rows, cols, depth){
+  const raw = xgRaw(r, c);
+  const f = typeof raw === "string" && raw.startsWith("=") ? raw : (c.kind === "x" && c.f && (raw === "" || raw == null) ? c.f : null);
+  if (f) return xgEval(f.slice(1), rows.indexOf(r), rows, cols, (depth || 0) + 1);
+  if (c.kind === "num"){ const n = raw === "" || raw == null ? "" : Number(raw); return n === "" || isNaN(n) ? raw : n; }
+  if (c.kind === "sel") { const o = (c.opts || []).find(x => x[0] === raw); return o ? o[1] : raw; }
+  if (c.kind === "x" && raw !== "" && !isNaN(Number(raw))) return Number(raw);
+  return raw;
+}
+function xgEval(src, ri, rows, cols, depth){
+  if (depth > 20) return "#วน!";
+  const T = []; let i = 0;
+  const re = /\s*(?:(\d+(?:\.\d+)?)|"([^"]*)"|(\$?[A-Z]{1,2}\$?\d*(?::\$?[A-Z]{1,2}\$?\d*)?)(?![A-Za-z(])|([A-Za-z]+)\s*\(|(<=|>=|<>|[-+*/^&=<>(),%]))/y;
+  while (i < src.length){ re.lastIndex = i; const m = re.exec(src); if (!m){ if (/^\s*$/.test(src.slice(i))) break; return "#สูตรผิด"; }
+    i = re.lastIndex; T.push(m[1] != null ? { t: "n", v: +m[1] } : m[2] != null ? { t: "s", v: m[2] } : m[3] ? { t: "r", v: m[3].replace(/\$/g, "") } : m[4] ? { t: "f", v: m[4].toUpperCase() } : { t: "o", v: m[5] }); }
+  let p = 0; const peek = () => T[p], take = () => T[p++];
+  const cell = (ci, rr) => { const c = cols[ci], r = rows[rr]; if (!c || !r) return ""; return xgVal(r, c, rows, cols, depth); };
+  const ref = s => { const [a, b] = s.split(":"); const pa = a.match(/^([A-Z]+)(\d*)$/), pb = b && b.match(/^([A-Z]+)(\d*)$/);
+    const c1 = xgIndex(pa[1]), r1 = pa[2] ? +pa[2] - 1 : ri;
+    if (!pb) return cell(c1, r1);
+    const c2 = xgIndex(pb[1]), r2 = pb[2] ? +pb[2] - 1 : (pa[2] ? rows.length - 1 : ri);
+    const out = []; for (let y = Math.min(r1, r2); y <= Math.max(r1, r2); y++) for (let x = Math.min(c1, c2); x <= Math.max(c1, c2); x++) out.push(cell(x, y)); return out; };
+  const flat = a => a.flatMap(x => Array.isArray(x) ? flat(x) : [x]);
+  const nums = a => flat(a).filter(x => x !== "" && x != null).map(xgNum).filter(x => !isNaN(x));
+  const FN = { SUM: a => nums(a).reduce((s, x) => s + x, 0), AVERAGE: a => { const n = nums(a); return n.length ? n.reduce((s, x) => s + x, 0) / n.length : 0; },
+    MIN: a => Math.min(...nums(a)), MAX: a => Math.max(...nums(a)), COUNT: a => nums(a).length, COUNTA: a => flat(a).filter(x => x !== "" && x != null).length,
+    ROUND: a => { const k = Math.pow(10, xgNum(a[1] || 0)); return Math.round(xgNum(a[0]) * k) / k; }, ABS: a => Math.abs(xgNum(a[0])),
+    IF: a => (a[0] && a[0] !== "0" ? a[1] : (a[2] ?? "")), IFERROR: a => (typeof a[0] === "string" && a[0].startsWith("#") ? a[1] : a[0]),
+    AND: a => flat(a).every(Boolean), OR: a => flat(a).some(Boolean), NOT: a => !a[0], LEN: a => String(a[0] ?? "").length,
+    CONCAT: a => flat(a).join(""), UPPER: a => String(a[0] ?? "").toUpperCase(), LOWER: a => String(a[0] ?? "").toLowerCase() };
+  FN.AVG = FN.AVERAGE;
+  const prim = () => { const t = take(); if (!t) throw 0;
+    if (t.t === "n" || t.t === "s") return t.v;
+    if (t.t === "r") return ref(t.v);
+    if (t.t === "f"){ const fn = FN[t.v]; const args = []; if (peek() && peek().v === ")") take(); else { for (;;){ args.push(cmp()); const s = take(); if (!s) throw 0; if (s.v === ")") break; if (s.v !== ",") throw 0; } }
+      if (!fn) return "#ไม่รู้จัก " + t.v; return fn(args); }
+    if (t.v === "(") { const v = cmp(); take(); return v; }
+    if (t.v === "-") return -xgNum(un()); if (t.v === "+") return xgNum(un());
+    throw 0; };
+  const un = () => { let v = prim(); if (peek() && peek().v === "%"){ take(); v = xgNum(v) / 100; } return v; };
+  const pow = () => { let v = un(); while (peek() && peek().v === "^"){ take(); v = Math.pow(xgNum(v), xgNum(un())); } return v; };
+  const mul = () => { let v = pow(); while (peek() && (peek().v === "*" || peek().v === "/")){ const o = take().v, b = xgNum(pow()); v = o === "*" ? xgNum(v) * b : (b === 0 ? "#หาร0" : xgNum(v) / b); } return v; };
+  const add = () => { let v = mul(); while (peek() && (peek().v === "+" || peek().v === "-")){ const o = take().v, b = xgNum(mul()); v = o === "+" ? xgNum(v) + b : xgNum(v) - b; } return v; };
+  const cat = () => { let v = add(); while (peek() && peek().v === "&"){ take(); v = String(v ?? "") + String(add() ?? ""); } return v; };
+  const cmp = () => { let v = cat(); while (peek() && ["=", "<>", "<", ">", "<=", ">="].includes(peek().v)){ const o = take().v, b = cat();
+      const [x, y] = typeof v === "number" || typeof b === "number" ? [xgNum(v), xgNum(b)] : [String(v), String(b)];
+      v = o === "=" ? x == y : o === "<>" ? x != y : o === "<" ? x < y : o === ">" ? x > y : o === "<=" ? x <= y : x >= y; } return v; };
+  try { const v = cmp(); if (p < T.length) return "#สูตรผิด"; if (Array.isArray(v)) return flat(v)[0] ?? ""; if (typeof v === "number" && !isFinite(v)) return "#ค่าผิด"; return v; }
+  catch(e){ return "#สูตรผิด"; }
+}
+// สูตรเลื่อนแถว/คอลัมน์ตอนคัดลอก (แบบ Excel — $ = ล็อก)
+const xgShift = (f, dr, dc) => String(f).replace(/(\$?)([A-Z]{1,2})(\$?)(\d+)/g, (m, cl, L, rl, n) =>
+  (cl ? "$" + L : xgLetter(Math.max(0, xgIndex(L) + dc))) + (rl ? "$" + n : String(Math.max(1, +n + dr))));
+const xgShow = v => v === true ? "TRUE" : v === false ? "FALSE" : typeof v === "number" ? (Number.isInteger(v) ? v.toLocaleString("en-US") : (Math.round(v * 100) / 100).toLocaleString("en-US")) : String(v ?? "");
+// ── เขียนค่า (หลายช่องทีเดียว = 1 ขั้น undo) ──
+async function xgSet(changes, noUndo){
+  if (!changes.length) return;
+  const byRow = new Map();
+  const rec = [];
+  for (const { r, c, v } of changes){
+    if (c.kind === "ro") continue;
+    let val = v;
+    if (c.kind === "num"){ const s = String(v ?? "").trim(); val = s === "" ? null : s.startsWith("=") ? null : prNum(s); if (s !== "" && val == null) continue; }
+    if (c.kind === "sel"){ const s = String(v ?? "").trim(); const o = (c.opts || []).find(x => x[0] === s || String(x[1]).toLowerCase() === s.toLowerCase()); if (!o && s) continue; val = o ? o[0] : (c.k === "contact" ? null : ""); }
+    const old = c.kind === "x" ? ((r.extra || {})[c.k] ?? "") : r[c.k];
+    if (String(old ?? "") === String(val ?? "")) continue;
+    rec.push({ id: r.id, c: c.k, x: c.kind === "x", old, v: val });
+    const ch = byRow.get(r) || {};
+    if (c.kind === "x"){ ch.extra = Object.assign({}, r.extra || {}, ch.extra || {}, { [c.k]: val }); }
+    else { ch[c.k] = val; if (c.k === "followers") ch.tier = prTier(val); }
+    if ((c.k === "rate1" || c.k === "rate2") && val != null && ["todo", "contacted", "waiting", "interested"].includes(r.status)) ch.status = "rated";
+    byRow.set(r, ch);
+  }
+  if (!byRow.size) return;
+  if (!noUndo){ XG.undo.push(rec); XG.redo = []; if (XG.undo.length > 100) XG.undo.shift(); }
+  for (const [r, ch] of byRow) Object.assign(r, ch);
+  xgRender();
+  await Promise.all([...byRow].map(([r, ch]) => prApi(`prospects?id=eq.${r.id}`, { method: "PATCH", headers: { Prefer: "return=minimal" }, body: JSON.stringify(ch) }).catch(e => histToast(e.message, true))));
+}
+function xgUndo(redo){
+  const st = redo ? XG.redo : XG.undo, back = redo ? XG.undo : XG.redo, rec = st.pop(); if (!rec) return;
+  back.push(rec);
+  const cols = xgCols();
+  xgSet(rec.map(x => ({ r: PR.rows.find(y => y.id === x.id), c: cols.find(c => c.k === x.c), v: redo ? x.v : x.old })).filter(x => x.r && x.c), true);
+}
+// ── วาด ──
+function xgRender(){
+  const host = $("#prGrid"); if (!host) return;
+  const cols = xgCols(), rows = xgRows(), S = XG.sel;
+  const inSel = (y, x) => S && y >= Math.min(S.r0, S.r1) && y <= Math.max(S.r0, S.r1) && x >= Math.min(S.c0, S.c1) && x <= Math.max(S.c0, S.c1);
+  const nCols = cols.filter(c => c.kind === "num" || c.kind === "x");
+  const sumOf = ci => { const c = cols[ci]; if (!(c.kind === "num" || c.kind === "x")) return ""; const v = rows.map(r => xgVal(r, c, rows, cols)).filter(x => typeof x === "number"); return v.length ? xgShow(v.reduce((a, b) => a + b, 0)) : ""; };
+  const scroll = host.querySelector(".xg-scroll"), st = scroll ? [scroll.scrollTop, scroll.scrollLeft] : null;
+  host.innerHTML = `<div class="xg-bar"><span class="xg-ref" id="xgRef">${S ? xgLetter(S.c1) + (S.r1 + 1) : ""}</span><input id="xgFx" class="xg-fx" placeholder="ƒx ค่า หรือสูตร (=SUM(J1:J10) · =J*2 · =IF(B>10000,&quot;ผ่าน&quot;,&quot;&quot;))" autocomplete="off" spellcheck="false">
+      <button type="button" class="pr-btn" id="xgAddCol" title="เพิ่มคอลัมน์ของทีม — ใส่ค่าเองหรือสูตรทั้งคอลัมน์">＋ คอลัมน์</button>
+      <button type="button" class="pr-btn pri" id="xgNom" ${S ? "" : "disabled"}>เสนอชื่อเข้า Nominate →</button></div>
+    <div class="xg-scroll" tabindex="0"><table class="xg"><thead><tr><th class="xg-rn"></th>${cols.map((c, i) => `<th data-xh="${i}" style="min-width:${c.w}px" title="${c.kind === "x" ? "คลิกขวา/ดับเบิลคลิก = แก้ชื่อ · ใส่สูตรทั้งคอลัมน์ · ลบ" : "คลิก = เรียง"}"><span class="xg-l">${xgLetter(i)}</span>${esc(c.th)}${c.kind === "x" && c.f ? " <i>ƒx</i>" : ""}${XG.sort && XG.sort.c === i ? (XG.sort.d > 0 ? " ▲" : " ▼") : ""}</th>`).join("")}<th class="xg-act"></th></tr></thead>
+    <tbody>${rows.map((r, y) => `<tr data-xr="${y}"><td class="xg-rn">${y + 1}</td>${cols.map((c, x) => { const v = xgVal(r, c, rows, cols), raw = xgRaw(r, c);
+        const cls = [c.kind === "ro" ? "ro" : "", inSel(y, x) ? "s" : "", S && y === S.r1 && x === S.c1 ? "a" : "", typeof v === "number" ? "n" : "", typeof v === "string" && v.startsWith("#") ? "err" : "", typeof raw === "string" && raw.startsWith("=") ? "fx" : ""].filter(Boolean).join(" ");
+        const body = c.k === "handle" ? `<a href="https://www.tiktok.com/@${esc(normId(r.handle))}" target="_blank" rel="noopener" tabindex="-1">@${esc(normId(r.handle))}</a>${prWarnHTML(r.handle, r.id) ? `<span class="pr-sw" title="${esc(creatorWarns(r.handle, PR.proj).join(" · "))}">⚠</span>` : ""}` : esc(xgShow(v));
+        return `<td data-xc="${x}" class="${cls}">${body}${S && y === Math.max(S.r0, S.r1) && x === Math.max(S.c0, S.c1) ? `<i class="xg-fill" data-xfill="1"></i>` : ""}</td>`; }).join("")}
+      <td class="xg-act"><button type="button" class="pr-btn pri" data-xnom="${r.id}" title="เสนอชื่อให้ PM — ข้อมูลหลังบ้าน (GMV · ผู้หญิง · วิว · ER) IBD ใส่ต่อในหน้า Nominate">เสนอชื่อ →</button></td></tr>`).join("")}</tbody>
+    <tfoot><tr><td class="xg-rn">Σ</td>${cols.map((c, i) => `<td class="n">${sumOf(i)}</td>`).join("")}<td></td></tr></tfoot></table></div>
+    <div class="xg-status" id="xgStatus"></div>`;
+  const sc = host.querySelector(".xg-scroll"); if (st){ sc.scrollTop = st[0]; sc.scrollLeft = st[1]; }
+  xgStatus(); xgFxSync(); xgWire(host, cols, rows);
+}
+function xgStatus(){
+  const el = $("#xgStatus"); if (!el || !XG.sel) { if (el) el.textContent = "คลิกช่องเพื่อเริ่ม · ลากคลุม · Ctrl+C/V คัดลอกวาง (จาก Excel/ชีตได้) · ลากจุดมุมขวาล่างเพื่อคัดลอกต่อ"; return; }
+  const cols = xgCols(), rows = xgRows(), S = XG.sel, vals = [];
+  for (let y = Math.min(S.r0, S.r1); y <= Math.max(S.r0, S.r1); y++) for (let x = Math.min(S.c0, S.c1); x <= Math.max(S.c0, S.c1); x++){ const r = rows[y], c = cols[x]; if (r && c) vals.push(xgVal(r, c, rows, cols)); }
+  const n = vals.filter(v => typeof v === "number"), cnt = vals.filter(v => v !== "" && v != null).length;
+  el.innerHTML = `เลือก ${Math.abs(S.r1 - S.r0) + 1} แถว × ${Math.abs(S.c1 - S.c0) + 1} คอลัมน์ · นับ <b>${cnt}</b>${n.length ? ` · ผลรวม <b>${xgShow(n.reduce((a, b) => a + b, 0))}</b> · เฉลี่ย <b>${xgShow(n.reduce((a, b) => a + b, 0) / n.length)}</b> · ต่ำสุด <b>${xgShow(Math.min(...n))}</b> · สูงสุด <b>${xgShow(Math.max(...n))}</b>` : ""}`;
+}
+function xgFxSync(){
+  const fx = $("#xgFx"); if (!fx || !XG.sel) return;
+  const cols = xgCols(), rows = xgRows(), r = rows[XG.sel.r1], c = cols[XG.sel.c1];
+  fx.value = r && c ? String(c.kind === "sel" ? xgVal(r, c, rows, cols) : (xgRaw(r, c) ?? "")) : "";
+  fx.disabled = !c || c.kind === "ro";
+  const ref = $("#xgRef"); if (ref) ref.textContent = xgLetter(XG.sel.c1) + (XG.sel.r1 + 1);
+}
+function xgSelect(r1, c1, extend){
+  const rows = xgRows(), cols = xgCols();
+  r1 = Math.max(0, Math.min(rows.length - 1, r1)); c1 = Math.max(0, Math.min(cols.length - 1, c1));
+  XG.sel = extend && XG.sel ? { r0: XG.sel.r0, c0: XG.sel.c0, r1, c1 } : { r0: r1, c0: c1, r1, c1 };
+  xgPaintSel(); xgStatus(); xgFxSync();
+  const td = document.querySelector(`#prGrid tr[data-xr="${r1}"] td[data-xc="${c1}"]`); if (td) td.scrollIntoView({ block: "nearest", inline: "nearest" });
+}
+// เปลี่ยนแค่กรอบ ไม่วาดใหม่ทั้งตาราง (ลากคลุมต้องลื่น)
+function xgPaintSel(){
+  const S = XG.sel, host = $("#prGrid"); if (!host) return;
+  host.querySelectorAll("td.s, td.a").forEach(td => td.classList.remove("s", "a"));
+  host.querySelectorAll(".xg-fill").forEach(e => e.remove());
+  if (!S) return;
+  for (let y = Math.min(S.r0, S.r1); y <= Math.max(S.r0, S.r1); y++){
+    const tr = host.querySelector(`tr[data-xr="${y}"]`); if (!tr) continue;
+    for (let x = Math.min(S.c0, S.c1); x <= Math.max(S.c0, S.c1); x++){ const td = tr.querySelector(`td[data-xc="${x}"]`); if (td) td.classList.add("s"); }
+  }
+  const a = host.querySelector(`tr[data-xr="${S.r1}"] td[data-xc="${S.c1}"]`); if (a) a.classList.add("a");
+  const br = host.querySelector(`tr[data-xr="${Math.max(S.r0, S.r1)}"] td[data-xc="${Math.max(S.c0, S.c1)}"]`);
+  if (br) br.insertAdjacentHTML("beforeend", `<i class="xg-fill" data-xfill="1"></i>`);
+  const nb = $("#xgNom"); if (nb){ const k = Math.abs(S.r1 - S.r0) + 1; nb.disabled = false; nb.textContent = `เสนอชื่อ ${k} คนเข้า Nominate →`; }
+}
+function xgEditStart(initial){
+  const S = XG.sel; if (!S) return;
+  const cols = xgCols(), rows = xgRows(), r = rows[S.r1], c = cols[S.c1]; if (!r || !c || c.kind === "ro") return;
+  const td = document.querySelector(`#prGrid tr[data-xr="${S.r1}"] td[data-xc="${S.c1}"]`); if (!td) return;
+  XG.edit = { r, c };
+  const cur = c.kind === "sel" ? xgRaw(r, c) : String(xgRaw(r, c) ?? "");
+  td.classList.add("ed");
+  td.innerHTML = c.kind === "sel" ? `<select class="xg-in">${c.opts.map(([v, th]) => `<option value="${esc(v)}"${v === cur ? " selected" : ""}>${esc(th)}</option>`).join("")}</select>`
+    : `<input class="xg-in" value="${esc(initial != null ? initial : cur)}" spellcheck="false">`;
+  const inp = td.querySelector(".xg-in"); inp.focus();
+  if (inp.tagName === "INPUT"){ const L = inp.value.length; inp.setSelectionRange(L, L); }
+  inp.onkeydown = e => {
+    if (e.key === "Escape"){ e.preventDefault(); e.stopPropagation(); XG.edit = null; xgRender(); xgFocus(); }
+    else if (e.key === "Enter" || e.key === "Tab"){ e.preventDefault(); const v = inp.value; XG.edit = null;
+      xgSet([{ r, c, v }]).then(() => { xgSelect(S.r1 + (e.key === "Enter" ? (e.shiftKey ? -1 : 1) : 0), S.c1 + (e.key === "Tab" ? (e.shiftKey ? -1 : 1) : 0)); xgFocus(); }); }
+  };
+  inp.onblur = () => { if (!XG.edit) return; const v = inp.value; XG.edit = null; xgSet([{ r, c, v }]); };
+  if (inp.tagName === "SELECT") inp.onchange = () => { const v = inp.value; XG.edit = null; xgSet([{ r, c, v }]).then(xgFocus); };
+}
+const xgFocus = () => { const s = document.querySelector("#prGrid .xg-scroll"); if (s) s.focus({ preventScroll: true }); };
+function xgRangeCells(){
+  const S = XG.sel, cols = xgCols(), rows = xgRows(), out = [];
+  if (!S) return out;
+  for (let y = Math.min(S.r0, S.r1); y <= Math.max(S.r0, S.r1); y++){ const line = [];
+    for (let x = Math.min(S.c0, S.c1); x <= Math.max(S.c0, S.c1); x++) line.push({ r: rows[y], c: cols[x], y, x }); out.push(line); }
+  return out;
+}
+function xgPaste(text, internal){
+  const S = XG.sel; if (!S) return;
+  const cols = xgCols(), rows = xgRows(), y0 = Math.min(S.r0, S.r1), x0 = Math.min(S.c0, S.c1);
+  const grid = internal ? internal.cells : String(text).replace(/\r/g, "").replace(/\n$/, "").split("\n").map(l => l.split("\t"));
+  const ch = [];
+  // เลือกช่วงใหญ่กว่าของที่ก๊อป = ทำซ้ำให้เต็มช่วง (แบบ Excel)
+  const H = Math.max(grid.length, Math.abs(S.r1 - S.r0) + 1), W = Math.max(grid[0].length, Math.abs(S.c1 - S.c0) + 1);
+  for (let dy = 0; dy < H; dy++) for (let dx = 0; dx < W; dx++){
+    const r = rows[y0 + dy], c = cols[x0 + dx]; if (!r || !c) continue;
+    let v = grid[dy % grid.length][dx % grid[0].length];
+    if (internal && typeof v === "string" && v.startsWith("=")) v = xgShift(v, (y0 + dy) - (internal.y + dy % grid.length), (x0 + dx) - (internal.x + dx % grid[0].length));
+    ch.push({ r, c, v });
+  }
+  xgSet(ch);
+  XG.sel = { r0: y0, c0: x0, r1: Math.min(rows.length - 1, y0 + H - 1), c1: Math.min(cols.length - 1, x0 + W - 1) };
+}
+function xgFill(y1, x1){
+  // ลากจุดมุม: ต่อจากช่วงที่เลือก ลงล่างหรือไปทางขวา
+  const S = XG.sel; if (!S) return;
+  const cols = xgCols(), rows = xgRows(), ry = [Math.min(S.r0, S.r1), Math.max(S.r0, S.r1)], rx = [Math.min(S.c0, S.c1), Math.max(S.c0, S.c1)];
+  const ch = [], down = y1 > ry[1] && (y1 - ry[1]) >= (x1 - rx[1]);
+  if (down){
+    for (let x = rx[0]; x <= rx[1]; x++){ const c = cols[x]; const src = []; for (let y = ry[0]; y <= ry[1]; y++) src.push(xgRaw(rows[y], c));
+      const nums = src.every(v => v !== "" && v != null && !isNaN(Number(v))) && src.length >= 2 ? src.map(Number) : null, step = nums ? nums[nums.length - 1] - nums[nums.length - 2] : 0;
+      for (let y = ry[1] + 1; y <= y1 && y < rows.length; y++){ const k = (y - ry[0]) % src.length; let v = src[k];
+        if (nums) v = nums[nums.length - 1] + step * (y - ry[1]);
+        else if (typeof v === "string" && v.startsWith("=")) v = xgShift(v, y - (ry[0] + k), 0);
+        ch.push({ r: rows[y], c, v }); } }
+    XG.sel = { r0: ry[0], c0: rx[0], r1: Math.min(y1, rows.length - 1), c1: rx[1] };
+  } else if (x1 > rx[1]){
+    for (let y = ry[0]; y <= ry[1]; y++){ const src = []; for (let x = rx[0]; x <= rx[1]; x++) src.push(xgRaw(rows[y], cols[x]));
+      for (let x = rx[1] + 1; x <= x1 && x < cols.length; x++){ const k = (x - rx[0]) % src.length; let v = src[k];
+        if (typeof v === "string" && v.startsWith("=")) v = xgShift(v, 0, x - (rx[0] + k));
+        ch.push({ r: rows[y], c: cols[x], v }); } }
+    XG.sel = { r0: ry[0], c0: rx[0], r1: ry[1], c1: Math.min(x1, cols.length - 1) };
+  }
+  xgSet(ch);
+}
+async function xgSaveCols(cols){
+  const body = { owner: prOwner(PR.proj), project: PR.proj, cols, updated_at: new Date().toISOString() };
+  try { await prApi("project_plans?on_conflict=owner,project", { method: "POST", headers: { Prefer: "resolution=merge-duplicates,return=minimal" }, body: JSON.stringify(body) });
+        PR.plan = Object.assign({}, PR.plan || {}, { cols }); xgRender(); }
+  catch(e){ histToast(e.message, true); }
+}
+function xgColMenu(ci){
+  const c = xgCols()[ci]; if (!c || c.kind !== "x") return;
+  const list = ((PR.plan || {}).cols || []).slice(), i = list.findIndex(x => x.id === c.k); if (i < 0) return;
+  const a = prompt(`คอลัมน์ "${c.th}" — พิมพ์:\n1 = เปลี่ยนชื่อ\n2 = ใส่สูตรทั้งคอลัมน์ (ใช้กับช่องที่ยังว่าง เช่น =J/2 หรือ =IF(B>=10000,"ผ่าน","ไม่ผ่าน"))\n3 = ลบคอลัมน์`, "1");
+  if (a === "1"){ const n = prompt("ชื่อคอลัมน์ใหม่", c.th); if (n && n.trim()){ list[i] = Object.assign({}, list[i], { th: n.trim() }); xgSaveCols(list); } }
+  else if (a === "2"){ const f = prompt("สูตรทั้งคอลัมน์ (ขึ้นต้น = · เว้นว่าง = ไม่มีสูตร)\nอ้างคอลัมน์ในแถวเดียวกันด้วยตัวอักษร เช่น J = เรท 1 วิดีโอ", c.f || "="); if (f != null){ list[i] = Object.assign({}, list[i], { f: f.trim() === "=" ? "" : f.trim() }); xgSaveCols(list); } }
+  else if (a === "3" && confirm(`ลบคอลัมน์ "${c.th}"? (ค่าที่กรอกไว้ในคอลัมน์นี้จะไม่แสดงอีก)`)){ list.splice(i, 1); xgSaveCols(list); }
+}
+async function xgNominate(ids){
+  const L = ids.map(id => PR.rows.find(r => r.id === id)).filter(r => r && r.stage === "list"); if (!L.length) return;
+  if (L.length > 1 && !confirm(`เสนอชื่อ ${L.length} คนเข้า Nominate?\nข้อมูลหลังบ้าน (GMV · ผู้หญิง · วิว · ER) ให้ IBD ใส่ต่อในหน้า Nominate`)) return;
+  L.forEach(r => r.stage = "nominate");
+  XG.sel = null; prRender();
+  acctToast(`เสนอชื่อ ${L.length} คนแล้ว — ใส่ข้อมูลหลังบ้านต่อที่แท็บ Nominate`);
+  await Promise.all(L.map(r => prApi(`prospects?id=eq.${r.id}`, { method: "PATCH", headers: { Prefer: "return=minimal" }, body: JSON.stringify({ stage: "nominate" }) }).catch(e => histToast(e.message, true))));
+}
+function xgWire(host, cols, rows){
+  const sc = host.querySelector(".xg-scroll");
+  const cellAt = el => { const td = el && el.closest && el.closest("td[data-xc]"); const tr = td && td.closest("tr[data-xr]"); return td && tr ? { y: +tr.dataset.xr, x: +td.dataset.xc } : null; };
+  sc.onmousedown = e => {
+    if (e.button !== 0 || e.target.closest(".xg-in") || e.target.closest("a") || e.target.closest("button")) return;
+    if (e.target.dataset.xfill){ e.preventDefault(); XG.drag = { fill: true }; return; }
+    const p = cellAt(e.target); if (!p) return;
+    e.preventDefault(); xgFocus();
+    if (XG.edit) return;
+    xgSelect(p.y, p.x, e.shiftKey); XG.drag = { sel: true };
+  };
+  sc.onmousemove = e => { if (!XG.drag) return; const p = cellAt(document.elementFromPoint(e.clientX, e.clientY)); if (!p) return;
+    if (XG.drag.sel) xgSelect(p.y, p.x, true);
+    else if (XG.drag.fill){ XG.drag.to = p; host.querySelectorAll("td.fp").forEach(t => t.classList.remove("fp"));
+      const S = XG.sel; const down = p.y > Math.max(S.r0, S.r1) && (p.y - Math.max(S.r0, S.r1)) >= (p.x - Math.max(S.c0, S.c1));
+      for (let y = Math.min(S.r0, S.r1); y <= (down ? p.y : Math.max(S.r0, S.r1)); y++) for (let x = Math.min(S.c0, S.c1); x <= (down ? Math.max(S.c0, S.c1) : Math.max(p.x, Math.max(S.c0, S.c1))); x++){
+        const td = host.querySelector(`tr[data-xr="${y}"] td[data-xc="${x}"]`); if (td) td.classList.add("fp"); } } };
+  sc.ondblclick = e => { const p = cellAt(e.target); if (p && !e.target.closest("a")){ xgSelect(p.y, p.x); xgEditStart(); } };
+  sc.onkeydown = e => {
+    if (e.key !== "Escape") e.stopPropagation();          // ไม่ให้คีย์ลัดของเว็บ (M T H F …) ทำงานตอนพิมพ์ในตาราง
+    if (XG.edit || !XG.sel) return;
+    const S = XG.sel, k = e.key, ctrl = e.ctrlKey || e.metaKey;
+    const mv = { ArrowUp: [-1, 0], ArrowDown: [1, 0], ArrowLeft: [0, -1], ArrowRight: [0, 1] }[k];
+    if (mv){ e.preventDefault(); const jump = ctrl ? (mv[0] ? (mv[0] > 0 ? rows.length : -rows.length) : (mv[1] > 0 ? cols.length : -cols.length)) : 1;
+      xgSelect(S.r1 + mv[0] * jump, S.c1 + mv[1] * jump, e.shiftKey); return; }
+    if (k === "Tab"){ e.preventDefault(); xgSelect(S.r1, S.c1 + (e.shiftKey ? -1 : 1)); return; }
+    if (k === "Enter" || k === "F2"){ e.preventDefault(); if (k === "Enter" && e.shiftKey) return xgSelect(S.r1 - 1, S.c1); xgEditStart(); return; }
+    if (k === "Delete" || k === "Backspace"){ e.preventDefault(); xgSet(xgRangeCells().flat().filter(x => x.r && x.c).map(x => ({ r: x.r, c: x.c, v: "" }))); return; }
+    if (ctrl && /^[aA]$/.test(k)){ e.preventDefault(); XG.sel = { r0: 0, c0: 0, r1: rows.length - 1, c1: cols.length - 1 }; xgPaintSel(); xgStatus(); return; }
+    if (ctrl && (e.code === "KeyZ")){ e.preventDefault(); xgUndo(e.shiftKey); return; }
+    if (ctrl && (e.code === "KeyY")){ e.preventDefault(); xgUndo(true); return; }
+    if (!ctrl && !e.altKey && k.length === 1){ e.preventDefault(); xgEditStart(k); }
+  };
+  sc.oncopy = sc.oncut = e => {
+    if (XG.edit || !XG.sel) return;
+    e.preventDefault();
+    const cells = xgRangeCells();
+    const txt = cells.map(line => line.map(({ r, c }) => r && c ? xgShow(xgVal(r, c, rows, cols)).replace(/,(?=\d{3})/g, "") : "").join("\t")).join("\n");
+    e.clipboardData.setData("text/plain", txt);
+    XG.clip = { text: txt, cells: cells.map(line => line.map(({ r, c }) => r && c ? (c.kind === "sel" ? xgRaw(r, c) : String(xgRaw(r, c) ?? "")) : "")), y: Math.min(XG.sel.r0, XG.sel.r1), x: Math.min(XG.sel.c0, XG.sel.c1) };
+    if (e.type === "cut") xgSet(cells.flat().filter(x => x.r && x.c).map(x => ({ r: x.r, c: x.c, v: "" })));
+  };
+  sc.onpaste = e => {
+    if (XG.edit || !XG.sel) return;
+    e.preventDefault();
+    const t = (e.clipboardData || window.clipboardData).getData("text");
+    xgPaste(t, XG.clip && XG.clip.text === t.replace(/\r/g, "").replace(/\n$/, "") ? XG.clip : null);
+  };
+  host.querySelectorAll("th[data-xh]").forEach(th => {
+    const i = +th.dataset.xh;
+    th.onclick = () => { XG.sort = XG.sort && XG.sort.c === i ? (XG.sort.d > 0 ? { c: i, d: -1 } : null) : { c: i, d: 1 }; XG.sel = null; xgRender(); };
+    if (cols[i].kind === "x"){ th.ondblclick = e => { e.preventDefault(); xgColMenu(i); }; th.oncontextmenu = e => { e.preventDefault(); xgColMenu(i); }; }
+  });
+  const fx = $("#xgFx");
+  fx.onkeydown = e => { if (e.key === "Enter" && XG.sel){ e.preventDefault(); const r = rows[XG.sel.r1], c = cols[XG.sel.c1]; if (r && c) xgSet([{ r, c, v: fx.value }]).then(xgFocus); }
+    if (e.key === "Escape"){ xgFxSync(); xgFocus(); } };
+  $("#xgAddCol").onclick = () => { const n = prompt("ชื่อคอลัมน์ใหม่ (เช่น ราคาต่อวิดีโอ · ติดต่อครั้งถัดไป)"); if (!n || !n.trim()) return;
+    const f = prompt("สูตรทั้งคอลัมน์ (ไม่ใส่ก็ได้) — เช่น =K/2 = เรท 2 วิดีโอ ÷ 2", "=");
+    const list = ((PR.plan || {}).cols || []).concat([{ id: "c" + Date.now().toString(36), th: n.trim(), f: f && f.trim() !== "=" ? f.trim() : "" }]); xgSaveCols(list); };
+  $("#xgNom").onclick = () => { const ids = [...new Set(xgRangeCells().map(l => l[0] && l[0].r && l[0].r.id).filter(Boolean))]; xgNominate(ids); };
+  host.querySelectorAll("[data-xnom]").forEach(b => b.onclick = () => xgNominate([b.dataset.xnom]));
+}
+addEventListener("mouseup", () => { if (XG.drag && XG.drag.fill && XG.drag.to) xgFill(XG.drag.to.y, XG.drag.to.x); XG.drag = null; });
 // SKU ในหน้าคัดเลือก — เลือกได้เฉพาะยศ Manager (และ Admin) · คนอื่นเห็นอย่างเดียว (Jibli 2026-11-10)
 // (Jibli 2026-11-21) เลือก SKU / จำนวนวิดีโอ = งานของ PM (manager) ยศเดียว (+ admin) — PMA / สมาชิก ดูได้อย่างเดียว
 const prCanSku = () => ["admin", "manager"].includes(effRole(PROFILE || {}));
@@ -18988,7 +19318,7 @@ let HK_MINE = (() => { try { return JSON.parse(lsGet(LS_HK) || "{}") || {}; } ca
 const hkCode = a => (a.id in HK_MINE ? HK_MINE[a.id] : a.def) || "";
 const hkLabel = c => !c ? "—" : c.startsWith("Key") ? c.slice(3) : c.startsWith("Digit") ? c.slice(5) : c;
 const hkTyping = () => { const a = document.activeElement;
-  return a && (a.tagName === "INPUT" || a.tagName === "TEXTAREA" || a.tagName === "SELECT" || a.isContentEditable); };
+  return a && (a.tagName === "INPUT" || a.tagName === "TEXTAREA" || a.tagName === "SELECT" || a.isContentEditable || !!(a.closest && a.closest(".xg-scroll"))); };
 let HK_REC = null;     // กำลังรอรับปุ่มใหม่ของคำสั่งไหน
 window.addEventListener("keydown", e => {
   if (HK_REC || e.__hk || e.ctrlKey || e.metaKey || e.altKey || e.repeat || hkTyping()) return;
@@ -28089,7 +28419,7 @@ const RELEASE_NOTES = [
     ["⏳", "งานในชีตที่ลงชื่อสมาชิกที่ยังไม่สมัคร (เช่น Peach · Seen) ขึ้นเป็น <b>⏳ ชื่อ</b> — พอเขาสมัครเข้าทีม เลือก “คุณคือใคร” งานย้ายไปเป็นของเขาเอง"],
     ["✉", "ปุ่ม <b>Command</b> ในตารางเด่นขึ้น · แฮชแท็ก/ตะกร้าของคนที่ได้หลายสินค้า แยกตามคลิปถูกต้องแล้ว"],
     ["📊", "<b>Pipeline</b> เปลี่ยนชื่อเป็น <b>Project Tracking</b> — เปิดมาเป็นบอร์ด · แยกคอลัมน์ <b>รอ Draft 1 / 2 / 3+ · รอ PM ตรวจ</b> (การ์ดบอกว่าตรวจสคริปต์หรือ Draft ไหน) · <b>รอโพสต์ · โพสต์แล้ว · รอจ่ายเงิน · จ่ายแล้ว</b>"],
-    ["▦", "หน้า <b>List</b> มีมุมมอง <b>ตารางแบบชีต</b> — แก้ทุกช่องได้ในตาราง · ก๊อปหลายช่องจากชีตมาวางทีเดียว · สีเขียว/แดง = ผ่าน/ไม่ผ่านเกณฑ์"],
+    ["▦", "หน้า <b>List</b> มี <b>ตารางแบบ Excel</b> — ลากคลุม · พิมพ์ทับ · Ctrl+C/V ทั้งช่วง (จาก Excel/ชีตได้) · ลากจุดมุมขวาล่างคัดลอกต่อ · Ctrl+Z · <b>สูตร</b> =SUM · =IF … · <b>＋ คอลัมน์</b> ของทีมพร้อมสูตรทั้งคอลัมน์ · ปุ่ม <b>เสนอชื่อ →</b> ท้ายแถว (ข้อมูลหลังบ้าน GMV/ผู้หญิง/วิว/ER ใส่ต่อในหน้า Nominate)"],
     ["🏷", "เลือก <b>SKU / จำนวนวิดีโอ</b> ในหน้า Nominate ได้เฉพาะ <b>PM (Manager)</b> · Product ในเว็บยึดตามชีต"],
     ["⛔", "<b>ALTA KOL Blacklist</b> (ชีต Lark) ซิงก์เข้าฐานครีเอเตอร์ทุกชั่วโมง — เตือนทุกที่ที่เจอชื่อ · เอาชื่อออกจากชีต = เว็บเลิกเตือนเอง"],
   ]},
