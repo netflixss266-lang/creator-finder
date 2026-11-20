@@ -16,6 +16,7 @@
   font-src https://fonts.gstatic.com;
   img-src 'self' https: data:;
   media-src https://sosfberpszbqvghyymzi.supabase.co;
+  frame-src https://drive.google.com;
   connect-src 'self' https://docs.google.com https://api.anthropic.com
               https://script.google.com https://*.googleusercontent.com
               https://sosfberpszbqvghyymzi.supabase.co
@@ -24,7 +25,7 @@
   base-uri 'none';
   object-src 'none'">
 <title>Creataew — KOL Sourcing</title>
-<meta name="cf-ver" content="20261120-163455">
+<meta name="cf-ver" content="20261120-163752">
 <!-- Beta / Publish (2026-11-06): หน้าแรก = เวอร์ชันล่าสุด (admin เห็นก่อน) · คนอื่นถูกพาไป v/<เวอร์ชันที่ Publish>.html
      จำเวอร์ชันที่ Publish ไว้ในเครื่อง = พาไปได้ทันทีไม่ต้องรอเน็ต แล้วเช็คซ้ำเบื้องหลัง · ฐานข้อมูลไม่มี RPC (sandbox) = อยู่ตัวล่าสุด -->
 <script>(function(){try{
@@ -1053,6 +1054,33 @@ body:not([data-view="find"]) #cartBtn{display:none!important}
 .icobtn.has{color:var(--accent);position:relative}
 select.asg.pend{color:var(--warn);font-style:italic}
 .shist ul{margin:4px 0 6px;padding-left:18px}
+.dvr{display:flex;flex-direction:column;gap:8px}
+.dvr-files{display:flex;flex-wrap:wrap;gap:6px;align-items:center}
+.dvr-f{padding:5px 10px;border-radius:8px;border:1px solid var(--line);background:var(--surface2);color:var(--ink);cursor:pointer;font:inherit;font-size:.85rem;text-decoration:none}
+.dvr-f:hover{border-color:var(--accent)}
+.dvr-f.up{border-style:dashed}
+.dvr-player video,.dvr-player iframe{width:100%;max-height:60vh;aspect-ratio:9/16;max-width:420px;display:block;margin:0 auto;background:#000;border:0;border-radius:10px}
+.dvr-thread{display:flex;flex-direction:column;gap:8px;max-height:320px;overflow:auto;padding:4px 2px}
+.dvr-m{display:flex;gap:8px;align-items:flex-start}
+.dvr-m .av{flex:none;width:26px;height:26px;border-radius:50%;display:grid;place-items:center;font-size:.75rem;font-weight:700;background:var(--mc);color:#111}
+.dvr-m .b{background:var(--surface2);border-radius:10px;padding:6px 10px;min-width:0;flex:1}
+.dvr-m.mine .b{background:rgba(var(--accent-rgb),.12)}
+.dvr-m .meta{display:flex;gap:8px;font-size:.75rem;color:var(--mute);align-items:center;flex-wrap:wrap}
+.dvr-m .t{white-space:pre-wrap;word-break:break-word;margin-top:2px}
+.dvr-del{margin-left:auto;background:none;border:0;color:var(--dim);cursor:pointer}
+.dvr-jump{cursor:pointer;border:0}
+.dvr-say{display:flex;gap:6px;align-items:flex-end}
+.dvr-say .dvr-ts{width:62px;padding:6px;border-radius:8px;border:1px solid var(--line);background:var(--bg);color:var(--ink);font:inherit}
+.dvr-say .dvr-in{flex:1;min-height:36px;max-height:140px;resize:vertical;padding:7px 9px;border-radius:8px;border:1px solid var(--line);background:var(--bg);color:var(--ink);font:inherit}
+#drRoom{position:fixed;inset:0;z-index:8000;background:rgba(0,0,0,.55);display:flex;align-items:center;justify-content:center;padding:16px}
+#drRoom .drr-card{background:var(--surface);color:var(--ink);border:1px solid var(--line);border-radius:14px;padding:14px;width:min(640px,100%);max-height:92vh;overflow:auto;display:flex;flex-direction:column;gap:10px}
+#drRoom header{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+#drRoom header #drrX{margin-left:auto}
+.drr-tabs{display:flex;gap:4px;flex-wrap:wrap}
+.drr-tabs button{padding:4px 10px;border-radius:999px;border:1px solid var(--line);background:none;color:var(--mute);cursor:pointer;font:inherit;font-size:.85rem}
+.drr-tabs button.on{background:var(--accent);color:#06231f;border-color:var(--accent)}
+.rv-dvr{margin-bottom:10px}
+.drfile.room{border-color:var(--accent);color:var(--accent)}
 .hklist{display:flex;flex-direction:column;gap:6px;margin-top:6px}
 .hkrow{display:flex;align-items:center;gap:8px;flex-wrap:wrap;padding:6px 8px;border-radius:8px;background:var(--surface2)}
 .hkrow.own{outline:1px solid rgba(var(--accent-rgb),.5)}
@@ -13187,7 +13215,7 @@ function openCmd(proj, handle){
   {
     const d = drMark(r);
     $("#cmdSt").innerHTML = `<select class="st-sel ${stClass(r.status)}" id="cmdStSel" title="เปลี่ยนสถานะของ ${esc(r.handle)}">${
-        statusOptions(r.status)}</select>${draftFilesHTML(r, true)}${drOk(r) && !isCancelled(r)
+        statusOptions(r.status)}</select>${draftFilesHTML(r, true)}<button type="button" class="drfile room" data-drroom="${esc(proj)}|${esc(r.handle)}" title="ดูคลิปดราฟต์ + คอมเมนต์ของทีม">💬 ดราฟต์</button>${drOk(r) && !isCancelled(r)
       ? (() => { const I = drInfo(r.status); return `<button type="button" class="mapdr tbdr cmddr ${I.k}${d ? " on" : ""}" data-drin="${esc(r.handle)}" data-mapproj="${esc(proj)}"
           title="${d ? I.off : I.on}">${I.ic}${d ? ` <span>${I.tag} · ${drAgo(d.at)}</span>` : ""}</button>`; })() : ""}${stepMark(r, proj, "cmd")}`;
     $("#cmdStSel").onchange = e => {
@@ -19455,6 +19483,109 @@ function draftFilesHTML(r, compact){
     ? `<button type="button" class="drfile" data-drplay="${esc(x.tok)}" data-drname="${esc(x.name)}" title="${esc(x.name)} · ${esc(drSize(x.size))}">▶ Draft ${x.n}${compact ? "" : ` · ${esc(x.name.length > 28 ? x.name.slice(0, 27) + "…" : x.name)}`}</button>`
     : `<a class="drfile" href="${esc(safeLinkUrl(x.url) || "#")}" target="_blank" rel="noopener noreferrer" title="${esc(x.url)}">↗ Draft ${x.n}${compact ? "" : " · ลิงก์"}</a>`).join("")}</div>`;
 }
+// ═══ 💬 ห้องดราฟต์: ดูคลิป + คอมเมนต์ใต้คลิป (Jibli 2026-11-21) ═══
+// คลิปของ Draft n (ไฟล์จากชีต Lark เล่นในหน้าได้เลย · Google Drive ฝังดู · ลิงก์อื่นเปิดแท็บใหม่)
+// คอมเมนต์เก็บที่ draft_comments — ทั้งทีมเห็นชุดเดียวกัน (เดิมห้องตรวจเก็บในเบราว์เซอร์ใครเบราว์เซอร์มัน)
+// กด ⏱ = ใส่นาทีที่หยุดคลิปไว้ · กดเวลาในคอมเมนต์ = กระโดดไปตรงนั้น
+const dvrDrive = u => { const m = String(u || "").match(/drive\.google\.com\/(?:file\/d\/|open\?id=)([\w-]{20,})/); return m ? m[1] : ""; };
+function draftRoomHTML(r, n){
+  const L = ((r && r.drafts) || []).filter(x => +x.n === +n);
+  const files = L.map((x, i) => x.tok
+    ? `<button type="button" class="dvr-f" data-dvrtok="${esc(x.tok)}" data-dvrname="${esc(x.name)}">▶ ${esc(x.name.length > 30 ? x.name.slice(0, 29) + "…" : x.name)}</button>`
+    : dvrDrive(x.url) ? `<button type="button" class="dvr-f" data-dvrdrive="${esc(dvrDrive(x.url))}">▶ Google Drive</button>`
+    : `<a class="dvr-f" href="${esc(safeLinkUrl(x.url) || "#")}" target="_blank" rel="noopener noreferrer">↗ เปิดลิงก์</a>`).join("");
+  return `<div class="dvr" data-dvr="${esc(r.project)}|${esc(r.handle)}|${n}">
+    <div class="dvr-files">${files || `<span class="hint">ยังไม่มีไฟล์ Draft ${n} ในชีต</span>`}${LARK[r.project] ? `<button type="button" class="dvr-f up" data-drup="${esc(r.project)}|${esc(r.handle)}">📎 แนบ</button>` : ""}</div>
+    <div class="dvr-player" hidden></div>
+    <div class="dvr-thread"><span class="hint">กำลังโหลดคอมเมนต์…</span></div>
+    <div class="dvr-say"><button type="button" class="cmdbtn ghost dvr-tsb" title="ใส่นาทีที่หยุดคลิปไว้">⏱</button><input class="dvr-ts" placeholder="0:12" inputmode="numeric" autocomplete="off" aria-label="นาทีในคลิป">
+      <textarea class="dvr-in" rows="1" placeholder="คอมเมนต์ Draft ${n} ในนาม ${esc((RV_ROLES[rvRole()] || {}).th || "")} — Enter ส่ง · Shift+Enter ขึ้นบรรทัด"></textarea>
+      <button type="button" class="cmdbtn dvr-send">ส่ง</button></div></div>`;
+}
+const dvrParse = el => { const [proj, handle, n] = el.dataset.dvr.split("|"); return { proj, handle, n: +n }; };
+async function dvrLoad(el){
+  const { proj, handle, n } = dvrParse(el), th = el.querySelector(".dvr-thread");
+  try {
+    const r = await sbAuthed(SB_URL + "/rest/v1/draft_comments?select=id,who,who_name,role,ts,body,created_at&owner=eq." + encodeURIComponent(spaceOf(proj))
+      + "&project=eq." + encodeURIComponent(proj) + "&handle=eq." + encodeURIComponent(handle) + "&n=eq." + n + "&order=created_at.asc", { cache: "no-store" });
+    if (!r.ok) throw new Error(r.status === 404 ? "ฐานข้อมูลยังไม่มีตารางคอมเมนต์" : "โหลดคอมเมนต์ไม่ได้ (" + r.status + ")");
+    const L = await r.json();
+    th.innerHTML = L.length ? L.map(m => { const R = RV_ROLES[m.role] || RV_ROLES.ibd, mine = m.who === sbUid();
+      return `<div class="dvr-m${mine ? " mine" : ""}"><span class="av" style="--mc:${R.c}">${esc(memInitial(m.who, m.who_name))}</span>
+        <div class="b"><div class="meta"><b>${esc(m.who_name || memName(m.who))}</b><span style="color:${R.c}">${esc(R.th)}</span><span>${esc(rvRel(m.created_at))}</span>${
+          mine ? `<button type="button" class="dvr-del" data-dvrdel="${esc(m.id)}" title="ลบคอมเมนต์ของฉัน">✕</button>` : ""}</div>
+        <div class="t">${m.ts ? `<button type="button" class="rv-ts dvr-jump" data-dvrts="${esc(m.ts)}">${esc(m.ts)}</button> ` : ""}${esc(m.body)}</div></div></div>`; }).join("")
+      : `<span class="hint">ยังไม่มีคอมเมนต์ — เขียนอันแรกได้เลย</span>`;
+    th.scrollTop = th.scrollHeight;
+  } catch(e){ th.innerHTML = `<span class="hint" style="color:var(--lo)">${esc(e.message)}</span>`; }
+}
+const dvrSec = t => { const m = String(t || "").match(/^(\d+):(\d{1,2})$/); return m ? +m[1] * 60 + +m[2] : null; };
+function dvrWire(el){
+  if (el.dataset.wired) return; el.dataset.wired = "1";
+  const { proj, handle, n } = dvrParse(el), pl = el.querySelector(".dvr-player");
+  const video = () => pl.querySelector("video");
+  el.querySelectorAll("[data-dvrtok]").forEach(b => b.onclick = async () => {
+    pl.hidden = false; pl.innerHTML = `<span class="hint">กำลังเปิดไฟล์…</span>`;
+    try {
+      const res = await fetch(SB_URL + "/functions/v1/lark-sync", { method: "POST",
+        headers: { "Content-Type": "application/json", apikey: SB_KEY, Authorization: "Bearer " + ((SESSION && SESSION.access_token) || "") },
+        body: JSON.stringify({ draftTicket: b.dataset.dvrtok }) });
+      const j = await res.json().catch(() => ({}));
+      if (!res.ok || !j.url) throw new Error(j.error || "เปิดไฟล์ไม่ได้ (" + res.status + ")");
+      pl.innerHTML = `<video controls playsinline preload="metadata" src="${esc(j.url)}"></video>`;
+      vlog("draft:play", { p: proj, h: normId(handle), d: `D${n} ${b.dataset.dvrname}` });
+    } catch(e){ pl.innerHTML = `<span class="hint" style="color:var(--lo)">${esc(e.message)}</span>`; }
+  });
+  el.querySelectorAll("[data-dvrdrive]").forEach(b => b.onclick = () => {
+    pl.hidden = false; pl.innerHTML = `<iframe src="https://drive.google.com/file/d/${encodeURIComponent(b.dataset.dvrdrive)}/preview" allow="autoplay" allowfullscreen></iframe>`; });
+  el.querySelector(".dvr-tsb").onclick = () => { const v = video(); if (!v) return histToast("เปิดคลิปในช่องนี้ก่อน แล้วหยุดตรงที่จะคอมเมนต์");
+    const t = Math.floor(v.currentTime); el.querySelector(".dvr-ts").value = `${Math.floor(t / 60)}:${String(t % 60).padStart(2, "0")}`; };
+  el.querySelector(".dvr-thread").onclick = async e => {
+    const j = e.target.closest("[data-dvrts]");
+    if (j){ const v = video(), t = dvrSec(j.dataset.dvrts); if (v && t != null){ v.currentTime = t; v.play().catch(() => {}); } else if (!v) histToast("กด ▶ เปิดคลิปก่อน แล้วกดเวลาอีกครั้ง"); return; }
+    const d = e.target.closest("[data-dvrdel]");
+    if (d && confirm("ลบคอมเมนต์นี้?")){ try { await sbSend(SB_URL + "/rest/v1/draft_comments?id=eq." + encodeURIComponent(d.dataset.dvrdel), "DELETE", null, "ลบไม่ได้"); dvrLoad(el); } catch(err){ alert(err.message); } }
+  };
+  const send = async () => {
+    const inp = el.querySelector(".dvr-in"), body = inp.value.trim(); if (!body) return inp.focus();
+    const ts = (el.querySelector(".dvr-ts").value || "").trim(), btn = el.querySelector(".dvr-send");
+    btn.disabled = true;
+    try {
+      await sbSend(SB_URL + "/rest/v1/draft_comments", "POST", [{ owner: spaceOf(proj), project: proj, handle, n, who_name: rvMe(), role: rvRole(), ts: dvrSec(ts) != null ? ts : null, body }],
+        "ส่งคอมเมนต์ไม่ได้", "return=minimal");
+      inp.value = ""; el.querySelector(".dvr-ts").value = "";
+      vlog("draft:comment", { p: proj, h: normId(handle), d: `D${n}` });
+      dvrLoad(el);
+    } catch(e){ alert(e.message); }
+    btn.disabled = false;
+  };
+  el.querySelector(".dvr-send").onclick = send;
+  el.querySelector(".dvr-in").onkeydown = e => { if (e.key === "Enter" && !e.shiftKey && !e.isComposing){ e.preventDefault(); send(); } };
+  dvrLoad(el);
+}
+// หน้าต่างลอย (จาก Command / ตาราง) — แท็บ Draft 1..N
+function openDraftRoom(proj, handle, n){
+  const r = (COORD[proj] || []).find(x => normId(x.handle) === normId(handle)); if (!r) return;
+  const max = Math.max(1, drRoundOf(r), ...((r.drafts || []).map(x => +x.n || 1)));
+  n = n || drRoundOf(r);
+  let box = $("#drRoom");
+  if (!box){ box = document.createElement("div"); box.id = "drRoom"; document.body.appendChild(box); }
+  box.innerHTML = `<div class="drr-card"><header><b>💬 ดราฟต์ · ${esc(normId(handle))}</b>
+      <div class="drr-tabs">${Array.from({ length: Math.min(5, max) }, (_, i) => `<button type="button" class="${i + 1 === n ? "on" : ""}" data-drrn="${i + 1}">Draft ${i + 1}</button>`).join("")}</div>
+      <button type="button" class="cmdbtn" id="drrX">ปิด</button></header>${draftRoomHTML(r, n)}</div>`;
+  box.hidden = false;
+  const close = () => { const v = box.querySelector("video"); if (v){ v.pause(); v.removeAttribute("src"); v.load(); } box.hidden = true; box.innerHTML = ""; };
+  $("#drrX").onclick = close; box.onclick = e => { if (e.target === box) close(); };
+  box.querySelectorAll("[data-drrn]").forEach(b => b.onclick = () => openDraftRoom(proj, handle, +b.dataset.drrn));
+  dvrWire(box.querySelector(".dvr"));
+}
+document.addEventListener("click", e => {
+  const b = e.target.closest && e.target.closest("[data-drroom]");
+  if (!b) return;
+  e.preventDefault(); e.stopPropagation();
+  const i = b.dataset.drroom.lastIndexOf("|");
+  openDraftRoom(b.dataset.drroom.slice(0, i), b.dataset.drroom.slice(i + 1));
+}, true);
 async function draftPlay(tok, name){
   let box = $("#drPlayer");
   if (!box){ box = document.createElement("div"); box.id = "drPlayer"; document.body.appendChild(box); }
@@ -19599,6 +19730,7 @@ function rvRoundHTML(r, rd, live){
     <div class="rv-rhead" data-rvtog="${rd.n}" role="button" tabindex="0"><h3>Draft ${rd.n}</h3><span class="rv-chip" style="--c:${chip[1]}">${esc(chip[0])}</span>
       <span class="hint">${rd.clips.length} คลิป · ${rd.thread.filter(m => m.role !== "sys").length} ข้อความ</span><span class="tog">${rd.open ? "▴ พับ" : "▾ กาง"}</span></div>
     <div class="rv-rbody">
+      <div class="rv-dvr"><span class="lbl">🎬 คลิป + คอมเมนต์ของทีม (Draft ${rd.n})</span>${draftRoomHTML(r, rd.n)}</div>
       <div class="rv-clips"><span class="lbl">วิดีโอ / คลิป</span>
         ${rd.clips.map(cl => { const [ab, col, name] = RV_PF(cl.url), id = rvVid(cl.url);
           return `<div class="rv-clip"><span class="pf" style="--c:${col}">${ab}</span><span class="t">${esc(cl.label || name)}</span>
@@ -19641,6 +19773,7 @@ function rvLog(rd, text){ rd.thread.push({ role:"sys", who:"", text, at: rvNow()
 function rvSetStatus(r, v){ setField(r, "status", v); renderProjTabs(); }
 function rvWire(r, rd){
   const box = $("#rvDetail"), role = rvRole(), redraw = () => { rvSave(); renderReview(); };
+  box.querySelectorAll(".rv-round:not(.closed) .dvr").forEach(el => dvrWire(el));
   box.querySelectorAll("[data-rvcmd]").forEach(b => b.onclick = () => openCmd(r.project, r.handle));
   box.querySelectorAll("[data-rvtog]").forEach(h => {
     const go = () => { const x = rvState(r).rounds.find(y => y.n === +h.dataset.rvtog); x.open = !x.open; redraw(); };
@@ -27888,7 +28021,7 @@ async function relHistDraw(pub, fmt){
 // ═══ เวอร์ชันของหน้า — แท็บที่เปิดค้างโค้ดเก่าต้องไม่ซิงก์ทีม ═══
 // เจอจริง 2026-10-27: แท็บเก่าดึงคีย์ใหม่ลงผิดที่ + ดันรายการที่ลบแล้วกลับขึ้นทุกนาที
 // APP_VER ประทับตอน deploy (kol-tools\stamp-version.py) · version.json คู่กันบนเซิร์ฟเวอร์ — ไม่ตรง = รีเฟรช
-const APP_VER = "20261120-163455";
+const APP_VER = "20261120-163752";
 let STALE = false;
 async function verCheck(){
   if (STALE || APP_VER === "dev") return;
