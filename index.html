@@ -24,7 +24,7 @@
   base-uri 'none';
   object-src 'none'">
 <title>Creataew — KOL Sourcing</title>
-<meta name="cf-ver" content="20261120-162844">
+<meta name="cf-ver" content="20261120-163114">
 <!-- Beta / Publish (2026-11-06): หน้าแรก = เวอร์ชันล่าสุด (admin เห็นก่อน) · คนอื่นถูกพาไป v/<เวอร์ชันที่ Publish>.html
      จำเวอร์ชันที่ Publish ไว้ในเครื่อง = พาไปได้ทันทีไม่ต้องรอเน็ต แล้วเช็คซ้ำเบื้องหลัง · ฐานข้อมูลไม่มี RPC (sandbox) = อยู่ตัวล่าสุด -->
 <script>(function(){try{
@@ -1053,6 +1053,12 @@ body:not([data-view="find"]) #cartBtn{display:none!important}
 .icobtn.has{color:var(--accent);position:relative}
 select.asg.pend{color:var(--warn);font-style:italic}
 .shist ul{margin:4px 0 6px;padding-left:18px}
+.cdata{display:grid;grid-template-columns:repeat(auto-fit,minmax(110px,1fr));gap:6px;margin:4px 0 4px}
+.cdata .cd-c{background:var(--surface2);border-radius:8px;padding:6px 8px}
+.cdata .cd-c .k{font-size:.72rem;color:var(--mute)}
+.cdata .cd-c .v{font-weight:700}
+.cdata .cd-c.ok .v{color:var(--hi)}
+.cdata .cd-c.no .v{color:var(--lo)}
 .shist li{margin:2px 0}
 .shist .sh-st{font-size:.75rem;padding:1px 7px;border-radius:999px;margin-left:4px}
 .shist .sh-st.sel{background:rgba(var(--hi-rgb),.18);color:var(--hi)}
@@ -9389,11 +9395,25 @@ const shDate = d => { const t = String(d || "").trim(); let m;
   if ((m = t.match(/^(\d{4})[\/-](\d{1,2})[\/-](\d{1,2})/))) return new Date(+m[1], +m[2] - 1, +m[3]);
   if ((m = t.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})/))) return new Date(+m[3], +m[1] - 1, +m[2]);
   return null; };
+// data ตามเกณฑ์ในชีต (GMV ≥10K · ผู้หญิง ≥60% · วิวเฉลี่ย ≥1K · Engagement ≥2%) — ✓ ผ่าน / ✗ ไม่ผ่าน
+// GMV ที่เป็นช่วง ("฿1K-฿10K") ใช้ตัวเลขแรก = ยังไม่ถึง 10K · "฿10K+" = 10K
+const dataNum = v => { const t = String(v || "").replace(/[฿,\s]/g, "").split(/-|–/)[0].replace(/\+$/, "");
+  const m = t.match(/^([\d.]+)([kKmM])?%?$/); if (!m) return null; return parseFloat(m[1]) * (m[2] ? (/k/i.test(m[2]) ? 1e3 : 1e6) : 1); };
+function creatorDataHTML(P){
+  const d = P && P.data; if (!d) return "";
+  const C = (typeof PR_DEF !== "undefined" && PR_DEF.criteria) || { gmv: 10000, women: 60, view: 1000, er: 2 };
+  const one = (k, label, v, min, unit) => { if (!v) return `<div class="cd-c"><div class="k">${label}</div><div class="v">—</div></div>`;
+    const n = dataNum(v), ok = n != null && n >= min;
+    return `<div class="cd-c ${n == null ? "" : ok ? "ok" : "no"}" title="เกณฑ์ ≥ ${min.toLocaleString()}${unit}"><div class="k">${label}</div><div class="v">${esc(v)}${n == null ? "" : ok ? " ✓" : " ✗"}</div></div>`; };
+  const at = d.at ? new Date(d.at) : null;
+  return `<div class="cdata">${one("gmv", "GMV", d.gmv, C.gmv, "")}${one("women", "ผู้ติดตามหญิง", d.women, C.women, "%")}${one("view", "วิวเฉลี่ย", d.view, C.view, "")}${one("er", "Engagement", d.er, C.er, "%")}</div>
+    <div class="hint">data จากชีต Nominate (TikTok Shop Partner Center · 30 วัน)${at && !isNaN(at) ? " · อัปเดต " + esc(at.toLocaleDateString("th-TH", { day: "numeric", month: "short" })) : ""}</div>`;
+}
 function sheetHistHTML(handle){
   const P = (POOL_ALL.length ? POOL_ALL : POOL).find(x => normId(x.id) === normId(handle));
   const L = ((P && P.hist) || []).slice().sort((a, b) => ((shDate(b.d) || 0) - (shDate(a.d) || 0)));
-  if (!L.length) return "";
-  return `<div class="dsect shist"><h3>📋 อยู่ในชีตโปรเจกต์ ${L.length} โปรเจกต์</h3><ul>${L.map(x => { const d = shDate(x.d);
+  if (!L.length) return P && P.data ? `<div class="dsect shist"><h3>📊 Data ครีเอเตอร์</h3>${creatorDataHTML(P)}</div>` : "";
+  return `<div class="dsect shist">${P && P.data ? `<h3>📊 Data ครีเอเตอร์</h3>${creatorDataHTML(P)}` : ""}<h3>📋 อยู่ในชีตโปรเจกต์ ${L.length} โปรเจกต์</h3><ul>${L.map(x => { const d = shDate(x.d);
     return `<li><b>${esc(x.p || "")}</b> <span class="sh-st ${x.s === "Selected" ? "sel" : "nom"}">${x.s === "Selected" ? "ได้ร่วมงาน" : "ถูกเสนอชื่อ"}</span>${
       d ? ` <span class="hint">${esc(d.toLocaleDateString("th-TH", { day: "numeric", month: "short", year: "2-digit" }))}</span>` : ""}</li>`; }).join("")}</ul>
     <div class="hint">จากแท็บ Nominate / Creators Selected ของชีตที่เชื่อม — อัปเดตเองทุกชั่วโมง</div></div>`;
@@ -19657,6 +19677,7 @@ function sbRowToPool(row){
     blacklist: String(row.blacklist == null ? "" : row.blacklist).trim(),
     priv: !!row.owner,                 // คลังส่วนตัว — เห็นเฉพาะเจ้าของ (RLS กรองให้แล้ว)
     hist: Array.isArray(row.history) ? row.history : [],   // [{p: โปรเจกต์, s: Nominate|Selected, d: วันที่}] จากชีตที่เชื่อม
+    data: row.gmv || row.women || row.avg_view || row.er ? { gmv: row.gmv || "", women: row.women || "", view: row.avg_view || "", er: row.er || "", at: row.data_at || "" } : null,
     id:   (row.handle || "").trim(),
     link: (row.link || "").trim(),
     fol:  parseFollowers(row.follower != null ? String(row.follower) : "0"),
@@ -19795,7 +19816,7 @@ function dedupePool(list){
   return out;
 }
 async function fetchPoolSB(){
-  const cols = ((await blProbe()) ? SB_POOL_COLS + ",blacklist" : SB_POOL_COLS) + ((await ownProbe()) ? ",owner" : "") + ((await histProbe()) ? ",history" : "");
+  const cols = ((await blProbe()) ? SB_POOL_COLS + ",blacklist" : SB_POOL_COLS) + ((await ownProbe()) ? ",owner" : "") + ((await histProbe()) ? ",history,gmv,women,avg_view,er,data_at" : "");
   const data = await sbFetchAll("/rest/v1/pool?select=" + cols + "&order=handle.asc",
     "โหลดข้อมูลจาก Supabase ไม่สำเร็จ");
   return dedupePool(data.filter(x => (x.handle || "").trim()).map(sbRowToPool));
@@ -27776,7 +27797,7 @@ async function relHistDraw(pub, fmt){
 // ═══ เวอร์ชันของหน้า — แท็บที่เปิดค้างโค้ดเก่าต้องไม่ซิงก์ทีม ═══
 // เจอจริง 2026-10-27: แท็บเก่าดึงคีย์ใหม่ลงผิดที่ + ดันรายการที่ลบแล้วกลับขึ้นทุกนาที
 // APP_VER ประทับตอน deploy (kol-tools\stamp-version.py) · version.json คู่กันบนเซิร์ฟเวอร์ — ไม่ตรง = รีเฟรช
-const APP_VER = "20261120-162844";
+const APP_VER = "20261120-163114";
 let STALE = false;
 async function verCheck(){
   if (STALE || APP_VER === "dev") return;
