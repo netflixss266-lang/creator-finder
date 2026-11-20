@@ -24,7 +24,7 @@
   base-uri 'none';
   object-src 'none'">
 <title>Creataew — KOL Sourcing</title>
-<meta name="cf-ver" content="20261120-162405">
+<meta name="cf-ver" content="20261120-162844">
 <!-- Beta / Publish (2026-11-06): หน้าแรก = เวอร์ชันล่าสุด (admin เห็นก่อน) · คนอื่นถูกพาไป v/<เวอร์ชันที่ Publish>.html
      จำเวอร์ชันที่ Publish ไว้ในเครื่อง = พาไปได้ทันทีไม่ต้องรอเน็ต แล้วเช็คซ้ำเบื้องหลัง · ฐานข้อมูลไม่มี RPC (sandbox) = อยู่ตัวล่าสุด -->
 <script>(function(){try{
@@ -1052,6 +1052,11 @@ body:not([data-view="find"]) #cartBtn{display:none!important}
 /* จุดแดง = คนนี้มี Command ของตัวเอง ไม่ได้ใช้ข้อความต้นแบบร่วมกับคนอื่น */
 .icobtn.has{color:var(--accent);position:relative}
 select.asg.pend{color:var(--warn);font-style:italic}
+.shist ul{margin:4px 0 6px;padding-left:18px}
+.shist li{margin:2px 0}
+.shist .sh-st{font-size:.75rem;padding:1px 7px;border-radius:999px;margin-left:4px}
+.shist .sh-st.sel{background:rgba(var(--hi-rgb),.18);color:var(--hi)}
+.shist .sh-st.nom{background:rgba(var(--warn-rgb),.18);color:var(--warn)}
 .mbud{border:1px solid var(--line);border-radius:12px;padding:12px 14px;margin:0 0 14px;background:var(--surface)}
 .mbud .mb-h{display:flex;gap:10px;align-items:baseline;flex-wrap:wrap;margin-bottom:8px}
 .mbud .mb-in{display:flex;gap:10px;align-items:flex-end;flex-wrap:wrap;margin-bottom:10px}
@@ -9309,6 +9314,7 @@ function renderDetail(){
 
     ${hist.length > 1 ? `<div class="dsect"><h3>เคยร่วมงาน ${hist.length} โปรเจกต์</h3>
       ${histTable(hist)}</div>` : ""}
+    ${sheetHistHTML(r.handle)}
 
     <div class="dact">
       <button class="export" id="dCmd">✉ เปิด Command</button>
@@ -9377,6 +9383,21 @@ $("#closeDetail").onclick = closeDetail;
 $("#detailScrim").onclick = closeDetail;
 
 // ─── ประวัติครีเอเตอร์ข้ามโปรเจกต์ ───
+// ═══ ประวัติจากชีต (pool.history) — อยู่โปรเจกต์ไหน ถึงขั้นไหน (Jibli 2026-11-21) ═══
+// แท็บ Nominate = ถูกเสนอชื่อ · Creators Selected = ได้ร่วมงาน · อัปเดตเองทุกชั่วโมงจากชีตที่เชื่อม
+const shDate = d => { const t = String(d || "").trim(); let m;
+  if ((m = t.match(/^(\d{4})[\/-](\d{1,2})[\/-](\d{1,2})/))) return new Date(+m[1], +m[2] - 1, +m[3]);
+  if ((m = t.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})/))) return new Date(+m[3], +m[1] - 1, +m[2]);
+  return null; };
+function sheetHistHTML(handle){
+  const P = (POOL_ALL.length ? POOL_ALL : POOL).find(x => normId(x.id) === normId(handle));
+  const L = ((P && P.hist) || []).slice().sort((a, b) => ((shDate(b.d) || 0) - (shDate(a.d) || 0)));
+  if (!L.length) return "";
+  return `<div class="dsect shist"><h3>📋 อยู่ในชีตโปรเจกต์ ${L.length} โปรเจกต์</h3><ul>${L.map(x => { const d = shDate(x.d);
+    return `<li><b>${esc(x.p || "")}</b> <span class="sh-st ${x.s === "Selected" ? "sel" : "nom"}">${x.s === "Selected" ? "ได้ร่วมงาน" : "ถูกเสนอชื่อ"}</span>${
+      d ? ` <span class="hint">${esc(d.toLocaleDateString("th-TH", { day: "numeric", month: "short", year: "2-digit" }))}</span>` : ""}</li>`; }).join("")}</ul>
+    <div class="hint">จากแท็บ Nominate / Creators Selected ของชีตที่เชื่อม — อัปเดตเองทุกชั่วโมง</div></div>`;
+}
 function creatorHistory(handle){
   const id = normId(handle);
   const out = [];
@@ -9416,6 +9437,7 @@ function renderCreatorCard(q){
   el.innerHTML = `<div class="ccard">
     <h3><a href="https://www.tiktok.com/@${esc(h)}" target="_blank" rel="noopener noreferrer">${esc(h)} ↗</a></h3>
     <div class="sub">เคยร่วมงาน <b>${hist.length}</b> โปรเจกต์</div>
+    ${sheetHistHTML(h)}
     ${(() => {
       // การ์ดนี้คือที่ที่คนมาเช็คก่อนตัดสินใจรับเข้างานใหม่ — ประวัติหนังสือเตือนต้องอยู่ตรงนี้
       const w = lawWarnHistory(h);
@@ -19592,6 +19614,15 @@ async function ownProbe(){
   } catch(e){}
   return OWN_READY === true;
 }
+let HIST_READY = null;   // pool.history — โปรเจกต์ที่ครีเอเตอร์เคยอยู่ (จากชีตที่เชื่อม · 2026-11-21)
+async function histProbe(){
+  if (HIST_READY !== null) return HIST_READY;
+  try {
+    const r = await sbAuthed(SB_URL + "/rest/v1/pool?select=history&limit=1");
+    if (r.ok) HIST_READY = true; else if (r.status === 400 || r.status === 401 || r.status === 403) HIST_READY = false;
+  } catch(e){}
+  return HIST_READY === true;
+}
 async function blProbe(){
   if (BL_READY !== null) return BL_READY;
   try {
@@ -19625,6 +19656,7 @@ function sbRowToPool(row){
     live: (row.live || "").trim(),
     blacklist: String(row.blacklist == null ? "" : row.blacklist).trim(),
     priv: !!row.owner,                 // คลังส่วนตัว — เห็นเฉพาะเจ้าของ (RLS กรองให้แล้ว)
+    hist: Array.isArray(row.history) ? row.history : [],   // [{p: โปรเจกต์, s: Nominate|Selected, d: วันที่}] จากชีตที่เชื่อม
     id:   (row.handle || "").trim(),
     link: (row.link || "").trim(),
     fol:  parseFollowers(row.follower != null ? String(row.follower) : "0"),
@@ -19763,7 +19795,7 @@ function dedupePool(list){
   return out;
 }
 async function fetchPoolSB(){
-  const cols = ((await blProbe()) ? SB_POOL_COLS + ",blacklist" : SB_POOL_COLS) + ((await ownProbe()) ? ",owner" : "");
+  const cols = ((await blProbe()) ? SB_POOL_COLS + ",blacklist" : SB_POOL_COLS) + ((await ownProbe()) ? ",owner" : "") + ((await histProbe()) ? ",history" : "");
   const data = await sbFetchAll("/rest/v1/pool?select=" + cols + "&order=handle.asc",
     "โหลดข้อมูลจาก Supabase ไม่สำเร็จ");
   return dedupePool(data.filter(x => (x.handle || "").trim()).map(sbRowToPool));
@@ -27744,7 +27776,7 @@ async function relHistDraw(pub, fmt){
 // ═══ เวอร์ชันของหน้า — แท็บที่เปิดค้างโค้ดเก่าต้องไม่ซิงก์ทีม ═══
 // เจอจริง 2026-10-27: แท็บเก่าดึงคีย์ใหม่ลงผิดที่ + ดันรายการที่ลบแล้วกลับขึ้นทุกนาที
 // APP_VER ประทับตอน deploy (kol-tools\stamp-version.py) · version.json คู่กันบนเซิร์ฟเวอร์ — ไม่ตรง = รีเฟรช
-const APP_VER = "20261120-162405";
+const APP_VER = "20261120-162844";
 let STALE = false;
 async function verCheck(){
   if (STALE || APP_VER === "dev") return;
