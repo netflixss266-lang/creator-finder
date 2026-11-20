@@ -25,7 +25,7 @@
   base-uri 'none';
   object-src 'none'">
 <title>Creataew — KOL Sourcing</title>
-<meta name="cf-ver" content="20261120-165738">
+<meta name="cf-ver" content="20261120-171230">
 <!-- Beta / Publish (2026-11-06): หน้าแรก = เวอร์ชันล่าสุด (admin เห็นก่อน) · คนอื่นถูกพาไป v/<เวอร์ชันที่ Publish>.html
      จำเวอร์ชันที่ Publish ไว้ในเครื่อง = พาไปได้ทันทีไม่ต้องรอเน็ต แล้วเช็คซ้ำเบื้องหลัง · ฐานข้อมูลไม่มี RPC (sandbox) = อยู่ตัวล่าสุด -->
 <script>(function(){try{
@@ -1072,6 +1072,7 @@ select.asg.pend{color:var(--warn);font-style:italic}
 .dvr-say{display:flex;gap:6px;align-items:flex-end}
 .dvr-say .dvr-ts{width:62px;padding:6px;border-radius:8px;border:1px solid var(--line);background:var(--bg);color:var(--ink);font:inherit}
 .dvr-say .dvr-in{flex:1;min-height:36px;max-height:140px;resize:vertical;padding:7px 9px;border-radius:8px;border:1px solid var(--line);background:var(--bg);color:var(--ink);font:inherit}
+#drRoom[hidden]{display:none!important}
 #drRoom{position:fixed;inset:0;z-index:8000;background:rgba(0,0,0,.55);display:flex;align-items:center;justify-content:center;padding:16px}
 #drRoom .drr-card{background:var(--surface);color:var(--ink);border:1px solid var(--line);border-radius:14px;padding:14px;width:min(640px,100%);max-height:92vh;overflow:auto;display:flex;flex-direction:column;gap:10px}
 #drRoom header{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
@@ -3710,6 +3711,11 @@ body[data-view="coord"] #coordView{padding-top:12px}
 .pp-card.ok{border-left:3px solid var(--hi)}
 .pp-col h4 .own{font-size:.64rem;font-weight:600}
 .pp-card .pp-pm{color:var(--info);font-weight:700}
+.cflow{display:flex;flex-wrap:wrap;align-items:center;gap:4px;margin:6px 0 8px}
+.cflow .cf{padding:3px 8px;border-radius:999px;font-size:.78rem;border:1px solid var(--c,var(--line));color:var(--c,var(--ink));background:var(--surface2);white-space:nowrap}
+.cflow .cf.done{opacity:.55}
+.cflow .cf.hi{background:var(--accent);border-color:var(--accent);color:#06231f;font-weight:700}
+.cflow i{font-style:normal;color:var(--dim);font-size:.8rem}
 .pr-view{display:inline-flex;gap:4px}
 .pr-sheetwrap{overflow:auto;max-height:70vh;border:1px solid var(--line);border-radius:10px}
 .pr-sheet{border-collapse:collapse;width:100%;font-size:.84rem;min-width:980px}
@@ -19591,10 +19597,13 @@ function draftRoomHTML(r, n){
       <button type="button" class="cmdbtn dvr-send">ส่ง</button></div></div>`;
 }
 const dvrParse = el => { const [proj, handle, n] = el.dataset.dvr.split("|"); return { proj, handle, n: +n }; };
+// โปรเจกต์ฝึกหัด (คู่มือ) — คอมเมนต์อยู่ในหน่วยความจำ ไม่ขึ้นฐานข้อมูล ทีมไม่เห็น
+const DVR_LOCAL = {};
+const dvrIsPrac = proj => !!(projMeta(proj) || {}).practice;
 async function dvrLoad(el){
   const { proj, handle, n } = dvrParse(el), th = el.querySelector(".dvr-thread");
   try {
-    const r = await sbAuthed(SB_URL + "/rest/v1/draft_comments?select=id,who,who_name,role,ts,body,created_at&owner=eq." + encodeURIComponent(spaceOf(proj))
+    const r = dvrIsPrac(proj) ? { ok: true, json: async () => DVR_LOCAL[`${proj}|${handle}|${n}`] || [] } : await sbAuthed(SB_URL + "/rest/v1/draft_comments?select=id,who,who_name,role,ts,body,created_at&owner=eq." + encodeURIComponent(spaceOf(proj))
       + "&project=eq." + encodeURIComponent(proj) + "&handle=eq." + encodeURIComponent(handle) + "&n=eq." + n + "&order=created_at.asc", { cache: "no-store" });
     if (!r.ok) throw new Error(r.status === 404 ? "ฐานข้อมูลยังไม่มีตารางคอมเมนต์" : "โหลดคอมเมนต์ไม่ได้ (" + r.status + ")");
     const L = await r.json();
@@ -19639,7 +19648,8 @@ function dvrWire(el){
     const ts = (el.querySelector(".dvr-ts").value || "").trim(), btn = el.querySelector(".dvr-send");
     btn.disabled = true;
     try {
-      await sbSend(SB_URL + "/rest/v1/draft_comments", "POST", [{ owner: spaceOf(proj), project: proj, handle, n, who_name: rvMe(), role: rvRole(), ts: dvrSec(ts) != null ? ts : null, body }],
+      if (dvrIsPrac(proj)) (DVR_LOCAL[`${proj}|${handle}|${n}`] = DVR_LOCAL[`${proj}|${handle}|${n}`] || []).push({ id: String(Date.now()), who: sbUid(), who_name: rvMe(), role: rvRole(), ts: dvrSec(ts) != null ? ts : null, body, created_at: new Date().toISOString() });
+      else await sbSend(SB_URL + "/rest/v1/draft_comments", "POST", [{ owner: spaceOf(proj), project: proj, handle, n, who_name: rvMe(), role: rvRole(), ts: dvrSec(ts) != null ? ts : null, body }],
         "ส่งคอมเมนต์ไม่ได้", "return=minimal");
       inp.value = ""; el.querySelector(".dvr-ts").value = "";
       vlog("draft:comment", { p: proj, h: normId(handle), d: `D${n}` });
@@ -27170,6 +27180,8 @@ const COACH_CHAPTERS = [
   ]},
 ];
 // ── บทฝึกทำจริง (2026-11-06) ── โปรเจกต์ "🎓 ฝึกหัด" อยู่ในเครื่องนี้เท่านั้น ไม่ขึ้นฐาน ทีมไม่เห็น
+// ภาพประกอบในคู่มือ — ป้ายสถานะเรียงเป็นลูกศร · hi = ขั้นที่ไฮไลต์ (อยู่ตรงนี้) · ใช้แทนการอธิบายยาวๆ ที่ "ไม่เห็นภาพ"
+const coachFlow = (L, hi) => `<div class="cflow">${L.map((x, i) => `<span class="cf${i === hi ? " hi" : ""}${i < hi ? " done" : ""}" style="${x[1] ? `--c:${x[1]}` : ""}">${x[0]}</span>`).join(`<i>→</i>`)}</div>`;
 const PRAC = "🎓 ฝึกหัด", PRAC_WHO = "fern.practice";
 let PRAC_COPIED = false, PRAC_PRE = false;   // PRAC_PRE = มีคนฝึกอยู่แล้วตอนเริ่มบท (ข้ามขั้นเพิ่มคน · ตัวนับขั้นไม่กระโดด)
 const pracRow = () => (COORD[PRAC] || []).find(r => normId(r.handle) === PRAC_WHO) || null;
@@ -27197,6 +27209,7 @@ function pracCleanup(){
   $("#fmtPanel").hidden = true;
   PROJ_LIST = PROJ_LIST.filter(p => !p.practice);
   delete COORD[PRAC];
+  try { Object.keys(DVR_LOCAL).forEach(k => { if (k.startsWith(PRAC + "|")) delete DVR_LOCAL[k]; }); } catch(e){}
   try { const k = cmdKey(PRAC, PRAC_WHO); if (CMDOWN[k]){ delete CMDOWN[k]; saveCmdOwn(); } } catch(e){}
   syncProjects();
   try { lsSet(LS_PROJ, JSON.stringify(PROJ_LIST)); } catch(e){}
@@ -27263,10 +27276,23 @@ const PRACTICE_CHAPTER = { k:"practice", ic:"🎓", t:"ลงมือทำจ�
     onEnter: () => { const r = pracRow(); if (r) openCmd(PRAC, PRAC_WHO); },
     done: () => { const r = pracRow(); return !!(r && drMark(r)); }, waitText:"รอคุณกด 📥..." },
   { kick:"④ ตรวจดราฟต์", t:"ตรวจเสร็จ → กด 📥 อีกที",
-    text:`กดอีกครั้ง = ตรวจแล้ว ส่งต่อให้ PM → สถานะไป <span style="color:#5AB4FF;font-weight:600">รอ PM ฟีดแบค (กรอบฟ้า)</span> เอง<br>
+    text:`${coachFlow([["รอ Draft 1"], ["📥 ดราฟต์เข้า"], ["รอ PM ฟีดแบค", "#5AB4FF"], ["ส่งฟีดแบค"], ["รอ Draft 2"]], 1)}กดอีกครั้ง = ตรวจแล้ว ส่งต่อให้ PM → สถานะไป <span style="color:#5AB4FF;font-weight:600">รอ PM ฟีดแบค (กรอบฟ้า)</span> เอง<br>
       พอ PM ฟีดแบคแล้ว ส่งกล่องฟีดแบคใน Command → ไป <b>รอ Draft 2</b> เอง`,
     target: () => coachVis(document.querySelector("#cmdSt .cmddr")) || $("#cmdSt"),
     done: () => { const r = pracRow(); return !!(r && /^Waiting PM Feedback/.test(r.status || "")); }, waitText:"รอคุณกด 📥 อีกครั้ง..." },
+  { kick:"④ ตรวจดราฟต์", t:"💬 เปิดห้องดราฟต์",
+    text:`ปุ่ม <b>💬 ดราฟต์</b> ที่หัว Command = ดูคลิปดราฟต์ + คอมเมนต์ของทีมใต้คลิป (ไม่ต้องไปคุยในแชตแยก)<br>
+      ${coachFlow([["▶ เปิดคลิป"], ["⏸ หยุดตรงที่จะติ"], ["⏱ ใส่เวลา"], ["💬 คอมเมนต์"]], -1)}`,
+    target: () => coachVis(document.querySelector("#cmdSt [data-drroom]")) || $("#cmdSt"),
+    onEnter: () => { if (!$("#cmdPanel").classList.contains("on")) openCmd(PRAC, PRAC_WHO); },
+    done: () => !!document.querySelector("#drRoom:not([hidden]) .dvr"), waitText:"รอคุณกด 💬 ดราฟต์..." },
+  { kick:"④ ตรวจดราฟต์", t:"เขียนคอมเมนต์แรก",
+    text:`ลองพิมพ์ <b>0:05</b> ในช่องเวลา แล้วเขียน <b>"ซีนเปิดยาวไป ตัดได้"</b> → กด <b>ส่ง</b><br>
+      <span style="color:var(--dim)">ของจริง: เปิดคลิปแล้วกด ⏱ = ใส่เวลาให้เอง · ทีมทุกคนเห็นคอมเมนต์ · กดเวลาในคอมเมนต์ = กระโดดไปตรงนั้น · ในบทฝึกหัดไม่ขึ้นฐานข้อมูล</span>`,
+    target: () => coachVis(document.querySelector("#drRoom .dvr-say")) || coachVis(document.querySelector("#drRoom .drr-card")),
+    onEnter: () => { if (!document.querySelector("#drRoom:not([hidden]) .dvr")) openDraftRoom(PRAC, PRAC_WHO); },
+    done: () => Object.keys(DVR_LOCAL).some(k => k.startsWith(PRAC + "|") && DVR_LOCAL[k].length), waitText:"รอคุณส่งคอมเมนต์...",
+    onExit: () => { const b = $("#drRoom"); if (b){ b.hidden = true; b.innerHTML = ""; } } },
   { kick:"⑤ Map", t:"ลากใบเพื่อย้ายขั้น",
     text:`นี่คือแผนผังของโปรเจกต์ — ทุกคนอยู่ขั้นไหนในหน้าเดียว<br><b>ลากใบ ${PRAC_WHO}</b> ไปวางที่ขั้นอื่น (เช่น โพสต์) = เปลี่ยนสถานะ`,
     target: () => document.querySelector(`#mapBody [data-mapwho="${PRAC_WHO}"]`) && document.querySelector(`#mapBody [data-mapwho="${PRAC_WHO}"]`).closest(".mapleafwrap, .mapleaf") || $("#mapBody"),
@@ -27280,13 +27306,49 @@ const PRACTICE_CHAPTER = { k:"practice", ic:"🎓", t:"ลงมือทำจ�
     onEnter: () => { coachCloseMap(); coachCloseCmd(); },
     done: () => !$("#fmtPanel").hidden, waitText:"รอคุณกด F หรือ ✉..." },
   { kick:"เสร็จแล้ว 🎉", t:"ครบทุกขั้นของงานหนึ่งคน",
-    text:`เพิ่มคน → เรท → Command → ส่งแล้ว → 📥 ตรวจดราฟต์ → Map → Format<br>
+    text:`${coachFlow([["เพิ่มคน"], ["เรท"], ["Command"], ["ส่งแล้ว"], ["📥 ตรวจ"], ["💬 คอมเมนต์"], ["Map"], ["Format"]], 8)}
       งานจริงทำแบบเดียวกันในโปรเจกต์ของทีม · กด <b>จบบทนี้</b> = ลบโปรเจกต์ฝึกหัดทิ้ง<br>
       <span style="color:var(--dim)">ดูบทอื่นในสารบัญต่อได้ — รู้จักหน้าจอ · Command · Map · ทีม</span>`,
     onEnter: () => { $("#fmtPanel").hidden = true; },
     onExit: () => pracCleanup() },
 ]};
 COACH_CHAPTERS.splice(COACH_CHAPTERS.indexOf("__PRACTICE__"), 1, PRACTICE_CHAPTER);
+// ═══ 🆕 บท "ลองของใหม่" (Jibli 2026-11-21) — คนที่ไม่ได้เข้ามาระหว่างอัปเดต ลองกดของใหม่ทีละอย่าง ═══
+// ชี้ปุ่มจริง + รอให้กดเอง · ขั้นที่ยศนั้นใช้ไม่ได้ ข้ามเอง (Project Tracking ต้องเปิดสิทธิ์ · งบ = PM/PMA/admin)
+const NEW_CHAPTER = { k:"new19", ic:"🆕", t:"ลองของใหม่ (21 พ.ย.)", sub:"⌨ คีย์ลัดของฉัน · 📊 Project Tracking · 🧮 คำนวณงบ · 📋 List แบบชีต", steps:[
+  { kick:"ของใหม่", t:"ลองกดตามทีละอย่าง",
+    text:`บทนี้พาไปกดของใหม่ <b>ทีละปุ่มของจริง</b> — ไม่มีอะไรเปลี่ยนในงานของทีม<br>
+      ${coachFlow([["⌨ คีย์ลัด"], ["📊 Tracking"], ["🧮 งบ"], ["📋 List"]], 0)}
+      <span style="color:var(--dim)">ปุ่ม 💬 ดราฟต์ (คอมเมนต์ใต้คลิป) ลองได้ในบท 🎓 ลงมือทำจริง</span>`,
+    onEnter: async () => { coachCloseMap(); coachCloseCmd(); if (document.body.dataset.view !== "coord") await setView("coord"); } },
+  { kick:"⌨ คีย์ลัดของฉัน", t:"ตั้งปุ่มลัดเอง",
+    text:`กด <b>เปลี่ยน</b> ข้างคำสั่งไหนก็ได้ แล้วกดตัวอักษรที่ถนัด เช่น ให้ <b>9</b> = ไปที่ตาราง<br>
+      ${coachFlow([["เปลี่ยน"], ["กดปุ่มใหม่"], ["✓ บันทึกเอง"]], -1)}<span style="color:var(--dim)">ไม่อยากเปลี่ยนก็กดถัดไปได้เลย · ↺ = กลับปุ่มเดิม</span>`,
+    target: () => coachVis($("#hkSect")),
+    onEnter: () => { openSettings(); const d = $("#hkSect"); if (d){ d.open = true; renderHotkeys(); setTimeout(() => d.scrollIntoView({ block: "center" }), 80); } },
+    onExit: () => { HK_REC = null; $("#settings").hidden = true; } },
+  { kick:"📊 Project Tracking", t:"ทุกโปรเจกต์ในบอร์ดเดียว — กด P",
+    text:`${coachFlow([["รอ Draft 1–3"], ["รอ PM ตรวจ", "#5AB4FF"], ["รอโพสต์"], ["โพสต์แล้ว"], ["รอจ่าย"], ["จ่ายแล้ว"]], -1)}
+      การ์ดในคอลัมน์ <b>รอ PM ตรวจ</b> บอกว่าตรวจสคริปต์หรือ Draft ไหน · กดการ์ด = ดูประวัติ + ย้ายขั้นถัดไป`,
+    skip: () => !can("pipeline"),
+    target: () => coachVis($("#pipeNavBtn")) || coachVis($("#pipeMapBtn")),
+    done: () => !$("#pipePanel").hidden, waitText:"รอคุณกด P หรือปุ่ม 📊 Project Tracking...",
+    onExit: () => { $("#pipePanel").hidden = true; } },
+  { kick:"🧮 คำนวณงบ", t:"Map › เงิน",
+    text:`ใส่ <b>งบที่ได้</b> + <b>เป้าจำนวนครีเอเตอร์</b> → เห็นทันทีว่าใช้ไปเท่าไหร่ เหลือเท่าไหร่ และ<b>เหลือจ้างได้คนละเท่าไหร่</b><br>
+      ${coachFlow([["งบที่ได้"], ["− ใช้ไป"], ["= เหลือ"], ["÷ คนที่ยังขาด"], ["= งบต่อคน"]], 4)}`,
+    skip: () => isCrew() || !PROJ || !PROJECTS.includes(PROJ),
+    target: () => coachVis($("#mapBudget")) || coachVis($("#mapBody")),
+    onEnter: () => { coachCloseCmd(); MAP_MODE = "money"; openMap(PROJ); },
+    onExit: () => coachCloseMap() },
+  { kick:"📋 List แบบชีต", t:"วางรายชื่อจากชีตได้ทั้งแถว",
+    text:`หน้า <b>List &amp; Nominate</b> กด <b>▦ ตารางแบบชีต</b> = แก้ทุกช่องเหมือนชีต · ก๊อปหลายช่องจากชีตมาวางทีเดียว<br>
+      ${coachFlow([["ก๊อปจากชีต"], ["วางช่องแรก"], ["เติมขวา + ลงล่างเอง"]], -1)}<span style="color:var(--dim)">สีเขียว/แดง = ผ่าน/ไม่ผ่านเกณฑ์ GMV · ผู้หญิง · วิว · ER</span>`,
+    skip: () => !can("prospects") },
+  { kick:"เสร็จแล้ว 🎉", t:"ลองของใหม่ครบ",
+    text:`ดูรายละเอียดทุกข้อได้ที่ เมนูบัญชี › <b>🆕 มีอะไรใหม่</b> · อยากลองทำงานทั้งเส้นตั้งแต่เพิ่มคนจนตรวจดราฟต์ → บท <b>🎓 ลงมือทำจริง</b>` },
+]};
+COACH_CHAPTERS.splice(1, 0, NEW_CHAPTER);
 let COACH = [];
 let COACH_CH = -1;
 function coachChDone(){ try { return JSON.parse(lsGet(LS_TOUR_CH) || "[]") || []; } catch(e){ return []; } }
@@ -27950,6 +28012,13 @@ document.addEventListener("keydown", e => { if (!ST) return;
 // ขั้นสอนของแต่ละอัปเดต (คีย์ = n ใน RELEASE_NOTES) · อัปเดตที่ทีมเห็นได้ ควรมีขั้นสอนเสมอ
 const goCoord = async () => { $("#todoPop").hidden = true; if (document.body.dataset.view !== "coord") await setView("coord"); if (!$("#mapView").hidden) $("#mapView").hidden = true; };
 const RELEASE_TOURS = {
+  get 19(){ return [
+    { pre: goCoord, sel: ".icobtn.cmdgo", t: "ปุ่ม <b>✉ Command</b> ในตารางเด่นขึ้นแล้ว — กดเปิด Command ของคนไหนก็ได้ แล้วจะเห็นปุ่ม <b>💬 ดราฟต์</b> ที่หัว = ดูคลิป + คอมเมนต์ของทีมใต้คลิป" },
+    { pre: async () => { await goCoord(); openSettings(); const d = $("#hkSect"); if (d){ d.open = true; renderHotkeys(); } }, sel: "#hkSect", t: "<b>⌨ คีย์ลัดของฉัน</b> — กด เปลี่ยน แล้วกดตัวอักษรที่ถนัด · เก็บกับบัญชีของคุณ ใช้ได้ทุกเครื่อง" },
+    ...(can("pipeline") ? [{ pre: async () => { $("#settings").hidden = true; await goCoord(); openPipe(); }, sel: "#ppBoard", t: "<b>📊 Project Tracking</b> (คีย์ลัด P) — คอลัมน์ใหม่: รอ Draft 1 / 2 / 3+ · <b>รอ PM ตรวจ</b> (การ์ดบอกว่าตรวจส่วนไหน) · รอจ่ายเงิน · จ่ายแล้ว" }] : []),
+    ...(!isCrew() && PROJ ? [{ pre: async () => { $("#settings").hidden = true; $("#pipePanel").hidden = true; await goCoord(); MAP_MODE = "money"; openMap(PROJ); }, sel: "#mapBudget", t: "<b>🧮 คำนวณงบ</b> (Map › เงิน) — ใส่งบที่ได้ + เป้าจำนวนครีเอเตอร์ → เห็นงบต่อคนที่ยังใช้ได้" }] : []),
+    { pre: async () => { $("#settings").hidden = true; $("#pipePanel").hidden = true; try { coachCloseMap(); } catch(e){} await goCoord(); }, t: "อยากลองทำจริงทีละขั้น → เมนูบัญชี › <b>คู่มือ</b> › บท <b>🆕 ลองของใหม่</b>" },
+  ]; },
   18: [ { pre: goCoord, sel: "header", t: "เปิด <b>Command</b> ของครีเอเตอร์คนไหนก็ได้ — ครั้งแรกจะมีบทเรียนให้สร้างบล็อกข้อความของตัวเอง 1 อัน แล้วชุด Command นั้นเป็นของคุณคนเดียว" } ],
   17: [ { pre: goCoord, sel: "#navHist", t: "ปุ่ม <b>‹</b> ย้อนกลับไปหน้าก่อน · <b>›</b> ไปข้างหน้า — ใช้ได้ทุกหน้า รวมถึงตอนเปิด Map / Command" } ],
   16: [ { pre: goCoord, sel: "#navBar", t: "หัวเว็บเหลือปุ่มหลัก 4 ปุ่ม — ของอื่นทั้งหมดอยู่ใน <b>⋯ เพิ่มเติม</b>" },
@@ -28123,7 +28192,7 @@ async function relHistDraw(pub, fmt){
 // ═══ เวอร์ชันของหน้า — แท็บที่เปิดค้างโค้ดเก่าต้องไม่ซิงก์ทีม ═══
 // เจอจริง 2026-10-27: แท็บเก่าดึงคีย์ใหม่ลงผิดที่ + ดันรายการที่ลบแล้วกลับขึ้นทุกนาที
 // APP_VER ประทับตอน deploy (kol-tools\stamp-version.py) · version.json คู่กันบนเซิร์ฟเวอร์ — ไม่ตรง = รีเฟรช
-const APP_VER = "20261120-165738";
+const APP_VER = "20261120-171230";
 let STALE = false;
 async function verCheck(){
   if (STALE || APP_VER === "dev") return;
