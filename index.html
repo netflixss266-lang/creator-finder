@@ -24,7 +24,7 @@
   base-uri 'none';
   object-src 'none'">
 <title>Creataew — KOL Sourcing</title>
-<meta name="cf-ver" content="20261120-163114">
+<meta name="cf-ver" content="20261120-163455">
 <!-- Beta / Publish (2026-11-06): หน้าแรก = เวอร์ชันล่าสุด (admin เห็นก่อน) · คนอื่นถูกพาไป v/<เวอร์ชันที่ Publish>.html
      จำเวอร์ชันที่ Publish ไว้ในเครื่อง = พาไปได้ทันทีไม่ต้องรอเน็ต แล้วเช็คซ้ำเบื้องหลัง · ฐานข้อมูลไม่มี RPC (sandbox) = อยู่ตัวล่าสุด -->
 <script>(function(){try{
@@ -1053,6 +1053,13 @@ body:not([data-view="find"]) #cartBtn{display:none!important}
 .icobtn.has{color:var(--accent);position:relative}
 select.asg.pend{color:var(--warn);font-style:italic}
 .shist ul{margin:4px 0 6px;padding-left:18px}
+.hklist{display:flex;flex-direction:column;gap:6px;margin-top:6px}
+.hkrow{display:flex;align-items:center;gap:8px;flex-wrap:wrap;padding:6px 8px;border-radius:8px;background:var(--surface2)}
+.hkrow.own{outline:1px solid rgba(var(--accent-rgb),.5)}
+.hkrow .hk-th{flex:1 1 200px;min-width:0}
+.hkrow kbd.hk-k{min-width:2.4em;text-align:center;padding:3px 8px;border-radius:6px;border:1px solid var(--line);background:var(--bg);font:700 .9rem/1.2 ui-monospace,monospace}
+.hkrow kbd.hk-k.rec{border-color:var(--accent);color:var(--accent)}
+.hk-foot{display:flex;justify-content:space-between;align-items:center;gap:8px;margin-top:4px}
 .cdata{display:grid;grid-template-columns:repeat(auto-fit,minmax(110px,1fr));gap:6px;margin:4px 0 4px}
 .cdata .cd-c{background:var(--surface2);border-radius:8px;padding:6px 8px}
 .cdata .cd-c .k{font-size:.72rem;color:var(--mute)}
@@ -5253,6 +5260,12 @@ details.fold[data-fold="crit"],#critBar{display:none!important}
         <span style="color:var(--dim)">สีหลักตั้งต่อได้ที่หัวข้อถัดไป — โทนสว่างจะปรับสีหลักให้เข้มพอจะอ่านออกเอง</span></p>
       <div class="themegrid" id="themeGrid"></div>
     </section>
+    <details class="sect mkeep" id="hkSect">
+      <summary><h3>⌨ คีย์ลัดของฉัน</h3></summary>
+      <p class="sect-sub">ตั้งปุ่มลัดเองได้ทีละคน — กด “เปลี่ยน” แล้วกดตัวอักษรหรือตัวเลขที่ต้องการ · เก็บกับบัญชีนี้ ใช้ได้ทุกเครื่อง ·
+        ไม่ทำงานตอนพิมพ์ในช่อง · ไม่ใช้ปุ่มที่ต้องกด Ctrl/⌘ ร่วม (ชนกับปุ่มของเบราว์เซอร์)</p>
+      <div id="hkList" class="hklist"></div>
+    </details>
     <details class="sect mkeep" id="accentSect">
       <summary><h3>สีหลักของเว็บ</h3></summary>
       <p class="sect-sub">
@@ -8720,9 +8733,10 @@ async function loadPNotes(){
     // owner=ตัวเอง เสมอ — admin มีสิทธิ์อ่านชุด Command ของสมาชิก (policy private_notes_admin_tpl) ถ้าไม่กรองจะได้ของทุกคนมาปนกัน
     const r = await sbAuthed(SB_URL + "/rest/v1/private_notes?select=project,handle,note" + (sbUid() ? "&owner=eq." + sbUid() : ""));
     if (!r.ok) return;
-    PNOTES = {}; MYTPL = {}; MYTPL_K = {}; PFMT = {}; PFMT_SEEDED = false; MYSET = { add: [], hide: [], ord: {} }; MYTRAINED = false;
+    PNOTES = {}; MYTPL = {}; MYTPL_K = {}; PFMT = {}; PFMT_SEEDED = false; MYSET = { add: [], hide: [], ord: {} }; MYTRAINED = false; HK_MINE = {};
     (await r.json()).forEach(x => {
       if (x.project === FMT_P){ if (x.handle === "_seeded") PFMT_SEEDED = true; else { try { PFMT[x.handle] = JSON.parse(x.note); } catch(e){} } return; }
+      if (x.project === HK_P){ try { HK_MINE = JSON.parse(x.note) || {}; lsSet(LS_HK, x.note); } catch(e){} return; }
       if (x.project === MYTPL_P && x.handle === "_trained"){ MYTRAINED = true; return; }
       if (x.project === MYTPL_P && x.handle === "_add"){ try { const a = JSON.parse(x.note); if (Array.isArray(a)) MYSET.add = a.filter(b => b && b.id); } catch(e){} return; }
       if (x.project === MYTPL_P && x.handle === "_meta"){ try { const m = JSON.parse(x.note) || {}; MYSET.hide = Array.isArray(m.hide) ? m.hide : []; MYSET.ord = m.ord && typeof m.ord === "object" ? m.ord : {}; } catch(e){} return; }
@@ -8731,6 +8745,7 @@ async function loadPNotes(){
         try { (MYTPL_K[sk] || (MYTPL_K[sk] = {}))[x.handle] = JSON.parse(x.note); } catch(e){} return; }
       PNOTES[pnKey(x.project, x.handle)] = x.note;
     });
+    lsSet(LS_HK, JSON.stringify(HK_MINE));   // บัญชีนี้ไม่ได้ตั้ง = ล้างแคชของบัญชีก่อนในเครื่องนี้
     fmtPull();
   } catch(e){}
 }
@@ -18591,6 +18606,81 @@ function renderTodo(){
   });
   todoBadge();
 }
+// ═══ ⌨ คีย์ลัดตั้งเองรายคน (Jibli 2026-11-21) ═══
+// ตัวจับคีย์เดิมกระจายหลายที่และเช็กปุ่มตายตัว (KeyM / KeyT …) — ไม่ไล่แก้ทุกตัว ใช้ "ตัวแปลง" ดักหน้าสุดแทน:
+//   กดปุ่มที่ตั้งเอง → ยิงเหตุการณ์ปุ่มเดิมแทน (ตัวจับเดิมทำงานตามปกติ) · ปุ่มเดิมที่ย้ายไปแล้ว = ปิด (ไม่ให้ทำงานซ้ำสองปุ่ม)
+// เก็บที่ private_notes (เห็นคนเดียว) โปรเจกต์ __hotkeys__ · แคชในเครื่องให้ใช้ได้ทันทีก่อนโหลดเสร็จ
+const HK_P = "__hotkeys__", LS_HK = "cf_hotkeys_v1";
+const HK_ACTS = [
+  { id: "map",    def: "KeyM", th: "เปิด/ปิด แผนผัง (Map) ของโปรเจกต์" },
+  { id: "table",  def: "KeyT", th: "ไปที่ตาราง" },
+  { id: "home",   def: "KeyH", th: "หน้าหลักทุกโปรเจกต์" },
+  { id: "format", def: "KeyF", th: "เปิด/ปิด Format ขอเรท" },
+  { id: "kol",    def: "KeyL", th: "กรองเฉพาะ KOL (กดซ้ำ = ทั้งหมด)" },
+  { id: "koc",    def: "KeyC", th: "กรองเฉพาะ KOC (กดซ้ำ = ทั้งหมด)" },
+  { id: "pipe",   def: "KeyP", th: "🧪 Pipeline (admin)" },
+  { id: "todo",   def: "",     th: "เปิด “วันนี้ต้องทำ”", run: () => openTodo() },
+];
+let HK_MINE = (() => { try { return JSON.parse(lsGet(LS_HK) || "{}") || {}; } catch(e){ return {}; } })();
+const hkCode = a => (a.id in HK_MINE ? HK_MINE[a.id] : a.def) || "";
+const hkLabel = c => !c ? "—" : c.startsWith("Key") ? c.slice(3) : c.startsWith("Digit") ? c.slice(5) : c;
+const hkTyping = () => { const a = document.activeElement;
+  return a && (a.tagName === "INPUT" || a.tagName === "TEXTAREA" || a.tagName === "SELECT" || a.isContentEditable); };
+let HK_REC = null;     // กำลังรอรับปุ่มใหม่ของคำสั่งไหน
+window.addEventListener("keydown", e => {
+  if (HK_REC || e.__hk || e.ctrlKey || e.metaKey || e.altKey || e.repeat || hkTyping()) return;
+  const code = e.code; if (!code) return;
+  const act = HK_ACTS.find(a => hkCode(a) === code);
+  if (act){
+    if (act.def === code && !act.run) return;                      // ปุ่มเดิมของมันเอง — ปล่อยตัวจับเดิมทำงาน
+    e.preventDefault(); e.stopImmediatePropagation();
+    if (act.run) return act.run();
+    const ev = new KeyboardEvent("keydown", { code: act.def, key: act.def.slice(3).toLowerCase(), bubbles: true, cancelable: true });
+    ev.__hk = true; (document.activeElement || document.body).dispatchEvent(ev);
+    return;
+  }
+  // ปุ่มเดิมของคำสั่งที่ย้ายไปปุ่มอื่นแล้ว และไม่มีคำสั่งไหนใช้ = ปิด
+  if (HK_ACTS.some(a => a.def === code && hkCode(a) !== code)) e.stopImmediatePropagation();
+}, true);
+async function hkSave(){
+  const note = JSON.stringify(HK_MINE);
+  lsSet(LS_HK, note);
+  try {
+    if (Object.keys(HK_MINE).length) await sbSend(SB_URL + "/rest/v1/private_notes?on_conflict=owner,project,handle", "POST",
+      [{ project: HK_P, handle: "_", note }], "บันทึกคีย์ลัดไม่ได้", "resolution=merge-duplicates,return=minimal");
+    else await sbSend(SB_URL + `/rest/v1/private_notes?project=${sbEq(HK_P)}&handle=${sbEq("_")}`, "DELETE", null, "ล้างคีย์ลัดไม่ได้");
+  } catch(e){ alert(e.message); }
+}
+function renderHotkeys(msg){
+  const box = $("#hkList"); if (!box) return;
+  box.innerHTML = HK_ACTS.map(a => { const c = hkCode(a), own = a.id in HK_MINE;
+    return `<div class="hkrow${own ? " own" : ""}"><span class="hk-th">${esc(a.th)}</span>
+      <kbd class="hk-k${HK_REC === a.id ? " rec" : ""}">${HK_REC === a.id ? "กดปุ่ม…" : esc(hkLabel(c))}</kbd>
+      <button type="button" class="cmdbtn" data-hkset="${a.id}">${HK_REC === a.id ? "ยกเลิก" : "เปลี่ยน"}</button>
+      ${c ? `<button type="button" class="cmdbtn ghost" data-hkoff="${a.id}" title="ไม่ใช้คีย์ลัดนี้">ปิด</button>` : ""}
+      ${own ? `<button type="button" class="cmdbtn ghost" data-hkdef="${a.id}" title="กลับไปใช้ปุ่มเดิม ${esc(hkLabel(a.def))}">↺</button>` : ""}</div>`; }).join("")
+    + `<div class="hk-foot"><span class="hint" id="hkMsg">${esc(msg || "")}</span>${Object.keys(HK_MINE).length ? `<button type="button" class="cmdbtn ghost" id="hkReset">คืนค่าเริ่มต้นทั้งหมด</button>` : ""}</div>`;
+  box.querySelectorAll("[data-hkset]").forEach(b => b.onclick = () => { HK_REC = HK_REC === b.dataset.hkset ? null : b.dataset.hkset; renderHotkeys(HK_REC ? "กดตัวอักษร A–Z หรือตัวเลข 0–9 · Esc = ยกเลิก" : ""); });
+  box.querySelectorAll("[data-hkoff]").forEach(b => b.onclick = () => { HK_MINE[b.dataset.hkoff] = ""; hkSave(); renderHotkeys("ปิดคีย์ลัดแล้ว"); });
+  box.querySelectorAll("[data-hkdef]").forEach(b => b.onclick = () => { delete HK_MINE[b.dataset.hkdef]; hkSave(); renderHotkeys("กลับไปใช้ปุ่มเดิมแล้ว"); });
+  const rs = $("#hkReset"); if (rs) rs.onclick = () => { if (!confirm("คืนคีย์ลัดทั้งหมดเป็นค่าเริ่มต้น?")) return; HK_MINE = {}; hkSave(); renderHotkeys("คืนค่าเริ่มต้นแล้ว"); };
+}
+// รับปุ่มใหม่ — ดักก่อนตัวแปลง (ลงทะเบียนทีหลังแต่เช็ก HK_REC ที่ตัวแปลงข้ามให้แล้ว)
+window.addEventListener("keydown", e => {
+  if (!HK_REC) return;
+  e.preventDefault(); e.stopImmediatePropagation();
+  if (e.key === "Escape"){ HK_REC = null; return renderHotkeys(); }
+  if (e.ctrlKey || e.metaKey || e.altKey) return renderHotkeys("ใช้ Ctrl / ⌘ / Alt ไม่ได้ — กดตัวอักษรหรือตัวเลขอย่างเดียว");
+  if (!/^(Key[A-Z]|Digit[0-9])$/.test(e.code)) return renderHotkeys("ใช้ได้เฉพาะตัวอักษร A–Z และตัวเลข 0–9");
+  const id = HK_REC, other = HK_ACTS.find(a => a.id !== id && hkCode(a) === e.code);
+  if (other && !confirm(`ปุ่ม ${hkLabel(e.code)} ใช้กับ “${other.th}” อยู่ — สลับกันไหม?`)) { HK_REC = null; return renderHotkeys(); }
+  if (other) HK_MINE[other.id] = hkCode(HK_ACTS.find(a => a.id === id));
+  HK_MINE[id] = e.code;
+  HK_ACTS.forEach(a => { if (HK_MINE[a.id] === a.def) delete HK_MINE[a.id]; });   // ตั้งกลับเป็นปุ่มเดิม = ไม่ต้องเก็บ
+  HK_REC = null; hkSave();
+  vlog("hotkey", { d: `${id}=${hkLabel(e.code)}` });
+  renderHotkeys(`✓ ตั้ง ${hkLabel(e.code)} แล้ว`);
+}, true);
 function openTodo(){
   closeQoPop && closeQoPop(); closeOpenPop();
   $("#todoPop").hidden = false; $("#todoNavBtn").setAttribute("aria-expanded", "true");
@@ -23541,6 +23631,7 @@ function applyTheme(k){
   applyAccent(ACCENT);                                               // สีหลักต้องอ่านออกบนพื้นใหม่
 }
 function renderTheme(){
+  try { renderHotkeys(); } catch(e){}
   const g = $("#themeGrid");
   if (!g) return;
   g.innerHTML = `<button type="button" class="themecard auto${THEME_AUTO ? " on" : ""}" data-theme-k="auto" aria-pressed="${THEME_AUTO}"
@@ -27797,7 +27888,7 @@ async function relHistDraw(pub, fmt){
 // ═══ เวอร์ชันของหน้า — แท็บที่เปิดค้างโค้ดเก่าต้องไม่ซิงก์ทีม ═══
 // เจอจริง 2026-10-27: แท็บเก่าดึงคีย์ใหม่ลงผิดที่ + ดันรายการที่ลบแล้วกลับขึ้นทุกนาที
 // APP_VER ประทับตอน deploy (kol-tools\stamp-version.py) · version.json คู่กันบนเซิร์ฟเวอร์ — ไม่ตรง = รีเฟรช
-const APP_VER = "20261120-163114";
+const APP_VER = "20261120-163455";
 let STALE = false;
 async function verCheck(){
   if (STALE || APP_VER === "dev") return;
