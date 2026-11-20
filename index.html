@@ -24,7 +24,7 @@
   base-uri 'none';
   object-src 'none'">
 <title>Creataew — KOL Sourcing</title>
-<meta name="cf-ver" content="20261120-110936">
+<meta name="cf-ver" content="20261120-161952">
 <!-- Beta / Publish (2026-11-06): หน้าแรก = เวอร์ชันล่าสุด (admin เห็นก่อน) · คนอื่นถูกพาไป v/<เวอร์ชันที่ Publish>.html
      จำเวอร์ชันที่ Publish ไว้ในเครื่อง = พาไปได้ทันทีไม่ต้องรอเน็ต แล้วเช็คซ้ำเบื้องหลัง · ฐานข้อมูลไม่มี RPC (sandbox) = อยู่ตัวล่าสุด -->
 <script>(function(){try{
@@ -1051,6 +1051,15 @@ body:not([data-view="find"]) #cartBtn{display:none!important}
 .icobtn:hover{border-color:var(--accent);color:var(--accent);background:rgba(var(--accent-rgb),.1)}
 /* จุดแดง = คนนี้มี Command ของตัวเอง ไม่ได้ใช้ข้อความต้นแบบร่วมกับคนอื่น */
 .icobtn.has{color:var(--accent);position:relative}
+select.asg.pend{color:var(--warn);font-style:italic}
+#slotPick{position:fixed;inset:0;z-index:9000;background:rgba(0,0,0,.55);display:flex;align-items:center;justify-content:center;padding:16px}
+#slotPick .sp-card{background:var(--surface);color:var(--ink);border:1px solid var(--line);border-radius:14px;padding:22px;max-width:420px;width:100%;box-shadow:0 10px 40px rgba(0,0,0,.35)}
+#slotPick h3{margin:0 0 6px;font-size:1.15rem}
+#slotPick p{margin:0 0 14px;color:var(--mute);font-size:.9rem;line-height:1.5}
+#slotPick .sp-list{display:flex;flex-wrap:wrap;gap:10px;margin-bottom:12px}
+#slotPick .sp-one{flex:1 1 140px;padding:14px;font-size:1.05rem;font-weight:700;border-radius:10px;border:2px solid var(--accent);background:rgba(var(--accent-rgb),.12);color:var(--ink);cursor:pointer}
+#slotPick .sp-one:hover{background:var(--accent);color:#06231f}
+#slotPick .sp-msg{min-height:1.2em;margin-bottom:8px;font-size:.9rem}
 /* (Jibli 2026-11-20) ปุ่ม Command ในตารางต้องเด่น — ปุ่มที่ใช้บ่อยที่สุดของแถว */
 .icobtn.cmdgo{background:var(--accent);color:#06231f;border-color:var(--accent);border-radius:999px;
   padding:.18em .6em;font-weight:700;font-size:.82rem;white-space:nowrap;box-shadow:0 1px 4px rgba(var(--accent-rgb),.35)}
@@ -7575,7 +7584,7 @@ async function loadCoordData(force){
         brief: o.brief || "", note: o.note || "",
         commission: o.commission || "", script: o.script || "", rate_all: [],
         tracking: o.tracking || "",
-        ...(TEAM_MODE ? { assignee: o.assignee || null, _id: o.id, temp: !!o.temp,
+        ...(TEAM_MODE ? { assignee: o.assignee || null, _asgName: o.assignee_name || "", _id: o.id, temp: !!o.temp,
                           _sat: o.status_at || null, _sate: !!o.status_at_est } : {}),
       }));
       if (TEAM_MODE && BASE_PROJ) setCoordBase(mapped);
@@ -9081,10 +9090,12 @@ function asgSelect(r, i){
   if (!projAsg(r.project)) return "";
   const me = sbUid();
   // ตัวเลือกสั้นๆ — กล่องกว้างเท่าตัวเลือกที่ยาวสุด ยาวไปแล้วชื่อครีเอเตอร์ข้างๆ ถูกบีบ
-  const opts = [`<option value="">–</option>`].concat(TEAM.members.map(m =>
+  // ชื่อในชีตที่ยังไม่สมัครเข้าเว็บ (Peach/Seen) — โชว์ชื่อไว้ เลือกคนอื่นทับได้ตามปกติ
+  const pend = !r.assignee && r._asgName;
+  const opts = [pend ? `<option value="" selected>⏳ ${esc(r._asgName)}</option>` : `<option value="">–</option>`].concat(TEAM.members.map(m =>
     `<option value="${esc(m.id)}"${m.id === r.assignee ? " selected" : ""}>${esc(m.name || m.email)}</option>`));
   if (r.assignee && !memberOf(r.assignee)) opts.push(`<option value="${esc(r.assignee)}" selected>คนนอกทีม</option>`);
-  return `${r.assignee ? avatar(r.assignee) : ""}<select class="asg${r.assignee === me ? " mine" : ""}" data-asg="${i}" title="ผู้ดูแลแถวนี้ — ${esc(memName(r.assignee))}${r.assignee === me ? " (คุณ)" : ""}">${opts.join("")}</select>${hoTag(r)}`;
+  return `${r.assignee ? avatar(r.assignee) : ""}<select class="asg${r.assignee === me ? " mine" : ""}${pend ? " pend" : ""}" data-asg="${i}" title="${pend ? `ผู้ดูแลในชีต: ${esc(r._asgName)} — ยังไม่ได้สมัครเข้าเว็บ พอสมัครและเลือกว่าเป็น ${esc(r._asgName)} งานจะย้ายไปเป็นของเขาเอง` : `ผู้ดูแลแถวนี้ — ${esc(memName(r.assignee))}${r.assignee === me ? " (คุณ)" : ""}`}">${opts.join("")}</select>${hoTag(r)}`;
 }
 
 function renderCoordModes(){
@@ -9226,7 +9237,7 @@ function renderDetail(){
         <div class="hint">เก็บในเครื่องนี้เท่านั้น — ชีตยังไม่มีคอลัมน์นี้ จึงไม่ขึ้นชีตตอนซิงก์</div></div>
 
       ${TEAM_MODE && TEAM && isTeamProj(r.project) ? `<div class="dfield wide2"><label>ผู้ดูแล</label>
-        <select data-d="assignee"${can("assign") ? "" : " disabled title=\"ไม่มีสิทธิ์เปลี่ยนผู้ดูแล\""}><option value="">— ยังไม่มีผู้ดูแล —</option>${TEAM.members.map(m =>
+        <select data-d="assignee"${can("assign") ? "" : " disabled title=\"ไม่มีสิทธิ์เปลี่ยนผู้ดูแล\""}><option value="">${!r.assignee && r._asgName ? `⏳ ${esc(r._asgName)} (ยังไม่สมัครเข้าเว็บ)` : "— ยังไม่มีผู้ดูแล —"}</option>${TEAM.members.map(m =>
           `<option value="${esc(m.id)}"${m.id === r.assignee ? " selected" : ""}>${esc(m.name || m.email)}${
             memLabels(m).length ? " · " + esc(memLabels(m).join(", ")) : ""}</option>`).join("")}</select>
         <div class="hint">ใช้กรอง “ของใคร” เหนือตาราง · แถวใหม่ตั้งเป็นคนเพิ่มให้เอง</div></div>` : ""}
@@ -17088,7 +17099,7 @@ function sbRowToCoord(o){
     net3: o.net3 == null ? null : Number(o.net3), paytype: o.paytype || "", sku: o.sku || "",
     postdate: o.postdate || "", deadline: o.deadline || "", brief: o.brief || "", note: o.note || "",
     commission: o.commission || "", script: o.script || "", rate_all: [], tracking: o.tracking || "",
-    assignee: o.assignee || null, _id: o.id, temp: !!o.temp,
+    assignee: o.assignee || null, _asgName: o.assignee_name || "", _id: o.id, temp: !!o.temp,
     _sat: o.status_at || null, _sate: !!o.status_at_est, sheet_fb: o.sheet_fb || "", drafts: Array.isArray(o.drafts) ? o.drafts : null, ...sheetVals(o.sheet_x) };
 }
 // คืน true = จัดการแล้ว · false = ไม่แน่ใจ ให้โหลดใหม่ทั้งหมดแทน (ปลอดภัยกว่าเดา)
@@ -17921,7 +17932,7 @@ async function ppOpen(proj, handle, back){
   dr.innerHTML = `${back ? `<button type="button" class="export" id="ppBack" style="justify-self:start">← กลับไปรายชื่อ</button>` : ""}<h3>@${esc(handle)} <button type="button" class="pp-x" id="ppDx" aria-label="ปิด">✕</button></h3>
     ${w.map(x => `<div class="pp-warn${/Blacklist/.test(x) ? " b" : ""}">⚠ ${esc(x)}</div>`).join("")}
     <div class="pp-facts">
-      <div><span>โปรเจกต์</span>${esc(proj)}</div><div><span>ผู้ดูแล</span>${esc(r.assignee ? memName(r.assignee) : "—")}</div>
+      <div><span>โปรเจกต์</span>${esc(proj)}</div><div><span>ผู้ดูแล</span>${esc(r.assignee ? memName(r.assignee) : r._asgName ? "⏳ " + r._asgName + " (ยังไม่สมัคร)" : "—")}</div>
       <div><span>ขั้นตอนตอนนี้</span>${esc(r.status ? (ST_TH[r.status] || r.status) : "ยังไม่เริ่ม")}</div>
       <div><span>อยู่ขั้นนี้มา</span>${d == null || !r.status ? "—" : isPostedSt(r.status) ? "✅ โพสต์แล้ว" : `${d} วัน${ppState(r) === "late" ? ` · <b style="color:var(--lo)">🔴 เกิน ${ageLim(r.status)[1]} วัน</b>` : ppState(r) === "near" ? ` · <b style="color:var(--warn)">🟡 เกิน ${ageLim(r.status)[0]} วัน</b>` : ""}`}</div>
       <div><span>เรท · ภาษี</span>${r.rate != null ? Number(r.rate).toLocaleString("en-US") : "—"} · ${esc(payType(r.paytype).label)}</div>
@@ -19763,6 +19774,15 @@ async function trackColProbe(){
 }
 // ฟีดแบ็กจาก Lark Sheet (Status IBD · IBD Feedback) — เขียนโดยระบบซิงก์ชีต→เว็บเท่านั้น เว็บอ่านอย่างเดียว
 let FB_COL = null;
+let AN_COL = null;      // coord.assignee_name — ชื่อในชีตที่ยังไม่มีบัญชี (2026-11-21)
+async function anColProbe(){
+  if (AN_COL !== null) return AN_COL;
+  try {
+    const r = await sbAuthed(SB_URL + "/rest/v1/coord?select=assignee_name&limit=1");
+    if (r.ok) AN_COL = true; else if (r.status === 400 || r.status === 401 || r.status === 403) AN_COL = false;
+  } catch(e){}
+  return AN_COL === true;
+}
 let DR_COL = null;      // coord.drafts — ไฟล์ดราฟต์จากชีต (2026-11-17)
 async function drColProbe(){
   if (DR_COL !== null) return DR_COL;
@@ -19794,7 +19814,7 @@ async function sbFetchCoord(){
   // ตารางนี้โตตามจำนวนคน×โปรเจกต์ ตอนนี้ยังไม่ถึงพัน แต่โดนเพดานเดียวกับ pool แน่ๆ ถ้าปล่อยไว้
   // แล้วอาการจะร้ายกว่า เพราะเว็บซิงก์แบบ "เขียนทับทั้งชุด" — อ่านมาไม่ครบแล้วเขียนกลับ = ของหายจริง
   const cols = ((await trackColProbe()) ? SB_COORD_COLS + ",tracking" : SB_COORD_COLS) +
-               (TEAM_MODE ? ",assignee,id,temp,status_at,status_at_est" : "") +
+               (TEAM_MODE ? ",assignee,id,temp,status_at,status_at_est" + ((await anColProbe()) ? ",assignee_name" : "") : "") +
                ((await fbColProbe()) ? ",sheet_fb" : "") + ((await sxColProbe()) ? ",sheet_x" : "") + ((await drColProbe()) ? ",drafts" : "");
   if (TEAM_MODE) await larkLoad();
   return await sbFetchAll("/rest/v1/coord?select=" + cols +
@@ -20407,7 +20427,53 @@ function askNewPassword(invite){
 async function requireLogin(){
   const ok = await requireLogin0();
   if (TEAM_MODE) await teamGate();
+  if (TEAM_MODE) try { await slotGate(); } catch(e){}
   return ok;
+}
+// ═══ คุณคือใครในชีต (Jibli 2026-11-21) ═══
+// ชีตมีชื่อสมาชิกที่ยังไม่มีบัญชี (Peach / Seen) — งานในเว็บขึ้นเป็น "⏳ Peach" ไว้ก่อน
+// คนใหม่เข้าทีมแล้ว → ถามครั้งเดียวว่าเป็นใคร → งานทั้งหมดของชื่อนั้นย้ายมาเป็นของเขา (claim_member_slot)
+// ถามเฉพาะบัญชีที่เพิ่งสมัคร (14 วัน) — คนเดิมในทีมไม่โดนถาม · กด "ไม่ใช่" = ไม่ถามอีกในเครื่องนี้
+const LS_SLOTSKIP = "cf_slotskip_v1";
+async function slotGate(force){
+  if (!TEAM || !TEAM.id || !sbUid()) return;
+  const r = await sbAuthed(SB_URL + "/rest/v1/member_slots?select=id,name,claimed_by&team_id=eq." + encodeURIComponent(TEAM.id), { cache:"no-store" });
+  if (!r.ok) return;
+  const L = await r.json();
+  if (L.some(x => x.claimed_by === sbUid())) return;
+  const open = L.filter(x => !x.claimed_by);
+  if (!open.length) return;
+  if (!force){
+    const born = Date.parse((SESSION && SESSION.user && SESSION.user.created_at) || "");
+    if (born && Date.now() - born > 14 * 864e5) return;
+    try { if (lsGet(LS_SLOTSKIP) === sbUid()) return; } catch(e){}
+  }
+  await new Promise(resolve => {
+    const box = document.createElement("div");
+    box.id = "slotPick";
+    box.innerHTML = `<div class="sp-card"><h3>คุณคือใครในชีตงาน?</h3>
+      <p>ทีมมีงานที่ลงชื่อคุณไว้ในชีตแล้ว — เลือกชื่อของคุณ งานทั้งหมดของชื่อนั้นจะย้ายมาอยู่ในความดูแลของคุณทันที</p>
+      <div class="sp-list">${open.map(x => `<button type="button" class="sp-one" data-slot="${esc(x.id)}" data-nm="${esc(x.name)}">${esc(x.name)}</button>`).join("")}</div>
+      <div class="sp-msg" id="spMsg"></div>
+      <button type="button" class="cmdbtn ghost" id="spNo">ไม่ใช่ทั้งหมด — ข้าม</button></div>`;
+    document.body.appendChild(box);
+    const end = () => { box.remove(); resolve(); };
+    box.querySelector("#spNo").onclick = () => { try { lsSet(LS_SLOTSKIP, sbUid()); } catch(e){} end(); };
+    box.querySelectorAll("[data-slot]").forEach(b => b.onclick = async () => {
+      if (!confirm(`ยืนยันว่าคุณคือ “${b.dataset.nm}” ในชีต?\n\nงานที่ลงชื่อ ${b.dataset.nm} ไว้จะย้ายมาเป็นของบัญชีนี้ — เลือกผิดต้องให้หัวทีมแก้ให้`)) return;
+      box.querySelectorAll("button").forEach(x => x.disabled = true);
+      try {
+        const j = await sbRpc("claim_member_slot", { p_slot: b.dataset.slot });
+        if (!j || !j.ok) throw new Error((j && j.error) || "เลือกไม่สำเร็จ");
+        vlog("team:claim", { d: `${j.name} · ${j.rows} แถว` });
+        $("#spMsg").textContent = `✓ คุณคือ ${j.name} แล้ว — ได้งานมา ${j.rows} คน`;
+        setTimeout(end, 1400);
+      } catch(e){
+        $("#spMsg").textContent = "✕ " + e.message;
+        box.querySelectorAll("button").forEach(x => x.disabled = false);
+      }
+    });
+  });
 }
 // ═══ ลิงก์เชิญ (team-mode-14.sql) ═══
 // admin สร้างที่ ตั้งค่าเว็บ → คนที่เข้าใช้เว็บนี้ → ลิงก์เชิญ · คนกดลิงก์สมัคร/ล็อกอินแล้วเข้าทีมทันที ไม่ต้องใช้รหัสทีม
@@ -27601,7 +27667,7 @@ async function relHistDraw(pub, fmt){
 // ═══ เวอร์ชันของหน้า — แท็บที่เปิดค้างโค้ดเก่าต้องไม่ซิงก์ทีม ═══
 // เจอจริง 2026-10-27: แท็บเก่าดึงคีย์ใหม่ลงผิดที่ + ดันรายการที่ลบแล้วกลับขึ้นทุกนาที
 // APP_VER ประทับตอน deploy (kol-tools\stamp-version.py) · version.json คู่กันบนเซิร์ฟเวอร์ — ไม่ตรง = รีเฟรช
-const APP_VER = "20261120-110936";
+const APP_VER = "20261120-161952";
 let STALE = false;
 async function verCheck(){
   if (STALE || APP_VER === "dev") return;
