@@ -1280,6 +1280,18 @@ body:not([data-view="find"]) #cartBtn{display:none!important}
 /* จุดแดง = คนนี้มี Command ของตัวเอง ไม่ได้ใช้ข้อความต้นแบบร่วมกับคนอื่น */
 .icobtn.has{color:var(--accent);position:relative}
 select.asg.pend{color:var(--warn);font-style:italic}
+.mbud{border:1px solid var(--line);border-radius:12px;padding:12px 14px;margin:0 0 14px;background:var(--surface)}
+.mbud .mb-h{display:flex;gap:10px;align-items:baseline;flex-wrap:wrap;margin-bottom:8px}
+.mbud .mb-in{display:flex;gap:10px;align-items:flex-end;flex-wrap:wrap;margin-bottom:10px}
+.mbud .mb-in label{display:flex;flex-direction:column;gap:3px;font-size:.8rem;color:var(--mute)}
+.mbud .mb-in input{width:150px;padding:6px 8px;border-radius:8px;border:1px solid var(--line);background:var(--bg);color:var(--ink);font:inherit}
+.mbud .mb-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:8px}
+.mbud .mb-c{background:var(--surface2);border-radius:10px;padding:8px 10px}
+.mbud .mb-c .k{font-size:.75rem;color:var(--mute)}
+.mbud .mb-c .v{font-size:1.15rem;font-weight:700;margin-top:2px}
+.mbud .mb-c .s{font-size:.72rem;color:var(--dim);margin-top:2px}
+.mbud .mb-c.good .v{color:var(--hi)}
+.mbud .mb-c.bad .v{color:var(--lo)}
 #slotPick{position:fixed;inset:0;z-index:9000;background:rgba(0,0,0,.55);display:flex;align-items:center;justify-content:center;padding:16px}
 #slotPick .sp-card{background:var(--surface);color:var(--ink);border:1px solid var(--line);border-radius:14px;padding:22px;max-width:420px;width:100%;box-shadow:0 10px 40px rgba(0,0,0,.35)}
 #slotPick h3{margin:0 0 6px;font-size:1.15rem}
@@ -16385,6 +16397,58 @@ function mapGapSheet(proj){
 }
 
 // ─── แผ่น: เงิน ───
+// ═══ 🧮 คำนวณงบ (manager ขึ้นไป · Jibli 2026-11-21) ═══
+// งบที่ได้ + เป้าจำนวนครีเอเตอร์ เก็บใน project_plans (แถวเดียวกับหน้า รายชื่อ & คัดเลือก) → ใช้ไป · เหลือ · งบต่อคนที่ยังใช้ได้
+// ใช้ไป = ยอดที่บริษัทจ่ายจริงของทั้งโปรเจกต์ (ทุกกลุ่ม KOL+KOC ไม่ขึ้นกับแท็บที่เปิด) · ไม่นับคนที่ยกเลิก
+const MBUD = {};   // proj → { budget, target }
+async function mapBudgetLoad(proj){
+  const box = $("#mapBudget"); if (!box) return;
+  if (!MBUD[proj]) try {
+    const r = await sbAuthed(SB_URL + "/rest/v1/project_plans?select=budget,quotas&owner=eq." + encodeURIComponent(spaceOf(proj)) + "&project=eq." + encodeURIComponent(proj));
+    const j = r.ok ? await r.json() : [];
+    MBUD[proj] = { budget: j[0] && j[0].budget != null ? Number(j[0].budget) : null, target: j[0] && j[0].quotas && j[0].quotas.__creators ? Number(j[0].quotas.__creators) : null, quotas: (j[0] && j[0].quotas) || {}, has: !!j[0] };
+  } catch(e){ MBUD[proj] = { budget: null, target: null, quotas: {}, has: false }; }
+  mapBudgetDraw(proj);
+}
+function mapBudgetDraw(proj){
+  const box = $("#mapBudget"); if (!box) return;
+  const b = MBUD[proj] || {}, live = (COORD[proj] || []).filter(r => !isCancelled(r)), st = mapStats(live);
+  const used = st.co, n = live.length, noRate = live.filter(r => !(Number(r.rate) > 0) && kindOf(r) !== "KOC").length;
+  const left = b.budget != null ? b.budget - used : null, need = b.target != null ? Math.max(0, b.target - n) : null;
+  const per = left != null && need ? left / need : null;
+  const cell = (k, v, sub, cls) => `<div class="mb-c${cls ? " " + cls : ""}"><div class="k">${k}</div><div class="v">${v}</div>${sub ? `<div class="s">${sub}</div>` : ""}</div>`;
+  box.innerHTML = `<div class="mb-h"><b>🧮 คำนวณงบ</b><span class="hint">เห็นเฉพาะ PM / PMA / admin · ทั้งโปรเจกต์ (KOL + KOC)</span></div>
+    <div class="mb-in">
+      <label>งบที่ได้ (บาท)<input type="number" min="0" step="100" id="mbBudget" value="${b.budget != null ? b.budget : ""}" placeholder="เช่น 150000"></label>
+      <label>เป้าจำนวนครีเอเตอร์<input type="number" min="0" step="1" id="mbTarget" value="${b.target != null ? b.target : ""}" placeholder="เช่น 60"></label>
+      <button type="button" class="cmdbtn" id="mbSave">บันทึก</button><span class="hint" id="mbMsg"></span></div>
+    <div class="mb-grid">
+      ${cell("งบที่ได้", b.budget != null ? mBaht(b.budget) : "—", b.budget != null ? "" : "ใส่งบด้านบน")}
+      ${cell("ใช้ไปแล้ว", mBaht(used), `${n} คน${noRate ? ` · ยังไม่มีเรท ${noRate} คน (ยังไม่นับ)` : ""}`)}
+      ${cell("งบที่เหลือ", left != null ? mBaht(left) : "—", left != null && b.budget ? `${Math.round(used / b.budget * 100)}% ของงบใช้ไปแล้ว` : "", left != null && left < 0 ? "bad" : "good")}
+      ${cell("ครีเอเตอร์", `${n}${b.target != null ? " / " + b.target : ""}`, need != null ? (need ? `ยังขาดอีก ${need} คน` : "ครบเป้าแล้ว") : "ใส่เป้าด้านบน")}
+      ${cell("งบต่อคนที่ยังใช้ได้", per != null ? mBaht(per) : "—", per != null ? `เหลือ ${mBaht(left)} ÷ ${need} คน` : need === 0 ? "ครบเป้าแล้ว" : "ต้องมีทั้งงบและเป้า", per != null && per < 0 ? "bad" : "")}
+      ${cell("เฉลี่ยที่จ่ายจริงต่อคน", n - noRate > 0 ? mBaht(used / (n - noRate)) : "—", `บริษัทจ่ายจริง ÷ ${n - noRate} คนที่มีเรทแล้ว`)}
+    </div>`;
+  const save = async () => {
+    const bv = $("#mbBudget").value, tv = $("#mbTarget").value, msg = $("#mbMsg");
+    const quotas = Object.assign({}, b.quotas || {});
+    if (tv === "") delete quotas.__creators; else quotas.__creators = Number(tv);
+    const body = { owner: spaceOf(proj), project: proj, budget: bv === "" ? null : Number(bv), quotas, updated_at: new Date().toISOString() };
+    msg.textContent = "กำลังบันทึก…";
+    try {
+      const r = await sbAuthed(SB_URL + "/rest/v1/project_plans?on_conflict=owner,project", { method: "POST",
+        headers: { "Content-Type": "application/json", Prefer: "resolution=merge-duplicates,return=minimal" }, body: JSON.stringify(body) });
+      if (!r.ok) throw new Error("บันทึกไม่ได้ (" + r.status + ")");
+      MBUD[proj] = { budget: body.budget, target: tv === "" ? null : Number(tv), quotas, has: true };
+      if (PR && PR.proj === proj && PR.plan) PR.plan.budget = body.budget;
+      vlog("budget:set", { p: proj, d: `${bv || "-"} / ${tv || "-"} คน` });
+      mapBudgetDraw(proj); $("#mbMsg").textContent = "✓ บันทึกแล้ว";
+    } catch(e){ msg.textContent = "✕ " + e.message; }
+  };
+  $("#mbSave").onclick = save;
+  ["#mbBudget", "#mbTarget"].forEach(id => $(id).onkeydown = e => { if (e.key === "Enter"){ e.preventDefault(); save(); } });
+}
 function mapMoneySheet(proj){
   const all = mapRows(proj);
   if (!all.length) return `<div class="mapempty">${esc(proj)} ยังไม่มี${MAP_KIND === "all" ? "ใคร" : MAP_KIND} ในโปรเจกต์นี้</div>`;
@@ -16400,7 +16464,8 @@ function mapMoneySheet(proj){
     .map(k => ({ k, list: rows.filter(r => skuParts(r.sku).includes(k)) }));
   const noSku = rows.filter(r => !String(r.sku || "").trim());
 
-  return `<div class="mapsum">
+  if (!isCrew()) setTimeout(() => mapBudgetLoad(proj));
+  return `${isCrew() ? "" : `<div id="mapBudget" class="mbud"><span class="hint">กำลังโหลดงบ…</span></div>`}<div class="mapsum">
       <div class="mapstat"><div class="k">เรทรวมที่ตกลงไว้</div><div class="v">${mBaht(s.rate)}</div>
         <div class="s">${s.n} คน · ${s.clips} คลิป${
           nCancel ? `<br><span style="color:#C98A8A">ไม่รวมที่ยกเลิก ${nCancel} คน</span>` : ""}</div></div>
@@ -18498,7 +18563,7 @@ function prNomHTML(){
         <label>วิดีโอ <input type="number" data-prn="videos" value="${r.videos ?? ""}" placeholder="1"></label>
         <select data-prf2="paytype" title="รูปแบบภาษี">${PAYTYPES.map(p => `<option value="${p.id}"${p.id === (r.paytype || "") ? " selected" : ""}>${esc(p.id ? p.label : "รูปแบบภาษี…")}</option>`).join("")}</select></div>
       <input type="text" class="pr-note" data-prf2="pm_note" value="${esc(r.pm_note || "")}" placeholder="💬 ฟีดแบ็กจาก PM (ผู้ดูแลเห็น)">
-      <footer><button type="button" class="pr-btn ok big" data-pract="approve">✅ อนุมัติ → Coordinator</button>
+      <footer><button type="button" class="pr-btn ok big" data-pract="approve"${can("approve") ? "" : ` disabled title="เฉพาะ PM (manager) ขึ้นไป"`}>✅ อนุมัติ → Coordinator${can("approve") ? "" : " (เฉพาะ PM)"}</button>
         <button type="button" class="pr-btn bk" data-pract="backup">⏸ สำรอง</button>
         <button type="button" class="pr-btn no" data-pract="reject">❌ ไม่ผ่าน</button>
         <button type="button" class="pr-btn" data-pract="tolist" title="ส่งกลับไปหน้ารายชื่อ">↩</button></footer></article>`; };
@@ -18520,7 +18585,7 @@ function prPlanHTML(){
     <div class="pr-box"><b>ราคามาตรฐานต่อวิดีโอ ตาม Tier (บาท)</b><span class="pr-sub">ใช้เทียบเรทที่ครีเอเตอร์ขอ ว่าแพงหรือถูกกว่ากี่ %</span>
       ${PR_TIERS.map(([k, th]) => `<label>${esc(th)}<input type="number" data-plrate="${k}" value="${(pl.rates || {})[k] ?? ""}"></label>`).join("")}</div>
     <div class="pr-box"><b>โควตาวิดีโอต่อ SKU</b><span class="pr-sub">บรรทัดละ 1 SKU เช่น  RC309 Shade1 = 40</span>
-      <textarea id="plQuota">${esc(Object.entries(pl.quotas || {}).map(([k, v]) => `${k} = ${v}`).join("\n"))}</textarea>
+      <textarea id="plQuota">${esc(Object.entries(pl.quotas || {}).filter(([k]) => !k.startsWith("__")).map(([k, v]) => `${k} = ${v}`).join("\n"))}</textarea>
       <b style="margin-top:6px">ข้อความทักครั้งแรก</b><span class="pr-sub">ใช้ {{handle}} {{brand}} {{project}} ได้</span><textarea id="plTpl">${esc(pl.template || "")}</textarea></div>
   </div><div class="pr-row" style="margin-top:10px"><button type="button" class="pr-btn pri" data-pract="saveplan">บันทึกแผน</button></div>`;
 }
@@ -18547,6 +18612,7 @@ function prTpl(r){
   return String(pl.template || "").replace(/\{\{handle\}\}/g, normId(r.handle)).replace(/\{\{brand\}\}/g, brand).replace(/\{\{project\}\}/g, PR.proj);
 }
 async function prApprove(r){
+  if (!can("approve")) return alert("อนุมัติครีเอเตอร์เข้า Coordinator ได้เฉพาะ PM (manager) ขึ้นไป — PMA / สมาชิก ส่งให้ PM กดอนุมัติ");
   if (!r.sku && !confirm(`@${normId(r.handle)} ยังไม่ได้เลือก SKU — อนุมัติต่อเลยไหม?`)) return;
   const exist = (COORD[PR.proj] || []).some(x => normId(x.handle) === normId(r.handle));
   if (!exist){
@@ -18565,12 +18631,14 @@ async function prApprove(r){
 async function prSavePlan(){
   const quotas = {};
   ($("#plQuota").value || "").split(/\n/).forEach(l => { const m = l.match(/^\s*(.+?)\s*[=:]\s*(\d+)\s*$/); if (m) quotas[m[1]] = Number(m[2]); });
+  // ค่าที่หน้าเงินเก็บไว้ (เป้าจำนวนครีเอเตอร์ __creators) ไม่อยู่ในกล่องนี้ — เก็บต่อไว้ ไม่ให้หาย
+  Object.entries((PR.plan || {}).quotas || {}).forEach(([k, v]) => { if (k.startsWith("__")) quotas[k] = v; });
   const rates = {}; document.querySelectorAll("[data-plrate]").forEach(i => { if (i.value !== "") rates[i.dataset.plrate] = Number(i.value); });
   const body = { owner: prOwner(PR.proj), project: PR.proj, budget: $("#plBudget").value === "" ? null : Number($("#plBudget").value),
     criteria: { gmv: prNum($("#plGmv").value) ?? 0, women: Number($("#plWomen").value || 0), view: prNum($("#plView").value) ?? 0, er: Number($("#plEr").value || 0) },
     rates, quotas, template: $("#plTpl").value, updated_at: new Date().toISOString() };
   try { await prApi("project_plans?on_conflict=owner,project", { method:"POST", headers:{ Prefer:"resolution=merge-duplicates,return=minimal" }, body: JSON.stringify(body) });
-        PR.plan = body; acctToast("บันทึกแผนแล้ว"); prRender(); }
+        PR.plan = body; try { delete MBUD[PR.proj]; } catch(_){} acctToast("บันทึกแผนแล้ว"); prRender(); }
   catch(e){ histToast(e.message, true); }
 }
 // ── ตัวรับเหตุการณ์ (ตัวเดียวทั้งแผง) ──
@@ -21491,7 +21559,7 @@ function openSettings(tab){
 // ปุ่มวงกลมชื่อ → เมนู: บัญชีของฉัน · ตั้งค่าเว็บ · ขนาดตัวอักษร · คู่มือ · ออกจากระบบ
 // หน้าบัญชี = แท็บแรกของหน้าตั้งค่า: ชื่อเล่น · เปลี่ยนรหัสผ่าน · เปลี่ยนอีเมล · การเข้าสู่ระบบ
 var ACCT_NOTE = "";    // ข้อความจากลิงก์ยืนยันอีเมล — โชว์หลังเปิดเว็บเสร็จ (var: ถูกตั้งค่าตั้งแต่ตอนอ่าน hash ก่อนบรรทัดนี้จะรัน)
-const ROLE_TH = { admin:"แอดมิน", manager:"ผู้จัดการ", editor:"สมาชิก", viewer:"ดูอย่างเดียว" };
+const ROLE_TH = { admin:"แอดมิน", manager:"ผู้จัดการ (PM)", pma:"PMA", editor:"สมาชิก", viewer:"ดูอย่างเดียว" };
 function acctUser(){ return (SESSION && SESSION.user) || {}; }
 function acctName(){ return ((PROFILE || {}).display_name || "").trim() || (acctUser().email || "").split("@")[0] || "บัญชี"; }
 function acctLabel(){ const m = memberOf(sbUid()); return (m && m.label) || ""; }
@@ -21582,7 +21650,7 @@ function renderAcctBtn(){
   b.hidden = !SESSION;
   $("#acctAv").outerHTML = acctAvatar().replace('class="acav"', 'class="acav" id="acctAv"');
   $("#acctName").textContent = acctName();
-  const u = acctUser(), role = (PROFILE || {}).role;
+  const u = acctUser(), role = effRole(PROFILE || {});
   $("#amHead").innerHTML = `${acctAvatar()}<div style="min-width:0">
     <div class="nm">${esc(acctName())}</div><div class="em">${esc(u.email || "")}</div>
     <div class="am-chips">${role ? `<span class="am-chip role">${esc(ROLE_TH[role] || role)}</span>` : ""}${
@@ -21757,7 +21825,7 @@ function pwMeter(){
 }
 
 function renderAcctCard(){
-  const u = acctUser(), role = (PROFILE || {}).role;
+  const u = acctUser(), role = effRole(PROFILE || {});
   $("#acctCard").innerHTML = `${acctAvatar()}<div style="min-width:0">
     <div class="nm">${esc(acctName())}</div><div class="em">${esc(u.email || "")}</div>
     <dl><dt>สิทธิ์</dt><dd>${esc(ROLE_TH[role] || role || "—")}</dd>
@@ -23440,7 +23508,8 @@ const seenText = t => {
   if (diff < 43200) return `${Math.floor(diff / 1440)} วันที่แล้ว`;
   return d.toLocaleDateString("th-TH", { day:"numeric", month:"short", year:"2-digit" });
 };
-const ROLE_DESC = { admin:"ทุกอย่าง รวมถึงตั้งค่าทีมและสิทธิ์คนอื่น", manager:"จัดการโปรเจกต์ได้ (สร้าง/ลบ/ย้าย)",
+const ROLE_DESC = { admin:"ทุกอย่าง รวมถึงตั้งค่าทีมและสิทธิ์คนอื่น", manager:"PM — จัดการโปรเจกต์ได้ (สร้าง/ลบ/ย้าย) + อนุมัติครีเอเตอร์เข้า Coordinator",
+  pma:"PMA — เหมือน PM ทุกอย่าง แต่อนุมัติครีเอเตอร์เข้า Coordinator ไม่ได้",
   editor:"เพิ่ม/แก้ครีเอเตอร์ในงาน", viewer:"ดูอย่างเดียว (ค่าตั้งต้นปิดการแก้ต้นแบบ/ลบ/ส่งออก)" };
 // ── ลิงก์เชิญ (admin) ──
 const inviteUrl = t => SB_RESET_TO + "#invite=" + t;
@@ -23519,7 +23588,7 @@ async function renderUsers(){
       (rows.length ? rows.map(u => {
         const self = u.id === me, perms = u.perms || {};
         const feats = FEATS.map(f => {
-          const def = featDefault(u.role, f), on = u.role === "admin" ? true : (typeof perms[f.k] === "boolean" ? perms[f.k] : def);
+          const def = featDefault(effRole(u), f), on = u.role === "admin" ? true : (typeof perms[f.k] === "boolean" ? perms[f.k] : def);
           return `<label class="${typeof perms[f.k] === "boolean" && perms[f.k] !== def ? "chg" : ""}" title="ค่าตั้งต้นของ ${esc(u.role)}: ${def ? "ใช้ได้" : "ปิด"}">
             <input type="checkbox" data-uf="${f.k}"${on ? " checked" : ""}${!isAdmin || u.role === "admin" || PERMS_COL === false ? " disabled" : ""}> ${esc(f.th)}</label>`;
         }).join("");
@@ -23529,9 +23598,9 @@ async function renderUsers(){
             <span class="n">${esc(teamName(u.team_id))}</span>
             <span class="seen" title="สมัคร ${esc(new Date(u.created_at).toLocaleString("th-TH"))}">เข้าใช้ ${esc(seenText(u.last_seen_at))}</span></div>
           ${isAdmin ? `<div class="uctl">
-              <label>สิทธิ์ <select data-urole${self ? " disabled title=\"เปลี่ยนสิทธิ์ตัวเองไม่ได้\"" : ""}>${["admin", "manager", "editor", "viewer"].map(x =>
-                `<option value="${x}"${x === u.role ? " selected" : ""}>${x}</option>`).join("")}</select></label>
-              <span class="hint" data-urdesc>${esc(ROLE_DESC[u.role] || "")}</span>
+              <label>สิทธิ์ <select data-urole${self ? " disabled title=\"เปลี่ยนสิทธิ์ตัวเองไม่ได้\"" : ""}>${["admin", "manager", "pma", "editor", "viewer"].map(x =>
+                `<option value="${x}"${x === effRole(u) ? " selected" : ""}>${x === "manager" ? "manager (PM)" : x === "pma" ? "PMA" : x}</option>`).join("")}</select></label>
+              <span class="hint" data-urdesc>${esc(ROLE_DESC[effRole(u)] || "")}</span>
               <label class="chk"><input type="checkbox" data-uactive${u.is_active ? " checked" : ""}${self ? " disabled" : ""}> ใช้งานได้ (เอาติ๊กออก = ระงับบัญชี)</label>
             </div>
             <div class="ufeat">${u.role === "admin" ? `<span class="hint">admin ใช้ได้ทุกฟีเจอร์เสมอ</span>` : feats}</div>
@@ -23558,7 +23627,7 @@ async function renderUsers(){
         // ติ๊กที่ยังไม่ได้ตั้งเอง ขยับตามค่าตั้งต้นของ role ใหม่
         card.querySelectorAll("[data-uf]").forEach(cb => {
           const f = FEATS.find(x => x.k === cb.dataset.uf);
-          if (typeof (u.perms || {})[f.k] !== "boolean") cb.checked = featDefault(rs.value, f);
+          if (typeof (u.perms || {})[f.k] !== "boolean" || f.k === "approve") cb.checked = featDefault(rs.value, f);
           cb.disabled = rs.value === "admin" || PERMS_COL === false;
         });
       };
@@ -23568,12 +23637,12 @@ async function renderUsers(){
       if (rst) rst.onclick = () => { u.perms = {}; card.querySelectorAll("[data-uf]").forEach(cb => {
         cb.checked = featDefault(rs.value, FEATS.find(x => x.k === cb.dataset.uf)); cb.closest("label").classList.remove("chg"); }); dirty(); };
       save.onclick = async () => {
-        const role = rs.value, active = card.querySelector("[data-uactive]").checked;
+        const pick = rs.value, role = pick === "pma" ? "manager" : pick, active = card.querySelector("[data-uactive]").checked;
         // เก็บเฉพาะที่ต่างจากค่าตั้งต้นของ role — เปลี่ยน role ทีหลังแล้วสิทธิ์ที่ไม่ได้ตั้งเองขยับตามได้
-        const perms = {};
+        const perms = pick === "pma" ? { pma: true } : {};
         card.querySelectorAll("[data-uf]").forEach(cb => {
           const f = FEATS.find(x => x.k === cb.dataset.uf);
-          if (cb.checked !== featDefault(role, f)) perms[f.k] = cb.checked;
+          if (cb.checked !== featDefault(pick, f)) perms[f.k] = cb.checked;
         });
         if (!active && !confirm(`ระงับบัญชี ${u.display_name || u.email}?\n\nเข้าเว็บไม่ได้จนกว่าจะเปิดกลับ · ข้อมูลที่เขาทำไว้ไม่หาย`)) return;
         save.disabled = true; msg.className = "addmsg on"; msg.textContent = "กำลังบันทึก…";
@@ -26811,8 +26880,16 @@ const FEATS = [
   // 2026-11-10 — หน้าทดลอง: ตั้งต้นปิด (admin ติ๊กเปิดให้รายคนได้)
   { k:"pipeline",  th:"🧪 Pipeline (ทดลอง)", def:false },
   { k:"prospects", th:"🗂 รายชื่อ & คัดเลือก (ทดลอง)", def:false },
+  // 2026-11-21 — อนุมัติครีเอเตอร์เข้า Coordinator: เฉพาะ manager (PM) ขึ้นไป · PMA / สมาชิก ไม่ได้
+  { k:"approve", th:"✅ อนุมัติครีเอเตอร์เข้า Coordinator", full:true },
 ];
-const featDefault = (role, f) => f.def === false ? false : role === "viewer" ? f.viewer !== false : true;
+// ═══ PMA (Jibli 2026-11-21) ═══
+// ยศเหมือน PM (manager) ทุกอย่าง ยกเว้นคอนเฟิร์มครีเอเตอร์เข้า Coordinate ไม่ได้
+// ในฐานข้อมูลเก็บเป็น role = manager + perms.pma = true (ไม่เพิ่มค่าใน enum — RLS/ฟังก์ชันเดิมที่เช็ก manager ใช้ต่อได้ทันที)
+const effRole = u => u && u.role === "manager" && (u.perms || {}).pma ? "pma" : (u || {}).role;
+const featDefault = (role, f) => role === "pma" ? (f.k === "approve" ? false : featDefault("manager", f))
+  : f.full ? ["admin", "manager"].includes(role)
+  : f.def === false ? false : role === "viewer" ? f.viewer !== false : true;
 function can(k){
   if (!TEAM_MODE) return true;
   const p = PROFILE || {};
@@ -26820,7 +26897,7 @@ function can(k){
   const f = FEATS.find(x => x.k === k);
   if (!f) return true;
   const v = (p.perms || {})[k];
-  return typeof v === "boolean" ? v : featDefault(p.role, f);
+  return typeof v === "boolean" ? v : featDefault(effRole(p), f);
 }
 function applyPerms(){
   const de = document.documentElement;
